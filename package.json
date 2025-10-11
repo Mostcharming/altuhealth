@@ -1,0 +1,19 @@
+{
+  "name": "altu-health-erp",
+  "version": "1.0.0",
+  "description": "Altu Health ERP - Complete HMO Management System",
+  "private": true,
+  "scripts": {
+    "backend": "cd backend && npm run dev",
+    "landing": "cd frontend/landing && npm run dev",
+    "admin": "cd frontend/admin && npm run dev",
+    "provider": "cd frontend/provider && npm run dev",
+    "member": "cd frontend/member && npm run dev",
+    "corporate": "cd frontend/corporate && npm run dev",
+    "retail": "cd frontend/retail && npm run dev",
+    "install-all": "cd backend && npm install && cd ../frontend/landing && npm install && cd ../admin && npm install && cd ../provider && npm install && cd ../member && npm install && cd ../corporate && npm install && cd ../retail && npm install"
+  },
+  "keywords": ["erp", "health", "hmo", "telemedicine"],
+  "author": "Altu Health",
+  "license": "MIT"
+}

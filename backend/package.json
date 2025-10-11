@@ -1,0 +1,16 @@
+{
+  "name": "altu-health-backend",
+  "version": "1.0.0",
+  "description": "Altu Health ERP Backend API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest",
+    "lint": "eslint src/",
+    "format": "prettier --write 'src/**/*.js'"
+  },
+  "keywords": ["erp", "health", "hmo"],
+  "author": "",
+  "license": "ISC"
+}

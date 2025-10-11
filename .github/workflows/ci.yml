@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: cd backend && npm install
+      - name: Run tests
+        run: cd backend && npm test
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [landing, admin, provider, member, corporate, retail]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: cd frontend/${{ matrix.app }} && npm install
+      - name: Build
+        run: cd frontend/${{ matrix.app }} && npm run build
