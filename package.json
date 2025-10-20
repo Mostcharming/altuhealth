@@ -8,7 +8,7 @@
     "landing": "cd frontend/landing && npm run dev",
     "admin": "cd frontend/admin && npm run dev",
     "provider": "cd frontend/provider && npm run dev",
-    "member": "cd frontend/member && npm run dev",
+    "enrollee": "cd frontend/enrollee && npm run dev",
     "corporate": "cd frontend/corporate && npm run dev",
     "retail": "cd frontend/retail && npm run dev",
     "install-all": "cd backend && npm install && cd ../frontend/landing && npm install && cd ../admin && npm install && cd ../provider && npm install && cd ../member && npm install && cd ../corporate && npm install && cd ../retail && npm install"
