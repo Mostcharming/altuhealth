@@ -3,7 +3,7 @@ import { APP_CONFIG } from "./config";
 export type ApiRequestOptions = {
   method?: string;
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   formData?: FormData;
   token?: string;
   baseUrl?: string;
@@ -48,7 +48,7 @@ export async function apiClient(
       finalHeaders["Content-Type"] = "application/json";
       payload = JSON.stringify(body);
     } else {
-      payload = body;
+      payload = body as BodyInit;
     }
 
     const response = await fetch(url, {
@@ -70,8 +70,9 @@ export async function apiClient(
     }
 
     return data;
-  } catch (error: any) {
-    console.error(`[API ERROR]: ${error.message}`);
-    throw error;
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error(`[API ERROR]: ${err.message}`);
+    throw err;
   }
 }
