@@ -1,20 +1,62 @@
 require('dotenv').config();
 
+const dbconfig = require('../../config').db;
+
 module.exports = {
   development: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    dialect: 'postgres',
+    replication: {
+      write: {
+        username: dbconfig.master.username,
+        password: dbconfig.master.password,
+        database: dbconfig.master.database,
+        host: dbconfig.master.host,
+        port: dbconfig.master.port
+      },
+      read: [
+        {
+          username: dbconfig.slave.username,
+          password: dbconfig.slave.password,
+          database: dbconfig.slave.database,
+          host: dbconfig.slave.host,
+          port: dbconfig.slave.port
+        }
+      ]
+    },
+    dialect: dbconfig.master.dialect || 'postgres',
+    pool: {
+      max: 20,
+      min: 0,
+      acquire: 60000,
+      idle: 10000
+    },
     logging: console.log
   },
   production: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    dialect: 'postgres',
+    replication: {
+      write: {
+        username: dbconfig.master.username,
+        password: dbconfig.master.password,
+        database: dbconfig.master.database,
+        host: dbconfig.master.host,
+        port: dbconfig.master.port
+      },
+      read: [
+        {
+          username: dbconfig.slave.username,
+          password: dbconfig.slave.password,
+          database: dbconfig.slave.database,
+          host: dbconfig.slave.host,
+          port: dbconfig.slave.port
+        }
+      ]
+    },
+    dialect: dbconfig.master.dialect || 'postgres',
+    pool: {
+      max: 20,
+      min: 0,
+      acquire: 60000,
+      idle: 10000
+    },
     logging: false
   }
 };
