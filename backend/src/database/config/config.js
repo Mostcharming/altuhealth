@@ -3,10 +3,6 @@ require('dotenv').config();
 const config = require('../../config');
 const dbconfig = require('../../config').db;
 
-console.log('Database configuration loaded for environment:', process.env.NODE_ENV || 'development');
-console.log('Using Sequelize replication:', config);
-console.log('Master DB Host:', dbconfig.master.host);
-console.log('Slave DB Host:', dbconfig.slave.host);
 
 module.exports = {
   development: {
