@@ -6,7 +6,7 @@ const config = {
             master: {
                 host: "192.168.1.165",
                 port: 5432,
-                username: "postgress",
+                username: "postgres",
                 password: "Spartan920",
                 database: "altuhealth_master",
                 dialect: "postgres",
@@ -14,13 +14,14 @@ const config = {
             slave: {
                 host: "192.168.1.165",
                 port: 5432,
-                username: "postgress",
+                username: "postgres",
                 password: "Spartan920",
                 database: "altuhealth_slave",
                 dialect: "postgres",
             },
         },
         useSequelizeReplication: true,
+        apiVersion: "v1",
     },
     production: {
         feUrl: "https://api.kolanutafrica.com",
@@ -28,7 +29,7 @@ const config = {
             master: {
                 host: "192.168.1.165",
                 port: 5432,
-                username: "postgress",
+                username: "postgres",
                 password: "Spartan920",
                 database: "altuhealth",
                 dialect: "postgres",
@@ -36,13 +37,14 @@ const config = {
             slave: {
                 host: "192.168.1.165",
                 port: 5432,
-                username: "postgress",
+                username: "postgres",
                 password: "Spartan920",
                 database: "altuhealth",
                 dialect: "postgres",
             },
         },
         useSequelizeReplication: true,
+        apiVersion: "v1",
 
     },
 };
@@ -53,4 +55,4 @@ const currentConfig =
         : config.development;
 
 
-export default currentConfig;
+module.exports = currentConfig;

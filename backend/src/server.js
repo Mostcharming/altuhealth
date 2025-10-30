@@ -3,8 +3,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
+const dbSelector = require('./middlewares/common/dbSelector');
+const adminRouter = require('./modules/admin/route');
+
 require('./database');
 require('dotenv').config();
+
+const config = require('./config');
 
 const app = express();
 
@@ -15,10 +20,14 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(dbSelector);
+
+app.use(`/api/${config.apiVersion}/admin`, adminRouter);
+
 app.get('/', (req, res) => {
   res.json({
     message: 'Altu Health ERP API',
-    version: '1.0.0',
+    apiVersion: config.apiVersion,
     status: 'running'
   });
 });

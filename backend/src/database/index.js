@@ -1,8 +1,6 @@
 'use strict';
 const { Sequelize } = require('sequelize');
-const { exec } = require('child_process');
-const util = require('util');
-const execPromise = util.promisify(exec);
+
 
 const config = require('./config/config')[process.env.NODE_ENV || 'development'];
 const useSequelizeReplication = require('../config').useSequelizeReplication;
@@ -55,54 +53,53 @@ if (useSequelizeReplication) {
 
 async function createDatabaseIfNotExists() {
     const writeConfig = config.replication.write;
+    const readConfigs = config.replication.read;
 
-    const tempSequelize = new Sequelize({
-        database: 'postgres',
-        username: writeConfig.username,
-        password: writeConfig.password,
-        host: writeConfig.host,
-        port: writeConfig.port,
-        dialect: writeConfig.dialect || config.dialect,
-        logging: false
-    });
+    const targets = Array.isArray(readConfigs) ? [writeConfig, ...readConfigs] : [writeConfig, readConfigs];
 
-    try {
-        const [results] = await tempSequelize.query(
-            `SELECT 1 FROM pg_database WHERE datname = '${writeConfig.database}'`
-        );
+    const seen = new Set();
 
-        if (results.length === 0) {
-            await tempSequelize.query(`CREATE DATABASE "${writeConfig.database}"`);
-            console.log(`✅ Database '${writeConfig.database}' created successfully.`);
-        } else {
-            console.log(`ℹ️  Database '${writeConfig.database}' already exists.`);
+    for (const cfg of targets) {
+        if (!cfg) continue;
+
+        const key = `${cfg.host}:${cfg.port}:${cfg.database}:${cfg.username}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const tempSequelize = new Sequelize({
+            database: 'postgres',
+            username: cfg.username,
+            password: cfg.password,
+            host: cfg.host,
+            port: cfg.port,
+            dialect: cfg.dialect || config.dialect,
+            logging: false
+        });
+
+        try {
+            const [results] = await tempSequelize.query(
+                `SELECT 1 FROM pg_database WHERE datname = '${cfg.database}'`
+            );
+
+            if (results.length === 0) {
+                await tempSequelize.query(`CREATE DATABASE "${cfg.database}"`);
+                console.log(`✅ Database '${cfg.database}' created successfully on ${cfg.host}:${cfg.port}.`);
+            } else {
+                console.log(`ℹ️  Database '${cfg.database}' already exists on ${cfg.host}:${cfg.port}.`);
+            }
+        } catch (error) {
+            console.error(`❌ Error creating database '${cfg.database}' on ${cfg.host}:${cfg.port}:`, error.message);
+            throw error;
+        } finally {
+            await tempSequelize.close();
         }
-    } catch (error) {
-        console.error('❌ Error creating database:', error.message);
-        throw error;
-    } finally {
-        await tempSequelize.close();
     }
 }
 
-async function runMigrations() {
-    try {
-        console.log('🔄 Running migrations...');
-        const { stdout, stderr } = await execPromise('npx sequelize-cli db:migrate');
-
-        if (stdout) console.log(stdout);
-        if (stderr) console.error(stderr);
-
-        console.log('✅ Migrations completed successfully.');
-    } catch (error) {
-        console.error('❌ Error running migrations:', error.message);
-        throw error;
-    }
-}
 
 async function initializeDatabase() {
     try {
-        await createDatabaseIfNotExists();
+        // await createDatabaseIfNotExists();
 
         if (useSequelizeReplication) {
             await sequelize.authenticate();
@@ -118,7 +115,6 @@ async function initializeDatabase() {
             console.log(`📖 Slave ${i + 1} (read): ${read.host}:${read.port}`);
         });
 
-        await runMigrations();
 
         console.log('🎉 Database initialization complete!');
     } catch (error) {
@@ -141,5 +137,4 @@ module.exports = {
     slaveSequelize,
     getSequelizeByRequest,
     createDatabase: createDatabaseIfNotExists,
-    runMigrations
 };
