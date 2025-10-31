@@ -1,10 +1,10 @@
 'use strict';
+const { v4: uuidv4 } = require('uuid');
 
 module.exports = {
     up: async (queryInterface, Sequelize) => {
-        // Insert initial single row. id is fixed to 1 to satisfy single-row constraint.
         await queryInterface.bulkInsert('license', [{
-            id: 1,
+            id: uuidv4(),
             expires_at: null,
             is_lifetime: true,
             created_at: new Date(),

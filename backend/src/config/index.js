@@ -16,7 +16,7 @@ const config = {
                 port: 5432,
                 username: "postgres",
                 password: "Spartan920",
-                database: "altuhealth_slave",
+                database: "altuhealth_master",
                 dialect: "postgres",
             },
         },
