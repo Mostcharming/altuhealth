@@ -1,17 +1,19 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageMetrics from "@/components/pageTop/pageMetrics";
+import Table from "@/components/table/List";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title:
-    "Next.js E-commerce  Invoices | TailAdmin - Next.js Dashboard Template",
-  description:
-    "This is Next.js E-commerce  Invoices TailAdmin Dashboard Template",
+  title: "AltuHealth Admin Units",
+  description: "Manage measurement units in your AltuHealth admin panel.",
 };
 
-export default function InvoicesPage() {
+export default function UnitsPage() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Invoices" />
+      <PageBreadcrumb pageTitle="Units" />
+      <PageMetrics buttonText="Create a Unit" />
+      <Table />
     </div>
   );
 }
