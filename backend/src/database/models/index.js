@@ -1,37 +1,30 @@
-'use strict';
+const { DataTypes } = require('sequelize');
 
-const fs = require('fs');
-const path = require('path');
-const Sequelize = require('sequelize');
-const process = require('process');
-const basename = path.basename(__filename);
-const db = {};
 
-const { sequelize: defaultSequelize, masterSequelize } = require('../index');
-const sequelize = masterSequelize || defaultSequelize;
+function defineModels(sequelize) {
+  const License = require("./license.model")(sequelize, DataTypes);
+  const Admin = require("./admin.model")(sequelize, DataTypes);
+  const Role = require("./role.model")(sequelize, DataTypes);
+  const Unit = require("./unit.model")(sequelize, DataTypes);
+  const UserRole = require("./userRole.model")(sequelize, DataTypes);
+  const UserUnit = require("./userUnit.model")(sequelize, DataTypes);
 
-fs
-  .readdirSync(__dirname)
-  .filter(file => {
-    return (
-      file.indexOf('.') !== 0 &&
-      file !== basename &&
-      file.slice(-3) === '.js' &&
-      file.indexOf('.test.js') === -1
-    );
-  })
-  .forEach(file => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;
-  });
 
-Object.keys(db).forEach(modelName => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
-  }
-});
+  Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
+  UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
 
-db.sequelize = sequelize;
-db.Sequelize = Sequelize;
+  Admin.hasMany(UserUnit, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
+  UserUnit.belongsTo(Admin, { foreignKey: "userId", constraints: false });
 
-module.exports = db;
+  Role.hasMany(UserRole, { foreignKey: "roleId" });
+  UserRole.belongsTo(Role, { foreignKey: "roleId" });
+
+  Unit.hasMany(UserUnit, { foreignKey: "unitId" });
+  UserUnit.belongsTo(Unit, { foreignKey: "unitId" });
+
+
+
+  return { License, Admin, Role, Unit, UserRole, UserUnit };
+}
+
+module.exports = defineModels;

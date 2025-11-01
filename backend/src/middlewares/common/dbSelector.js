@@ -1,4 +1,5 @@
 const { getSequelizeByRequest } = require('../../database');
+const defineModels = require('../../database/models');
 
 function dbSelector(req, res, next) {
     try {
@@ -9,6 +10,7 @@ function dbSelector(req, res, next) {
         }
 
         req.db = sequelizeInstance;
+        req.models = defineModels(sequelizeInstance);
 
         if (process.env.NODE_ENV === 'development') {
             console.log(`🔄 Using ${req.method === 'GET' ? 'slave' : 'master'} database for ${req.method} ${req.originalUrl}`);

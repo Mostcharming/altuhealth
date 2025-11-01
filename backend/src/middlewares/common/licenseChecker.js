@@ -5,8 +5,7 @@ module.exports = async function licenseChecker(req, res, next) {
         const { responseFormatter } = require('./responseFormatter');
         if (typeof res.format !== 'function') responseFormatter(req, res, () => { });
 
-        const db = require('../../database/models');
-        const { License } = db;
+        const { License } = req.models;
 
         const license = await License.findOne();
 
