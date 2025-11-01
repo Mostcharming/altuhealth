@@ -35,15 +35,15 @@ const navItems: NavItem[] = [
     subItems: [
       {
         name: "Users",
-        path: "/users/manage",
+        path: "/users",
       },
       {
         name: "Units",
-        path: "/users/units",
+        path: "/units",
       },
       {
         name: "Roles",
-        path: "/users/roles",
+        path: "/roles",
       },
     ],
   },
@@ -54,9 +54,9 @@ const othersItems: NavItem[] = [
     name: "Settings",
     icon: <GridIcon />,
     subItems: [
-      { name: "Plans", path: "/settings/plans" },
-      { name: "General Exclusion", path: "/settings/general-exclusion" },
-      { name: "API keys", path: "/settings/integrations" },
+      { name: "Plans", path: "/plans" },
+      { name: "General Exclusion", path: "/general" },
+      { name: "API keys", path: "/integrations" },
     ],
   },
   {
