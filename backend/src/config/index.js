@@ -22,6 +22,8 @@ const config = {
         },
         useSequelizeReplication: true,
         apiVersion: "v1",
+        jwtSecret: "altuHealth-jwt-secret",
+        jwtExpiresIn: "1d",
     },
     production: {
         feUrl: "https://api.kolanutafrica.com",
@@ -45,6 +47,9 @@ const config = {
         },
         useSequelizeReplication: true,
         apiVersion: "v1",
+        jwtSecret: "altuHealth-jwt-secret",
+        jwtExpiresIn: "1d",
+
 
     },
 };

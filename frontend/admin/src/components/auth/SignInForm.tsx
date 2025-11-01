@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Checkbox from "@/components/form/input/Checkbox";
@@ -6,14 +7,73 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import Notification from "@/components/ui/notification/Notification";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
+import { apiClient } from "@/lib/apiClient";
 import { useAuthStore } from "@/lib/authStore";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+async function getCoordinates(timeoutMs = 8000): Promise<{
+  lat: number;
+  lon: number;
+} | null> {
+  return new Promise((resolve) => {
+    if (!("geolocation" in navigator)) return resolve(null);
+
+    let resolved = false;
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        resolve(null);
+      }
+    }, timeoutMs);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (resolved) return;
+        resolved = true;
+        clearTimeout(timer);
+        const { latitude, longitude } = pos.coords;
+        resolve({ lat: latitude, lon: longitude });
+      },
+      (err) => {
+        console.warn("Geolocation error:", err);
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          resolve(null);
+        }
+      },
+      { enableHighAccuracy: false, maximumAge: 60_000, timeout: timeoutMs }
+    );
+  });
+}
+
+async function getLocationName(
+  lat: number,
+  lon: number
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const state =
+      data.address?.state || data.address?.region || data.address?.county || "";
+    const country = data.address?.country || "";
+    return [state, country].filter(Boolean).join(", ") || null;
+  } catch (err) {
+    console.warn("Reverse geocoding failed:", err);
+    return null;
+  }
+}
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
-  const [email, setEmail] = useState("");
+  // Accept either an email or a policy number in a single identifier field
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [toast, setToast] = useState<{
     variant: "success" | "info" | "warning" | "error";
@@ -22,11 +82,12 @@ export default function SignInForm() {
   } | null>(null);
 
   const login = useAuthStore((state) => state.login);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!identifier || !password) {
       setToast({
         variant: "error",
         title: "Missing Fields",
@@ -35,28 +96,73 @@ export default function SignInForm() {
       return;
     }
 
-    // Example data
-    const sampleUser = {
-      id: "1",
-      email,
-      firstName: "John",
-      lastName: "Doe",
-      role: "admin",
-      profilePicture: "https://mayowa.net/may.jpg",
-    };
+    try {
+      const coords = await getCoordinates();
+      let currentLocation = null;
 
-    const sampleToken = "sample_token_12345";
+      if (coords) {
+        currentLocation = await getLocationName(coords.lat, coords.lon);
+      }
 
-    login(sampleUser, sampleToken);
+      // Decide whether the identifier is an email or a policy number
+      const isEmail = /\S+@\S+\.\S+/.test(identifier);
 
-    setToast({
-      variant: "success",
-      title: "Signed in successfully! ✅",
-      description: `Welcome back! ${sampleUser.firstName}`,
-    });
+      const bodyPayload: any = {
+        password,
+        remember: isChecked,
+        location: {
+          lat: coords?.lat || null,
+          lon: coords?.lon || null,
+          currentLocation: currentLocation || null,
+        },
+      };
 
-    setEmail("");
-    setPassword("");
+      if (isEmail) {
+        bodyPayload.email = identifier;
+      } else {
+        bodyPayload.policyNumber = identifier;
+      }
+
+      const data = await apiClient("/admin/auth/login", {
+        method: "POST",
+        body: bodyPayload,
+      });
+
+      const resp = data && typeof data === "object" ? data : {};
+      const user = (resp as any).user ?? (resp as any).data?.user ?? null;
+      const token =
+        (resp as any).token ??
+        (resp as any).data?.token ??
+        (resp as any).accessToken ??
+        null;
+
+      if (!user || !token) {
+        throw new Error("Invalid response from server");
+      }
+
+      login(user, token);
+
+      router.push("/analytics");
+
+      setToast({
+        variant: "success",
+        title: "Signed in successfully! ✅",
+        description: `Welcome back! ${
+          (user as any).firstName ?? (user as any).email
+        }`,
+      });
+
+      setIdentifier("");
+      setPassword("");
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      setToast({
+        variant: "error",
+        title: "Sign in failed",
+        description: err.message || "An unexpected error occurred",
+      });
+      console.error("Sign in error:", err);
+    }
   };
 
   useEffect(() => {
@@ -93,13 +199,14 @@ export default function SignInForm() {
             <div className="space-y-6">
               <div>
                 <Label>
-                  Email <span className="text-error-500">*</span>
+                  Email or Policy Number{" "}
+                  <span className="text-error-500">*</span>
                 </Label>
                 <Input
-                  placeholder="info@gmail.com"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email or Policy Number"
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                 />
               </div>
 

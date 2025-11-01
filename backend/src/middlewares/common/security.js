@@ -1,7 +1,6 @@
 'use strict';
 
-// JWT-based authentication middleware + helpers.
-// Requires: install `jsonwebtoken` and set process.env.JWT_SECRET
+
 
 const jwtLib = (() => {
     try {
@@ -13,12 +12,12 @@ const jwtLib = (() => {
 
 function ensureJwtAvailable() {
     if (!jwtLib) throw new Error('Missing dependency: jsonwebtoken. Run `npm install jsonwebtoken`');
-    const secret = process.env.JWT_SECRET;
+    const secret = require('../../config').jwtSecret
     if (!secret) throw new Error('Missing configuration: JWT_SECRET environment variable is not set');
     return secret;
 }
 
-function signToken(user, expiresIn = process.env.JWT_EXPIRES_IN || '1d') {
+function signToken(user, expiresIn = require('../../config').jwtExpiresIn) {
     const secret = ensureJwtAvailable();
     return jwtLib.sign({ sub: user.id, user }, secret, { expiresIn });
 }
@@ -45,7 +44,7 @@ function securityMiddleware(req, res, next) {
             return res.fail('Invalid or expired token', 401);
         }
 
-        req.user = payload.user || { id: payload.sub };
+        req.user = payload.user;
         req.admin = req.user;
 
         next();
