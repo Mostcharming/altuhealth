@@ -4,13 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
-import {
-  ChevronDownIcon,
-  FileIcon,
-  GridIcon,
-  HorizontaLDots,
-  UserCircleIcon,
-} from "../icons/index";
+import { ChevronDownIcon, GridIcon, HorizontaLDots } from "../icons/index";
 
 type NavItem = {
   name: string;
@@ -22,48 +16,13 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
+    name: "Settings",
     icon: <GridIcon />,
-    name: "Dashboard",
-    subItems: [
-      { name: "Analytics", path: "/analytics" },
-      { name: "CRM", path: "/crm" },
-    ],
-  },
-  {
-    name: "User Management",
-    icon: <UserCircleIcon />,
-    subItems: [
-      {
-        name: "Users",
-        path: "/users",
-      },
-      {
-        name: "Units",
-        path: "/units",
-      },
-      {
-        name: "Roles",
-        path: "/roles",
-      },
-    ],
+    subItems: [{ name: "Units", path: "/units" }],
   },
 ];
 
-const othersItems: NavItem[] = [
-  {
-    name: "Settings",
-    icon: <GridIcon />,
-    subItems: [
-      { name: "Plans", path: "/plans" },
-      { name: "General Exclusion", path: "/general" },
-      { name: "API keys", path: "/integrations" },
-    ],
-  },
-  {
-    name: "File Manager",
-    icon: <FileIcon />,
-  },
-];
+const othersItems: NavItem[] = [];
 
 const supportItems: NavItem[] = [];
 
@@ -323,7 +282,7 @@ const AppSidebar: React.FC = () => {
           ) : (
             //small
             <Image
-              src="/images/main/Darkversion.svg"
+              src="/images/main/small.svg"
               alt="Logo"
               width={32}
               height={32}
@@ -343,7 +302,7 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Menu"
+                  "Main"
                 ) : (
                   <HorizontaLDots />
                 )}

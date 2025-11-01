@@ -2,7 +2,7 @@ const { signToken } = require('../../../middlewares/common/security');
 
 const login = async (req, res, next) => {
     try {
-        const { email, policyNumber, password } = req.body || {};
+        const { email, policyNumber, password, remember, location } = req.body || {};
 
         if (!password) return res.fail('Password is required', 400);
         if (!email && !policyNumber) return res.fail('Provide email or policyNumber', 400);
@@ -15,7 +15,9 @@ const login = async (req, res, next) => {
         if (policyNumber) {
             if (!PolicyNumber) return res.fail('Server configuration error (Policy model missing)', 500);
 
-            const policy = await PolicyNumber.findOne({ where: { policyNumber } });
+            const lookupPolicyNumber = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
+
+            const policy = await PolicyNumber.findOne({ where: { policyNumber: lookupPolicyNumber } });
             if (!policy || policy.userType !== 'Admin') return res.fail('Invalid credentials', 401);
 
             admin = await Admin.findByPk(policy.userId);
@@ -39,6 +41,27 @@ const login = async (req, res, next) => {
 
         if (admin.status && admin.status !== 'active') return res.fail('Account is not active', 403);
 
+        // If location is provided in the request, persist it to the Admin record.
+        if (location && (location.lat !== undefined || location.lon !== undefined || location.currentLocation !== undefined)) {
+            const updates = {};
+            if (location.lat !== undefined) updates.latitude = location.lat;
+            if (location.lon !== undefined) updates.longitude = location.lon;
+            if (location.currentLocation !== undefined) updates.currentLocation = location.currentLocation;
+            try {
+                // If admin is a Sequelize instance, update directly; otherwise use model update as fallback
+                if (admin && typeof admin.update === 'function') {
+                    await admin.update(updates);
+                } else {
+                    const { Admin: AdminModel } = req.models || {};
+                    if (AdminModel) await AdminModel.update(updates, { where: { id: admin.id } });
+                }
+                // Reload admin to get latest values if possible
+                if (admin && typeof admin.reload === 'function') await admin.reload();
+            } catch (e) {
+                console.error('Failed to update admin location:', e && e.message ? e.message : e);
+            }
+        }
+
         const safeUser = {
             id: admin.id,
             firstName: admin.firstName,
@@ -46,7 +69,10 @@ const login = async (req, res, next) => {
             email: admin.email,
             picture: admin.picture || null,
             phoneNumber: admin.phoneNumber || null,
-            status: admin.status || 'active'
+            status: admin.status || 'active',
+            latitude: admin.latitude || null,
+            longitude: admin.longitude || null,
+            currentLocation: admin.currentLocation || null
         };
 
         let roleInfo = null;
@@ -69,7 +95,7 @@ const login = async (req, res, next) => {
             console.error('Role lookup failed:', err && err.message ? err.message : err);
         }
 
-        safeUser.role = roleInfo;
+        safeUser.role = roleInfo.name;
 
         let signedToken;
         try {

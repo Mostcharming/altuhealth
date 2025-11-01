@@ -104,7 +104,6 @@ export default function SignInForm() {
         currentLocation = await getLocationName(coords.lat, coords.lon);
       }
 
-      // Decide whether the identifier is an email or a policy number
       const isEmail = /\S+@\S+\.\S+/.test(identifier);
 
       const bodyPayload: any = {
