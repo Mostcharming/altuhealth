@@ -7,7 +7,9 @@ interface User {
   firstName?: string;
   lastName?: string;
   role?: string;
-  profilePicture?: string;
+  picture?: string;
+  phoneNumber?: string;
+  status?: string;
 }
 
 interface AuthState {
@@ -29,6 +31,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({ user: null, token: null });
         document.cookie = "auth_token=; path=/; max-age=0";
+        window.location.href = "/signin";
       },
     }),
     { name: "auth-storage" }

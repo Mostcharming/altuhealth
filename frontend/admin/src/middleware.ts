@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const publicRoutes = ["/signin", "/_next", "/public"];
+const publicRoutes = ["/signin", "/reset", "/verify", "/_next", "/public"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -11,6 +11,8 @@ export function middleware(req: NextRequest) {
   }
 
   const token = req.cookies.get("auth_token")?.value;
+
+  console.log("Middleware - Auth Token:", token);
 
   if (!token) {
     const signinUrl = new URL("/signin", req.url);
