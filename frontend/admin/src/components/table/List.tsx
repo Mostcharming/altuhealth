@@ -198,10 +198,10 @@ const Table: React.FC = () => {
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Invoices
+            Units
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Your most recent invoices list
+            Most recent unit lists
           </p>
         </div>
         <div className="flex gap-3.5">
@@ -217,7 +217,7 @@ const Table: React.FC = () => {
                   : "text-gray-500 dark:text-gray-400"
               }`}
             >
-              All Invoices
+              All Units
             </button>
             <button
               onClick={() => {
@@ -230,7 +230,7 @@ const Table: React.FC = () => {
                   : "text-gray-500 dark:text-gray-400"
               }`}
             >
-              Unpaid
+              Active
             </button>
             <button
               onClick={() => {
@@ -243,7 +243,7 @@ const Table: React.FC = () => {
                   : "text-gray-500 dark:text-gray-400"
               }`}
             >
-              Draft
+              Inactive
             </button>
           </div>
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
@@ -304,56 +304,6 @@ const Table: React.FC = () => {
         <table className="w-full table-auto">
           <thead>
             <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-              <th className="p-4 whitespace-nowrap">
-                <div className="flex w-full cursor-pointer items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <label className="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-400">
-                      <span className="relative">
-                        <span
-                          className={`flex h-4 w-4 items-center justify-center rounded-sm border-[1.25px] ${
-                            paginatedInvoices.length > 0 &&
-                            paginatedInvoices.every((i) =>
-                              selected.includes(i.id)
-                            )
-                              ? "border-brand-500 bg-brand-500"
-                              : "bg-transparent border-gray-300 dark:border-gray-700"
-                          }`}
-                        >
-                          <span
-                            className={
-                              paginatedInvoices.length > 0 &&
-                              paginatedInvoices.every((i) =>
-                                selected.includes(i.id)
-                              )
-                                ? ""
-                                : "opacity-0"
-                            }
-                          >
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 12 12"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M10 3L4.5 8.5L2 6"
-                                stroke="white"
-                                strokeWidth="1.6666"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </span>
-                        </span>
-                      </span>
-                    </label>
-                    <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                      Invoice Number
-                    </p>
-                  </div>
-                </div>
-              </th>
               <th
                 className="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
                 onClick={() => sortBy("customer")}
@@ -515,11 +465,6 @@ const Table: React.FC = () => {
                 key={invoice.id}
                 className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
               >
-                <td className="p-4 whitespace-nowrap">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                    {invoice.number}
-                  </span>
-                </td>
                 <td className="p-4 whitespace-nowrap">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
                     {invoice.customer}

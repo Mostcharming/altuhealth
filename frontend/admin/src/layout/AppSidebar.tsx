@@ -1,10 +1,26 @@
 "use client";
+import { useSidebar } from "@/context/SidebarContext";
+import {
+  CallIcon,
+  CartIcon,
+  ChevronDownIcon,
+  EnvelopeIcon,
+  GridIcon,
+  GroupIcon,
+  HorizontaLDots,
+  InfoIcon,
+  ListIcon,
+  PaperPlaneIcon,
+  PencilIcon,
+  PlugInIcon,
+  TaskIcon,
+  UserCircleIcon,
+  UserIcon,
+} from "@/icons";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useSidebar } from "../context/SidebarContext";
-import { ChevronDownIcon, GridIcon, HorizontaLDots } from "../icons/index";
 
 type NavItem = {
   name: string;
@@ -16,15 +32,141 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
-    name: "Settings",
     icon: <GridIcon />,
-    subItems: [{ name: "Units", path: "/units" }],
+    name: "Dashboard",
+    subItems: [
+      { name: "Analytics", path: "/analytics" },
+      { name: "Financial", path: "/finance" },
+    ],
+  },
+  {
+    name: "Admins",
+    icon: <UserIcon />,
+    subItems: [
+      { name: "List", path: "/admins" },
+      { name: "Other Employees", path: "/others" },
+    ],
+  },
+  {
+    name: "Providers",
+    icon: <UserCircleIcon />,
+    subItems: [
+      { name: "List", path: "/providers" },
+      { name: "Tariff History", path: "/tariff" },
+    ],
+  },
+  {
+    name: "Companies",
+    icon: <PaperPlaneIcon />,
+    subItems: [
+      { name: "List", path: "/companies" },
+      { name: "Subscriptions", path: "/subscriptions" },
+      { name: "Review", path: "/review" },
+    ],
+  },
+  {
+    name: "Enrollees",
+    icon: <GroupIcon />,
+    subItems: [
+      { name: "List", path: "/enrollees" },
+      { name: "Staff List", path: "/staffs" },
+      { name: "Refunds", path: "/refunds" },
+      { name: "Dependents", path: "/dependents" },
+      { name: "Retail Enrollees", path: "/retail-enrollees" },
+      { name: "Form Setup", path: "/form-setup" },
+      { name: "Birthday Setup", path: "/birthday-setup" },
+      { name: "Switch", path: "/switch" },
+    ],
+  },
+  {
+    name: "Claims",
+    icon: <EnvelopeIcon />,
+    subItems: [
+      { name: "List", path: "/claims" },
+      { name: "Capture", path: "/capture" },
+      { name: "Vetting", path: "/vetting" },
+      { name: "Payment Batch", path: "/payment-batch" },
+      { name: "Payment Advice", path: "/payment-advice" },
+      { name: "Awaiting Payment", path: "/awaiting-payment" },
+      { name: "Assigned Claims", path: "/assigned-claims" },
+    ],
+  },
+  {
+    name: "Authorizations",
+    icon: <PencilIcon />,
+    subItems: [
+      { name: "List", path: "/authorizations" },
+      { name: "Tracker", path: "/authorization-tracking" },
+      { name: "New Authorization", path: "/new-authorization" },
+      { name: "Verification Monitor", path: "/verification-monitor" },
+    ],
+  },
+  {
+    name: "Services",
+    icon: <CartIcon />,
+    subItems: [
+      { name: "Annual Medical Check", path: "/medical-check" },
+      { name: "Call Memo", path: "/call-memo" },
+      { name: "Surveys", path: "/surveys" },
+      { name: "Service Cycle", path: "/service-cycles" },
+    ],
+  },
+  {
+    name: "Invoices",
+    icon: <TaskIcon />,
+    subItems: [
+      { name: "List", path: "/invoices" },
+      { name: "Generate Invoice", path: "/generate-invoice" },
+      { name: "Invoice Settings", path: "/invoice-settings" },
+    ],
+  },
+  {
+    name: "Settings",
+    icon: <PlugInIcon />,
+    subItems: [
+      { name: "Plans", path: "/plans" },
+      { name: "Units", path: "/units" },
+      { name: "Roles", path: "/roles" },
+      { name: "Diagnosis", path: "/diagnosis" },
+      { name: "Exclusion", path: "/exclude" },
+      { name: "Benefits", path: "/benefits" },
+      { name: "Provider Specializations", path: "/provider-specializations" },
+      { name: "Notification Settings", path: "/notification-settings" },
+    ],
   },
 ];
 
-const othersItems: NavItem[] = [];
+const othersItems: NavItem[] = [
+  {
+    name: "Logs",
+    icon: <ListIcon />,
+    subItems: [
+      { name: "Audit Logs", path: "/audit" },
+      { name: "Login History", path: "/login" },
+      { name: "Notification Logs", path: "/notification" },
+    ],
+  },
+];
 
-const supportItems: NavItem[] = [];
+const supportItems: NavItem[] = [
+  {
+    name: "Actions",
+    icon: <InfoIcon />,
+    subItems: [
+      { name: "Approvals", path: "/approvals" },
+      { name: "Requests", path: "/requests" },
+      { name: "Reports", path: "/reports" },
+    ],
+  },
+  {
+    icon: <CallIcon />,
+    name: "Support",
+    subItems: [
+      { name: "Support List", path: "/support-tickets" },
+      { name: "Support Reply", path: "/support-ticket-reply" },
+    ],
+  },
+];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
