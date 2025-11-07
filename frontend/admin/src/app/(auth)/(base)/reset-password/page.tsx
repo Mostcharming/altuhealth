@@ -1,13 +1,10 @@
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
 import { Metadata } from "next";
 
-import React from "react";
-
 export const metadata: Metadata = {
-  title: "Next.js Reset Password | TailAdmin - Next.js Dashboard Template",
+  title: "AltuHealth | Reset Password",
   description:
-    "This is Next.js Password Reset page for TailAdmin Dashboard Template",
-  // other metadata
+    "Reset your AltuHealth account password to regain access to your account.",
 };
 
 export default function ResetPasswordPage() {

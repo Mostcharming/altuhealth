@@ -72,7 +72,6 @@ async function getLocationName(
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
-  // Accept either an email or a policy number in a single identifier field
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [toast, setToast] = useState<{

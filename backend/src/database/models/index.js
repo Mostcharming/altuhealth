@@ -9,6 +9,7 @@ function defineModels(sequelize) {
   const UserRole = require("./userRole.model")(sequelize, DataTypes);
   const UserUnit = require("./userUnit.model")(sequelize, DataTypes);
   const PolicyNumber = require("./policy.model")(sequelize, DataTypes);
+  const GeneralSetting = require("./generalSetting.model")(sequelize, DataTypes);
 
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -25,7 +26,7 @@ function defineModels(sequelize) {
 
 
 
-  return { License, Admin, Role, Unit, UserRole, UserUnit, PolicyNumber };
+  return { License, Admin, Role, Unit, UserRole, UserUnit, PolicyNumber, GeneralSetting };
 }
 
 module.exports = defineModels;
