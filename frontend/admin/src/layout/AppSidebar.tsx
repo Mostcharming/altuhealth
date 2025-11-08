@@ -35,59 +35,63 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Dashboard",
     subItems: [
+      { name: "Overview", path: "/overview" }, //finance
       { name: "Analytics", path: "/analytics" },
-      { name: "Financial", path: "/finance" },
+      { name: "Key Metrics", path: "/kpis" }, //find something
     ],
   },
+
   {
     name: "Admins",
     icon: <UserIcon />,
     subItems: [
-      { name: "List", path: "/admins" },
+      { name: "Admin Directory", path: "/admins" },
       { name: "Other Employees", path: "/others" },
+      { name: "Access & Roles", path: "/roles" },
     ],
   },
   {
     name: "Providers",
     icon: <UserCircleIcon />,
     subItems: [
-      { name: "List", path: "/providers" },
+      { name: "Provider Directory", path: "/providers" },
+      { name: "Credentialing", path: "/provider-credentialing" },
       { name: "Tariff History", path: "/tariff" },
+      { name: "Specializations", path: "/provider-specializations" },
     ],
   },
   {
-    name: "Companies",
+    name: "Organizations",
     icon: <PaperPlaneIcon />,
     subItems: [
-      { name: "List", path: "/companies" },
-      { name: "Subscriptions", path: "/subscriptions" },
-      { name: "Review", path: "/review" },
+      { name: "Companies", path: "/companies" },
+      { name: "Subscriptions & Plans", path: "/subscriptions" },
+      { name: "Contracts & SLAs", path: "/contracts" },
+      { name: "Reviews", path: "/review" },
     ],
   },
   {
     name: "Enrollees",
     icon: <GroupIcon />,
     subItems: [
-      { name: "List", path: "/enrollees" },
-      { name: "Staff List", path: "/staffs" },
-      { name: "Refunds", path: "/refunds" },
+      { name: "Enrollee List", path: "/enrollees" },
       { name: "Dependents", path: "/dependents" },
       { name: "Retail Enrollees", path: "/retail-enrollees" },
       { name: "Form Setup", path: "/form-setup" },
       { name: "Birthday Setup", path: "/birthday-setup" },
-      { name: "Switch", path: "/switch" },
+      { name: "Bulk Upload", path: "/enrollees/bulk-upload" },
     ],
   },
   {
     name: "Claims",
     icon: <EnvelopeIcon />,
     subItems: [
-      { name: "List", path: "/claims" },
-      { name: "Capture", path: "/capture" },
-      { name: "Vetting", path: "/vetting" },
+      { name: "Claims Management", path: "/claims" },
+      { name: "Capture & Validation", path: "/capture" },
+      { name: "Vetting & Adjudication", path: "/vetting" },
       { name: "Payment Batch", path: "/payment-batch" },
       { name: "Payment Advice", path: "/payment-advice" },
-      { name: "Awaiting Payment", path: "/awaiting-payment" },
+      { name: "Reconciliation", path: "/reconciliation" },
       { name: "Assigned Claims", path: "/assigned-claims" },
     ],
   },
@@ -95,9 +99,9 @@ const navItems: NavItem[] = [
     name: "Authorizations",
     icon: <PencilIcon />,
     subItems: [
-      { name: "List", path: "/authorizations" },
+      { name: "Requests", path: "/authorizations" },
       { name: "Tracker", path: "/authorization-tracking" },
-      { name: "New Authorization", path: "/new-authorization" },
+      { name: "Create Authorization", path: "/new-authorization" },
       { name: "Verification Monitor", path: "/verification-monitor" },
     ],
   },
@@ -105,33 +109,58 @@ const navItems: NavItem[] = [
     name: "Services",
     icon: <CartIcon />,
     subItems: [
-      { name: "Annual Medical Check", path: "/medical-check" },
-      { name: "Call Memo", path: "/call-memo" },
+      { name: "Service Catalog", path: "/service-catalog" }, //medical checkup
+      { name: "Appointments & Memos", path: "/call-memo" },
       { name: "Surveys", path: "/surveys" },
-      { name: "Service Cycle", path: "/service-cycles" },
+      { name: "Service Cycles", path: "/service-cycles" },
     ],
   },
   {
-    name: "Invoices",
+    name: "Billing",
     icon: <TaskIcon />,
     subItems: [
-      { name: "List", path: "/invoices" },
+      { name: "Invoices", path: "/invoices" },
       { name: "Generate Invoice", path: "/generate-invoice" },
-      { name: "Invoice Settings", path: "/invoice-settings" },
+      { name: "Billing Settings", path: "/invoice-settings" },
+      { name: "Payment Reconciliation", path: "/payment-reconciliation" },
     ],
   },
   {
-    name: "Settings",
+    name: "Configuration",
     icon: <PlugInIcon />,
     subItems: [
       { name: "Plans", path: "/plans" },
       { name: "Units", path: "/units" },
       { name: "Roles", path: "/roles" },
-      { name: "Diagnosis", path: "/diagnosis" },
-      { name: "Exclusion", path: "/exclude" },
+      { name: "Diagnosis Codes", path: "/diagnosis" },
+      { name: "Exclusions", path: "/exclude" },
       { name: "Benefits", path: "/benefits" },
-      { name: "Provider Specializations", path: "/provider-specializations" },
       { name: "Notification Settings", path: "/notification-settings" },
+      { name: "Integrations", path: "/integrations" },
+      { name: "API & Developer Tools", path: "/api-keys" },
+    ],
+  },
+];
+
+const supportItems: NavItem[] = [
+  {
+    name: "Operations",
+    icon: <InfoIcon />,
+    subItems: [
+      { name: "Approvals", path: "/approvals" },
+      { name: "Requests", path: "/requests" },
+      { name: "Reports", path: "/reports" },
+      { name: "System Status", path: "/system-status" },
+    ],
+  },
+  {
+    icon: <CallIcon />,
+    name: "Support",
+    subItems: [
+      { name: "Support Tickets", path: "/support-tickets" },
+      { name: "Ticket Replies", path: "/support-ticket-reply" },
+      { name: "Knowledge Base", path: "/knowledge-base" },
+      { name: "SLA Management", path: "/sla-management" },
     ],
   },
 ];
@@ -142,28 +171,24 @@ const othersItems: NavItem[] = [
     icon: <ListIcon />,
     subItems: [
       { name: "Audit Logs", path: "/audit" },
-      { name: "Login History", path: "/login" },
       { name: "Notification Logs", path: "/notification" },
     ],
   },
-];
-
-const supportItems: NavItem[] = [
   {
-    name: "Actions",
-    icon: <InfoIcon />,
+    name: "Developer",
+    icon: <PaperPlaneIcon />,
     subItems: [
-      { name: "Approvals", path: "/approvals" },
-      { name: "Requests", path: "/requests" },
-      { name: "Reports", path: "/reports" },
+      { name: "API Keys", path: "/api-keys" },
+      { name: "Webhooks", path: "/webhooks" },
+      { name: "Developer Docs", path: "/developer-docs" },
     ],
   },
   {
-    icon: <CallIcon />,
-    name: "Support",
+    name: "Help & Resources",
+    icon: <HorizontaLDots />,
     subItems: [
-      { name: "Support List", path: "/support-tickets" },
-      { name: "Support Reply", path: "/support-ticket-reply" },
+      { name: "Help Center", path: "/help" },
+      { name: "Contact Support", path: "/contact-support" },
     ],
   },
 ];
