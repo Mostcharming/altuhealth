@@ -27,10 +27,10 @@ const makeLogin = (modelOrKey, opts = {}) => {
 
                 const lookupPolicyNumber = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
 
-                const policy = await PolicyModel.findOne({ where: { policy_number: lookupPolicyNumber } });
-                if (!policy || policy.user_type !== userType) return res.fail('Invalid credentials', 401);
+                const policy = await PolicyModel.findOne({ where: { policyNumber: lookupPolicyNumber } });
+                if (!policy || policy.userType !== userType) return res.fail('Invalid credentials', 401);
 
-                user = await UserModel.findByPk(policy.user_id);
+                user = await UserModel.findByPk(policy.userId);
             } else if (email) {
                 user = await UserModel.findOne({ where: { email } });
             }
@@ -38,12 +38,12 @@ const makeLogin = (modelOrKey, opts = {}) => {
             if (!user) return res.fail('Invalid credentials', 401);
 
             let passwordMatches = false;
-            if (user.password_hash) {
+            if (user.passwordHash) {
                 try {
                     const bcrypt = require('bcrypt');
-                    passwordMatches = await bcrypt.compare(password, user.password_hash);
+                    passwordMatches = await bcrypt.compare(password, user.passwordHash);
                 } catch (e) {
-                    passwordMatches = user.password_hash === password;
+                    passwordMatches = user.passwordHash === password;
                 }
             }
 
@@ -55,7 +55,7 @@ const makeLogin = (modelOrKey, opts = {}) => {
                 const updates = {};
                 if (location.lat !== undefined) updates.latitude = location.lat;
                 if (location.lon !== undefined) updates.longitude = location.lon;
-                if (location.currentLocation !== undefined) updates.current_location = location.currentLocation;
+                if (location.currentLocation !== undefined) updates.currentLocation = location.currentLocation;
                 try {
                     if (user && typeof user.update === 'function') {
                         await user.update(updates);
@@ -71,24 +71,24 @@ const makeLogin = (modelOrKey, opts = {}) => {
 
             const safeUser = {
                 id: user.id,
-                firstName: user.first_name,
-                lastName: user.last_name,
+                firstName: user.firstName,
+                lastName: user.lastName,
                 email: user.email,
                 picture: user.picture || null,
-                phoneNumber: user.phone_number || null,
+                phoneNumber: user.phoneNumber || null,
                 status: user.status || 'active',
                 latitude: user.latitude || null,
                 longitude: user.longitude || null,
-                currentLocation: user.current_location || null
+                currentLocation: user.currentLocation || null
             };
 
             let roleInfo = null;
             try {
                 const { UserRole, Role } = req.models || {};
                 if (UserRole && Role) {
-                    const userRole = await UserRole.findOne({ where: { user_id: user.id, user_type: userType } });
+                    const userRole = await UserRole.findOne({ where: { userId: user.id, userType } });
                     if (userRole) {
-                        const role = await Role.findByPk(userRole.role_id || userRole.roleId);
+                        const role = await Role.findByPk(userRole.roleId);
                         if (role) {
                             roleInfo = {
                                 id: role.id,
