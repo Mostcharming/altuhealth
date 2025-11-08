@@ -14,24 +14,24 @@ module.exports = {
         await queryInterface.bulkInsert('admins', [
             {
                 id: adminId,
-                firstName: 'System',
-                lastName: 'Admin',
+                first_name: 'System',
+                last_name: 'Admin',
                 email: 'admin@example.com',
-                passwordHash: 'changeme',
-                phoneNumber: '0000000000',
+                password_hash: 'changeme',
+                phone_number: '0000000000',
                 picture: null,
                 state: null,
                 country: null,
-                currentLocation: null,
+                current_location: null,
                 latitude: null,
                 longitude: null,
                 address: null,
                 city: null,
-                postalCode: null,
+                postal_code: null,
                 status: 'active',
-                isDeleted: false,
-                createdAt: now,
-                updatedAt: now
+                is_deleted: false,
+                created_at: now,
+                updated_at: now
             }
         ], {});
 
@@ -41,8 +41,8 @@ module.exports = {
                 id: roleId,
                 name: 'super_admin',
                 description: 'Initial super admin role',
-                createdAt: now,
-                updatedAt: now
+                created_at: now,
+                updated_at: now
             }
         ], {});
 
@@ -52,8 +52,8 @@ module.exports = {
                 id: unitId,
                 name: 'Default Unit',
                 description: 'Default measurement or organizational unit',
-                createdAt: now,
-                updatedAt: now
+                created_at: now,
+                updated_at: now
             }
         ], {});
 
@@ -61,15 +61,15 @@ module.exports = {
         await queryInterface.bulkInsert('policy_numbers', [
             {
                 id: policyId,
-                policyNumber: 'POLICY-0001',
-                providerName: 'Default Provider',
-                userId: adminId,
-                userType: 'admin',
-                coverageDetails: 'Default coverage for seed data',
-                validFrom: now,
-                validTo: new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()),
-                createdAt: now,
-                updatedAt: now
+                policy_number: 'POLICY-0001',
+                provider_name: 'Default Provider',
+                user_id: adminId,
+                user_type: 'admin',
+                coverage_details: 'Default coverage for seed data',
+                valid_from: now,
+                valid_to: new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()),
+                created_at: now,
+                updated_at: now
             }
         ], {});
 
@@ -77,11 +77,11 @@ module.exports = {
         await queryInterface.bulkInsert('user_roles', [
             {
                 id: '55555555-5555-5555-5555-555555555555',
-                userId: adminId,
-                userType: 'admin',
-                roleId: roleId,
-                createdAt: now,
-                updatedAt: now
+                user_id: adminId,
+                user_type: 'admin',
+                role_id: roleId,
+                created_at: now,
+                updated_at: now
             }
         ], {});
 
@@ -89,11 +89,11 @@ module.exports = {
         await queryInterface.bulkInsert('user_units', [
             {
                 id: '66666666-6666-6666-6666-666666666666',
-                userId: adminId,
-                userType: 'admin',
-                unitId: unitId,
-                createdAt: now,
-                updatedAt: now
+                user_id: adminId,
+                user_type: 'admin',
+                unit_id: unitId,
+                created_at: now,
+                updated_at: now
             }
         ], {});
     },

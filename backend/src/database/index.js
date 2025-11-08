@@ -3,52 +3,39 @@ const { Sequelize } = require('sequelize');
 
 
 const config = require('./config/config')[process.env.NODE_ENV || 'development'];
-const useSequelizeReplication = require('../config').useSequelizeReplication;
 
 let masterSequelize;
 let slaveSequelize;
-let sequelize;
 
-if (useSequelizeReplication) {
-    sequelize = new Sequelize({
-        replication: {
-            read: config.replication.read,
-            write: config.replication.write
-        },
-        dialect: config.dialect,
-        pool: config.pool,
-        logging: config.logging
-    });
-    console.log('⚙️ Sequelize automatic replication mode enabled.');
-} else {
-    const { write: masterConfig, read: slaveConfigs } = config.replication;
 
-    masterSequelize = new Sequelize({
-        database: masterConfig.database,
-        username: masterConfig.username,
-        password: masterConfig.password,
-        host: masterConfig.host,
-        port: masterConfig.port,
-        dialect: config.dialect,
-        pool: config.pool,
-        logging: config.logging
-    });
+const { write: masterConfig, read: slaveConfigs } = config.replication;
 
-    const slaveConfig = Array.isArray(slaveConfigs) ? slaveConfigs[0] : slaveConfigs;
+masterSequelize = new Sequelize({
+    database: masterConfig.database,
+    username: masterConfig.username,
+    password: masterConfig.password,
+    host: masterConfig.host,
+    port: masterConfig.port,
+    dialect: config.dialect,
+    pool: config.pool,
+    logging: config.logging
+});
 
-    slaveSequelize = new Sequelize({
-        database: slaveConfig.database,
-        username: slaveConfig.username,
-        password: slaveConfig.password,
-        host: slaveConfig.host,
-        port: slaveConfig.port,
-        dialect: config.dialect,
-        pool: config.pool,
-        logging: config.logging
-    });
+const slaveConfig = Array.isArray(slaveConfigs) ? slaveConfigs[0] : slaveConfigs;
 
-    console.log('⚙️ Manual master/slave connection mode enabled.');
-}
+slaveSequelize = new Sequelize({
+    database: slaveConfig.database,
+    username: slaveConfig.username,
+    password: slaveConfig.password,
+    host: slaveConfig.host,
+    port: slaveConfig.port,
+    dialect: config.dialect,
+    pool: config.pool,
+    logging: config.logging
+});
+
+console.log('⚙️ Manual master/slave connection mode enabled.');
+
 
 
 async function createDatabaseIfNotExists() {
@@ -101,19 +88,13 @@ async function initializeDatabase() {
     try {
         // await createDatabaseIfNotExists();
 
-        if (useSequelizeReplication) {
-            await sequelize.authenticate();
-            console.log('✅ Database connected successfully with Sequelize replication.');
-        } else {
-            await masterSequelize.authenticate();
-            await slaveSequelize.authenticate();
-            console.log('✅ Master and Slave databases connected successfully.');
-        }
 
-        console.log(`📝 Master (write): ${config.replication.write.host}:${config.replication.write.port}`);
-        config.replication.read.forEach((read, i) => {
-            console.log(`📖 Slave ${i + 1} (read): ${read.host}:${read.port}`);
-        });
+        await masterSequelize.authenticate();
+        await slaveSequelize.authenticate();
+        console.log('✅ Master and Slave databases connected successfully.');
+
+
+
 
 
         console.log('🎉 Database initialization complete!');
@@ -125,14 +106,12 @@ async function initializeDatabase() {
 
 
 function getSequelizeByRequest(method) {
-    if (useSequelizeReplication) return sequelize;
     return method.toUpperCase() === 'GET' ? slaveSequelize : masterSequelize;
 }
 
 initializeDatabase();
 
 module.exports = {
-    sequelize,
     masterSequelize,
     slaveSequelize,
     getSequelizeByRequest,

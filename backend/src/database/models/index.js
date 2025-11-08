@@ -10,6 +10,7 @@ function defineModels(sequelize) {
   const UserUnit = require("./userUnit.model")(sequelize, DataTypes);
   const PolicyNumber = require("./policy.model")(sequelize, DataTypes);
   const GeneralSetting = require("./generalSetting.model")(sequelize, DataTypes);
+  const AdminNotification = require("./adminNotification.model")(sequelize, DataTypes);
 
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -24,9 +25,12 @@ function defineModels(sequelize) {
   Unit.hasMany(UserUnit, { foreignKey: "unitId" });
   UserUnit.belongsTo(Unit, { foreignKey: "unitId" });
 
+  Admin.hasMany(AdminNotification, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
+  AdminNotification.belongsTo(Admin, { foreignKey: "userId", constraints: false });
 
 
-  return { License, Admin, Role, Unit, UserRole, UserUnit, PolicyNumber, GeneralSetting };
+
+  return { License, Admin, Role, Unit, UserRole, UserUnit, PolicyNumber, GeneralSetting, AdminNotification };
 }
 
 module.exports = defineModels;

@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = (sequelize, DataTypes) => {
-    const UserUnit = sequelize.define('UserUnit', {
+    const AdminNotification = sequelize.define('AdminNotification', {
         id: {
             type: DataTypes.UUID,
             allowNull: false,
@@ -14,25 +14,27 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             field: 'user_id'
         },
-        userType: {
+        title: {
             type: DataTypes.STRING,
             allowNull: false,
-            field: 'user_type'
+            field: 'title'
         },
-        unitId: {
-            type: DataTypes.UUID,
+        isRead: {
+            type: DataTypes.BOOLEAN,
             allowNull: false,
-            references: {
-                model: 'units',
-                key: 'id'
-            },
-            field: 'unit_id'
+            defaultValue: false,
+            field: 'is_read'
+        },
+        clickUrl: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'click_url'
         }
     }, {
-        tableName: 'user_units',
+        tableName: 'admin_notifications',
         timestamps: true,
         underscored: true
     });
 
-    return UserUnit;
-}
+    return AdminNotification;
+};

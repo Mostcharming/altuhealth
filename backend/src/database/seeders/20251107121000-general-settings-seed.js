@@ -9,10 +9,10 @@ module.exports = {
         await queryInterface.bulkInsert('general_settings', [
             {
                 id,
-                emailFrom: 'no-reply@altuhealth.com',
-                smsFrom: 'ALTU',
-                emailTemplate: '<p>Hello {{name}},</p><p>This is a sample email template.</p>',
-                smsBody: 'Hello {{name}}, this is a sample SMS message.',
+                email_from: 'no-reply@altuhealth.com',
+                sms_from: 'ALTU',
+                email_template: '<p>Hello {{name}},</p><p>This is a sample email template.</p>',
+                sms_body: 'Hello {{name}}, this is a sample SMS message.',
                 createdAt: now,
                 updatedAt: now
             }
