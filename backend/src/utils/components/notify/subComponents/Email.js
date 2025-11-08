@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const NotifyProcess = require('../NotifyProcess');
+const NotifyProcess = require('./NotifyProcess');
 
 class Email extends NotifyProcess {
     constructor(settings, user = null) {
@@ -20,7 +20,7 @@ class Email extends NotifyProcess {
 
     prevConfiguration() {
         this.email = this.user.email;
-        this.receiverName = this.user.firstname;
+        this.receiverName = this.user.firstName;
     }
 
     async send() {

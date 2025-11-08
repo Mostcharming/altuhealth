@@ -1,6 +1,6 @@
-const { slaveSequelize, masterSequelize } = require("../../../database");
-const defineModels = require("../../../database/models");
-const { getGeneralSettings } = require("../../generalSettings");
+const { slaveSequelize, masterSequelize } = require("../../../../database");
+const defineModels = require("../../../../database/models");
+const { getGeneralSettings } = require("../../../generalSettings");
 
 const sequelizeInstance = slaveSequelize || masterSequelize;
 if (!sequelizeInstance) {
@@ -49,11 +49,18 @@ class NotifyProcess {
 
         if (user && template) {
             const statusField = this.statusField;
-            if (template[statusField] !== 1) {
+            const statusValue = template ? template[statusField] : undefined;
+            const enabled = (
+                statusValue === true ||
+                statusValue === 1 ||
+                statusValue === '1' ||
+                (typeof statusValue === 'string' && statusValue.toLowerCase() === 'true')
+            );
+            if (!enabled) {
                 return false;
             }
             message = this.replaceShortCode(
-                user.firstname,
+                user.firstName,
                 this.setting[globalTemplate] || '',
                 template[this.body]
             );
@@ -86,7 +93,7 @@ class NotifyProcess {
     }
 
     replaceShortCode(name, template, body) {
-        let message = template.replace(/{{firstname}}/g, name);
+        let message = template.replace(/{{firstName}}/g, name);
         message = message.replace(/{{message}}/g, body);
         return message;
     }
@@ -128,6 +135,7 @@ class NotifyProcess {
                 sentTo: this[notificationType === 'email' ? 'email' : 'mobile'] || null,
                 subject: this.subject,
                 userId: this.user.id,
+                userType: this.userType,
                 message: notificationType === 'email'
                     ? this.finalMessage
                     : this.finalMessage.trim()

@@ -3,7 +3,6 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
     async up(queryInterface, Sequelize) {
-        // Rename camelCase columns to snake_case to match model `field` mappings
         await Promise.all([
             queryInterface.renameColumn('general_settings', 'emailFrom', 'email_from'),
             queryInterface.renameColumn('general_settings', 'smsFrom', 'sms_from'),
@@ -15,7 +14,6 @@ module.exports = {
     },
 
     async down(queryInterface, Sequelize) {
-        // Revert the column names back to camelCase
         await Promise.all([
             queryInterface.renameColumn('general_settings', 'email_from', 'emailFrom'),
             queryInterface.renameColumn('general_settings', 'sms_from', 'smsFrom'),

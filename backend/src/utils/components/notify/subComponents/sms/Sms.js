@@ -1,4 +1,4 @@
-const NotifyProcess = require('../../NotifyProcess');
+const NotifyProcess = require('../NotifyProcess');
 const SmsGateway = require('./SmsGateway');
 
 class Sms extends NotifyProcess {
@@ -48,8 +48,8 @@ class Sms extends NotifyProcess {
 
     prevConfiguration() {
         if (this.user) {
-            this.mobile = this.user.mobile;
-            this.receiverName = this.user.firstname;
+            this.mobile = this.user.phoneNumber;
+            this.receiverName = this.user.firstName;
             this.toAddress = this.mobile;
         }
     }

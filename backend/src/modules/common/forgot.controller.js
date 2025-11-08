@@ -4,7 +4,7 @@ const notify = require('../../utils/notify');
 const makeForgotPassword = (modelOrKey, opts = {}) => {
     const policyModelKey = opts.policyModelKey || 'PolicyNumber';
     const userType = opts.userType || (typeof modelOrKey === 'string' ? modelOrKey : 'Admin');
-    const templateName = opts.templateName || 'forgot-password';
+    const templateName = opts.templateName || 'OTP';
     const codeLength = opts.codeLength || 6;
 
     return async (req, res, next) => {
@@ -51,7 +51,7 @@ const makeForgotPassword = (modelOrKey, opts = {}) => {
             });
 
             try {
-                await notify(user, templateName, { verificationCode: code }, ['email'], true);
+                await notify(user, "Admin", templateName, { code: code }, ['email'], true);
             } catch (e) {
                 console.error('Failed to send password reset notification:', e && e.message ? e.message : e);
             }
