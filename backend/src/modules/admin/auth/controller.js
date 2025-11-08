@@ -1,4 +1,4 @@
-const { makeLogin } = require('../../common/auth/controller');
+const { makeLogin } = require("../../common/login.controller");
 
 const login = makeLogin('Admin');
 

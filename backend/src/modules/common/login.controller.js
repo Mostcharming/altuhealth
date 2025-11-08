@@ -1,4 +1,4 @@
-const { signToken } = require('../../../middlewares/common/security');
+const { signToken } = require('../../middlewares/common/security');
 
 const makeLogin = (modelOrKey, opts = {}) => {
     const policyModelKey = opts.policyModelKey || 'PolicyNumber';
@@ -118,7 +118,4 @@ const makeLogin = (modelOrKey, opts = {}) => {
         }
     };
 };
-
-module.exports = {
-    makeLogin,
-};
+module.exports = { makeLogin }

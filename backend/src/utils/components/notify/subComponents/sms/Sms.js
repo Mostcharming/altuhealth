@@ -15,7 +15,7 @@ class Sms extends NotifyProcess {
     async send() {
         const message = await this.getMessage();
 
-        if (this.setting.sn && message) {
+        if (this.setting.smsNotification && message) {
             try {
                 const fixedJson = this.setting.smsConfig.replace(/\\\//g, '/');
                 const smsConfig = JSON.parse(fixedJson);

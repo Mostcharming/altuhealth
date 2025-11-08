@@ -74,6 +74,7 @@ export default function SignInForm() {
   const [isChecked, setIsChecked] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<{
     variant: "success" | "info" | "warning" | "error";
     title: string;
@@ -85,6 +86,7 @@ export default function SignInForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
 
     if (!identifier || !password) {
       setToast({
@@ -124,6 +126,7 @@ export default function SignInForm() {
       const data = await apiClient("/admin/auth/login", {
         method: "POST",
         body: bodyPayload,
+        onLoading: setIsLoading,
       });
 
       const resp = data && typeof data === "object" ? data : {};
@@ -248,7 +251,13 @@ export default function SignInForm() {
               </div>
 
               <div>
-                <Button className="w-full" size="sm">
+                <Button
+                  className="w-full"
+                  size="sm"
+                  loading={isLoading}
+                  loadingSize={20}
+                  loadingClassName="text-white"
+                >
                   Sign in
                 </Button>
               </div>

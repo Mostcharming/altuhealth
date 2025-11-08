@@ -8,6 +8,8 @@ export type ApiRequestOptions = {
   token?: string;
   baseUrl?: string;
   nextOptions?: RequestInit;
+  // Optional callback to receive loading state changes (true when request starts, false when it ends)
+  onLoading?: (loading: boolean) => void;
 };
 
 const DEFAULT_HEADERS = {
@@ -24,9 +26,11 @@ export async function apiClient(
     token,
     baseUrl = APP_CONFIG.API_BASE_URL,
     nextOptions = {},
+    onLoading,
   }: ApiRequestOptions = {}
 ) {
   try {
+    onLoading?.(true);
     const url = endpoint.startsWith("http")
       ? endpoint
       : `${baseUrl}${endpoint}`;
@@ -74,5 +78,13 @@ export async function apiClient(
     const err = error instanceof Error ? error : new Error(String(error));
     console.error(`[API ERROR]: ${err.message}`);
     throw err;
+  } finally {
+    // always notify caller that loading finished
+    try {
+      onLoading?.(false);
+    } catch (e) {
+      // swallow any errors thrown by the callback
+      console.warn("[apiClient] onLoading callback threw:", e);
+    }
   }
 }

@@ -26,7 +26,7 @@ class Email extends NotifyProcess {
     async send() {
         const message = await this.getMessage();
 
-        if (this.settings.en && message) {
+        if (this.settings.emailNotification && message) {
             const mailConfig = typeof this.settings.mailConfig === 'string'
                 ? JSON.parse(this.settings.mailConfig)
                 : this.settings.mailConfig;
