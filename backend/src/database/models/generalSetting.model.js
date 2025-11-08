@@ -38,6 +38,18 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.JSON,
             allowNull: true,
             field: 'sms_config'
+        },
+        emailNotification: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'email_notification'
+        },
+        smsNotification: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'sms_notification'
         }
     }, {
         tableName: 'general_settings',
