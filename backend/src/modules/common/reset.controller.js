@@ -8,11 +8,11 @@ const makeResetPassword = (modelOrKey, opts = {}) => {
 
     return async (req, res, next) => {
         try {
-            const { email, policyNumber, token, password } = req.body || {};
+            // only token and new password are required now
+            const { token, password } = req.body || {};
 
             if (!token) return res.fail('Verification token is required', 400);
             if (!password) return res.fail('Password is required', 400);
-            if (!email && !policyNumber) return res.fail('Provide email or policyNumber', 400);
 
             let UserModel = null;
             if (typeof modelOrKey === 'string') {
@@ -25,26 +25,23 @@ const makeResetPassword = (modelOrKey, opts = {}) => {
             const { PasswordReset } = req.models || {};
             if (!PasswordReset) return res.fail('Server configuration error (PasswordReset model missing)', 500);
 
-            let user = null;
+            // find the reset entry by token (we'll extract the userId from it)
+            const resetEntry = await PasswordReset.findOne({ where: { token, isUsed: false } });
+            if (!resetEntry) return res.fail('Invalid or used verification token', 401);
 
-            if (policyNumber) {
-                const PolicyModel = req.models && req.models[policyModelKey];
-                if (!PolicyModel) return res.fail('Server configuration error (Policy model missing)', 500);
+            // get the user id and user type from the reset entry
+            const userId = resetEntry.userId;
+            const userTypeFromReset = resetEntry.userType || userType;
 
-                const lookupPolicyNumber = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
-
-                const policy = await PolicyModel.findOne({ where: { policyNumber: lookupPolicyNumber } });
-                if (!policy || policy.userType !== userType) return res.fail('Invalid credentials', 401);
-
-                user = await UserModel.findByPk(policy.userId);
-            } else if (email) {
-                user = await UserModel.findOne({ where: { email } });
+            // Prefer a model keyed by the userType from the reset entry if available
+            if (req.models && req.models[userTypeFromReset]) {
+                UserModel = req.models[userTypeFromReset];
             }
 
-            if (!user) return res.fail('User not found', 404);
+            if (!UserModel) return res.fail('Server configuration error (User model missing)', 500);
 
-            const resetEntry = await PasswordReset.findOne({ where: { token, userId: user.id, userType, isUsed: false } });
-            if (!resetEntry) return res.fail('Invalid or used verification token', 401);
+            const user = await UserModel.findByPk(userId);
+            if (!user) return res.fail('User not found', 404);
 
             const saltRounds = 10;
             const passwordHash = await bcrypt.hash(password, saltRounds);
@@ -64,7 +61,8 @@ const makeResetPassword = (modelOrKey, opts = {}) => {
             }
 
             try {
-                await notify(user, templateName, null, 'email', true);
+                // notify using the userType from the reset entry when available
+                // await notify(user, userTypeFromReset, templateName, null, 'email', true);
             } catch (e) {
                 console.error('Failed to send password reset confirmation notification:', e && e.message ? e.message : e);
             }

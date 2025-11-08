@@ -51,7 +51,7 @@ const makeForgotPassword = (modelOrKey, opts = {}) => {
             });
 
             try {
-                await notify(user, "Admin", templateName, { code: code }, ['email'], true);
+                await notify(user, userType, templateName, { code: code }, ['email'], true);
             } catch (e) {
                 console.error('Failed to send password reset notification:', e && e.message ? e.message : e);
             }

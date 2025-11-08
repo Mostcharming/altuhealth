@@ -4,19 +4,20 @@ import Input from "@/components/form/input/InputField";
 import Notification from "@/components/ui/notification/Notification";
 import { apiClient } from "@/lib/apiClient";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Label from "../form/Label";
 import Button from "../ui/button/Button";
 
 export default function ResetPasswordForm() {
-  const [identifier, setIdentifier] = useState("admin@example.com");
+  const [identifier, setIdentifier] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<{
     variant: "success" | "info" | "warning" | "error";
     title: string;
     description?: string;
   } | null>(null);
-
+  const router = useRouter();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -65,7 +66,9 @@ export default function ResetPasswordForm() {
         title: "Reset link sent",
         description: String(message),
       });
+
       setIdentifier("");
+      router.push("/verify");
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       setToast({
