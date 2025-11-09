@@ -1,3 +1,4 @@
+import { useAuthStore } from "./authStore";
 import { APP_CONFIG } from "./config";
 
 export type ApiRequestOptions = {
@@ -8,7 +9,6 @@ export type ApiRequestOptions = {
   token?: string;
   baseUrl?: string;
   nextOptions?: RequestInit;
-  // Optional callback to receive loading state changes (true when request starts, false when it ends)
   onLoading?: (loading: boolean) => void;
 };
 
@@ -40,8 +40,15 @@ export async function apiClient(
       ...headers,
     };
 
-    if (token) {
-      finalHeaders["Authorization"] = `Bearer ${token}`;
+    // prefer explicit token param, otherwise read token from auth store (use getState to avoid React hook usage/SSR issues)
+    const resolvedToken =
+      token ??
+      (typeof window !== "undefined"
+        ? useAuthStore.getState().token
+        : undefined);
+
+    if (resolvedToken) {
+      finalHeaders["Authorization"] = `Bearer ${resolvedToken}`;
     }
 
     let payload: BodyInit | undefined;

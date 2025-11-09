@@ -1,8 +1,8 @@
-const express = require('express');
-const router = express.Router();
-const Auth = require('./auth/route');
+const router = require('express').Router();
 
-router.use('/auth', Auth);
+router.use('/auth', require('./auth/route'));
+
+router.use('/notifications', require('./notifications/route'));
 
 
 
