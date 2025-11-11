@@ -5,6 +5,8 @@ function defineModels(sequelize) {
   const License = require("./license.model")(sequelize, DataTypes);
   const Admin = require("./admin.model")(sequelize, DataTypes);
   const Role = require("./role.model")(sequelize, DataTypes);
+  const Privilege = require("./privilege.model")(sequelize, DataTypes);
+  const RolePrivilege = require("./rolePrivilege.model")(sequelize, DataTypes);
   const Unit = require("./unit.model")(sequelize, DataTypes);
   const UserRole = require("./userRole.model")(sequelize, DataTypes);
   const UserUnit = require("./userUnit.model")(sequelize, DataTypes);
@@ -25,6 +27,10 @@ function defineModels(sequelize) {
   Role.hasMany(UserRole, { foreignKey: "roleId" });
   UserRole.belongsTo(Role, { foreignKey: "roleId" });
 
+  // Role <-> Privilege many-to-many through RolePrivilege
+  Role.belongsToMany(Privilege, { through: RolePrivilege, foreignKey: 'roleId', otherKey: 'privilegeId' });
+  Privilege.belongsToMany(Role, { through: RolePrivilege, foreignKey: 'privilegeId', otherKey: 'roleId' });
+
   Unit.hasMany(UserUnit, { foreignKey: "unitId" });
   UserUnit.belongsTo(Unit, { foreignKey: "unitId" });
 
@@ -35,7 +41,7 @@ function defineModels(sequelize) {
 
 
 
-  return { License, Admin, Role, Unit, UserRole, UserUnit, PolicyNumber, GeneralSetting, AdminNotification, NotificationLog, NotificationTemplate, PasswordReset };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, GeneralSetting, AdminNotification, NotificationLog, NotificationTemplate, PasswordReset };
 }
 
 module.exports = defineModels;
