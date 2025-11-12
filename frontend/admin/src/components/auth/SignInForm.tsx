@@ -143,7 +143,7 @@ export default function SignInForm() {
 
       login(user, token);
 
-      router.push("/finance");
+      router.push("/overview");
 
       setToast({
         variant: "success",

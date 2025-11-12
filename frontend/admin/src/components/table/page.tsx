@@ -1,6 +1,7 @@
 "use client";
-import { EyeIcon, PencilIcon, TrashBinIcon } from "@/icons";
+import Link from "next/link";
 import React, { useMemo, useState } from "react";
+import TableDropdown from "../common/TableDropdown";
 
 interface Invoice {
   id: number;
@@ -26,6 +27,222 @@ const initialInvoices: Invoice[] = [
     dueDate: "February 28, 2028",
     total: 999,
     status: "Paid",
+  },
+  {
+    id: 2,
+    number: "#323535",
+    customer: "John Doe",
+    creationDate: "July 1, 2028",
+    dueDate: "January 1, 2029",
+    total: 1200,
+    status: "Unpaid",
+  },
+  {
+    id: 3,
+    number: "#323536",
+    customer: "Jane Smith",
+    creationDate: "June 15, 2028",
+    dueDate: "December 15, 2028",
+    total: 850,
+    status: "Draft",
+  },
+  {
+    id: 4,
+    number: "#323537",
+    customer: "Michael Brown",
+    creationDate: "May 10, 2028",
+    dueDate: "November 10, 2028",
+    total: 1500,
+    status: "Paid",
+  },
+  {
+    id: 5,
+    number: "#323538",
+    customer: "Emily Davis",
+    creationDate: "April 5, 2028",
+    dueDate: "October 5, 2028",
+    total: 700,
+    status: "Unpaid",
+  },
+  {
+    id: 6,
+    number: "#323539",
+    customer: "Chris Wilson",
+    creationDate: "March 1, 2028",
+    dueDate: "September 1, 2028",
+    total: 1100,
+    status: "Paid",
+  },
+  {
+    id: 7,
+    number: "#323540",
+    customer: "Jessica Lee",
+    creationDate: "February 20, 2028",
+    dueDate: "August 20, 2028",
+    total: 950,
+    status: "Draft",
+  },
+  {
+    id: 8,
+    number: "#323541",
+    customer: "David Kim",
+    creationDate: "January 15, 2028",
+    dueDate: "July 15, 2028",
+    total: 1300,
+    status: "Paid",
+  },
+  {
+    id: 9,
+    number: "#323542",
+    customer: "Sarah Clark",
+    creationDate: "December 10, 2027",
+    dueDate: "June 10, 2028",
+    total: 800,
+    status: "Unpaid",
+  },
+  {
+    id: 10,
+    number: "#323543",
+    customer: "Matthew Lewis",
+    creationDate: "November 5, 2027",
+    dueDate: "May 5, 2028",
+    total: 1400,
+    status: "Paid",
+  },
+  {
+    id: 11,
+    number: "#323544",
+    customer: "Olivia Walker",
+    creationDate: "October 1, 2027",
+    dueDate: "April 1, 2028",
+    total: 1200,
+    status: "Draft",
+  },
+  {
+    id: 12,
+    number: "#323545",
+    customer: "Daniel Hall",
+    creationDate: "September 20, 2027",
+    dueDate: "March 20, 2028",
+    total: 1000,
+    status: "Paid",
+  },
+  {
+    id: 13,
+    number: "#323546",
+    customer: "Sophia Allen",
+    creationDate: "August 15, 2027",
+    dueDate: "February 15, 2028",
+    total: 900,
+    status: "Unpaid",
+  },
+  {
+    id: 14,
+    number: "#323547",
+    customer: "James Young",
+    creationDate: "July 10, 2027",
+    dueDate: "January 10, 2028",
+    total: 1600,
+    status: "Paid",
+  },
+  {
+    id: 15,
+    number: "#323548",
+    customer: "Ava Hernandez",
+    creationDate: "June 5, 2027",
+    dueDate: "December 5, 2027",
+    total: 1050,
+    status: "Draft",
+  },
+  {
+    id: 16,
+    number: "#323549",
+    customer: "William King",
+    creationDate: "May 1, 2027",
+    dueDate: "November 1, 2027",
+    total: 1150,
+    status: "Paid",
+  },
+  {
+    id: 17,
+    number: "#323550",
+    customer: "Mia Wright",
+    creationDate: "April 20, 2027",
+    dueDate: "October 20, 2027",
+    total: 980,
+    status: "Unpaid",
+  },
+  {
+    id: 18,
+    number: "#323551",
+    customer: "Benjamin Lopez",
+    creationDate: "March 15, 2027",
+    dueDate: "September 15, 2027",
+    total: 1250,
+    status: "Paid",
+  },
+  {
+    id: 19,
+    number: "#323552",
+    customer: "Charlotte Hill",
+    creationDate: "February 10, 2027",
+    dueDate: "August 10, 2027",
+    total: 890,
+    status: "Draft",
+  },
+  {
+    id: 20,
+    number: "#323553",
+    customer: "Elijah Scott",
+    creationDate: "January 5, 2027",
+    dueDate: "July 5, 2027",
+    total: 1350,
+    status: "Paid",
+  },
+  {
+    id: 21,
+    number: "#323554",
+    customer: "Amelia Green",
+    creationDate: "December 1, 2026",
+    dueDate: "June 1, 2027",
+    total: 1020,
+    status: "Unpaid",
+  },
+  {
+    id: 22,
+    number: "#323555",
+    customer: "Lucas Adams",
+    creationDate: "November 20, 2026",
+    dueDate: "May 20, 2027",
+    total: 1120,
+    status: "Paid",
+  },
+  {
+    id: 23,
+    number: "#323556",
+    customer: "Harper Nelson",
+    creationDate: "October 15, 2026",
+    dueDate: "April 15, 2027",
+    total: 970,
+    status: "Draft",
+  },
+  {
+    id: 24,
+    number: "#323557",
+    customer: "Henry Carter",
+    creationDate: "September 10, 2026",
+    dueDate: "March 10, 2027",
+    total: 1280,
+    status: "Paid",
+  },
+  {
+    id: 25,
+    number: "#323558",
+    customer: "Evelyn Mitchell",
+    creationDate: "August 5, 2026",
+    dueDate: "February 5, 2027",
+    total: 1080,
+    status: "Unpaid",
   },
 ];
 
@@ -100,7 +317,7 @@ const FilterDropdown: React.FC<{
   );
 };
 
-const Table: React.FC = () => {
+const InvoiceListTable: React.FC = () => {
   const [invoices] = useState<Invoice[]>(initialInvoices);
   const [selected, setSelected] = useState<number[]>([]);
   const [sort, setSort] = useState<SortState>({
@@ -170,6 +387,23 @@ const Table: React.FC = () => {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [currentPage, totalPages]);
 
+  const toggleSelectAll = (): void => {
+    if (
+      paginatedInvoices.length > 0 &&
+      paginatedInvoices.every((i) => selected.includes(i.id))
+    ) {
+      setSelected([]);
+    } else {
+      setSelected(paginatedInvoices.map((i) => i.id));
+    }
+  };
+
+  const toggleRow = (id: number): void => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
   const sortBy = (
     field: "number" | "customer" | "creationDate" | "dueDate" | "total"
   ): void => {
@@ -198,10 +432,10 @@ const Table: React.FC = () => {
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Units
+            Invoices
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Most recent unit lists
+            Your most recent invoices list
           </p>
         </div>
         <div className="flex gap-3.5">
@@ -217,7 +451,7 @@ const Table: React.FC = () => {
                   : "text-gray-500 dark:text-gray-400"
               }`}
             >
-              All Units
+              All Invoices
             </button>
             <button
               onClick={() => {
@@ -230,7 +464,7 @@ const Table: React.FC = () => {
                   : "text-gray-500 dark:text-gray-400"
               }`}
             >
-              Active
+              Unpaid
             </button>
             <button
               onClick={() => {
@@ -243,7 +477,7 @@ const Table: React.FC = () => {
                   : "text-gray-500 dark:text-gray-400"
               }`}
             >
-              Inactive
+              Draft
             </button>
           </div>
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
@@ -304,6 +538,67 @@ const Table: React.FC = () => {
         <table className="w-full table-auto">
           <thead>
             <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+              <th className="p-4 whitespace-nowrap">
+                <div className="flex w-full cursor-pointer items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <label className="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-400">
+                      <span className="relative">
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={
+                            paginatedInvoices.length > 0 &&
+                            paginatedInvoices.every((i) =>
+                              selected.includes(i.id)
+                            )
+                          }
+                          onChange={toggleSelectAll}
+                        />
+                        <span
+                          className={`flex h-4 w-4 items-center justify-center rounded-sm border-[1.25px] ${
+                            paginatedInvoices.length > 0 &&
+                            paginatedInvoices.every((i) =>
+                              selected.includes(i.id)
+                            )
+                              ? "border-brand-500 bg-brand-500"
+                              : "bg-transparent border-gray-300 dark:border-gray-700"
+                          }`}
+                        >
+                          <span
+                            className={
+                              paginatedInvoices.length > 0 &&
+                              paginatedInvoices.every((i) =>
+                                selected.includes(i.id)
+                              )
+                                ? ""
+                                : "opacity-0"
+                            }
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M10 3L4.5 8.5L2 6"
+                                stroke="white"
+                                strokeWidth="1.6666"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </span>
+                        </span>
+                      </span>
+                    </label>
+                    <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
+                      Invoice Number
+                    </p>
+                  </div>
+                </div>
+              </th>
               <th
                 className="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
                 onClick={() => sortBy("customer")}
@@ -455,7 +750,9 @@ const Table: React.FC = () => {
                 Status
               </th>
               <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                Actions
+                <div className="relative">
+                  <span className="sr-only">Action</span>
+                </div>
               </th>
             </tr>
           </thead>
@@ -465,6 +762,55 @@ const Table: React.FC = () => {
                 key={invoice.id}
                 className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
               >
+                <td className="p-4 whitespace-nowrap">
+                  <div className="group flex items-center gap-3">
+                    <label className="flex cursor-pointer items-center text-sm font-medium text-gray-700 select-none dark:text-gray-400">
+                      <span className="relative">
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={selected.includes(invoice.id)}
+                          onChange={() => toggleRow(invoice.id)}
+                        />
+                        <span
+                          className={`flex h-4 w-4 items-center justify-center rounded-sm border-[1.25px] ${
+                            selected.includes(invoice.id)
+                              ? "border-brand-500 bg-brand-500"
+                              : "bg-transparent border-gray-300 dark:border-gray-700"
+                          }`}
+                        >
+                          <span
+                            className={
+                              selected.includes(invoice.id) ? "" : "opacity-0"
+                            }
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 12 12"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M10 3L4.5 8.5L2 6"
+                                stroke="white"
+                                strokeWidth="1.6666"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </span>
+                        </span>
+                      </span>
+                    </label>
+                    <Link
+                      href="/single-invoice"
+                      className="text-theme-xs font-medium text-gray-700 group-hover:underline dark:text-gray-400"
+                    >
+                      {invoice.number}
+                    </Link>
+                  </div>
+                </td>
                 <td className="p-4 whitespace-nowrap">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
                     {invoice.customer}
@@ -499,17 +845,38 @@ const Table: React.FC = () => {
                   </span>
                 </td>
                 <td className="p-4 whitespace-nowrap">
-                  <div className="flex items-center w-full gap-2">
-                    <button className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90">
-                      <EyeIcon />
-                    </button>
-
-                    <button className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90">
-                      <PencilIcon />
-                    </button>
-                    <button className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500">
-                      <TrashBinIcon />
-                    </button>
+                  <div className="relative flex justify-center dropdown">
+                    <TableDropdown
+                      dropdownButton={
+                        <button className="text-gray-500 dark:text-gray-400 ">
+                          <svg
+                            className="fill-current"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M5.99902 10.245C6.96552 10.245 7.74902 11.0285 7.74902 11.995V12.005C7.74902 12.9715 6.96552 13.755 5.99902 13.755C5.03253 13.755 4.24902 12.9715 4.24902 12.005V11.995C4.24902 11.0285 5.03253 10.245 5.99902 10.245ZM17.999 10.245C18.9655 10.245 19.749 11.0285 19.749 11.995V12.005C19.749 12.9715 18.9655 13.755 17.999 13.755C17.0325 13.755 16.249 12.9715 16.249 12.005V11.995C16.249 11.0285 17.0325 10.245 17.999 10.245ZM13.749 11.995C13.749 11.0285 12.9655 10.245 11.999 10.245C11.0325 10.245 10.249 11.0285 10.249 11.995V12.005C10.249 12.9715 11.0325 13.755 11.999 13.755C12.9655 13.755 13.749 12.9715 13.749 12.005V11.995Z"
+                              fill=""
+                            />
+                          </svg>
+                        </button>
+                      }
+                      dropdownContent={
+                        <>
+                          <button className="text-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                            View More
+                          </button>
+                          <button className="text-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                            Delete
+                          </button>
+                        </>
+                      }
+                    />
                   </div>
                 </td>
               </tr>
@@ -621,4 +988,4 @@ const Table: React.FC = () => {
   );
 };
 
-export default Table;
+export default InvoiceListTable;

@@ -37,7 +37,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Overview", path: "/overview" }, //finance
       { name: "Analytics", path: "/analytics" },
-      { name: "Key Metrics", path: "/kpis" }, //find something
+      { name: "Finance", path: "/finance" }, //find something
     ],
   },
 
