@@ -137,7 +137,6 @@ const navItems: NavItem[] = [
       { name: "Benefits", path: "/benefits" },
       { name: "Notification Settings", path: "/notification-settings" },
       { name: "Integrations", path: "/integrations" },
-      { name: "API & Developer Tools", path: "/api-keys" },
     ],
   },
 ];
@@ -180,15 +179,6 @@ const othersItems: NavItem[] = [
     subItems: [
       { name: "API Keys", path: "/api-keys" },
       { name: "Webhooks", path: "/webhooks" },
-      { name: "Developer Docs", path: "/developer-docs" },
-    ],
-  },
-  {
-    name: "Help & Resources",
-    icon: <HorizontaLDots />,
-    subItems: [
-      { name: "Help Center", path: "/help" },
-      { name: "Contact Support", path: "/contact-support" },
     ],
   },
 ];
