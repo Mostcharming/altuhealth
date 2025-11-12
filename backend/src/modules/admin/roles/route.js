@@ -5,7 +5,6 @@ const Roles = require('./controller');
 const { securityMiddleware } = require('../../../middlewares/common/security');
 
 router.use(responseFormatter);
-router.use(securityMiddleware);
 
 // CRUD
 router.post('/', Roles.createRole);

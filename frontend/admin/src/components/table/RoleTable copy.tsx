@@ -12,6 +12,11 @@ interface Invoice {
   status: "Paid" | "Unpaid" | "Draft";
 }
 
+interface SortState {
+  sortBy: "number" | "customer" | "creationDate" | "dueDate" | "total";
+  sortDirection: "asc" | "desc";
+}
+
 const initialInvoices: Invoice[] = [
   {
     id: 1,
@@ -26,36 +31,52 @@ const initialInvoices: Invoice[] = [
 
 const RoleTable: React.FC = () => {
   const [invoices] = useState<Invoice[]>(initialInvoices);
-
+  const [sort, setSort] = useState<SortState>({
+    sortBy: "number",
+    sortDirection: "asc",
+  });
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [limit, setLimit] = useState<number>(10);
+
   const [search, setSearch] = useState<string>("");
   const itemsPerPage: number = 10;
 
-  type Header = {
-    key: keyof Invoice | "actions";
-    label: string;
-  };
+  const searchedInvoices: Invoice[] = React.useMemo(() => {
+    return invoices.filter(
+      (invoice) =>
+        invoice.number.toLowerCase().includes(search.toLowerCase()) ||
+        invoice.customer.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [search]);
 
-  const headers: Header[] = [
-    { key: "customer", label: "Customer" },
-    { key: "creationDate", label: "Creation Date" },
-    { key: "dueDate", label: "Due Date" },
-    { key: "total", label: "Total" },
-    { key: "actions", label: "Actions" },
-  ];
+  const sortedInvoices: Invoice[] = React.useMemo(() => {
+    return [...searchedInvoices].sort((a, b) => {
+      let valA: string | number = a[sort.sortBy];
+      let valB: string | number = b[sort.sortBy];
+      if (sort.sortBy === "total") {
+        valA = Number(valA);
+        valB = Number(valB);
+      } else {
+        valA = typeof valA === "string" ? valA.toLowerCase() : valA;
+        valB = typeof valB === "string" ? valB.toLowerCase() : valB;
+      }
+      if (valA < valB) return sort.sortDirection === "asc" ? -1 : 1;
+      if (valA > valB) return sort.sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [searchedInvoices, sort]);
 
-  const paginatedInvoices: Invoice[] = invoices.slice(
+  const paginatedInvoices: Invoice[] = sortedInvoices.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const totalPages: number = Math.ceil(invoices.length / itemsPerPage) || 1;
+  const totalPages: number =
+    Math.ceil(sortedInvoices.length / itemsPerPage) || 1;
   const startEntry: number =
-    invoices.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    sortedInvoices.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const endEntry: number = Math.min(
     currentPage * itemsPerPage,
-    invoices.length
+    sortedInvoices.length
   );
 
   const visiblePages: number[] = React.useMemo(() => {
@@ -67,6 +88,17 @@ const RoleTable: React.FC = () => {
     }
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [currentPage, totalPages]);
+
+  const sortBy = (
+    field: "number" | "customer" | "creationDate" | "dueDate" | "total"
+  ): void => {
+    setSort((prev) => ({
+      sortBy: field,
+      sortDirection:
+        prev.sortBy === field && prev.sortDirection === "asc" ? "desc" : "asc",
+    }));
+    setCurrentPage(1);
+  };
 
   const goToPage = (page: number): void => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
@@ -85,8 +117,11 @@ const RoleTable: React.FC = () => {
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Roles
+            Units
           </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Most recent unit lists
+          </p>
         </div>
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
@@ -125,18 +160,157 @@ const RoleTable: React.FC = () => {
         <table className="w-full table-auto">
           <thead>
             <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-              {headers.map((h) => (
-                <th
-                  key={h.key}
-                  className={` p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400`}
-                >
-                  <div className="flex items-center gap-3">
-                    <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                      {h.label}
-                    </p>
-                  </div>
-                </th>
-              ))}
+              <th
+                className="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
+                onClick={() => sortBy("customer")}
+              >
+                <div className="flex items-center gap-3">
+                  <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
+                    Customer
+                  </p>
+                  <span className="flex flex-col gap-0.5">
+                    <svg
+                      className={
+                        sort.sortBy === "customer" &&
+                        sort.sortDirection === "asc"
+                          ? "text-gray-500"
+                          : "text-gray-300"
+                      }
+                      width="8"
+                      height="5"
+                      viewBox="0 0 8 5"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                    <svg
+                      className={
+                        sort.sortBy === "customer" &&
+                        sort.sortDirection === "desc"
+                          ? "text-gray-500"
+                          : "text-gray-300"
+                      }
+                      width="8"
+                      height="5"
+                      viewBox="0 0 8 5"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </th>
+              <th
+                className="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
+                onClick={() => sortBy("creationDate")}
+              >
+                <div className="flex items-center gap-3">
+                  <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
+                    Creation Date
+                  </p>
+                  <span className="flex flex-col gap-0.5">
+                    <svg
+                      className={
+                        sort.sortBy === "creationDate" &&
+                        sort.sortDirection === "asc"
+                          ? "text-gray-500"
+                          : "text-gray-300"
+                      }
+                      width="8"
+                      height="5"
+                      viewBox="0 0 8 5"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                    <svg
+                      className={
+                        sort.sortBy === "creationDate" &&
+                        sort.sortDirection === "desc"
+                          ? "text-gray-500"
+                          : "text-gray-300"
+                      }
+                      width="8"
+                      height="5"
+                      viewBox="0 0 8 5"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </th>
+              <th
+                className="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
+                onClick={() => sortBy("dueDate")}
+              >
+                <div className="flex items-center gap-3">
+                  <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
+                    Due Date
+                  </p>
+                  <span className="flex flex-col gap-0.5">
+                    <svg
+                      className={
+                        sort.sortBy === "dueDate" &&
+                        sort.sortDirection === "asc"
+                          ? "text-gray-500"
+                          : "text-gray-300"
+                      }
+                      width="8"
+                      height="5"
+                      viewBox="0 0 8 5"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                    <svg
+                      className={
+                        sort.sortBy === "dueDate" &&
+                        sort.sortDirection === "desc"
+                          ? "text-gray-500"
+                          : "text-gray-300"
+                      }
+                      width="8"
+                      height="5"
+                      viewBox="0 0 8 5"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </th>
+              <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                Total
+              </th>
+
+              <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
@@ -171,7 +345,6 @@ const RoleTable: React.FC = () => {
                     <button className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90">
                       <EyeIcon />
                     </button>
-
                     <button className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500">
                       <TrashBinIcon />
                     </button>
@@ -193,7 +366,7 @@ const RoleTable: React.FC = () => {
             <span className="text-gray-800 dark:text-white/90">{endEntry}</span>{" "}
             of{" "}
             <span className="text-gray-800 dark:text-white/90">
-              {invoices.length}
+              {sortedInvoices.length}
             </span>
           </span>
         </div>

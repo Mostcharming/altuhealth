@@ -2,10 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { responseFormatter, errorHandler } = require('../../../middlewares/common/responseFormatter');
 const Notifications = require('./controller');
-const { securityMiddleware } = require('../../../middlewares/common/security');
 
 router.use(responseFormatter);
-router.use(securityMiddleware);
+
 
 router.get('/list', Notifications.listNotifications);
 router.put('/read', Notifications.updateNotificationStatus);
