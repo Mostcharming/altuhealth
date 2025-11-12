@@ -48,7 +48,6 @@ export default function NotificationDropdown() {
         body: { id: n.id },
       });
     } catch (err) {
-      // Rollback on failure
       console.warn("[NotificationDropdown] mark read failed", err);
       const rolledBack = notifications.map((item) =>
         item.id === n.id ? { ...item, isRead: false } : item

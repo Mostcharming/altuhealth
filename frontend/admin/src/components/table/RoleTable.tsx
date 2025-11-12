@@ -1,62 +1,83 @@
 "use client";
 import { EyeIcon, TrashBinIcon } from "@/icons";
-import React, { useState } from "react";
-
-interface Invoice {
-  id: number;
-  number: string;
-  customer: string;
-  creationDate: string;
-  dueDate: string;
-  total: number;
-  status: "Paid" | "Unpaid" | "Draft";
-}
-
-const initialInvoices: Invoice[] = [
-  {
-    id: 1,
-    number: "#323534",
-    customer: "Lindsey Curtis",
-    creationDate: "August 7, 2028",
-    dueDate: "February 28, 2028",
-    total: 999,
-    status: "Paid",
-  },
-];
+import { apiClient } from "@/lib/apiClient";
+import { formatDate } from "@/lib/formatDate";
+import { Role, useRoleStore } from "@/lib/store/roleStore";
+import React, { useCallback, useEffect, useState } from "react";
+import Select from "../form/Select";
+import SpinnerThree from "../ui/spinner/SpinnerThree";
 
 const RoleTable: React.FC = () => {
-  const [invoices] = useState<Invoice[]>(initialInvoices);
-
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
-  const itemsPerPage: number = 10;
+  const [loading, setLoading] = useState<boolean>(false);
+  const [totalItems, setTotalItems] = useState<number>(1);
+  const [hasNextPage, setHasNextPage] = useState<boolean>(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const roles = useRoleStore((s) => s.roles);
+  const setRoles = useRoleStore((s) => s.setRoles);
+  // const addRole = useRoleStore((s) => s.addRole);
+  // const updateRole = useRoleStore((s) => s.updateRole);
+  // const removeRole = useRoleStore((s) => s.removeRole);
 
   type Header = {
-    key: keyof Invoice | "actions";
+    key: keyof Role | "actions";
     label: string;
   };
 
+  const select = [
+    { value: "10", label: "10" },
+    { value: "20", label: "20" },
+    { value: "30", label: "30" },
+    { value: "40", label: "40" },
+    { value: "50", label: "50" },
+  ];
+
   const headers: Header[] = [
-    { key: "customer", label: "Customer" },
-    { key: "creationDate", label: "Creation Date" },
-    { key: "dueDate", label: "Due Date" },
-    { key: "total", label: "Total" },
+    { key: "name", label: "Name" },
+    { key: "description", label: "Description" },
+    { key: "privileges", label: "No of Privileges" },
+    { key: "createdAt", label: "Creation Date" },
     { key: "actions", label: "Actions" },
   ];
 
-  const paginatedInvoices: Invoice[] = invoices.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const fetchRole = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await apiClient("/admin/roles/list", {
+        method: "GET",
+        onLoading: (l) => setLoading(l),
+      });
 
-  const totalPages: number = Math.ceil(invoices.length / itemsPerPage) || 1;
+      const items: Role[] =
+        data?.data?.list && Array.isArray(data.data.list)
+          ? data.data.list
+          : Array.isArray(data)
+          ? data
+          : [];
+
+      setRoles(items);
+      setTotalItems(data.data.count);
+      setHasNextPage(data.data.hasNextPage);
+      setHasPreviousPage(data.data.hasPreviousPage);
+      setTotalPages(data.data.totalPages);
+    } catch (err) {
+      console.warn("Role fetch failed", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setRoles]);
+
+  useEffect(() => {
+    fetchRole();
+  }, [fetchRole]);
+
   const startEntry: number =
-    invoices.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const endEntry: number = Math.min(
-    currentPage * itemsPerPage,
-    invoices.length
-  );
+    totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
+
+  const endEntry: number = Math.min(currentPage * limit, totalItems);
 
   const visiblePages: number[] = React.useMemo(() => {
     const maxVisible = 5;
@@ -79,13 +100,16 @@ const RoleTable: React.FC = () => {
   const previousPage = (): void => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
+  const handleSelectChange = (value: string) => {
+    setLimit(Number(value));
+  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Roles
+            Role Listing
           </h3>
         </div>
         <div className="flex gap-3.5">
@@ -121,68 +145,81 @@ const RoleTable: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto custom-scrollbar">
-        <table className="w-full table-auto">
-          <thead>
-            <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-              {headers.map((h) => (
-                <th
-                  key={h.key}
-                  className={` p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400`}
-                >
-                  <div className="flex items-center gap-3">
-                    <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
-                      {h.label}
-                    </p>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-            {paginatedInvoices.map((invoice: Invoice) => (
-              <tr
-                key={invoice.id}
-                className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
-              >
-                <td className="p-4 whitespace-nowrap">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                    {invoice.customer}
-                  </span>
-                </td>
-                <td className="p-4 whitespace-nowrap">
-                  <p className="text-sm text-gray-700 dark:text-gray-400">
-                    {invoice.creationDate}
-                  </p>
-                </td>
-                <td className="p-4 whitespace-nowrap">
-                  <p className="text-sm text-gray-700 dark:text-gray-400">
-                    {invoice.dueDate}
-                  </p>
-                </td>
-                <td className="p-4 whitespace-nowrap">
-                  <p className="text-sm text-gray-700 dark:text-gray-400">
-                    ${invoice.total}
-                  </p>
-                </td>
-
-                <td className="p-4 whitespace-nowrap">
-                  <div className="flex items-center w-full gap-2">
-                    <button className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90">
-                      <EyeIcon />
-                    </button>
-
-                    <button className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500">
-                      <TrashBinIcon />
-                    </button>
-                  </div>
-                </td>
+      {loading ? (
+        <SpinnerThree />
+      ) : (
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full table-auto">
+            <thead>
+              <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+                {headers.map((h) => (
+                  <th
+                    key={h.key}
+                    className={` p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
+                        {h.label}
+                      </p>
+                    </div>
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+              {roles.map((invoice: Role) => (
+                <tr
+                  key={invoice.id}
+                  className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
+                >
+                  <td className="p-4 whitespace-nowrap">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
+                      {invoice.name}
+                    </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {invoice.description}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {invoice.privileges?.length || 0}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {invoice.createdAt ? formatDate(invoice.createdAt) : "-"}
+                    </p>
+                  </td>
+
+                  <td className="p-4 whitespace-nowrap">
+                    <div className="flex items-center w-full gap-2">
+                      <button className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90">
+                        <EyeIcon />
+                      </button>
+
+                      <button className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500">
+                        <TrashBinIcon />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       <div className="flex items-center flex-col sm:flex-row justify-between border-t border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div>
+          <Select
+            options={select}
+            placeholder="Select limit"
+            onChange={handleSelectChange}
+            defaultValue=""
+          />
+        </div>
         <div className="pb-4 sm:pb-0">
           <span className="block text-sm font-medium text-gray-500 dark:text-gray-400">
             Showing{" "}
@@ -193,7 +230,7 @@ const RoleTable: React.FC = () => {
             <span className="text-gray-800 dark:text-white/90">{endEntry}</span>{" "}
             of{" "}
             <span className="text-gray-800 dark:text-white/90">
-              {invoices.length}
+              {totalItems}
             </span>
           </span>
         </div>
@@ -203,7 +240,7 @@ const RoleTable: React.FC = () => {
               currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
             }`}
             onClick={previousPage}
-            disabled={currentPage === 1}
+            disabled={!hasPreviousPage}
           >
             <svg
               className="fill-current"
@@ -262,7 +299,7 @@ const RoleTable: React.FC = () => {
               currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
             }`}
             onClick={nextPage}
-            disabled={currentPage === totalPages}
+            disabled={!hasNextPage}
           >
             <svg
               className="fill-current"

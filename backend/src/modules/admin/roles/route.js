@@ -16,6 +16,9 @@ router.delete('/:id', Roles.deleteRole);
 // assign privileges
 router.put('/:id/privileges', Roles.assignPrivileges);
 
+// mount privileges routes
+router.use('/privileges', require('../privileges/route'));
+
 router.use(errorHandler);
 
 module.exports = router;

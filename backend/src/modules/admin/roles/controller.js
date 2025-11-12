@@ -79,10 +79,13 @@ async function deleteRole(req, res, next) {
 async function listRoles(req, res, next) {
     try {
         const { Role, RolePrivilege, Privilege } = req.models;
-        const { limit = 50, page = 1, q } = req.query;
-        const limitNum = Number(limit);
-        const pageNum = Number(page) || 1;
-        const offset = (pageNum - 1) * limitNum;
+        const { limit = 10, page = 1, q } = req.query;
+
+        // if client passes limit=all (case-insensitive), return all results without pagination
+        const isAll = String(limit).toLowerCase() === 'all';
+        const limitNum = isAll ? 0 : Number(limit);
+        const pageNum = isAll ? 1 : (Number(page) || 1);
+        const offset = isAll ? 0 : (pageNum - 1) * limitNum;
 
         const where = {};
         if (q) {
@@ -90,15 +93,20 @@ async function listRoles(req, res, next) {
             where.name = { [Op.iLike || Op.like]: `%${q}%` };
         }
 
-        // total count for pagination
+        // total count for pagination (always compute total)
         const total = await Role.count({ where });
 
-        const roles = await Role.findAll({
+        const findOptions = {
             where,
-            order: [['created_at', 'DESC']],
-            limit: limitNum,
-            offset: Number(offset)
-        });
+            order: [['created_at', 'DESC']]
+        };
+
+        if (!isAll) {
+            findOptions.limit = limitNum;
+            findOptions.offset = Number(offset);
+        }
+
+        const roles = await Role.findAll(findOptions);
 
         // attach privileges for each role
         const roleIds = roles.map(r => r.id);
@@ -118,10 +126,11 @@ async function listRoles(req, res, next) {
 
         const data = roles.map(r => ({ ...r.toJSON(), privileges: roleMap[r.id] || [] }));
 
-        const hasPrevPage = pageNum > 1;
-        const hasNextPage = offset + roles.length < total;
+        const hasPrevPage = !isAll && pageNum > 1;
+        const hasNextPage = !isAll && (offset + roles.length < total);
+        const totalPages = isAll ? 1 : (limitNum > 0 ? Math.ceil(total / limitNum) : 1);
 
-        return res.success({ list: data, count: total, page: pageNum, limit: limitNum, hasNextPage, hasPrevPage });
+        return res.success({ list: data, count: total, page: pageNum, limit: isAll ? 'all' : limitNum, totalPages, hasNextPage, hasPrevPage });
     } catch (err) {
         return next(err);
     }
