@@ -1,5 +1,5 @@
-import { useAuthStore } from "./authStore";
-import { APP_CONFIG } from "./config";
+import { useAuthStore } from "@/lib/authStore";
+import { APP_CONFIG } from "@/lib/config";
 
 export type ApiRequestOptions = {
   method?: string;

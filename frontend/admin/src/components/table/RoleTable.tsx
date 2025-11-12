@@ -1,11 +1,11 @@
 "use client";
+import Select from "@/components/form/Select";
+import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import { formatDate } from "@/lib/formatDate";
 import { Role, useRoleStore } from "@/lib/store/roleStore";
 import React, { useCallback, useEffect, useState } from "react";
-import Select from "../form/Select";
-import SpinnerThree from "../ui/spinner/SpinnerThree";
 
 const RoleTable: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);

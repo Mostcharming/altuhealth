@@ -1,8 +1,8 @@
 "use client";
 
+import { useAuthStore } from "@/lib/authStore";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useAuthStore } from "./authStore";
 
 export function useSessionGuard() {
   const router = useRouter();
