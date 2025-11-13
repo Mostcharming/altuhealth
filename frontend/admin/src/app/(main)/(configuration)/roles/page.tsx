@@ -1,6 +1,6 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PageMetrics from "@/components/pageTop/pageMetrics";
-import RoleTable from "@/components/table/RoleTable";
+import PageMetrics from "@/components/pages/roles/pageMetrics";
+import RoleTable from "@/components/pages/roles/RoleTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

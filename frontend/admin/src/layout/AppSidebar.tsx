@@ -17,10 +17,17 @@ import {
   UserCircleIcon,
   UserIcon,
 } from "@/icons";
+import { useAuthStore } from "@/lib/authStore";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type NavItem = {
   name: string;
@@ -47,7 +54,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Admin Directory", path: "/admins" },
       { name: "Other Employees", path: "/others" },
-      { name: "Access & Roles", path: "/roles" },
+      { name: "Access & Roles", path: "/userroles" },
     ],
   },
   {
@@ -186,6 +193,61 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const user = useAuthStore((s) => s.user);
+
+  // Map privileges to the top-level menu names they should enable
+  const privilegeMap: Record<string, string[]> = {
+    "admins.manage": ["Admins"],
+    "providers.manage": ["Providers"],
+    "organizations.manage": ["Organizations"],
+    "enrollees.manage": ["Enrollees"],
+    "claims.manage": ["Claims"],
+    "authorizations.manage": ["Authorizations"],
+    "services.manage": ["Services"],
+    "billing.manage": ["Billing"],
+    "config.manage": ["Configuration"],
+    "operations.manage": ["Operations"],
+    "support.manage": ["Support"],
+    "logs.view": ["Logs"],
+    "developer.manage": ["Developer"],
+  };
+
+  // Memoize user's privilege names to avoid recreating the Set each render
+  const userPrivNames = useMemo(() => {
+    const rolePrivilegesArr = (user?.rolePrivileges || []) as Array<
+      { name?: string } | undefined
+    >;
+    return new Set<string>(
+      rolePrivilegesArr
+        .map((p) => p?.name)
+        .filter((n): n is string => Boolean(n))
+    );
+  }, [user?.rolePrivileges]);
+
+  // Always allow Dashboard and add menu names based on privileges (memoized)
+  const allowedMenuNames = useMemo(() => {
+    const set = new Set<string>(["Dashboard"]);
+    Object.entries(privilegeMap).forEach(([priv, names]) => {
+      if (userPrivNames.has(priv)) {
+        names.forEach((n) => set.add(n));
+      }
+    });
+    return set;
+  }, [userPrivNames]);
+
+  // Filter the top-level arrays so only allowed sections are rendered (memoized)
+  const filteredNavItems = useMemo(
+    () => navItems.filter((item) => allowedMenuNames.has(item.name)),
+    [allowedMenuNames]
+  );
+  const filteredSupportItems = useMemo(
+    () => supportItems.filter((item) => allowedMenuNames.has(item.name)),
+    [allowedMenuNames]
+  );
+  const filteredOthersItems = useMemo(
+    () => othersItems.filter((item) => allowedMenuNames.has(item.name)),
+    [allowedMenuNames]
+  );
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -339,35 +401,48 @@ const AppSidebar: React.FC = () => {
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
-    // Check if the current path matches any submenu item
-    let submenuMatched = false;
-    ["main", "support", "others"].forEach((menuType) => {
-      const items =
-        menuType === "main"
-          ? navItems
-          : menuType === "support"
-          ? supportItems
-          : othersItems;
-      items.forEach((nav, index) => {
-        if (nav.subItems) {
-          nav.subItems.forEach((subItem) => {
-            if (isActive(subItem.path)) {
-              setOpenSubmenu({
-                type: menuType as "main" | "support" | "others",
-                index,
-              });
-              submenuMatched = true;
-            }
-          });
-        }
+    // Find the submenu (type + index) that matches the current pathname, if any
+    let matched: { type: "main" | "support" | "others"; index: number } | null =
+      null;
+    const menuItemsMap: Record<string, NavItem[]> = {
+      main: filteredNavItems,
+      support: filteredSupportItems,
+      others: filteredOthersItems,
+    };
+
+    (
+      ["main", "support", "others"] as Array<"main" | "support" | "others">
+    ).some((menuType) => {
+      const items = menuItemsMap[menuType];
+      return items.some((nav, index) => {
+        if (!nav.subItems) return false;
+        return nav.subItems.some((subItem) => {
+          if (isActive(subItem.path)) {
+            matched = { type: menuType, index };
+            return true;
+          }
+          return false;
+        });
       });
     });
 
-    // If no submenu item matches, close the open submenu
-    if (!submenuMatched) {
-      setOpenSubmenu(null);
-    }
-  }, [pathname, isActive]);
+    // Only update state if the matched submenu is different from current state
+    setOpenSubmenu((prev) => {
+      if (!matched) {
+        return null;
+      }
+      if (prev && prev.type === matched.type && prev.index === matched.index) {
+        return prev;
+      }
+      return matched;
+    });
+  }, [
+    pathname,
+    isActive,
+    filteredNavItems,
+    filteredSupportItems,
+    filteredOthersItems,
+  ]);
 
   useEffect(() => {
     // Set the height of the submenu items when the submenu is opened
@@ -464,7 +539,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(filteredNavItems, "main")}
             </div>
             <div>
               <h2
@@ -480,7 +555,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(supportItems, "support")}
+              {renderMenuItems(filteredSupportItems, "support")}
             </div>
             <div>
               <h2
@@ -496,7 +571,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(othersItems, "others")}
+              {renderMenuItems(filteredOthersItems, "others")}
             </div>
           </div>
         </nav>

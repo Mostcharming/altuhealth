@@ -84,7 +84,7 @@ const makeLogin = (modelOrKey, opts = {}) => {
 
             let roleInfo = null;
             try {
-                const { UserRole, Role } = req.models || {};
+                const { UserRole, Role, RolePrivilege, Privilege } = req.models || {};
                 if (UserRole && Role) {
                     const userRole = await UserRole.findOne({ where: { userId: user.id, userType } });
                     if (userRole) {
@@ -93,8 +93,27 @@ const makeLogin = (modelOrKey, opts = {}) => {
                             roleInfo = {
                                 id: role.id,
                                 name: role.name,
-                                description: role.description || null
+                                description: role.description || null,
+                                privileges: []
                             };
+
+                            // fetch privileges for this role if models are available
+                            try {
+                                if (RolePrivilege && Privilege) {
+                                    const rolePrivileges = await RolePrivilege.findAll({ where: { roleId: role.id } });
+                                    const privilegeIds = (rolePrivileges || []).map(rp => rp.privilegeId).filter(Boolean);
+                                    if (privilegeIds.length) {
+                                        const privileges = await Privilege.findAll({ where: { id: privilegeIds } });
+                                        roleInfo.privileges = (privileges || []).map(p => ({
+                                            // id: p.id,
+                                            name: p.name,
+                                            // description: p.description || null
+                                        }));
+                                    }
+                                }
+                            } catch (privErr) {
+                                console.error('Privilege lookup failed:', privErr && privErr.message ? privErr.message : privErr);
+                            }
                         }
                     }
                 }
@@ -102,7 +121,9 @@ const makeLogin = (modelOrKey, opts = {}) => {
                 console.error('Role lookup failed:', err && err.message ? err.message : err);
             }
 
+            // attach role name and privileges to safeUser
             safeUser.role = roleInfo ? roleInfo.name : null;
+            safeUser.rolePrivileges = roleInfo && Array.isArray(roleInfo.privileges) ? roleInfo.privileges : [];
 
             let signedToken;
             try {

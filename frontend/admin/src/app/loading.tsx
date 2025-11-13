@@ -1,5 +1,6 @@
 "use client";
 
+import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
@@ -20,7 +21,7 @@ export default function Loading() {
           transition={{ duration: 0.5 }}
           className="text-blue-600 font-semibold text-xl"
         >
-          Altuhealt is Loading your experience...
+          <SpinnerThree />
         </motion.div>
       )}
     </AnimatePresence>

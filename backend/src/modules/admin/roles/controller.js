@@ -41,13 +41,39 @@ async function updateRole(req, res, next) {
     try {
         const { Role } = req.models;
         const { id } = req.params;
+        const { name, description, privilegeIds } = req.body || {};
 
         const role = await Role.findByPk(id);
         if (!role) return res.fail('Role not found', 404);
 
-        await role.update(req.body || {});
+        await role.update({ name, description } || {});
+        const sequelize = Role.sequelize;
 
-        return res.success(role, 'Role updated');
+        // normalize
+        const ids = Array.isArray(privilegeIds) ? privilegeIds.filter(Boolean) : [];
+
+        // optional: validate privileges exist
+        if (ids.length) {
+            const found = await Privilege.findAll({ where: { id: { [Op.in]: ids } } });
+            if (found.length !== ids.length) return res.fail('One or more privileges are invalid', 400);
+        }
+
+        await sequelize.transaction(async (t) => {
+            // remove existing mappings then add new ones
+            await RolePrivilege.destroy({ where: { roleId: id }, transaction: t });
+
+            if (ids.length) {
+                const bulk = ids.map(pid => ({ roleId: id, privilegeId: pid }));
+                await RolePrivilege.bulkCreate(bulk, { transaction: t });
+            }
+        });
+
+        const newRps = await RolePrivilege.findAll({ where: { roleId: id } });
+        const newPrivilegeIds = newRps.map(rp => rp.privilegeId);
+        const privileges = newPrivilegeIds.length ? await Privilege.findAll({ where: { id: { [Op.in]: newPrivilegeIds } } }) : [];
+
+
+        return res.success({ role, privileges }, 'Role updated');
     } catch (err) {
         return next(err);
     }
@@ -154,45 +180,7 @@ async function getRole(req, res, next) {
     }
 }
 
-async function assignPrivileges(req, res, next) {
-    try {
-        const { Role, RolePrivilege, Privilege } = req.models;
-        const { id } = req.params;
-        const { privilegeIds } = req.body || {};
 
-        const role = await Role.findByPk(id);
-        if (!role) return res.fail('Role not found', 404);
-
-        const sequelize = Role.sequelize;
-
-        // normalize
-        const ids = Array.isArray(privilegeIds) ? privilegeIds.filter(Boolean) : [];
-
-        // optional: validate privileges exist
-        if (ids.length) {
-            const found = await Privilege.findAll({ where: { id: { [Op.in]: ids } } });
-            if (found.length !== ids.length) return res.fail('One or more privileges are invalid', 400);
-        }
-
-        await sequelize.transaction(async (t) => {
-            // remove existing mappings then add new ones
-            await RolePrivilege.destroy({ where: { roleId: id }, transaction: t });
-
-            if (ids.length) {
-                const bulk = ids.map(pid => ({ roleId: id, privilegeId: pid }));
-                await RolePrivilege.bulkCreate(bulk, { transaction: t });
-            }
-        });
-
-        const newRps = await RolePrivilege.findAll({ where: { roleId: id } });
-        const newPrivilegeIds = newRps.map(rp => rp.privilegeId);
-        const privileges = newPrivilegeIds.length ? await Privilege.findAll({ where: { id: { [Op.in]: newPrivilegeIds } } }) : [];
-
-        return res.success({ role: role.toJSON(), privileges }, 'Privileges assigned to role');
-    } catch (err) {
-        return next(err);
-    }
-}
 
 module.exports = {
     createRole,
@@ -200,5 +188,4 @@ module.exports = {
     deleteRole,
     listRoles,
     getRole,
-    assignPrivileges
 };

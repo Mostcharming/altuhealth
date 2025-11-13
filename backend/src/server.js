@@ -10,6 +10,8 @@ require('./database');
 require('dotenv').config();
 
 const config = require('./config');
+const { responseFormatter } = require('./middlewares/common/responseFormatter');
+const { securityMiddleware } = require('./middlewares/common/security');
 
 const app = express();
 
@@ -19,6 +21,9 @@ app.use(compression());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(responseFormatter);
+app.use(securityMiddleware);
 
 app.use(dbSelector);
 
