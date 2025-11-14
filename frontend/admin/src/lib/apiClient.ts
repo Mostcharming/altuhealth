@@ -83,7 +83,28 @@ export async function apiClient(
     return data;
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error(`[API ERROR]: ${err.message}`);
+
+    // If the error message mentions "token" (case-insensitive), clear auth token and redirect to /signin
+    if (/token/i.test(err.message)) {
+      try {
+        // Cast the store to a narrow shape so TypeScript is happy
+        const store = useAuthStore as unknown as {
+          setState?: (s: Partial<{ token?: string | undefined }>) => void;
+        };
+
+        if (typeof store.setState === "function") {
+          store.setState({ token: undefined });
+        }
+      } catch (e: unknown) {
+        console.warn("[apiClient] failed clearing auth store:", e);
+      }
+
+      if (typeof window !== "undefined") {
+        // Perform full navigation to the signin page
+        window.location.assign("/signin");
+      }
+    }
+
     throw err;
   } finally {
     // always notify caller that loading finished

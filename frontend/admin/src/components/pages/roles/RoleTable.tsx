@@ -1,13 +1,18 @@
 "use client";
 import Select from "@/components/form/Select";
+import ConfirmModal from "@/components/modals/confirm";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
+import { useModal } from "@/hooks/useModal";
 import { EyeIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import { formatDate } from "@/lib/formatDate";
 import { Role, useRoleStore } from "@/lib/store/roleStore";
 import React, { useCallback, useEffect, useState } from "react";
+import EditRole from "./editRole";
 
 const RoleTable: React.FC = () => {
+  const { isOpen, openModal, closeModal } = useModal();
+
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -18,9 +23,10 @@ const RoleTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const roles = useRoleStore((s) => s.roles);
   const setRoles = useRoleStore((s) => s.setRoles);
-  // const addRole = useRoleStore((s) => s.addRole);
-  // const updateRole = useRoleStore((s) => s.updateRole);
-  // const removeRole = useRoleStore((s) => s.removeRole);
+  const confirmModal = useModal();
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const removeRole = useRoleStore((s) => s.removeRole);
 
   type Header = {
     key: keyof Role | "actions";
@@ -43,10 +49,31 @@ const RoleTable: React.FC = () => {
     { key: "actions", label: "Actions" },
   ];
 
+  const [toast, setToast] = useState<{
+    variant: "success" | "info" | "warning" | "error";
+    title: string;
+    description?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   const fetchRole = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiClient("/admin/roles/list", {
+
+      const params = new URLSearchParams();
+      if (limit) params.append("limit", String(limit));
+      if (currentPage) params.append("page", String(currentPage));
+      if (search) params.append("q", search);
+
+      const url = `/admin/roles/list?${params.toString()}`;
+
+      const data = await apiClient(url, {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
@@ -59,16 +86,16 @@ const RoleTable: React.FC = () => {
           : [];
 
       setRoles(items);
-      setTotalItems(data.data.count);
-      setHasNextPage(data.data.hasNextPage);
-      setHasPreviousPage(data.data.hasPreviousPage);
-      setTotalPages(data.data.totalPages);
+      setTotalItems(data?.data?.count ?? 0);
+      setHasNextPage(Boolean(data?.data?.hasNextPage));
+      setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
+      setTotalPages(data?.data?.totalPages ?? 1);
     } catch (err) {
       console.warn("Role fetch failed", err);
     } finally {
       setLoading(false);
     }
-  }, [setLoading, setRoles]);
+  }, [limit, currentPage, search, setRoles]);
 
   useEffect(() => {
     fetchRole();
@@ -94,14 +121,59 @@ const RoleTable: React.FC = () => {
   };
 
   const nextPage = (): void => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+    if (currentPage < totalPages) setCurrentPage((p) => p + 1);
   };
 
   const previousPage = (): void => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
+    if (currentPage > 1) setCurrentPage((p) => p - 1);
   };
   const handleSelectChange = (value: string) => {
     setLimit(Number(value));
+    setCurrentPage(1);
+  };
+  const handleDeleModal = (id: string) => {
+    setSelectedRoleId(id);
+    confirmModal.openModal();
+  };
+  const handleCloseConfirm = () => {
+    setSelectedRoleId(null);
+    confirmModal.closeModal();
+  };
+  const handleView = (role: Role) => {
+    setEditingRole(role);
+    openModal();
+  };
+
+  const deleteRole = async () => {
+    if (!selectedRoleId) return;
+    try {
+      setLoading(true);
+      const url = `/admin/roles/${selectedRoleId}`;
+      await apiClient(url, {
+        method: "DELETE",
+        onLoading: (l) => setLoading(l),
+      });
+
+      // refresh list after deletion
+      removeRole(selectedRoleId);
+      setSelectedRoleId(null);
+      confirmModal.closeModal();
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      // console.warn("Failed to delete role", err);
+      setToast({
+        variant: "error",
+        title: "Delete failed",
+        description: err.message || "An unexpected error occurred",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseEdit = () => {
+    setEditingRole(null);
+    closeModal();
   };
 
   return (
@@ -112,6 +184,7 @@ const RoleTable: React.FC = () => {
             Role Listing
           </h3>
         </div>
+
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
             <div className="relative">
@@ -195,11 +268,17 @@ const RoleTable: React.FC = () => {
 
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
-                      <button className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90">
+                      <button
+                        onClick={() => handleView(invoice)}
+                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                      >
                         <EyeIcon />
                       </button>
 
-                      <button className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500">
+                      <button
+                        onClick={() => handleDeleModal(invoice.id)}
+                        className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
+                      >
                         <TrashBinIcon />
                       </button>
                     </div>
@@ -319,6 +398,17 @@ const RoleTable: React.FC = () => {
           </button>
         </div>
       </div>
+      <ConfirmModal
+        confirmModal={confirmModal}
+        handleSave={deleteRole}
+        closeModal={handleCloseConfirm}
+        toast={toast ?? null}
+      />
+      <EditRole
+        isOpen={isOpen}
+        closeModal={handleCloseEdit}
+        role={editingRole}
+      />
     </div>
   );
 };

@@ -39,7 +39,7 @@ async function createRole(req, res, next) {
 
 async function updateRole(req, res, next) {
     try {
-        const { Role } = req.models;
+        const { Role, Privilege, RolePrivilege } = req.models;
         const { id } = req.params;
         const { name, description, privilegeIds } = req.body || {};
 

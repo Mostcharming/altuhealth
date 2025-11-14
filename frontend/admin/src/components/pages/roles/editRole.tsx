@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Input from "@/components/form/input/InputField";
@@ -10,39 +11,50 @@ import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { Privilege, usePrivilegeStore } from "@/lib/store/privilegeStore";
-import { useRoleStore } from "@/lib/store/roleStore";
+import { Role, useRoleStore } from "@/lib/store/roleStore";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 
-export default function PageMetrics({ buttonText }: { buttonText?: string }) {
-  const { isOpen, openModal, closeModal } = useModal();
+interface EditRoleProps {
+  isOpen: boolean;
+  closeModal: () => void;
+  role?: Role | null;
+}
+
+export default function EditRole({ isOpen, closeModal, role }: EditRoleProps) {
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [name, setName] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const errorModal = useModal();
   const successModal = useModal();
+  const [id, setId] = useState<string>("");
+  const [name, setName] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
+
+  const privileges = usePrivilegeStore((s) => s.privileges);
+  const setPrivileges = usePrivilegeStore((s) => s.setPrivileges);
   const handleMessageChange = (value: string) => {
     setMessage(value);
   };
-  const privileges = usePrivilegeStore((s) => s.privileges);
-  const setPrivileges = usePrivilegeStore((s) => s.setPrivileges);
-  const addRole = useRoleStore((s) => s.addRole);
+  const updateRole = useRoleStore((s) => s.updateRole);
 
-  const resetForm = () => {
-    setName("");
-    setMessage("");
-    setSelectedIds([]);
+  // Safely extract an id string from various privilege shapes without using `any`.
+  const getPrivilegeId = (p: unknown): string | null => {
+    if (p == null) return null;
+    if (typeof p === "string" || typeof p === "number") return String(p);
+    if (typeof p === "object") {
+      const obj = p as Record<string, unknown>;
+      const v = obj["id"];
+      if (typeof v === "string" || typeof v === "number") return String(v);
+    }
+    return null;
   };
 
   const handleSuccessClose = () => {
     successModal.closeModal();
-    resetForm();
     closeModal();
   };
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
     closeModal();
   };
 
@@ -79,45 +91,80 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
     fetchPrivileges();
   }, [fetchPrivileges]);
 
+  // When the modal opens with a role, populate the form with its data.
+  useEffect(() => {
+    if (isOpen && role) {
+      setId(role.id ?? "");
+      setName(role.name ?? "");
+      setMessage(role.description ?? "");
+
+      // Normalize privileges to an array of id strings (filtering out any falsy values)
+      const ids: string[] = Array.isArray(role.privileges)
+        ? role.privileges
+            .map(getPrivilegeId)
+            .filter((v): v is string => typeof v === "string" && v.length > 0)
+        : [];
+
+      setSelectedIds(ids);
+    }
+
+    if (!isOpen) {
+      // reset when modal closes
+      setId("");
+      setName("");
+      setSelectedIds([]);
+      setMessage("");
+    }
+  }, [isOpen, role]);
+
   const handlesubmit = async () => {
     try {
       setLoading(true);
 
+      const privilegeIds = Array.isArray(selectedIds)
+        ? selectedIds.map((i) => String(i)).filter(Boolean)
+        : [];
+
       const payload = {
         name,
         description: message,
-        privilegeIds: selectedIds,
+        privilegeIds,
       };
 
-      const data = await apiClient("/admin/roles", {
-        method: "POST",
+      const url = `/admin/roles/${id}`;
+      const method = "PUT";
+
+      const data = await apiClient(url, {
+        method,
         body: payload,
         onLoading: (l: boolean) => setLoading(l),
       });
 
-      const createdRole = data?.data?.role || data?.role || null;
+      // response might nest payload under data or return directly
+      const returnedRole = data?.data?.role || data?.role || null;
       const returnedPrivileges =
         data?.data?.privileges || data?.privileges || [];
 
-      if (createdRole) {
+      if (returnedRole) {
         // attach privileges to the role object then add to store
         const roleWithPrivileges = {
-          ...createdRole,
+          ...returnedRole,
           privileges: returnedPrivileges,
         };
+
         try {
-          addRole(roleWithPrivileges);
+          updateRole(String(returnedRole.id ?? id), roleWithPrivileges as any);
         } catch (e) {
-          // swallow store errors
           console.warn("Failed to add role to store", e);
         }
 
         successModal.openModal();
       } else {
+        console.warn("Unexpected response when saving role", data);
         errorModal.openModal();
       }
     } catch (err) {
-      console.warn("Create role failed", err);
+      console.warn("Save role failed", err);
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -125,33 +172,7 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
   };
 
   return (
-    <div className="p-4 sm:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-      <div className=" flex items-center justify-between">
-        <div></div>
-        <div>
-          <div
-            onClick={openModal}
-            className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-            >
-              <path
-                d="M5 10.0002H15.0006M10.0002 5V15.0006"
-                stroke="white"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            {buttonText}
-          </div>
-        </div>
-      </div>
+    <>
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
@@ -159,10 +180,10 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
       >
         <div className="px-2">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Add a new role
+            Edit Role
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the details below to create a new role.
+            Update the role details and privileges below.
           </p>
         </div>
 
@@ -279,7 +300,7 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
                   type="button"
                   className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
                 >
-                  Create Role
+                  Update Role
                 </button>
               </div>
             </div>
@@ -292,6 +313,6 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
       />
 
       <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
-    </div>
+    </>
   );
 }

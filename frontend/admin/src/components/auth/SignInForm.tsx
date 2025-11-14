@@ -94,6 +94,8 @@ export default function SignInForm() {
         title: "Missing Fields",
         description: "Please fill in both email and password.",
       });
+      setIsLoading(false);
+
       return;
     }
 

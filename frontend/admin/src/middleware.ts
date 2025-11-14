@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { useAuthStore } from "./lib/authStore";
 
 const publicRoutes = ["/signin", "/reset", "/verify", "/_next", "/public"];
 
@@ -10,7 +9,9 @@ export function middleware(req: NextRequest) {
   if (publicRoutes.some((r) => pathname.startsWith(r))) {
     return NextResponse.next();
   }
-  const token = useAuthStore.getState().token;
+
+  const token = req.cookies.get("auth_token")?.value;
+
   if (!token) {
     const signinUrl = new URL("/signin", req.url);
     signinUrl.searchParams.set("from", pathname);
