@@ -16,6 +16,18 @@ export default function NotificationDropdown() {
   const setNotifications = useNotificationStore((s) => s.setNotifications);
   const [loading, setLoading] = useState(false);
 
+  // Helper: sort so unread (isRead === false) come first, then by createdAt desc
+  const sortNotifications = (items: Notification[]) => {
+    return [...items].sort((a, b) => {
+      if (a.isRead === b.isRead) {
+        const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta; // newest first
+      }
+      return a.isRead ? 1 : -1; // unread first
+    });
+  };
+
   function toggleDropdown() {
     setIsOpen(!isOpen);
   }
@@ -33,14 +45,25 @@ export default function NotificationDropdown() {
     // close dropdown immediately
     closeDropdown();
 
-    // If already read, nothing more to do
-    if (n.isRead) return;
+    // If already read and no clickUrl redirect, nothing more to do
+    // (we still navigate if clickUrl provided)
+    if (n.isRead && (!n.clickUrl || n.clickUrl === "#")) return;
 
     // Optimistic UI update: mark as read locally
     const updated = notifications.map((item) =>
       item.id === n.id ? { ...item, isRead: true } : item
     );
-    setNotifications(updated);
+
+    // sort after optimistic update
+    const updatedSorted = sortNotifications(updated);
+    setNotifications(updatedSorted);
+
+    // If clickUrl provided and not '#', navigate to it now
+    if (n.clickUrl && n.clickUrl !== "#") {
+      // Use window.location to allow external links
+      window.location.href = n.clickUrl;
+      return;
+    }
 
     try {
       await apiClient("/admin/notifications/read", {
@@ -52,7 +75,7 @@ export default function NotificationDropdown() {
       const rolledBack = notifications.map((item) =>
         item.id === n.id ? { ...item, isRead: false } : item
       );
-      setNotifications(rolledBack);
+      setNotifications(sortNotifications(rolledBack));
     }
   };
 
@@ -71,7 +94,8 @@ export default function NotificationDropdown() {
           ? data
           : [];
 
-      setNotifications(items);
+      // ensure unread items are on top and newest first within groups
+      setNotifications(sortNotifications(items));
     } catch (err) {
       console.warn("[NotificationDropdown] fetch failed", err);
     } finally {
@@ -169,7 +193,7 @@ export default function NotificationDropdown() {
               <DropdownItem
                 onItemClick={() => handleNotificationClick(n)}
                 className="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                href="#"
+                href={n.clickUrl && n.clickUrl !== "#" ? n.clickUrl : "#"}
               >
                 <span className="relative block w-full h-10 rounded-full z-1 max-w-10">
                   <Image

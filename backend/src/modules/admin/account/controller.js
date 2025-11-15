@@ -18,6 +18,14 @@ const updateProfile = () => async (req, res, next) => {
             if (body[key] !== undefined) updates[key] = body[key];
         }
 
+        // if a file was uploaded, prefer that for picture field
+        if (req.profileImage && req.profileImage.filename) {
+            // store absolute URL so the DB contains a route like http://host:port/upload/<filename>
+            const base = (req.protocol && req.get && req.get('host')) ? `${req.protocol}://${req.get('host')}` : '';
+            const rel = req.profileImage.url || `/upload/${req.profileImage.filename}`;
+            updates.picture = base ? `${base}${rel}` : rel;
+        }
+
         if (Object.keys(updates).length === 0) return res.fail('No updatable fields provided', 400);
 
         const Admin = req.models && req.models.Admin;

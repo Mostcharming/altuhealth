@@ -3,8 +3,11 @@ import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { Account, useAccountStore } from "@/lib/store/accountStore";
 import { useCallback, useEffect, useState } from "react";
+import PhoneInput from "../form/group-input/PhoneInput";
+import FileInput from "../form/input/FileInput";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import Select from "../form/Select";
 import Button from "../ui/button/Button";
 import { Modal } from "../ui/modal";
 
@@ -43,6 +46,18 @@ export default function UserInfoCard() {
     // Implement save functionality here
     closeModal();
   };
+
+  const options = [
+    { value: "marketing", label: "Marketing" },
+    { value: "template", label: "Template" },
+    { value: "development", label: "Development" },
+  ];
+  const countries = [
+    { code: "US", label: "+1" },
+    { code: "GB", label: "+44" },
+    { code: "CA", label: "+1" },
+    { code: "AU", label: "+61" },
+  ];
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -85,6 +100,24 @@ export default function UserInfoCard() {
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {account?.phoneNumber || "+00 000 000 00"}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Country
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {account?.country || "  "}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Address
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {account?.address || "  "}
               </p>
             </div>
           </div>
@@ -142,8 +175,27 @@ export default function UserInfoCard() {
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>Phone</Label>
-                    <Input type="text" defaultValue="+09 363 398 46" />
+                    <Label htmlFor="phone">Phone</Label>
+                    <PhoneInput
+                      selectPosition="start"
+                      countries={countries}
+                      placeholder="+1 (555) 000-0000"
+                      onChange={handleSave}
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Select Country</Label>
+                    <Select
+                      options={options}
+                      placeholder="Select Country"
+                      onChange={handleSave}
+                      className="dark:bg-dark-900"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Upload file</Label>
+                    <FileInput onChange={handleSave} className="custom-class" />
                   </div>
                 </div>
               </div>
