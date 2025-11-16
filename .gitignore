@@ -61,3 +61,5 @@ logs/
 *.pid
 *.seed
 *.pid.lock
+
+ecosystem.config.js
