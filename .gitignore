@@ -63,3 +63,4 @@ logs/
 *.pid.lock
 
 ecosystem.config.js
+ecosystem.config.js

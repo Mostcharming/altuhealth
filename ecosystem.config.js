@@ -19,5 +19,15 @@ module.exports = {
         PORT: 3000
       }
     },
+    {
+      name: "frontend-provider",
+      script: "npm",
+      args: "start",
+      cwd: "./frontend/provider",
+      env: {
+        NODE_ENV: "production",
+        PORT: 3002
+      }
+    },
   ]
 };
