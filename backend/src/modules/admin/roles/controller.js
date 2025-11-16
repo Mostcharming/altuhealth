@@ -31,7 +31,7 @@ async function createRole(req, res, next) {
 
         // fetch privileges to return
         const privileges = ids.length ? await Privilege.findAll({ where: { id: { [Op.in]: ids } } }) : [];
-        await addAdminNotification(req.models, { "New role added", "" });
+        await addAdminNotification(req.models, { title: "New role added", clickUrl: "hi" });
 
 
         return res.success({ role: role.toJSON(), privileges }, 'Role created', 201);
