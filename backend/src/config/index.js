@@ -29,21 +29,21 @@ const config = {
         jwtExpiresIn: "1d",
     },
     production: {
-        feUrl: "https://api.kolanutafrica.com",
+        feUrl: "https://api.altuhealth.com",
         db: {
             master: {
-                host: "192.168.1.165",
+                host: "127.0.0.1",
                 port: 5432,
-                username: "postgres",
-                password: "Spartan920",
+                username: "altuhealth",
+                password: "altuhealth2025Tayo",
                 database: "altuhealth",
                 dialect: "postgres",
             },
             slave: {
-                host: "192.168.1.165",
+                host: "127.0.0.1",
                 port: 5432,
-                username: "postgres",
-                password: "Spartan920",
+                username: "altuhealth",
+                password: "altuhealth2025Tayo",
                 database: "altuhealth",
                 dialect: "postgres",
             },
