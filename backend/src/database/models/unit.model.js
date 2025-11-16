@@ -13,9 +13,10 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             unique: true,
         },
-        description: {
-            type: DataTypes.STRING,
-            allowNull: true,
+        accountType: {
+            type: DataTypes.ENUM('admin', 'enrollee', 'provider', 'corporate'),
+            allowNull: false,
+            field: 'account_type'
         }
     }, {
         tableName: 'units',

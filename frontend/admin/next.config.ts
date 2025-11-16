@@ -1,9 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   images: {
-    domains: ["mayowa.net"],
+    remotePatterns: [
+      {
+        // protocol must be "http" | "https" if provided, so omit it for a wildcard match
+        hostname: "**",
+        // keep a wildcard pathname to allow any path
+        pathname: "**",
+      },
+    ],
   },
   webpack(config) {
     config.module.rules.push({

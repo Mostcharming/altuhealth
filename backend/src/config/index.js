@@ -2,7 +2,7 @@ const path = require('path');
 
 const config = {
     development: {
-        feUrl: "https://api.kolanutafrica.com",
+        feUrl: "http://localhost:3000",
         db: {
             master: {
                 host: "192.168.43.226",
@@ -22,7 +22,6 @@ const config = {
             },
         },
         uploads: {
-            // absolute path where uploaded profile images will be stored
             profileDir: path.resolve(__dirname, '..', 'uploads', 'profiles')
         },
         apiVersion: "v1",
@@ -50,7 +49,6 @@ const config = {
             },
         },
         uploads: {
-            // absolute path where uploaded profile images will be stored
             profileDir: path.resolve(__dirname, '..', 'uploads', 'profiles')
         },
         apiVersion: "v1",

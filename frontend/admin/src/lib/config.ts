@@ -2,7 +2,7 @@ const ENV = process.env.NODE_ENV;
 
 const BASE_URLS = {
   development: "http://localhost:3006/api/v1",
-  production: "https://api.myapp.com",
+  production: "https://api.altuhealth.com",
 };
 
 export const APP_CONFIG = {

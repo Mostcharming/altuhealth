@@ -45,8 +45,6 @@ export default function NotificationDropdown() {
     // close dropdown immediately
     closeDropdown();
 
-    // If already read and no clickUrl redirect, nothing more to do
-    // (we still navigate if clickUrl provided)
     if (n.isRead && (!n.clickUrl || n.clickUrl === "#")) return;
 
     // Optimistic UI update: mark as read locally

@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const addAdminNotification = require('../../../utils/addAdminNotification');
 
 async function createRole(req, res, next) {
     try {
@@ -30,6 +31,8 @@ async function createRole(req, res, next) {
 
         // fetch privileges to return
         const privileges = ids.length ? await Privilege.findAll({ where: { id: { [Op.in]: ids } } }) : [];
+        await addAdminNotification(req.models, { "New role added", "" });
+
 
         return res.success({ role: role.toJSON(), privileges }, 'Role created', 201);
     } catch (err) {

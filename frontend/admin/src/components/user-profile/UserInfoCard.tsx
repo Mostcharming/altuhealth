@@ -1,21 +1,42 @@
 "use client";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { useAuthStore } from "@/lib/authStore";
 import { Account, useAccountStore } from "@/lib/store/accountStore";
-import { useCallback, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  SyntheticEvent,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import PhoneInput from "../form/group-input/PhoneInput";
 import FileInput from "../form/input/FileInput";
 import Input from "../form/input/InputField";
+import TextArea from "../form/input/TextArea";
 import Label from "../form/Label";
 import Select from "../form/Select";
+import ErrorModal from "../modals/error";
+import SuccessModal from "../modals/success";
 import Button from "../ui/button/Button";
 import { Modal } from "../ui/modal";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
+  const errorModal = useModal();
+  const successModal = useModal();
   const account = useAccountStore((s) => s.account);
   const setAccount = useAccountStore((s) => s.setAccount);
   const [loading, setLoading] = useState(true);
+
+  // Local form state to make the form controlled
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [messageTwo, setMessageTwo] = useState<string>("");
+  const user = useAuthStore((s) => s.user);
 
   const fetchAccount = useCallback(async () => {
     try {
@@ -42,22 +63,140 @@ export default function UserInfoCard() {
     fetchAccount();
   }, [fetchAccount]);
 
-  const handleSave = () => {
-    // Implement save functionality here
-    closeModal();
+  // When account updates, initialize the form fields
+  useEffect(() => {
+    if (!account) return;
+    setFirstName(account.firstName ?? "");
+    setLastName(account.lastName ?? "");
+    setPhone(account.phoneNumber ?? "");
+    setSelectedCountry(account.country ?? null);
+    setMessageTwo(account.address ?? "");
+  }, [account]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement> | null) => {
+    if (!e) {
+      setFile(null);
+      return;
+    }
+    const files = e.target.files;
+    const selected = files && files[0] ? files[0] : null;
+
+    // Only accept image files
+    if (selected && !selected.type.startsWith("image/")) {
+      console.warn("Only image files are allowed");
+      setFile(null);
+      return;
+    }
+
+    setFile(selected);
+  };
+
+  const handlePhoneChange = (val: string) => {
+    setPhone(val ?? "");
+  };
+
+  const handleCountryChange = (value: string) => {
+    setSelectedCountry(value ?? null);
+  };
+
+  const handleSave = async (e?: SyntheticEvent) => {
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
+
+    // assemble form data for multipart/form-data upload
+    const formData = new FormData();
+    formData.append("firstName", firstName ?? "");
+    formData.append("lastName", lastName ?? "");
+    formData.append("phoneNumber", phone ?? "");
+    formData.append("address", messageTwo ?? "");
+    if (selectedCountry) formData.append("country", selectedCountry);
+    // include existing address if available
+    if (file) {
+      formData.append("picture", file);
+    }
+
+    try {
+      setLoading(true);
+
+      const url = `/admin/account/profile`;
+
+      const data = await apiClient(url, {
+        method: "PUT",
+        formData,
+        onLoading: (l) => setLoading(l),
+      });
+
+      const updated: Account = data?.data?.user ?? data?.data ?? data;
+
+      if (updated) {
+        setAccount(updated);
+        const acc = updated as Account;
+        const authUser = {
+          id: String(acc.id ?? ""),
+          email: String(acc.email ?? ""),
+          firstName: acc.firstName ?? undefined,
+          lastName: acc.lastName ?? undefined,
+          role: user?.role ?? undefined,
+          picture: acc.picture ?? undefined,
+          phoneNumber: acc.phoneNumber ?? undefined,
+          status: acc.status ?? undefined,
+          rolePrivileges: user?.rolePrivileges ?? undefined,
+        };
+
+        useAuthStore.setState({ user: authUser });
+      }
+      closeModal();
+    } catch (err) {
+      console.warn("Profile update failed", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const options = [
-    { value: "marketing", label: "Marketing" },
-    { value: "template", label: "Template" },
-    { value: "development", label: "Development" },
+    { value: "United States", label: "United States" },
+    { value: "Canada", label: "Canada" },
+    { value: "United Kingdom", label: "United Kingdom" },
+    { value: "Australia", label: "Australia" },
+    { value: "India", label: "India" },
+    { value: "Nigeria", label: "Nigeria" },
+    { value: "Germany", label: "Germany" },
+    { value: "France", label: "France" },
+    { value: "Spain", label: "Spain" },
+    { value: "Italy", label: "Italy" },
+    { value: "Brazil", label: "Brazil" },
+    { value: "Mexico", label: "Mexico" },
+    { value: "China", label: "China" },
+    { value: "Japan", label: "Japan" },
+    { value: "South Africa", label: "South Africa" },
   ];
   const countries = [
     { code: "US", label: "+1" },
-    { code: "GB", label: "+44" },
     { code: "CA", label: "+1" },
+    { code: "GB", label: "+44" },
     { code: "AU", label: "+61" },
+    { code: "IN", label: "+91" },
+    { code: "NG", label: "+234" },
+    { code: "DE", label: "+49" },
+    { code: "FR", label: "+33" },
+    { code: "ES", label: "+34" },
+    { code: "IT", label: "+39" },
+    { code: "BR", label: "+55" },
+    { code: "MX", label: "+52" },
+    { code: "CN", label: "+86" },
+    { code: "JP", label: "+81" },
+    { code: "ZA", label: "+27" },
   ];
+  const handleSuccessClose = () => {
+    successModal.closeModal();
+    closeModal();
+  };
+
+  const handleErrorClose = () => {
+    errorModal.closeModal();
+    closeModal();
+  };
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -166,12 +305,24 @@ export default function UserInfoCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
                     <Label>First Name</Label>
-                    <Input type="text" defaultValue="Musharof" />
+                    <Input
+                      type="text"
+                      value={firstName}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setFirstName(e.target.value)
+                      }
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Last Name</Label>
-                    <Input type="text" defaultValue="Chowdhury" />
+                    <Input
+                      type="text"
+                      value={lastName}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setLastName(e.target.value)
+                      }
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
@@ -180,7 +331,7 @@ export default function UserInfoCard() {
                       selectPosition="start"
                       countries={countries}
                       placeholder="+1 (555) 000-0000"
-                      onChange={handleSave}
+                      onChange={handlePhoneChange}
                     />
                   </div>
 
@@ -189,13 +340,27 @@ export default function UserInfoCard() {
                     <Select
                       options={options}
                       placeholder="Select Country"
-                      onChange={handleSave}
+                      onChange={handleCountryChange}
+                      defaultValue={selectedCountry ?? ""}
                       className="dark:bg-dark-900"
                     />
                   </div>
                   <div className="col-span-2">
+                    <Label>Address</Label>
+                    <TextArea
+                      rows={3}
+                      value={messageTwo}
+                      error
+                      onChange={(value) => setMessageTwo(value)}
+                    />
+                  </div>
+                  <div className="col-span-2">
                     <Label>Upload file</Label>
-                    <FileInput onChange={handleSave} className="custom-class" />
+                    <FileInput
+                      onChange={handleFileChange}
+                      className="custom-class"
+                      accept="image/*"
+                    />
                   </div>
                 </div>
               </div>
@@ -211,6 +376,12 @@ export default function UserInfoCard() {
           </form>
         </div>
       </Modal>
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={handleSuccessClose}
+      />
+
+      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
     </div>
   );
 }
