@@ -1,6 +1,8 @@
 "use client";
 import Select from "@/components/form/Select";
 import ConfirmModal from "@/components/modals/confirm";
+import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { EyeIcon, TrashBinIcon } from "@/icons";
@@ -12,7 +14,8 @@ import EditRole from "./editRole";
 
 const RoleTable: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
-
+  const errorModal = useModal();
+  const successModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -48,19 +51,6 @@ const RoleTable: React.FC = () => {
     { key: "createdAt", label: "Creation Date" },
     { key: "actions", label: "Actions" },
   ];
-
-  const [toast, setToast] = useState<{
-    variant: "success" | "info" | "warning" | "error";
-    title: string;
-    description?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
 
   const fetchRole = useCallback(async () => {
     try {
@@ -158,14 +148,11 @@ const RoleTable: React.FC = () => {
       removeRole(selectedRoleId);
       setSelectedRoleId(null);
       confirmModal.closeModal();
+      successModal.openModal();
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      // console.warn("Failed to delete role", err);
-      setToast({
-        variant: "error",
-        title: "Delete failed",
-        description: err.message || "An unexpected error occurred",
-      });
+      console.log(err);
+      errorModal.openModal();
     } finally {
       setLoading(false);
     }
@@ -173,6 +160,15 @@ const RoleTable: React.FC = () => {
 
   const handleCloseEdit = () => {
     setEditingRole(null);
+    closeModal();
+  };
+  const handleSuccessClose = () => {
+    successModal.closeModal();
+    closeModal();
+  };
+
+  const handleErrorClose = () => {
+    errorModal.closeModal();
     closeModal();
   };
 
@@ -402,13 +398,18 @@ const RoleTable: React.FC = () => {
         confirmModal={confirmModal}
         handleSave={deleteRole}
         closeModal={handleCloseConfirm}
-        toast={toast ?? null}
       />
       <EditRole
         isOpen={isOpen}
         closeModal={handleCloseEdit}
         role={editingRole}
       />
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={handleSuccessClose}
+      />
+
+      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
     </div>
   );
 };

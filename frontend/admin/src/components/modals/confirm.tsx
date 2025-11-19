@@ -3,24 +3,17 @@
 import { Modal } from "../ui/modal";
 
 import Button from "../ui/button/Button";
-import Notification from "../ui/notification/Notification";
 
 type ConfirmModalProps = {
   confirmModal: { isOpen: boolean };
   handleSave: () => void;
   closeModal: () => void;
-  toast?: {
-    variant: "success" | "error" | "info" | "warning";
-    title: string;
-    description?: string;
-  } | null;
 };
 
 export default function ConfirmModal({
   confirmModal,
   handleSave,
   closeModal,
-  toast,
 }: ConfirmModalProps) {
   return (
     <Modal
@@ -30,15 +23,6 @@ export default function ConfirmModal({
       className="max-w-[507px] p-6 lg:p-10"
     >
       <div className="text-center">
-        {toast && (
-          <div className="fixed top-4 right-4 z-50 animate-slide-in">
-            <Notification
-              variant={toast.variant}
-              title={toast.title}
-              description={toast.description}
-            />
-          </div>
-        )}
         <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90 sm:text-title-sm">
           Confirm Changes
         </h4>
