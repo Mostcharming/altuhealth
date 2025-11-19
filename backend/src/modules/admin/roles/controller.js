@@ -28,7 +28,6 @@ async function createRole(req, res, next) {
         });
 
         const privileges = ids.length ? await Privilege.findAll({ where: { id: { [Op.in]: ids } } }) : [];
-        await addAdminNotification(req.models, { title: "New role added", clickUrl: "role" });
         await addAuditLog(req.models, {
             action: 'role.create',
             message: `Role ${role.name} created`,

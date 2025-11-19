@@ -47,18 +47,30 @@ export default function NotificationDropdown() {
 
     if (n.isRead && (!n.clickUrl || n.clickUrl === "#")) return;
 
-    // Optimistic UI update: mark as read locally
     const updated = notifications.map((item) =>
       item.id === n.id ? { ...item, isRead: true } : item
     );
 
-    // sort after optimistic update
     const updatedSorted = sortNotifications(updated);
     setNotifications(updatedSorted);
 
-    // If clickUrl provided and not '#', navigate to it now
+    const markReadInBackground = async () => {
+      try {
+        await apiClient("/admin/notifications/read", {
+          method: "PUT",
+          body: { id: n.id },
+        });
+      } catch (err) {
+        console.warn("[NotificationDropdown] mark read failed", err);
+        const rolledBack = notifications.map((item) =>
+          item.id === n.id ? { ...item, isRead: false } : item
+        );
+        setNotifications(sortNotifications(rolledBack));
+      }
+    };
+
     if (n.clickUrl && n.clickUrl !== "#") {
-      // Use window.location to allow external links
+      markReadInBackground();
       window.location.href = n.clickUrl;
       return;
     }
@@ -92,7 +104,6 @@ export default function NotificationDropdown() {
           ? data
           : [];
 
-      // ensure unread items are on top and newest first within groups
       setNotifications(sortNotifications(items));
     } catch (err) {
       console.warn("[NotificationDropdown] fetch failed", err);

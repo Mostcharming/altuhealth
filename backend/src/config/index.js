@@ -2,7 +2,7 @@ const path = require('path');
 
 const config = {
     development: {
-        feUrl: "http://localhost:3000",
+        feUrl: "http://localhost:3001",
         db: {
             master: {
                 host: "192.168.1.165",
