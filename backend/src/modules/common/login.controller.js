@@ -79,7 +79,8 @@ const makeLogin = (modelOrKey, opts = {}) => {
                 status: user.status || 'active',
                 latitude: user.latitude || null,
                 longitude: user.longitude || null,
-                currentLocation: user.currentLocation || null
+                currentLocation: user.currentLocation || null,
+                type: userType
             };
 
             let roleInfo = null;

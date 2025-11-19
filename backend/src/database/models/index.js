@@ -16,6 +16,7 @@ function defineModels(sequelize) {
   const NotificationLog = require("./notification.model")(sequelize, DataTypes);
   const NotificationTemplate = require("./notificationTemplate.model")(sequelize, DataTypes);
   const PasswordReset = require("./passwordReset.model")(sequelize, DataTypes);
+  const AuditLog = require("./auditLog.model")(sequelize, DataTypes);
 
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -37,11 +38,7 @@ function defineModels(sequelize) {
   Admin.hasMany(AdminNotification, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   AdminNotification.belongsTo(Admin, { foreignKey: "userId", constraints: false });
 
-
-
-
-
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, GeneralSetting, AdminNotification, NotificationLog, NotificationTemplate, PasswordReset };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, GeneralSetting, AdminNotification, NotificationLog, NotificationTemplate, PasswordReset, AuditLog };
 }
 
 module.exports = defineModels;

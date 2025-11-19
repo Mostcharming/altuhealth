@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const addAdminNotification = require('../../../utils/addAdminNotification');
+const { addAdminNotification, addAuditLog } = require('../../../utils/addAdminNotification');
 
 async function createRole(req, res, next) {
     try {
@@ -10,10 +10,8 @@ async function createRole(req, res, next) {
 
         const sequelize = Role.sequelize;
 
-        // normalize incoming privilege ids
         const ids = Array.isArray(privilegeIds) ? privilegeIds.filter(Boolean) : [];
 
-        // optional: validate privileges exist
         if (ids.length) {
             const found = await Privilege.findAll({ where: { id: { [Op.in]: ids } } });
             if (found.length !== ids.length) return res.fail('One or more privileges are invalid', 400);
@@ -29,10 +27,15 @@ async function createRole(req, res, next) {
             }
         });
 
-        // fetch privileges to return
         const privileges = ids.length ? await Privilege.findAll({ where: { id: { [Op.in]: ids } } }) : [];
-        await addAdminNotification(req.models, { title: "New role added", clickUrl: "hi" });
-
+        await addAdminNotification(req.models, { title: "New role added", clickUrl: "role" });
+        await addAuditLog(req.models, {
+            action: 'role.create',
+            message: `Role ${role.name} created`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { roleId: role.id }
+        });
 
         return res.success({ role: role.toJSON(), privileges }, 'Role created', 201);
     } catch (err) {
@@ -98,6 +101,13 @@ async function deleteRole(req, res, next) {
         // remove role privileges and delete role
         await RolePrivilege.destroy({ where: { roleId: id } });
         await role.destroy();
+        await addAuditLog(req.models, {
+            action: 'role.delete',
+            message: `Role ${role.name} deleted`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { roleId: id }
+        });
 
         return res.success(null, 'Role deleted');
     } catch (err) {
