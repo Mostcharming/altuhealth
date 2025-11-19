@@ -146,8 +146,10 @@ export default function UserInfoCard() {
 
         useAuthStore.setState({ user: authUser });
       }
-      closeModal();
+      // closeModal();
+      successModal.openModal();
     } catch (err) {
+      errorModal.openModal();
       console.warn("Profile update failed", err);
     } finally {
       setLoading(false);
