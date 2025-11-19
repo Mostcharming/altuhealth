@@ -9,11 +9,11 @@ import { EyeIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
-import { Role, useRoleStore } from "@/lib/store/roleStore";
+import { Unit, useUnitStore } from "@/lib/store/unitStore";
 import React, { useCallback, useEffect, useState } from "react";
-import EditRole from "./editRole";
+import EditUnit from "./editUnit";
 
-const RoleTable: React.FC = () => {
+const UnitTable: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const errorModal = useModal();
   const successModal = useModal();
@@ -25,15 +25,15 @@ const RoleTable: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const roles = useRoleStore((s) => s.roles);
-  const setRoles = useRoleStore((s) => s.setRoles);
+  const units = useUnitStore((s) => s.units);
+  const setUnits = useUnitStore((s) => s.setUnits);
   const confirmModal = useModal();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const removeRole = useRoleStore((s) => s.removeRole);
+  const [editingRole, setEditingRole] = useState<Unit | null>(null);
+  const removeUnit = useUnitStore((s) => s.removeUnit);
 
   type Header = {
-    key: keyof Role | "actions";
+    key: keyof Unit | "actions";
     label: string;
   };
 
@@ -47,13 +47,12 @@ const RoleTable: React.FC = () => {
 
   const headers: Header[] = [
     { key: "name", label: "Name" },
-    { key: "description", label: "Description" },
-    { key: "privileges", label: "No of Privileges" },
+    { key: "accountType", label: "Account Type" },
     { key: "createdAt", label: "Creation Date" },
     { key: "actions", label: "Actions" },
   ];
 
-  const fetchRole = useCallback(async () => {
+  const fetch = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -62,21 +61,21 @@ const RoleTable: React.FC = () => {
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
 
-      const url = `/admin/roles/list?${params.toString()}`;
+      const url = `/admin/units/list?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
 
-      const items: Role[] =
+      const items: Unit[] =
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
 
-      setRoles(items);
+      setUnits(items);
       setTotalItems(data?.data?.count ?? 0);
       setHasNextPage(Boolean(data?.data?.hasNextPage));
       setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
@@ -86,11 +85,11 @@ const RoleTable: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setRoles]);
+  }, [limit, currentPage, search, setUnits]);
 
   useEffect(() => {
-    fetchRole();
-  }, [fetchRole]);
+    fetch();
+  }, [fetch]);
 
   const startEntry: number =
     totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
@@ -130,7 +129,7 @@ const RoleTable: React.FC = () => {
     setSelectedRoleId(null);
     confirmModal.closeModal();
   };
-  const handleView = (role: Role) => {
+  const handleView = (role: Unit) => {
     setEditingRole(role);
     openModal();
   };
@@ -139,14 +138,14 @@ const RoleTable: React.FC = () => {
     if (!selectedRoleId) return;
     try {
       setLoading(true);
-      const url = `/admin/roles/${selectedRoleId}`;
+      const url = `/admin/units/${selectedRoleId}`;
       await apiClient(url, {
         method: "DELETE",
         onLoading: (l) => setLoading(l),
       });
 
       // refresh list after deletion
-      removeRole(selectedRoleId);
+      removeUnit(selectedRoleId);
       setSelectedRoleId(null);
       confirmModal.closeModal();
       successModal.openModal();
@@ -178,7 +177,7 @@ const RoleTable: React.FC = () => {
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Role Listing
+            Unit Listing
           </h3>
         </div>
 
@@ -237,7 +236,7 @@ const RoleTable: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {roles.map((invoice: Role) => (
+              {units.map((invoice: Unit) => (
                 <tr
                   key={invoice.id}
                   className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
@@ -249,14 +248,10 @@ const RoleTable: React.FC = () => {
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.description}
+                      {capitalizeWords(invoice.accountType)}
                     </p>
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.privileges?.length || 0}
-                    </p>
-                  </td>
+
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
                       {invoice.createdAt ? formatDate(invoice.createdAt) : "-"}
@@ -400,10 +395,10 @@ const RoleTable: React.FC = () => {
         handleSave={deleteRole}
         closeModal={handleCloseConfirm}
       />
-      <EditRole
+      <EditUnit
         isOpen={isOpen}
         closeModal={handleCloseEdit}
-        role={editingRole}
+        unit={editingRole}
       />
       <SuccessModal
         successModal={successModal}
@@ -415,4 +410,4 @@ const RoleTable: React.FC = () => {
   );
 };
 
-export default RoleTable;
+export default UnitTable;

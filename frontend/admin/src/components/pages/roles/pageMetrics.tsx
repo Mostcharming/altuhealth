@@ -275,6 +275,7 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
                   Cancel
                 </button>
                 <button
+                  disabled={loading}
                   onClick={handlesubmit}
                   type="button"
                   className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"

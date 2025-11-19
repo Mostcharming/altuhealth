@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const { addAuditLog } = require('../../../utils/addAdminNotification');
 
 const ALLOWED_ACCOUNT_TYPES = ['admin', 'enrollee', 'provider', 'corporate'];
 
@@ -12,6 +13,14 @@ async function createUnit(req, res, next) {
         if (!ALLOWED_ACCOUNT_TYPES.includes(accountType)) return res.fail('Invalid `accountType`', 400);
 
         const unit = await Unit.create({ name, accountType });
+
+        await addAuditLog(req.models, {
+            action: 'unit.create',
+            message: `Unit ${unit.name} created`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { unitId: unit.id }
+        });
 
         return res.success({ unit: unit.toJSON() }, 'Unit created', 201);
     } catch (err) {
@@ -57,6 +66,14 @@ async function deleteUnit(req, res, next) {
         }
 
         await unit.destroy();
+
+        await addAuditLog(req.models, {
+            action: 'unit.delete',
+            message: `Unit ${unit.name} deleted`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { unitId: id }
+        });
 
         return res.success(null, 'Unit deleted');
     } catch (err) {

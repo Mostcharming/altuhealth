@@ -89,6 +89,18 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 'active',
             field: 'status'
         },
+        isRegionalOfficer: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_regional_officer'
+        },
+        isHod: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_hod'
+        },
         isDeleted: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
