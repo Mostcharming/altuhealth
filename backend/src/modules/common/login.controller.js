@@ -1,4 +1,5 @@
 const { signToken } = require('../../middlewares/common/security');
+const Sequelize = require('sequelize');
 
 const makeLogin = (modelOrKey, opts = {}) => {
     const policyModelKey = opts.policyModelKey || 'PolicyNumber';
@@ -32,7 +33,15 @@ const makeLogin = (modelOrKey, opts = {}) => {
 
                 user = await UserModel.findByPk(policy.userId);
             } else if (email) {
-                user = await UserModel.findOne({ where: { email } });
+                const lookupEmail = (typeof email === 'string') ? email.toLowerCase() : email;
+                try {
+                    user = await UserModel.findOne({
+                        where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupEmail)
+                    });
+                } catch (e) {
+                    // fallback: if the DB or dialect doesn't support lower() in this context, try a plain lookup
+                    user = await UserModel.findOne({ where: { email: lookupEmail } });
+                }
             }
 
             if (!user) return res.fail('Invalid credentials', 401);

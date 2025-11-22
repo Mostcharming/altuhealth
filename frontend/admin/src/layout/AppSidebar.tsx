@@ -53,8 +53,8 @@ const navItems: NavItem[] = [
     icon: <UserIcon />,
     subItems: [
       { name: "Admin Directory", path: "/admins" },
-      { name: "Other Employees", path: "/others" },
-      { name: "Access & Roles", path: "/userroles" },
+      // { name: "Other Employees", path: "/others" },
+      // { name: "Access & Roles", path: "/userroles" },
     ],
   },
   {

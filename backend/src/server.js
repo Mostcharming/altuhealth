@@ -16,7 +16,13 @@ const { securityMiddleware } = require('./middlewares/common/security');
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://admin.altuhealth.com', 'http://localhost:3001', 'http://192.168.1.191:3001', 'http://192.168.43.84:3001'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(compression());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -50,9 +56,10 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5022;
+const HOST = process.env.HOST || '0.0.0.0';
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on ${HOST}:${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV}`);
 });
 
