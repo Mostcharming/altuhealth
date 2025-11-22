@@ -9,6 +9,7 @@ router.use('/account', require('./account/route'));
 router.use('/notifications', require('./notifications/route'));
 router.use('/roles', require('./roles/route'));
 router.use('/units', require('./units/route'));
+router.use('/admins', require('./admins/route'));
 
 
 
