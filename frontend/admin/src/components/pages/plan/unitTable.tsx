@@ -8,6 +8,7 @@ import { useModal } from "@/hooks/useModal";
 import { EyeIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
+import { usePlanStore } from "@/lib/store/planStore";
 import { User, useUserStore } from "@/lib/store/userStore";
 import Image from "next/image";
 import React, { useCallback, useEffect, useState } from "react";
@@ -30,7 +31,7 @@ const AdminTable: React.FC = () => {
   const confirmModal = useModal();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<User | null>(null);
-  const removeUser = useUserStore((s) => s.removeUser);
+  const removeUser = usePlanStore((s) => s.removePlan);
 
   type Header = {
     key: keyof User | "actions";

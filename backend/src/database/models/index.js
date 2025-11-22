@@ -18,6 +18,7 @@ function defineModels(sequelize) {
   const PasswordReset = require("./passwordReset.model")(sequelize, DataTypes);
   const AuditLog = require("./auditLog.model")(sequelize, DataTypes);
   const Plan = require("./plan.model")(sequelize, DataTypes);
+  const AdminApproval = require("./adminApproval.model")(sequelize, DataTypes);
 
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -39,7 +40,13 @@ function defineModels(sequelize) {
   Admin.hasMany(AdminNotification, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   AdminNotification.belongsTo(Admin, { foreignKey: "userId", constraints: false });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, NotificationLog, NotificationTemplate, PasswordReset, AuditLog };
+  // AdminApproval: requests that require admin action (requested_by, actioned_by)
+  Admin.hasMany(AdminApproval, { foreignKey: "requested_by", constraints: false, scope: { requested_by_type: "Admin" } });
+  AdminApproval.belongsTo(Admin, { foreignKey: "requested_by", constraints: false });
+  Admin.hasMany(AdminApproval, { foreignKey: "actioned_by", constraints: false, scope: { actioned_by_type: "Admin" } });
+  AdminApproval.belongsTo(Admin, { foreignKey: "actioned_by", constraints: false });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog };
 }
 
 module.exports = defineModels;
