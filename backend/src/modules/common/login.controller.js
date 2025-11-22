@@ -58,7 +58,8 @@ const makeLogin = (modelOrKey, opts = {}) => {
 
             if (!passwordMatches) return res.fail('Invalid credentials', 401);
 
-            if (user.status && user.status !== 'active') return res.fail('Account is not active', 403);
+            // require explicit 'active' status — any other value (including null/undefined) is not allowed
+            if (user.status !== 'active') return res.fail('Account is not active', 403);
 
             if (location && (location.lat !== undefined || location.lon !== undefined || location.currentLocation !== undefined)) {
                 const updates = {};

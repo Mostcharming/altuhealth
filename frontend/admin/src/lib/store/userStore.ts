@@ -5,9 +5,10 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role?: string | null;
+  role?: { id: string; name: string } | null;
   phoneNumber?: string | null;
   picture?: string | null;
+  unit?: { id: string; name: string } | null;
   status?: "active" | "inactive" | string;
   createdAt?: string;
   updatedAt?: string;

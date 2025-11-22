@@ -1,6 +1,6 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PageMetricsUnits from "@/components/pages/units/pageMetrics";
-import UnitTable from "@/components/pages/units/unitTable";
+import PageMetricsAdmins from "@/components/pages/admin/pageMetrics";
+import AdminTable from "@/components/pages/admin/unitTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,8 +12,8 @@ export default function Units() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Admins" />
-      <PageMetricsUnits buttonText="Create a user" />
-      <UnitTable />
+      <PageMetricsAdmins buttonText="Create a user" />
+      <AdminTable />
     </div>
   );
 }

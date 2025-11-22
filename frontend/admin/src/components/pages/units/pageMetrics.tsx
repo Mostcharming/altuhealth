@@ -11,7 +11,7 @@ import { apiClient } from "@/lib/apiClient";
 import { useUnitStore } from "@/lib/store/unitStore";
 import { ChangeEvent, useState } from "react";
 
-export default function PageMetricsUnits({
+export default function PageMetricsAdmins({
   buttonText,
 }: {
   buttonText?: string;

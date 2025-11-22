@@ -8,7 +8,7 @@ const generateCode = require('../../../utils/verificationCode');
 
 async function listAdmins(req, res, next) {
     try {
-        const { Admin, UserRole, UserUnit } = req.models;
+        const { Admin, UserRole, UserUnit, Role, Unit } = req.models;
         const { limit = 10, page = 1, q, roleId, unitId, status } = req.query;
 
         const isAll = String(limit).toLowerCase() === 'all';
@@ -28,14 +28,14 @@ async function listAdmins(req, res, next) {
         }
 
         if (roleId) {
-            const rps = await UserRole.findAll({ where: { roleId, userType: 'admin' } });
+            const rps = await UserRole.findAll({ where: { roleId, userType: 'Admin' } });
             const uids = rps.map(r => r.userId);
             if (uids.length === 0) return res.success({ list: [], count: 0, page: pageNum, limit: isAll ? 'all' : limitNum, totalPages: 0 }, 'Admins fetched');
             where.id = { [Op.in]: uids };
         }
 
         if (unitId) {
-            const aus = await UserUnit.findAll({ where: { unitId, userType: 'admin' } });
+            const aus = await UserUnit.findAll({ where: { unitId, userType: 'Admin' } });
             const uids = aus.map(u => u.userId);
             if (uids.length === 0) return res.success({ list: [], count: 0, page: pageNum, limit: isAll ? 'all' : limitNum, totalPages: 0 }, 'Admins fetched');
             where.id = where.id ? { [Op.in]: where.id[Op.in].filter(id => uids.includes(id)) } : { [Op.in]: uids };
@@ -50,6 +50,25 @@ async function listAdmins(req, res, next) {
         }
 
         const rows = await Admin.findAll(findOptions);
+
+        // fetch roles and units for the returned admins and map them
+        const adminIds = rows.map(r => r.id);
+        let rolesMap = {};
+        let unitsMap = {};
+        if (adminIds.length) {
+            const userRoles = await UserRole.findAll({ where: { userId: { [Op.in]: adminIds }, userType: 'Admin' } });
+            const roleIds = [...new Set(userRoles.map(ur => ur.roleId).filter(Boolean))];
+            const roles = roleIds.length ? await Role.findAll({ where: { id: { [Op.in]: roleIds } } }) : [];
+            const rolesById = roles.reduce((acc, r) => { acc[r.id] = r; return acc; }, {});
+            userRoles.forEach(ur => { if (ur.userId && ur.roleId) rolesMap[ur.userId] = rolesById[ur.roleId] || null; });
+
+            const userUnits = await UserUnit.findAll({ where: { userId: { [Op.in]: adminIds }, userType: 'Admin' } });
+            const unitIds = [...new Set(userUnits.map(uu => uu.unitId).filter(Boolean))];
+            const units = unitIds.length ? await Unit.findAll({ where: { id: { [Op.in]: unitIds } } }) : [];
+            const unitsById = units.reduce((acc, u) => { acc[u.id] = u; return acc; }, {});
+            userUnits.forEach(uu => { if (uu.userId && uu.unitId) unitsMap[uu.userId] = unitsById[uu.unitId] || null; });
+        }
+
         const data = rows.map(r => ({
             id: r.id,
             firstName: r.firstName,
@@ -59,7 +78,9 @@ async function listAdmins(req, res, next) {
             phoneNumber: r.phoneNumber || null,
             status: r.status || 'active',
             createdAt: r.createdAt,
-            updatedAt: r.updatedAt
+            updatedAt: r.updatedAt,
+            role: rolesMap[r.id] ? { id: rolesMap[r.id].id, name: rolesMap[r.id].name } : null,
+            unit: unitsMap[r.id] ? { id: unitsMap[r.id].id, name: unitsMap[r.id].name } : null
         }));
 
         const totalPages = isAll ? 1 : (limitNum > 0 ? Math.ceil(total / limitNum) : 1);
@@ -79,13 +100,15 @@ async function getAdmin(req, res, next) {
         const user = await Admin.findByPk(id);
         if (!user) return res.fail('Admin not found', 404);
 
-        const rps = await UserRole.findAll({ where: { userId: id, userType: 'admin' } });
-        const roleIds = rps.map(r => r.roleId);
-        const roles = roleIds.length ? await Role.findAll({ where: { id: { [Op.in]: roleIds } } }) : [];
+        // fetch single role (admins have at most one)
+        const rps = await UserRole.findAll({ where: { userId: id, userType: 'Admin' } });
+        const roleId = rps.length ? rps[0].roleId : null;
+        const role = roleId ? await Role.findByPk(roleId) : null;
 
-        const aus = await UserUnit.findAll({ where: { userId: id, userType: 'admin' } });
-        const unitIds = aus.map(a => a.unitId);
-        const units = unitIds.length ? await Unit.findAll({ where: { id: { [Op.in]: unitIds } } }) : [];
+        // fetch single unit (admins have at most one)
+        const aus = await UserUnit.findAll({ where: { userId: id, userType: 'Admin' } });
+        const unitId = aus.length ? aus[0].unitId : null;
+        const unit = unitId ? await Unit.findByPk(unitId) : null;
 
         const safeUser = {
             id: user.id,
@@ -103,8 +126,8 @@ async function getAdmin(req, res, next) {
             address: user.address || null,
             city: user.city || null,
             postalCode: user.postalCode || null,
-            roles,
-            units
+            role, // single role or null
+            unit  // single unit or null
         };
 
         return res.success({ user: safeUser }, 'Admin fetched');
@@ -133,13 +156,13 @@ async function createAdmin(req, res, next) {
         if (roleId) {
             const role = await Role.findByPk(roleId);
             if (!role) return res.fail('Role not found', 400);
-            await UserRole.create({ userId: admin.id, userType: 'admin', roleId });
+            await UserRole.create({ userId: admin.id, userType: 'Admin', roleId });
         }
 
         if (unitId) {
             const unit = await Unit.findByPk(unitId);
             if (!unit) return res.fail('Unit not found', 400);
-            await UserUnit.create({ userId: admin.id, userType: 'admin', unitId });
+            await UserUnit.create({ userId: admin.id, userType: 'Admin', unitId });
         }
 
         // create audit log for admin creation (don't block main flow on failure)
@@ -179,7 +202,7 @@ async function createAdmin(req, res, next) {
 
 async function updateAdmin(req, res, next) {
     try {
-        const { Admin } = req.models;
+        const { Admin, Role, Unit, UserRole, UserUnit } = req.models;
         const { id } = req.params;
         const body = req.body || {};
 
@@ -202,10 +225,37 @@ async function updateAdmin(req, res, next) {
             delete updates.password;
         }
 
-        if (Object.keys(updates).length === 0) return res.fail('No updatable fields provided', 400);
+        const hasRole = Object.prototype.hasOwnProperty.call(body, 'roleId');
+        const hasUnit = Object.prototype.hasOwnProperty.call(body, 'unitId');
+
+        if (Object.keys(updates).length === 0 && !hasRole && !hasUnit) return res.fail('No updatable fields provided', 400);
 
         await user.update(updates);
         if (typeof user.reload === 'function') await user.reload();
+
+        // handle role update/removal when roleId is provided
+        if (hasRole) {
+            const roleId = body.roleId;
+            // remove existing mappings first (single-role semantics)
+            await UserRole.destroy({ where: { userId: id, userType: 'Admin' } });
+            if (roleId) {
+                const role = await Role.findByPk(roleId);
+                if (!role) return res.fail('Role not found', 400);
+                await UserRole.create({ userId: id, userType: 'Admin', roleId });
+            }
+        }
+
+        // handle unit update/removal when unitId is provided
+        if (hasUnit) {
+            const unitId = body.unitId;
+            // remove existing mappings first (single-unit semantics)
+            await UserUnit.destroy({ where: { userId: id, userType: 'Admin' } });
+            if (unitId) {
+                const unit = await Unit.findByPk(unitId);
+                if (!unit) return res.fail('Unit not found', 400);
+                await UserUnit.create({ userId: id, userType: 'Admin', unitId });
+            }
+        }
 
         return res.success({ id: user.id }, 'Admin updated');
     } catch (err) {
@@ -225,8 +275,8 @@ async function deleteAdmin(req, res, next) {
         await user.update({ isDeleted: true, status: 'inactive' });
 
         // remove roles/units
-        await UserRole.destroy({ where: { userId: id, userType: 'admin' } });
-        await UserUnit.destroy({ where: { userId: id, userType: 'admin' } });
+        await UserRole.destroy({ where: { userId: id, userType: 'Admin' } });
+        await UserUnit.destroy({ where: { userId: id, userType: 'Admin' } });
 
         // audit log for deletion (non-blocking)
         try {
@@ -260,8 +310,8 @@ async function assignRole(req, res, next) {
         if (!role) return res.fail('Role not found', 404);
 
         // remove existing mappings for this user and create new one (single role semantics)
-        await UserRole.destroy({ where: { userId: id, userType: 'admin' } });
-        await UserRole.create({ userId: id, userType: 'admin', roleId });
+        await UserRole.destroy({ where: { userId: id, userType: 'Admin' } });
+        await UserRole.create({ userId: id, userType: 'Admin', roleId });
 
         return res.success(null, 'Role assigned');
     } catch (err) {
@@ -284,8 +334,8 @@ async function assignUnit(req, res, next) {
         if (!unit) return res.fail('Unit not found', 404);
 
         // remove existing and add new (single unit semantics)
-        await UserUnit.destroy({ where: { userId: id, userType: 'admin' } });
-        await UserUnit.create({ userId: id, userType: 'admin', unitId });
+        await UserUnit.destroy({ where: { userId: id, userType: 'Admin' } });
+        await UserUnit.create({ userId: id, userType: 'Admin', unitId });
 
         return res.success(null, 'Unit assigned');
     } catch (err) {
