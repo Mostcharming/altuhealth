@@ -1,6 +1,6 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PageMetricsUnits from "@/components/pages/plan/pageMetrics";
-import UnitTable from "@/components/pages/plan/unitTable";
+import PageMetricsUnits from "@/components/pages/exclude/pageMetrics";
+import UnitTable from "@/components/pages/exclude/unitTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 export default function Units() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Plans" />
-      <PageMetricsUnits buttonText="Create a plan" />
+      <PageBreadcrumb pageTitle="General Exclusions" />
+      <PageMetricsUnits buttonText="Create a exclusion" />
       <UnitTable />
     </div>
   );

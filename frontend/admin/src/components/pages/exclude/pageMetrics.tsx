@@ -1,6 +1,5 @@
 "use client";
 
-import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import ErrorModal from "@/components/modals/error";
@@ -8,8 +7,8 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
-import { usePlanStore } from "@/lib/store/planStore";
-import { ChangeEvent, useState } from "react";
+import { useExclusionStore } from "@/lib/store/exclusionStore";
+import { useState } from "react";
 
 export default function PageMetricsUnits({
   buttonText,
@@ -23,16 +22,13 @@ export default function PageMetricsUnits({
   const successModal = useModal();
 
   // stores
-  const addPlan = usePlanStore((s) => s.addPlan);
+  const addPlan = useExclusionStore((s) => s.addExclusion);
 
   // form state
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
+
   const [description, setDescription] = useState("");
 
   const resetForm = () => {
-    setName("");
-    setCode("");
     setDescription("");
   };
 
@@ -51,8 +47,7 @@ export default function PageMetricsUnits({
   const handlesubmit = async () => {
     try {
       // simple client-side validation
-      if (!name || !description || !code) {
-        console.warn("First name, last name and email are required");
+      if (!description) {
         errorModal.openModal();
         return;
       }
@@ -60,16 +55,12 @@ export default function PageMetricsUnits({
       setLoading(true);
 
       const payload: {
-        name: string;
         description: string;
-        code: string;
       } = {
-        name: name.trim(),
         description: description.trim(),
-        code: code.trim(),
       };
 
-      const data = await apiClient("/admin/plans", {
+      const data = await apiClient("/admin/exclusions", {
         method: "POST",
         body: payload,
         onLoading: (l: boolean) => setLoading(l),
@@ -80,11 +71,8 @@ export default function PageMetricsUnits({
       if (data?.data?.id) {
         addPlan({
           id: data.data.id,
-          name: name,
           description: description,
-          code: code,
-          status: "pending",
-          createdAt: Date.now().toString(),
+          created_at: Date.now().toString(),
         });
       }
 
@@ -135,10 +123,10 @@ export default function PageMetricsUnits({
       >
         <div className="px-2">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Add a new plan
+            Add a new Exclusion
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the details below to create a new plan.
+            Fill in the details below to create a new exclusion.
           </p>
         </div>
 
@@ -151,27 +139,6 @@ export default function PageMetricsUnits({
         >
           <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Name</Label>
-                <Input
-                  type="text"
-                  value={name}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setName(e.target.value)
-                  }
-                />
-              </div>
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Code</Label>
-                <Input
-                  type="text"
-                  value={code}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCode(e.target.value)
-                  }
-                />
-              </div>
-
               <div className="col-span-2 ">
                 <Label>Description</Label>
                 <TextArea
@@ -195,7 +162,7 @@ export default function PageMetricsUnits({
                   disabled={loading}
                   className="px-4 py-2 rounded bg-brand-500 text-white"
                 >
-                  {loading ? "Creating..." : "Create Plan"}
+                  {loading ? "Creating..." : "Create Exclusion"}
                 </button>
               </div>
             </div>

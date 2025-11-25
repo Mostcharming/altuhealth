@@ -3,8 +3,8 @@ import { create } from "zustand";
 export interface Exclusion {
   id: string;
   description: string;
-  createdAt?: string;
-  updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 type ExclusionState = {
