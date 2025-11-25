@@ -8,9 +8,8 @@ import { useModal } from "@/hooks/useModal";
 import { EyeIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
-import { usePlanStore } from "@/lib/store/planStore";
-import { User, useUserStore } from "@/lib/store/userStore";
-import Image from "next/image";
+import { formatDate } from "@/lib/formatDate";
+import { Plan, usePlanStore } from "@/lib/store/planStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditUnit from "./editUnit";
 
@@ -26,15 +25,15 @@ const AdminTable: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const users = useUserStore((s) => s.users);
-  const setUsers = useUserStore((s) => s.setUsers);
+  const users = usePlanStore((s) => s.plans);
+  const setUsers = usePlanStore((s) => s.setPlans);
   const confirmModal = useModal();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<User | null>(null);
+  const [editingRole, setEditingRole] = useState<Plan | null>(null);
   const removeUser = usePlanStore((s) => s.removePlan);
 
   type Header = {
-    key: keyof User | "actions";
+    key: keyof Plan | "actions";
     label: string;
   };
 
@@ -47,15 +46,10 @@ const AdminTable: React.FC = () => {
   ];
 
   const headers: Header[] = [
-    { key: "picture", label: "Avatar" },
-    { key: "firstName", label: "First name" },
-    { key: "lastName", label: "Last Name" },
-    { key: "email", label: "Email" },
-    { key: "phoneNumber", label: "Phone Number" },
-
-    { key: "role", label: "Role" },
-    { key: "unit", label: "Unit" },
-    { key: "status", label: "Status" },
+    { key: "name", label: "Name" },
+    { key: "code", label: "Code" },
+    { key: "description", label: "Description" },
+    { key: "createdAt", label: "Date Created" },
 
     { key: "actions", label: "Actions" },
   ];
@@ -69,14 +63,14 @@ const AdminTable: React.FC = () => {
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
 
-      const url = `/admin/admins/list?${params.toString()}`;
+      const url = `/admin/plans/list?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
 
-      const items: User[] =
+      const items: Plan[] =
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
@@ -137,7 +131,7 @@ const AdminTable: React.FC = () => {
     setSelectedRoleId(null);
     confirmModal.closeModal();
   };
-  const handleView = (role: User) => {
+  const handleView = (role: Plan) => {
     setEditingRole(role);
     openModal();
   };
@@ -146,7 +140,7 @@ const AdminTable: React.FC = () => {
     if (!selectedRoleId) return;
     try {
       setLoading(true);
-      const url = `/admin/admins/${selectedRoleId}`;
+      const url = `/admin/plans/${selectedRoleId}`;
       await apiClient(url, {
         method: "DELETE",
         onLoading: (l) => setLoading(l),
@@ -185,7 +179,7 @@ const AdminTable: React.FC = () => {
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Admins Listing
+            Plans Listing
           </h3>
         </div>
 
@@ -244,67 +238,29 @@ const AdminTable: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {users.map((invoice: User) => (
+              {users.map((invoice: Plan) => (
                 <tr
                   key={invoice.id}
                   className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
                   <td className="p-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12">
-                        <Image
-                          width={48}
-                          height={48}
-                          src={invoice?.picture || "/images/main/small.svg"}
-                          className="h-12 w-12 rounded-md"
-                          alt=""
-                        />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.firstName)}
+                      {capitalizeWords(invoice.name)}
                     </span>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.lastName)}
+                      {capitalizeWords(invoice.code)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.email)}
+                      {capitalizeWords(invoice.description)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.phoneNumber)}
-                    </p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(
-                        invoice.role?.name ?? "No Role assigned"
-                      )}
-                    </p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(
-                        invoice.unit?.name ?? "No Unit assigned"
-                      )}
-                    </p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap text-center">
-                    <p
-                      className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                        invoice.status === "active"
-                          ? "bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-500"
-                          : "bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-500"
-                      }`}
-                    >
-                      {capitalizeWords(invoice.status)}
+                      {invoice.createdAt ? formatDate(invoice.createdAt) : "-"}
                     </p>
                   </td>
 
