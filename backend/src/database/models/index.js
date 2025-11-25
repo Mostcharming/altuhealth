@@ -20,6 +20,8 @@ function defineModels(sequelize) {
   const Plan = require("./plan.model")(sequelize, DataTypes);
   const AdminApproval = require("./adminApproval.model")(sequelize, DataTypes);
   const Exclusion = require("./exclusion.model")(sequelize, DataTypes);
+  const BenefitCategory = require("./benefitCategory.model")(sequelize, DataTypes);
+  const Benefit = require("./benefit.model")(sequelize, DataTypes);
 
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -47,7 +49,11 @@ function defineModels(sequelize) {
   Admin.hasMany(AdminApproval, { foreignKey: "actioned_by", constraints: false, scope: { actioned_by_type: "Admin" } });
   AdminApproval.belongsTo(Admin, { foreignKey: "actioned_by", constraints: false });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion };
+  // BenefitCategory <-> Benefit one-to-many
+  BenefitCategory.hasMany(Benefit, { foreignKey: "benefitCategoryId" });
+  Benefit.belongsTo(BenefitCategory, { foreignKey: "benefitCategoryId" });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit };
 }
 
 module.exports = defineModels;

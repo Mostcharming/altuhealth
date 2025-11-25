@@ -68,11 +68,11 @@ export default function PageMetricsUnits({
 
       // if backend returns created admin id or object, you can handle it here
       // Optionally, if a unit was created/returned and you want to add to unit store
-      if (data?.data?.id) {
+      if (data?.data?.exclusion) {
         addPlan({
-          id: data.data.id,
+          id: data.data.exclusion.id,
           description: description,
-          created_at: Date.now().toString(),
+          created_at: data.data.exclusion.created_at,
         });
       }
 
@@ -137,7 +137,7 @@ export default function PageMetricsUnits({
             handlesubmit();
           }}
         >
-          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
+          <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 ">
                 <Label>Description</Label>

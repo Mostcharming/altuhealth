@@ -109,7 +109,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
         </div>
 
         <form className="flex flex-col">
-          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
+          <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Label>Role Name</Label>
