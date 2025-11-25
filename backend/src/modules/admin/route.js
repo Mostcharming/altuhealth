@@ -11,6 +11,7 @@ router.use('/roles', require('./roles/route'));
 router.use('/units', require('./units/route'));
 router.use('/admins', require('./admins/route'));
 router.use('/plans', require('./plans/route'));
+router.use('/exclusions', require('./exclusions/route'));
 router.use('/approvals', require('./approvals/route'));
 
 module.exports = router;
