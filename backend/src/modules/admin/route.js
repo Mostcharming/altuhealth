@@ -1,6 +1,9 @@
+const { errorHandler, responseFormatter } = require('../../middlewares/common/responseFormatter');
 const { securityMiddleware } = require('../../middlewares/common/security');
 
 const router = require('express').Router();
+
+router.use(responseFormatter);
 
 router.use('/auth', require('./auth/route'));
 
@@ -13,5 +16,10 @@ router.use('/admins', require('./admins/route'));
 router.use('/plans', require('./plans/route'));
 router.use('/exclusions', require('./exclusions/route'));
 router.use('/approvals', require('./approvals/route'));
+router.use('/benefit-categories', require('./benefitCategories/route'));
+router.use('/benefits', require('./benefits/route'));
+
+router.use(errorHandler);
+
 
 module.exports = router;

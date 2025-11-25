@@ -77,9 +77,9 @@ export default function PageMetricsUnits({
 
       // if backend returns created admin id or object, you can handle it here
       // Optionally, if a unit was created/returned and you want to add to unit store
-      if (data?.data?.id) {
+      if (data?.data?.plan.id) {
         addPlan({
-          id: data.data.id,
+          id: data.data.plan.id,
           name: name,
           description: description,
           code: code,

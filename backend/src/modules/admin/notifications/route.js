@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { responseFormatter, errorHandler } = require('../../../middlewares/common/responseFormatter');
 const Notifications = require('./controller');
 
 

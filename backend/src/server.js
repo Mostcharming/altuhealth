@@ -11,7 +11,6 @@ require('dotenv').config();
 
 const config = require('./config');
 const { responseFormatter } = require('./middlewares/common/responseFormatter');
-const { securityMiddleware } = require('./middlewares/common/security');
 
 const app = express();
 
