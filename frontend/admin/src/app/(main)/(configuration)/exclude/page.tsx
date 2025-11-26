@@ -4,8 +4,8 @@ import UnitTable from "@/components/pages/exclude/unitTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Plans",
-  description: "Manage Plans within the AltuHealth admin panel.",
+  title: "AltuHealth Admin Exclusions",
+  description: "Manage Exclusions within the AltuHealth admin panel.",
 };
 
 export default function Units() {

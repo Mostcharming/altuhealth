@@ -45,9 +45,9 @@ function validateBenefit(data) {
         errors.push('`description` must be 1000 characters or less');
     }
 
-    if (limit && typeof limit !== 'string') {
-        errors.push('`limit` must be a string if provided');
-    }
+    // if (limit && typeof limit !== 'string') {
+    //     errors.push('`limit` must be a string if provided');
+    // }
 
     if (limit && limit.length > 255) {
         errors.push('`limit` must be 255 characters or less');
