@@ -5,7 +5,7 @@ const config = {
         feUrl: "http://localhost:3001",
         db: {
             master: {
-                host: "192.168.43.226",
+                host: "192.168.1.165",
                 port: 5432,
                 username: "postgres",
                 password: "Spartan920",
@@ -13,7 +13,7 @@ const config = {
                 dialect: "postgres",
             },
             slave: {
-                host: "192.168.43.226",
+                host: "192.168.1.165",
                 port: 5432,
                 username: "postgres",
                 password: "Spartan920",

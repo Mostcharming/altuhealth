@@ -16,7 +16,7 @@ const app = express();
 
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://admin.altuhealth.com', 'http://localhost:3001', 'http://192.168.1.191:3001', 'http://192.168.43.84:3001'],
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://provider.altuhealth.com', 'https://admin.altuhealth.com', 'http://localhost:3001', 'http://192.168.1.191:3001', 'http://192.168.43.84:3001'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true

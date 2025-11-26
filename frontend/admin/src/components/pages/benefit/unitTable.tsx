@@ -52,6 +52,7 @@ const AdminTable: React.FC = () => {
 
   const headers: Header[] = [
     { key: "name", label: "Name" },
+    { key: "count", label: "Count" },
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
@@ -251,6 +252,11 @@ const AdminTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
                       {capitalizeWords(invoice.name)}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {capitalizeWords(invoice.count)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">

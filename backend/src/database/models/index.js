@@ -22,6 +22,7 @@ function defineModels(sequelize) {
   const Exclusion = require("./exclusion.model")(sequelize, DataTypes);
   const BenefitCategory = require("./benefitCategory.model")(sequelize, DataTypes);
   const Benefit = require("./benefit.model")(sequelize, DataTypes);
+  const Diagnosis = require("./diagnosis.model")(sequelize, DataTypes);
 
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -53,7 +54,7 @@ function defineModels(sequelize) {
   BenefitCategory.hasMany(Benefit, { foreignKey: "benefitCategoryId" });
   Benefit.belongsTo(BenefitCategory, { foreignKey: "benefitCategoryId" });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis };
 }
 
 module.exports = defineModels;

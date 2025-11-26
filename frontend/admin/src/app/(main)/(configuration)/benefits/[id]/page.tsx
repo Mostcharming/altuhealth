@@ -6,8 +6,10 @@ import PageMetricsUnits from "@/components/pages/singlebenefit/pageMetrics";
 import UnitTable from "@/components/pages/singlebenefit/unitTable";
 import capitalizeWords from "@/lib/capitalize";
 import { useBenefitCategoryStore } from "@/lib/store/benefitCategoryStore";
+import React from "react";
 
-export default function Units({ params }: { params: { id: string } }) {
+export default function Units(props: { params: Promise<{ id: string }> }) {
+  const params = React.use(props.params);
   const { benefitCategories } = useBenefitCategoryStore();
   const benefitCategory = benefitCategories.find(
     (category) => category.id === params.id

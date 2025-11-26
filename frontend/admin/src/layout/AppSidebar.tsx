@@ -139,7 +139,7 @@ const navItems: NavItem[] = [
       { name: "Plans", path: "/plans" },
       { name: "Units", path: "/units" },
       { name: "Roles", path: "/roles" },
-      { name: "Diagnosis Codes", path: "/diagnosis" },
+      { name: "Diagnosis Setup", path: "/diagnosis" },
       { name: "Exclusions", path: "/exclude" },
       { name: "Benefits", path: "/benefits" },
       { name: "Notification Settings", path: "/notification-settings" },
@@ -156,7 +156,7 @@ const supportItems: NavItem[] = [
       { name: "Approvals", path: "/approvals" },
       { name: "Requests", path: "/requests" },
       { name: "Reports", path: "/reports" },
-      { name: "System Status", path: "/system-status" },
+      // { name: "System Status", path: "/system-status" },
     ],
   },
   {
@@ -164,9 +164,9 @@ const supportItems: NavItem[] = [
     name: "Support",
     subItems: [
       { name: "Support Tickets", path: "/support-tickets" },
-      { name: "Ticket Replies", path: "/support-ticket-reply" },
-      { name: "Knowledge Base", path: "/knowledge-base" },
-      { name: "SLA Management", path: "/sla-management" },
+      // { name: "Ticket Replies", path: "/support-ticket-reply" },
+      // { name: "Knowledge Base", path: "/knowledge-base" },
+      // { name: "SLA Management", path: "/sla-management" },
     ],
   },
 ];

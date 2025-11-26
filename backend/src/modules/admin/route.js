@@ -18,6 +18,7 @@ router.use('/exclusions', require('./exclusions/route'));
 router.use('/approvals', require('./approvals/route'));
 router.use('/benefit-categories', require('./benefitCategories/route'));
 router.use('/benefits', require('./benefits/route'));
+router.use('/diagnosis', require('./diagnosis/route'));
 
 router.use(errorHandler);
 
