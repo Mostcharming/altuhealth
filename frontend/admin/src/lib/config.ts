@@ -1,7 +1,7 @@
 const ENV = process.env.NODE_ENV;
 
 const BASE_URLS = {
-  development: "http://192.168.43.84:3006/api/v1",
+  development: "http://192.168.1.191:3006/api/v1",
   production: "https://api.altuhealth.com/api/v1",
 };
 

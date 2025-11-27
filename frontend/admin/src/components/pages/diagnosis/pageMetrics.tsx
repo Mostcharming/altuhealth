@@ -1,6 +1,5 @@
 "use client";
 
-import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import ErrorModal from "@/components/modals/error";
@@ -8,15 +7,13 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
-import { useBenefitStore } from "@/lib/store/benefitStore";
-import { ChangeEvent, useState } from "react";
+import { useDiagnosisStore } from "@/lib/store/diagnosisStore";
+import { useState } from "react";
 
 export default function PageMetricsUnits({
-  id,
   buttonText,
 }: {
   buttonText?: string;
-  id: string;
 }) {
   const { isOpen, openModal, closeModal } = useModal();
   const [loading, setLoading] = useState(false);
@@ -25,20 +22,26 @@ export default function PageMetricsUnits({
   const successModal = useModal();
 
   // stores
-  const addPlan = useBenefitStore((s) => s.addBenefit);
+  const addPlan = useDiagnosisStore((s) => s.addDiagnosis);
 
   // form state
 
-  const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [limit, setLimit] = useState("");
-  const [amount, setAmount] = useState("");
+  const [name, setName] = useState("");
+  const [severity, setSeverity] = useState<
+    "mild" | "moderate" | "severe" | "critical" | ""
+  >("");
+  const [symptoms, setSymptoms] = useState("");
+  const [treatment, setTreatment] = useState("");
+  const [isChronicCondition, setIsChronicCondition] = useState(false);
 
   const resetForm = () => {
     setDescription("");
-    setAmount("");
-    setLimit("");
     setName("");
+    setSeverity("");
+    setSymptoms("");
+    setTreatment("");
+    setIsChronicCondition(false);
   };
 
   const handleSuccessClose = () => {
@@ -64,35 +67,28 @@ export default function PageMetricsUnits({
       setLoading(true);
 
       const payload: {
-        name: string;
         description: string;
-        limit: number;
-        amount: number;
-        benefitCategoryId: string;
       } = {
-        name: name.trim(),
         description: description.trim(),
-        limit: parseInt(limit),
-        amount: parseFloat(amount),
-        benefitCategoryId: id,
       };
 
-      const data = await apiClient("/admin/benefits", {
+      const data = await apiClient("/admin/diagnosis", {
         method: "POST",
         body: payload,
         onLoading: (l: boolean) => setLoading(l),
       });
 
-      // if backend returns created benefit category object, add it to store
-      if (data?.data) {
+      // if backend returns created admin id or object, you can handle it here
+      // Optionally, if a unit was created/returned and you want to add to unit store
+      if (data?.data?.exclusion) {
         addPlan({
-          id: data.data.id,
-          name: description,
-          description: description,
-          limit: limit,
-          amount: parseFloat(amount),
-          benefitCategoryId: id,
-          createdAt: data.data.createdAt,
+          id: data.data.diagnosis.id,
+          name: name,
+          severity: severity || null,
+          symptoms: symptoms || null,
+          treatment: treatment || null,
+          isChronicCondition: isChronicCondition,
+          createdAt: data.data.diagnosis.created_at,
         });
       }
 
@@ -107,6 +103,7 @@ export default function PageMetricsUnits({
   const handleMessageChange = (value: string) => {
     setDescription(value);
   };
+
   return (
     <div className="p-4 sm:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className=" flex items-center justify-between">
@@ -142,10 +139,10 @@ export default function PageMetricsUnits({
       >
         <div className="px-2">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Add a new Benefit
+            Add a new Diagnosis
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the details below to create a new benefit.
+            Fill in the details below to create a new diagnosis.
           </p>
         </div>
 
@@ -158,40 +155,10 @@ export default function PageMetricsUnits({
         >
           <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Name</Label>
-                <Input
-                  type="text"
-                  value={name}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setName(e.target.value)
-                  }
-                />
-              </div>
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Limit</Label>
-                <Input
-                  type="number"
-                  value={limit}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setLimit(e.target.value)
-                  }
-                />
-              </div>
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Amount</Label>
-                <Input
-                  type="number"
-                  value={amount}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setAmount(e.target.value)
-                  }
-                />
-              </div>
               <div className="col-span-2 ">
                 <Label>Description</Label>
                 <TextArea
-                  placeholder="Type your message here..."
+                  placeholder="Type the description here..."
                   rows={6}
                   value={description}
                   onChange={handleMessageChange}
@@ -211,7 +178,7 @@ export default function PageMetricsUnits({
                   disabled={loading}
                   className="px-4 py-2 rounded bg-brand-500 text-white"
                 >
-                  {loading ? "Creating..." : "Create Benefit"}
+                  {loading ? "Creating..." : "Create Diagnosis"}
                 </button>
               </div>
             </div>
