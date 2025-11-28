@@ -1,18 +1,25 @@
 "use client";
 import Select from "@/components/form/Select";
 import ConfirmModal from "@/components/modals/confirm";
+import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
+import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
-import { Role, useRoleStore } from "@/lib/store/roleStore";
+import {
+  ProviderSpecialization,
+  useProviderSpecializationStore,
+} from "@/lib/store/providerSpecializationStore";
 import React, { useCallback, useEffect, useState } from "react";
-import EditRole from "./editRole";
+import EditUnit from "./editUnit";
 
-const RoleTable: React.FC = () => {
+const AdminTable: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
-
+  const errorModal = useModal();
+  const successModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -21,15 +28,28 @@ const RoleTable: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const roles = useRoleStore((s) => s.roles);
-  const setRoles = useRoleStore((s) => s.setRoles);
+  const providerSpecializations = useProviderSpecializationStore(
+    (s) => s.providerSpecializations
+  );
+  const setProviderSpecializations = useProviderSpecializationStore(
+    (s) => s.setProviderSpecializations
+  );
   const confirmModal = useModal();
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const removeRole = useRoleStore((s) => s.removeRole);
+  const [
+    selectedProviderSpecializationId,
+    setSelectedProviderSpecializationId,
+  ] = useState<string | null>(null);
+  const [editingProviderSpecialization, setEditingProviderSpecialization] =
+    useState<ProviderSpecialization | null>(null);
+  const removeProviderSpecialization = useProviderSpecializationStore(
+    (s) => s.removeProviderSpecialization
+  );
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to delete provider specialization. Please try again."
+  );
 
   type Header = {
-    key: keyof Role | "actions";
+    key: keyof ProviderSpecialization | "actions";
     label: string;
   };
 
@@ -44,25 +64,11 @@ const RoleTable: React.FC = () => {
   const headers: Header[] = [
     { key: "name", label: "Name" },
     { key: "description", label: "Description" },
-    { key: "privileges", label: "No of Privileges" },
-    { key: "createdAt", label: "Creation Date" },
+    { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
 
-  const [toast, setToast] = useState<{
-    variant: "success" | "info" | "warning" | "error";
-    title: string;
-    description?: string;
-  } | null>(null);
-
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [toast]);
-
-  const fetchRole = useCallback(async () => {
+  const fetch = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -71,35 +77,35 @@ const RoleTable: React.FC = () => {
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
 
-      const url = `/admin/roles/list?${params.toString()}`;
+      const url = `/admin/provider-specializations/list?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
 
-      const items: Role[] =
+      const items: ProviderSpecialization[] =
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
 
-      setRoles(items);
+      setProviderSpecializations(items);
       setTotalItems(data?.data?.count ?? 0);
       setHasNextPage(Boolean(data?.data?.hasNextPage));
       setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
       setTotalPages(data?.data?.totalPages ?? 1);
     } catch (err) {
-      console.warn("Role fetch failed", err);
+      console.warn("Provider Specialization fetch failed", err);
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setRoles]);
+  }, [limit, currentPage, search, setProviderSpecializations]);
 
   useEffect(() => {
-    fetchRole();
-  }, [fetchRole]);
+    fetch();
+  }, [fetch]);
 
   const startEntry: number =
     totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
@@ -131,48 +137,56 @@ const RoleTable: React.FC = () => {
     setLimit(Number(value));
     setCurrentPage(1);
   };
-  const handleDeleModal = (id: string) => {
-    setSelectedRoleId(id);
+  const handleDeleteModal = (id: string) => {
+    setSelectedProviderSpecializationId(id);
     confirmModal.openModal();
   };
   const handleCloseConfirm = () => {
-    setSelectedRoleId(null);
+    setSelectedProviderSpecializationId(null);
     confirmModal.closeModal();
   };
-  const handleView = (role: Role) => {
-    setEditingRole(role);
+  const handleView = (providerSpecialization: ProviderSpecialization) => {
+    setEditingProviderSpecialization(providerSpecialization);
     openModal();
   };
 
-  const deleteRole = async () => {
-    if (!selectedRoleId) return;
+  const deleteProviderSpecialization = async () => {
+    if (!selectedProviderSpecializationId) return;
     try {
       setLoading(true);
-      const url = `/admin/roles/${selectedRoleId}`;
+      const url = `/admin/provider-specializations/${selectedProviderSpecializationId}`;
       await apiClient(url, {
         method: "DELETE",
         onLoading: (l) => setLoading(l),
       });
 
       // refresh list after deletion
-      removeRole(selectedRoleId);
-      setSelectedRoleId(null);
+      removeProviderSpecialization(selectedProviderSpecializationId);
+      setSelectedProviderSpecializationId(null);
       confirmModal.closeModal();
+      successModal.openModal();
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      // console.warn("Failed to delete role", err);
-      setToast({
-        variant: "error",
-        title: "Delete failed",
-        description: err.message || "An unexpected error occurred",
-      });
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
+      errorModal.openModal();
     } finally {
       setLoading(false);
     }
   };
 
   const handleCloseEdit = () => {
-    setEditingRole(null);
+    setEditingProviderSpecialization(null);
+    closeModal();
+  };
+  const handleSuccessClose = () => {
+    successModal.closeModal();
+    closeModal();
+  };
+
+  const handleErrorClose = () => {
+    errorModal.closeModal();
     closeModal();
   };
 
@@ -181,7 +195,7 @@ const RoleTable: React.FC = () => {
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Role Listing
+            Diagnosis Listing
           </h3>
         </div>
 
@@ -240,51 +254,56 @@ const RoleTable: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {roles.map((invoice: Role) => (
-                <tr
-                  key={invoice.id}
-                  className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
-                >
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {invoice.name}
-                    </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.description}
-                    </p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.privileges?.length || 0}
-                    </p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.createdAt ? formatDate(invoice.createdAt) : "-"}
-                    </p>
-                  </td>
+              {providerSpecializations.map(
+                (providerSpecialization: ProviderSpecialization) => (
+                  <tr
+                    key={providerSpecialization.id}
+                    className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
+                  >
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                        {capitalizeWords(providerSpecialization.name) || "-"}
+                      </p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-sm text-gray-700 dark:text-gray-400">
+                        {capitalizeWords(
+                          providerSpecialization.description || ""
+                        ) || "-"}
+                      </p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-sm text-gray-700 dark:text-gray-400">
+                        {providerSpecialization.createdAt
+                          ? formatDate(providerSpecialization.createdAt)
+                          : "-"}
+                      </p>
+                    </td>
 
-                  <td className="p-4 whitespace-nowrap">
-                    <div className="flex items-center w-full gap-2">
-                      <button
-                        onClick={() => handleView(invoice)}
-                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                      >
-                        <PencilIcon />
-                      </button>
+                    <td className="p-4 whitespace-nowrap">
+                      <div className="flex items-center w-full gap-2">
+                        <button
+                          onClick={() => handleView(providerSpecialization)}
+                          className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                          title="View/Edit"
+                        >
+                          <PencilIcon />
+                        </button>
 
-                      <button
-                        onClick={() => handleDeleModal(invoice.id)}
-                        className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
-                      >
-                        <TrashBinIcon />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <button
+                          onClick={() =>
+                            handleDeleteModal(providerSpecialization.id)
+                          }
+                          className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
+                          title="Delete"
+                        >
+                          <TrashBinIcon />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
@@ -400,17 +419,26 @@ const RoleTable: React.FC = () => {
       </div>
       <ConfirmModal
         confirmModal={confirmModal}
-        handleSave={deleteRole}
+        handleSave={deleteProviderSpecialization}
         closeModal={handleCloseConfirm}
-        toast={toast ?? null}
       />
-      <EditRole
+      <EditUnit
         isOpen={isOpen}
         closeModal={handleCloseEdit}
-        role={editingRole}
+        unit={editingProviderSpecialization}
+      />
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={handleSuccessClose}
+      />
+
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
       />
     </div>
   );
 };
 
-export default RoleTable;
+export default AdminTable;

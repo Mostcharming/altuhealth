@@ -3,7 +3,7 @@ import Select from "@/components/form/Select";
 import ConfirmModal from "@/components/modals/confirm";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { EyeIcon, TrashBinIcon } from "@/icons";
+import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import { formatDate } from "@/lib/formatDate";
 import { Role, useRoleStore } from "@/lib/store/roleStore";
@@ -272,7 +272,7 @@ const RoleTable: React.FC = () => {
                         onClick={() => handleView(invoice)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
                       >
-                        <EyeIcon />
+                        <PencilIcon />
                       </button>
 
                       <button
