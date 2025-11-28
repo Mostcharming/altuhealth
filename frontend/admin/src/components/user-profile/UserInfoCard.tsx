@@ -36,6 +36,7 @@ export default function UserInfoCard() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [messageTwo, setMessageTwo] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("Failed to update");
   const user = useAuthStore((s) => s.user);
 
   const fetchAccount = useCallback(async () => {
@@ -149,8 +150,10 @@ export default function UserInfoCard() {
       // closeModal();
       successModal.openModal();
     } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
-      console.warn("Profile update failed", err);
     } finally {
       setLoading(false);
     }
@@ -383,7 +386,11 @@ export default function UserInfoCard() {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 }

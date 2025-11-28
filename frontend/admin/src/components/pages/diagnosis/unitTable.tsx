@@ -7,6 +7,7 @@ import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { EyeIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
+import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import { Diagnosis, useDiagnosisStore } from "@/lib/store/diagnosisStore";
 import React, { useCallback, useEffect, useState } from "react";
@@ -34,6 +35,9 @@ const AdminTable: React.FC = () => {
     null
   );
   const removeDiagnosis = useDiagnosisStore((s) => s.removeDiagnosis);
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to delete diagnosis. Please try again."
+  );
 
   type Header = {
     key: keyof Diagnosis | "actions";
@@ -155,7 +159,9 @@ const AdminTable: React.FC = () => {
       successModal.openModal();
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.log(err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -247,12 +253,12 @@ const AdminTable: React.FC = () => {
                 >
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {diagnosis.name || "-"}
+                      {capitalizeWords(diagnosis.name) || "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {diagnosis.description || "-"}
+                      {capitalizeWords(diagnosis.description) || "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
@@ -429,7 +435,11 @@ const AdminTable: React.FC = () => {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 };

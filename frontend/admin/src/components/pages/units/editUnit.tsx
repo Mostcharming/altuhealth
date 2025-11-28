@@ -25,6 +25,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   const [id, setId] = useState<string>("");
   const [name, setName] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>(
+    "Failed to update unit."
+  );
 
   const updateUnit = useUnitStore((s) => s.updateUnit);
 
@@ -75,7 +78,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Save role failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -165,7 +170,11 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </>
   );
 }

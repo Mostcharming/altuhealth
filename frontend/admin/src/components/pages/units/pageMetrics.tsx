@@ -20,6 +20,9 @@ export default function PageMetricsAdmins({
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>(
+    "Failed to create unit."
+  );
 
   const errorModal = useModal();
   const successModal = useModal();
@@ -69,7 +72,9 @@ export default function PageMetricsAdmins({
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Create role failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -179,7 +184,11 @@ export default function PageMetricsAdmins({
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 }

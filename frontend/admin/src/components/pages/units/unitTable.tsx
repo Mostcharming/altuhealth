@@ -31,6 +31,9 @@ const UnitTable: React.FC = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<Unit | null>(null);
   const removeUnit = useUnitStore((s) => s.removeUnit);
+  const [errorMessage, setErrorMessage] = useState<string>(
+    "Failed to delete unit."
+  );
 
   type Header = {
     key: keyof Unit | "actions";
@@ -149,9 +152,10 @@ const UnitTable: React.FC = () => {
       setSelectedRoleId(null);
       confirmModal.closeModal();
       successModal.openModal();
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      console.log(err);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -405,7 +409,11 @@ const UnitTable: React.FC = () => {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 };

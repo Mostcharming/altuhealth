@@ -43,6 +43,9 @@ export default function PageMetricsUnits({
   // fetched lists
   const [roles, setRoles] = useState<RoleType[]>([]);
   const [units, setUnits] = useState<UnitType[]>([]);
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to create admin. Please try again."
+  );
 
   // countries for PhoneInput
   const countries = [
@@ -133,7 +136,7 @@ export default function PageMetricsUnits({
     try {
       // simple client-side validation
       if (!firstName || !lastName || !email) {
-        console.warn("First name, last name and email are required");
+        setErrorMessage("First name, last name, and email are required.");
         errorModal.openModal();
         return;
       }
@@ -195,7 +198,9 @@ export default function PageMetricsUnits({
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Create admin failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -376,7 +381,11 @@ export default function PageMetricsUnits({
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 }

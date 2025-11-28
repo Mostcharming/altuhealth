@@ -35,6 +35,9 @@ export default function EditRole({ isOpen, closeModal, role }: EditRoleProps) {
     setMessage(value);
   };
   const updateRole = useRoleStore((s) => s.updateRole);
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to update role. Please try again."
+  );
 
   // Safely extract an id string from various privilege shapes without using `any`.
   const getPrivilegeId = (p: unknown): string | null => {
@@ -160,11 +163,13 @@ export default function EditRole({ isOpen, closeModal, role }: EditRoleProps) {
 
         successModal.openModal();
       } else {
-        console.warn("Unexpected response when saving role", data);
+        setErrorMessage("Failed to update role. Please try again.");
         errorModal.openModal();
       }
     } catch (err) {
-      console.warn("Save role failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -313,7 +318,11 @@ export default function EditRole({ isOpen, closeModal, role }: EditRoleProps) {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </>
   );
 }

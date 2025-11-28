@@ -27,6 +27,9 @@ export default function PageMetricsUnits({
   // form state
 
   const [description, setDescription] = useState("");
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to create exclusion. Please try again."
+  );
 
   const resetForm = () => {
     setDescription("");
@@ -48,6 +51,7 @@ export default function PageMetricsUnits({
     try {
       // simple client-side validation
       if (!description) {
+        setErrorMessage("Exclusion description is required.");
         errorModal.openModal();
         return;
       }
@@ -78,7 +82,9 @@ export default function PageMetricsUnits({
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Create admin failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -174,7 +180,11 @@ export default function PageMetricsUnits({
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 }

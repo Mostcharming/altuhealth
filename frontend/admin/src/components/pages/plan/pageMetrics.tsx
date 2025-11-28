@@ -29,6 +29,9 @@ export default function PageMetricsUnits({
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to create plan. Please try again."
+  );
 
   const resetForm = () => {
     setName("");
@@ -52,7 +55,7 @@ export default function PageMetricsUnits({
     try {
       // simple client-side validation
       if (!name || !description || !code) {
-        console.warn("First name, last name and email are required");
+        setErrorMessage("All fields are required.");
         errorModal.openModal();
         return;
       }
@@ -90,7 +93,9 @@ export default function PageMetricsUnits({
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Create admin failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -207,7 +212,11 @@ export default function PageMetricsUnits({
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 }

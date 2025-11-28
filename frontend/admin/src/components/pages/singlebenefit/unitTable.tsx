@@ -36,7 +36,9 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<Benefit | null>(null);
   const removeUser = useBenefitStore((s) => s.removeBenefit);
-
+  const [errorMessage, setErrorMessage] = useState<string>(
+    "Failed to delete benefit."
+  );
   type Header = {
     key: keyof Benefit | "actions";
     label: string;
@@ -156,9 +158,10 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
       setSelectedRoleId(null);
       confirmModal.closeModal();
       successModal.openModal();
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      console.log(err);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -421,7 +424,11 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 };

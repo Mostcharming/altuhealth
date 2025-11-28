@@ -27,6 +27,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   const [description, setDescription] = useState("");
   const [limit, setLimit] = useState("");
   const [amount, setAmount] = useState<number>(0);
+  const [errorMessage, setErrorMessage] = useState<string>(
+    "Failed to update unit."
+  );
 
   const updateUser = useBenefitStore((s) => s.updateBenefit);
 
@@ -92,7 +95,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Save role failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -194,7 +199,11 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </>
   );
 }

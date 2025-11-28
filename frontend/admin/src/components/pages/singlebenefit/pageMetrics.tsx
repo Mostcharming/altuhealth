@@ -33,6 +33,9 @@ export default function PageMetricsUnits({
   const [description, setDescription] = useState("");
   const [limit, setLimit] = useState("");
   const [amount, setAmount] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string>(
+    "Failed to create benefit."
+  );
 
   const resetForm = () => {
     setDescription("");
@@ -57,6 +60,7 @@ export default function PageMetricsUnits({
     try {
       // simple client-side validation
       if (!name) {
+        setErrorMessage("Name is required.");
         errorModal.openModal();
         return;
       }
@@ -98,7 +102,9 @@ export default function PageMetricsUnits({
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Create admin failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -223,7 +229,11 @@ export default function PageMetricsUnits({
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 }

@@ -27,6 +27,9 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
   const privileges = usePrivilegeStore((s) => s.privileges);
   const setPrivileges = usePrivilegeStore((s) => s.setPrivileges);
   const addRole = useRoleStore((s) => s.addRole);
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to create role. Please try again."
+  );
 
   const resetForm = () => {
     setName("");
@@ -114,10 +117,13 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
 
         successModal.openModal();
       } else {
+        setErrorMessage("Failed to create role. Please try again.");
         errorModal.openModal();
       }
     } catch (err) {
-      console.warn("Create role failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -292,7 +298,11 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 }

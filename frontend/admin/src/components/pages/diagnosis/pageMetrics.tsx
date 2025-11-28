@@ -37,6 +37,9 @@ export default function PageMetricsUnits({
   const [symptoms, setSymptoms] = useState("");
   const [treatment, setTreatment] = useState("");
   const [isChronicCondition, setIsChronicCondition] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to save diagnosis. Please try again."
+  );
 
   const resetForm = () => {
     setDescription("");
@@ -63,6 +66,7 @@ export default function PageMetricsUnits({
     try {
       // simple client-side validation
       if (!name) {
+        setErrorMessage("Name is required.");
         errorModal.openModal();
         return;
       }
@@ -102,13 +106,15 @@ export default function PageMetricsUnits({
           symptoms: symptoms || null,
           treatment: treatment || null,
           isChronicCondition: isChronicCondition,
-          createdAt: data.data.diagnosis.created_at,
+          createdAt: data.data.diagnosis.createdAt,
         });
       }
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Create admin failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -167,7 +173,7 @@ export default function PageMetricsUnits({
             handlesubmit();
           }}
         >
-          <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
+          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 lg:col-span-1">
                 <Label>Name</Label>
@@ -264,7 +270,11 @@ export default function PageMetricsUnits({
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 }

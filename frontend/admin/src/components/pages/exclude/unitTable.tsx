@@ -32,6 +32,9 @@ const AdminTable: React.FC = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<Exclusion | null>(null);
   const removeUser = useExclusionStore((s) => s.removeExclusion);
+  const [errorMessage, setErrorMessage] = useState(
+    "Failed to delete exclusion. Please try again."
+  );
 
   type Header = {
     key: keyof Plan | "actions";
@@ -149,9 +152,10 @@ const AdminTable: React.FC = () => {
       setSelectedRoleId(null);
       confirmModal.closeModal();
       successModal.openModal();
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      console.log(err);
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -401,7 +405,11 @@ const AdminTable: React.FC = () => {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </div>
   );
 };

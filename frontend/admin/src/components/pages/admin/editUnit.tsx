@@ -39,6 +39,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   const [units, setUnits] = useState<Unit[]>([]);
   const setUnitsStore = useUnitStore((s) => s.setUnits);
   const setRolesStore = useRoleStore((s) => s.setRoles);
+  const [errorMessage, setErrorMessage] = useState<string>(
+    "Failed to update admin."
+  );
 
   const countries = [
     { code: "US", label: "+1" },
@@ -213,7 +216,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Save role failed", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -358,7 +363,11 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </>
   );
 }

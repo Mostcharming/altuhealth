@@ -19,6 +19,9 @@ export default function UserAddressCard() {
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>(
+    "Failed to change password."
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +43,11 @@ export default function UserAddressCard() {
       }
       setOldPassword("");
       setPassword("");
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
       errorModal.openModal();
-      console.error("Sign in error:", err);
     }
   };
   const handleSuccessClose = () => {
@@ -134,7 +138,11 @@ export default function UserAddressCard() {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </>
   );
 }
