@@ -195,7 +195,6 @@ const AppSidebar: React.FC = () => {
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
 
-  // Map privileges to the top-level menu names they should enable
   const privilegeMap: Record<string, string[]> = {
     "admins.manage": ["Admins"],
     "providers.manage": ["Providers"],

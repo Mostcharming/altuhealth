@@ -19,6 +19,7 @@ router.use('/approvals', require('./approvals/route'));
 router.use('/benefit-categories', require('./benefitCategories/route'));
 router.use('/benefits', require('./benefits/route'));
 router.use('/diagnosis', require('./diagnosis/route'));
+router.use('/provider-specializations', require('./providerSpecializations/route'));
 
 router.use(errorHandler);
 

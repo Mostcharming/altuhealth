@@ -5,7 +5,7 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { EyeIcon, TrashBinIcon } from "@/icons";
+import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
@@ -283,7 +283,7 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
                         onClick={() => handleView(invoice)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
                       >
-                        <EyeIcon />
+                        <PencilIcon />
                       </button>
 
                       <button
