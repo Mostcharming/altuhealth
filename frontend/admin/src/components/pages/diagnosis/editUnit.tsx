@@ -1,20 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import Checkbox from "@/components/form/input/Checkbox";
+import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
-import { Exclusion, useExclusionStore } from "@/lib/store/exclusionStore";
-import { useEffect, useState } from "react";
+import { Diagnosis, useDiagnosisStore } from "@/lib/store/diagnosisStore";
+import { ChangeEvent, useEffect, useState } from "react";
 
 interface EditUnitProps {
   isOpen: boolean;
   closeModal: () => void;
-  unit?: Exclusion | null;
+  unit?: Diagnosis | null;
 }
 
 export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
@@ -22,9 +24,16 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   const errorModal = useModal();
   const successModal = useModal();
   const [id, setId] = useState<string>("");
+  const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [severity, setSeverity] = useState<
+    "mild" | "moderate" | "severe" | "critical" | ""
+  >("");
+  const [symptoms, setSymptoms] = useState("");
+  const [treatment, setTreatment] = useState("");
+  const [isChronicCondition, setIsChronicCondition] = useState(false);
 
-  const updateUser = useExclusionStore((s) => s.updateExclusion);
+  const updateDiagnosis = useDiagnosisStore((s) => s.updateDiagnosis);
 
   const handleSuccessClose = () => {
     successModal.closeModal();
@@ -36,18 +45,26 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
     closeModal();
   };
 
-  // When the modal opens with a role, populate the form with its data.
+  // When the modal opens with a diagnosis, populate the form with its data.
   useEffect(() => {
     if (isOpen && unit) {
       setId(unit.id ?? "");
-
+      setName(unit.name ?? "");
       setDescription(unit.description ?? "");
+      setSeverity(unit.severity ?? "");
+      setSymptoms(unit.symptoms ?? "");
+      setTreatment(unit.treatment ?? "");
+      setIsChronicCondition(unit.isChronicCondition ?? false);
     }
 
     if (!isOpen) {
       setId("");
-
+      setName("");
       setDescription("");
+      setSeverity("");
+      setSymptoms("");
+      setTreatment("");
+      setIsChronicCondition(false);
     }
   }, [isOpen, unit]);
 
@@ -56,12 +73,22 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       setLoading(true);
 
       const payload: {
+        name: string;
         description: string;
+        severity?: string;
+        symptoms?: string;
+        treatment?: string;
+        isChronicCondition: boolean;
       } = {
+        name: name.trim(),
         description: description.trim(),
+        severity: severity || undefined,
+        symptoms: symptoms.trim() || undefined,
+        treatment: treatment.trim() || undefined,
+        isChronicCondition: isChronicCondition,
       };
 
-      const url = `/admin/exclusions/${id}`;
+      const url = `/admin/diagnosis/${id}`;
       const method = "PUT";
 
       await apiClient(url, {
@@ -70,13 +97,18 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
         onLoading: (l: boolean) => setLoading(l),
       });
 
-      updateUser(id, {
+      updateDiagnosis(id, {
+        name: name,
         description: description,
+        severity: severity || null,
+        symptoms: symptoms || null,
+        treatment: treatment || null,
+        isChronicCondition: isChronicCondition,
       });
 
       successModal.openModal();
     } catch (err) {
-      console.warn("Save role failed", err);
+      console.warn("Save diagnosis failed", err);
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -84,6 +116,14 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   };
   const handleMessageChange = (value: string) => {
     setDescription(value);
+  };
+
+  const handleSymptomsChange = (value: string) => {
+    setSymptoms(value);
+  };
+
+  const handleTreatmentChange = (value: string) => {
+    setTreatment(value);
   };
 
   return (
@@ -95,23 +135,82 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       >
         <div className="px-2">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Edit Exclusion
+            Edit Diagnosis
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Update the exclusion details.
+            Update the diagnosis details.
           </p>
         </div>
 
         <form className="flex flex-col">
           <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-              <div className="col-span-2 ">
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Name</Label>
+                <Input
+                  type="text"
+                  value={name}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setName(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Severity</Label>
+                <Select
+                  options={[
+                    { value: "", label: "Select severity" },
+                    { value: "mild", label: "Mild" },
+                    { value: "moderate", label: "Moderate" },
+                    { value: "severe", label: "Severe" },
+                    { value: "critical", label: "Critical" },
+                  ]}
+                  placeholder="Select severity"
+                  onChange={(value) =>
+                    setSeverity(
+                      value as "mild" | "moderate" | "severe" | "critical" | ""
+                    )
+                  }
+                  defaultValue={severity}
+                />
+              </div>
+
+              <div className="col-span-2">
                 <Label>Description</Label>
                 <TextArea
                   placeholder="Type the description here..."
-                  rows={6}
+                  rows={4}
                   value={description}
                   onChange={handleMessageChange}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Label>Symptoms</Label>
+                <TextArea
+                  placeholder="Enter symptoms..."
+                  rows={4}
+                  value={symptoms}
+                  onChange={handleSymptomsChange}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Label>Treatment</Label>
+                <TextArea
+                  placeholder="Enter treatment details..."
+                  rows={4}
+                  value={treatment}
+                  onChange={handleTreatmentChange}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Checkbox
+                  label="Is Chronic Condition"
+                  checked={isChronicCondition}
+                  onChange={(checked) => setIsChronicCondition(checked)}
                 />
               </div>
             </div>
@@ -135,7 +234,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                   type="button"
                   className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
                 >
-                  Update Exclusion
+                  Update Diagnosis
                 </button>
               </div>
             </div>

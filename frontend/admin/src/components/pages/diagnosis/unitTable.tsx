@@ -7,10 +7,8 @@ import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { EyeIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
-import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
-import { Exclusion, useExclusionStore } from "@/lib/store/exclusionStore";
-import { Plan } from "@/lib/store/planStore";
+import { Diagnosis, useDiagnosisStore } from "@/lib/store/diagnosisStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditUnit from "./editUnit";
 
@@ -26,15 +24,19 @@ const AdminTable: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const users = useExclusionStore((s) => s.exclusions);
-  const setUsers = useExclusionStore((s) => s.setExclusions);
+  const diagnoses = useDiagnosisStore((s) => s.diagnoses);
+  const setDiagnoses = useDiagnosisStore((s) => s.setDiagnoses);
   const confirmModal = useModal();
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<Exclusion | null>(null);
-  const removeUser = useExclusionStore((s) => s.removeExclusion);
+  const [selectedDiagnosisId, setSelectedDiagnosisId] = useState<string | null>(
+    null
+  );
+  const [editingDiagnosis, setEditingDiagnosis] = useState<Diagnosis | null>(
+    null
+  );
+  const removeDiagnosis = useDiagnosisStore((s) => s.removeDiagnosis);
 
   type Header = {
-    key: keyof Plan | "actions";
+    key: keyof Diagnosis | "actions";
     label: string;
   };
 
@@ -47,7 +49,9 @@ const AdminTable: React.FC = () => {
   ];
 
   const headers: Header[] = [
+    { key: "name", label: "Name" },
     { key: "description", label: "Description" },
+    { key: "severity", label: "Severity" },
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
@@ -61,31 +65,31 @@ const AdminTable: React.FC = () => {
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
 
-      const url = `/admin/exclusions/list?${params.toString()}`;
+      const url = `/admin/diagnosis/list?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
 
-      const items: Exclusion[] =
+      const items: Diagnosis[] =
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
 
-      setUsers(items);
+      setDiagnoses(items);
       setTotalItems(data?.data?.count ?? 0);
       setHasNextPage(Boolean(data?.data?.hasNextPage));
       setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
       setTotalPages(data?.data?.totalPages ?? 1);
     } catch (err) {
-      console.warn("Role fetch failed", err);
+      console.warn("Diagnosis fetch failed", err);
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setUsers]);
+  }, [limit, currentPage, search, setDiagnoses]);
 
   useEffect(() => {
     fetch();
@@ -121,32 +125,32 @@ const AdminTable: React.FC = () => {
     setLimit(Number(value));
     setCurrentPage(1);
   };
-  const handleDeleModal = (id: string) => {
-    setSelectedRoleId(id);
+  const handleDeleteModal = (id: string) => {
+    setSelectedDiagnosisId(id);
     confirmModal.openModal();
   };
   const handleCloseConfirm = () => {
-    setSelectedRoleId(null);
+    setSelectedDiagnosisId(null);
     confirmModal.closeModal();
   };
-  const handleView = (role: Exclusion) => {
-    setEditingRole(role);
+  const handleView = (diagnosis: Diagnosis) => {
+    setEditingDiagnosis(diagnosis);
     openModal();
   };
 
-  const deleteRole = async () => {
-    if (!selectedRoleId) return;
+  const deleteDiagnosis = async () => {
+    if (!selectedDiagnosisId) return;
     try {
       setLoading(true);
-      const url = `/admin/exclusions/${selectedRoleId}`;
+      const url = `/admin/diagnosis/${selectedDiagnosisId}`;
       await apiClient(url, {
         method: "DELETE",
         onLoading: (l) => setLoading(l),
       });
 
       // refresh list after deletion
-      removeUser(selectedRoleId);
-      setSelectedRoleId(null);
+      removeDiagnosis(selectedDiagnosisId);
+      setSelectedDiagnosisId(null);
       confirmModal.closeModal();
       successModal.openModal();
     } catch (error: unknown) {
@@ -159,7 +163,7 @@ const AdminTable: React.FC = () => {
   };
 
   const handleCloseEdit = () => {
-    setEditingRole(null);
+    setEditingDiagnosis(null);
     closeModal();
   };
   const handleSuccessClose = () => {
@@ -177,7 +181,7 @@ const AdminTable: React.FC = () => {
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Exclusions Listing
+            Diagnosis Listing
           </h3>
         </div>
 
@@ -236,20 +240,42 @@ const AdminTable: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {users.map((invoice: Exclusion) => (
+              {diagnoses.map((diagnosis: Diagnosis) => (
                 <tr
-                  key={invoice.id}
+                  key={diagnosis.id}
                   className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
                   <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.description)}
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      {diagnosis.name || "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.created_at
-                        ? formatDate(invoice.created_at)
+                      {diagnosis.description || "-"}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${
+                        diagnosis.severity === "critical"
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                          : diagnosis.severity === "severe"
+                          ? "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400"
+                          : diagnosis.severity === "moderate"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+                          : diagnosis.severity === "mild"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+                      }`}
+                    >
+                      {diagnosis.severity || "Not specified"}
+                    </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {diagnosis.createdAt
+                        ? formatDate(diagnosis.createdAt)
                         : "-"}
                     </p>
                   </td>
@@ -257,15 +283,17 @@ const AdminTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
                       <button
-                        onClick={() => handleView(invoice)}
+                        onClick={() => handleView(diagnosis)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                        title="View/Edit"
                       >
                         <EyeIcon />
                       </button>
 
                       <button
-                        onClick={() => handleDeleModal(invoice.id)}
+                        onClick={() => handleDeleteModal(diagnosis.id)}
                         className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
+                        title="Delete"
                       >
                         <TrashBinIcon />
                       </button>
@@ -388,13 +416,13 @@ const AdminTable: React.FC = () => {
       </div>
       <ConfirmModal
         confirmModal={confirmModal}
-        handleSave={deleteRole}
+        handleSave={deleteDiagnosis}
         closeModal={handleCloseConfirm}
       />
       <EditUnit
         isOpen={isOpen}
         closeModal={handleCloseEdit}
-        unit={editingRole}
+        unit={editingDiagnosis}
       />
       <SuccessModal
         successModal={successModal}

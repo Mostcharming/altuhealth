@@ -1,14 +1,17 @@
 "use client";
 
+import Checkbox from "@/components/form/input/Checkbox";
+import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { useDiagnosisStore } from "@/lib/store/diagnosisStore";
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 export default function PageMetricsUnits({
   buttonText,
@@ -67,9 +70,19 @@ export default function PageMetricsUnits({
       setLoading(true);
 
       const payload: {
+        name: string;
         description: string;
+        severity?: string;
+        symptoms?: string;
+        treatment?: string;
+        isChronicCondition: boolean;
       } = {
+        name: name.trim(),
         description: description.trim(),
+        severity: severity || undefined,
+        symptoms: symptoms.trim() || undefined,
+        treatment: treatment.trim() || undefined,
+        isChronicCondition: isChronicCondition,
       };
 
       const data = await apiClient("/admin/diagnosis", {
@@ -80,10 +93,11 @@ export default function PageMetricsUnits({
 
       // if backend returns created admin id or object, you can handle it here
       // Optionally, if a unit was created/returned and you want to add to unit store
-      if (data?.data?.exclusion) {
+      if (data?.data?.diagnosis) {
         addPlan({
           id: data.data.diagnosis.id,
           name: name,
+          description: description,
           severity: severity || null,
           symptoms: symptoms || null,
           treatment: treatment || null,
@@ -155,13 +169,73 @@ export default function PageMetricsUnits({
         >
           <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-              <div className="col-span-2 ">
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Name</Label>
+                <Input
+                  type="text"
+                  value={name}
+                  placeholder="Enter diagnosis name..."
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setName(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Severity</Label>
+                <Select
+                  options={[
+                    { value: "", label: "Select severity" },
+                    { value: "mild", label: "Mild" },
+                    { value: "moderate", label: "Moderate" },
+                    { value: "severe", label: "Severe" },
+                    { value: "critical", label: "Critical" },
+                  ]}
+                  placeholder="Select severity"
+                  onChange={(value) =>
+                    setSeverity(
+                      value as "mild" | "moderate" | "severe" | "critical" | ""
+                    )
+                  }
+                  defaultValue={severity}
+                />
+              </div>
+
+              <div className="col-span-2">
                 <Label>Description</Label>
                 <TextArea
                   placeholder="Type the description here..."
-                  rows={6}
+                  rows={4}
                   value={description}
                   onChange={handleMessageChange}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Label>Symptoms</Label>
+                <TextArea
+                  placeholder="Enter symptoms..."
+                  rows={4}
+                  value={symptoms}
+                  onChange={(value) => setSymptoms(value)}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Label>Treatment</Label>
+                <TextArea
+                  placeholder="Enter treatment details..."
+                  rows={4}
+                  value={treatment}
+                  onChange={(value) => setTreatment(value)}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Checkbox
+                  label="Is Chronic Condition"
+                  checked={isChronicCondition}
+                  onChange={(checked) => setIsChronicCondition(checked)}
                 />
               </div>
 

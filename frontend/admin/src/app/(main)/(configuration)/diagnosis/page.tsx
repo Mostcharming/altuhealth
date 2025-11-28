@@ -12,7 +12,7 @@ export default function Units() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Diagnosis setup" />
-      <PageMetricsUnits buttonText="Create a diganosis" />
+      <PageMetricsUnits buttonText="Create a diagnosis" />
       <UnitTable />
     </div>
   );
