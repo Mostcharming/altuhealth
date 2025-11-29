@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import PageBreadcrumbSub from "@/components/common/PageBreadCrumbSub";
+import DefaultTab from "@/components/pages/provider/single/DefaultTab";
 import Details from "@/components/pages/provider/single/details";
 import SinglePHeader from "@/components/pages/provider/single/header";
 import Plans from "@/components/pages/provider/single/plans";
@@ -71,6 +72,8 @@ export default function Units() {
                 <Plans data={benefitCategory} />
               </div>
             </div>
+
+            <DefaultTab id={id} />
           </div>
         </>
       )}

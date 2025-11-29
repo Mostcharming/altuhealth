@@ -14,3 +14,10 @@ export function formatDate(
     minute: "2-digit",
   });
 }
+
+export function formatPrice(price: number): string {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+  }).format(price);
+}

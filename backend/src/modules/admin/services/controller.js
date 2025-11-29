@@ -19,7 +19,6 @@ async function createService(req, res, next) {
 
         // Validate required fields
         if (!name) return res.fail('`name` is required', 400);
-        if (!code) return res.fail('`code` is required', 400);
         if (!price) return res.fail('`price` is required', 400);
         if (!providerId) return res.fail('`providerId` is required', 400);
 
@@ -27,14 +26,23 @@ async function createService(req, res, next) {
         const provider = await Provider.findByPk(providerId);
         if (!provider) return res.fail('Provider not found', 404);
 
+        // Auto-generate service code based on provider code
+        let serviceCode = code;
+        if (!serviceCode) {
+            // Get the count of existing services for this provider
+            const serviceCount = await Service.count({ where: { providerId } });
+            const nextServiceNumber = serviceCount + 1;
+            serviceCode = `${provider.code}-s${nextServiceNumber}`;
+        }
+
         // Check for duplicate code
-        const existingCode = await Service.findOne({ where: { code } });
+        const existingCode = await Service.findOne({ where: { code: serviceCode } });
         if (existingCode) return res.fail('Service code already exists', 400);
 
         // Create service
         const service = await Service.create({
             name,
-            code,
+            code: serviceCode,
             description,
             requiresPreauthorization: requiresPreauthorization || false,
             price,

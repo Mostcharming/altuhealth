@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
+import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { Plan, usePlanStore } from "@/lib/store/planStore";
 import React, { useCallback, useEffect, useState } from "react";
@@ -8,8 +11,11 @@ export default function Plans({ data }: { data: any }) {
   const [loading, setLoading] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
   const setUsers = usePlanStore((s) => s.setPlans);
   const users = usePlanStore((s) => s.plans);
+  const successModal = useModal();
+  const errorModal = useModal();
 
   // Get existing plan IDs from provider data
   const existingPlanIds = React.useMemo(() => {
@@ -66,8 +72,12 @@ export default function Plans({ data }: { data: any }) {
         method: "POST",
         body: { planIds: selectedIds },
       });
+      successModal.openModal();
     } catch (err) {
-      console.error("Failed to update plans", err);
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
+      errorModal.openModal();
     } finally {
       setUpdating(false);
     }
@@ -167,6 +177,21 @@ export default function Plans({ data }: { data: any }) {
           )}
         </>
       )}
+
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={() => {
+          successModal.closeModal();
+        }}
+      />
+
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={() => {
+          errorModal.closeModal();
+        }}
+      />
     </div>
   );
 }

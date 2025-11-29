@@ -62,8 +62,6 @@ const navItems: NavItem[] = [
     icon: <UserCircleIcon />,
     subItems: [
       { name: "Provider Directory", path: "/providers" },
-      { name: "Credentialing", path: "/provider-credentialing" },
-      { name: "Tariff History", path: "/tariff" },
       { name: "Specializations", path: "/provider-specializations" },
     ],
   },
