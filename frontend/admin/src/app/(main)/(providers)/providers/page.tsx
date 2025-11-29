@@ -1,21 +1,19 @@
-import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import PageMetricsProviders from "@/components/pages/provider/pageMetrics";
+import ProviderTable from "@/components/pages/provider/unitTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin",
-  description: "",
+  title: "AltuHealth Admin Providers",
+  description: "Manage Providers within the AltuHealth admin panel.",
 };
 
-export default function Crm() {
+export default function Providers() {
   return (
-    <div className="grid grid-cols-12 gap-4 md:gap-6">
-      <div className="col-span-12 xl:col-span-8">
-        <SpinnerThree />
-      </div>
-
-      {/* <div className="col-span-12">
-        <CrmRecentOrderTable />
-      </div> */}
+    <div>
+      <PageBreadcrumb pageTitle="Providers" />
+      <PageMetricsProviders buttonText="Add New Provider" />
+      <ProviderTable />
     </div>
   );
 }

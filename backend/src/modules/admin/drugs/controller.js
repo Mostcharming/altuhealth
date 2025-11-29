@@ -2,6 +2,7 @@
 
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
+const { createAdminApproval } = require('../../../utils/adminApproval');
 
 async function createDrug(req, res, next) {
     try {
@@ -36,6 +37,27 @@ async function createDrug(req, res, next) {
             providerId,
             status: status || 'pending'
         });
+
+        // Create admin approval request
+        try {
+            await createAdminApproval(req.models, {
+                model: 'Drug',
+                modelId: drug.id,
+                action: 'create',
+                details: {
+                    name: drug.name,
+                    unit: drug.unit,
+                    strength: drug.strength,
+                    price: drug.price,
+                    providerId: drug.providerId
+                },
+                requestedBy: (req.user && req.user.id) ? req.user.id : null,
+                requestedByType: (req.user && req.user.type) ? req.user.type : 'Admin',
+                comments: `New drug created: ${drug.name}`
+            });
+        } catch (approvalErr) {
+            if (console && console.warn) console.warn('Failed to create approval for drug:', approvalErr.message || approvalErr);
+        }
 
         await addAuditLog(req.models, {
             action: 'drug.create',
@@ -193,10 +215,44 @@ async function getDrug(req, res, next) {
     }
 }
 
+async function deleteAllDrugsByProvider(req, res, next) {
+    try {
+        const { Drug, Provider } = req.models;
+        const { providerId } = req.params;
+
+        // Verify provider exists
+        const provider = await Provider.findByPk(providerId);
+        if (!provider) return res.fail('Provider not found', 404);
+
+        // Get all drugs for this provider
+        const drugs = await Drug.findAll({ where: { providerId } });
+
+        if (drugs.length === 0) {
+            return res.success({ count: 0 }, 'No drugs found for this provider');
+        }
+
+        // Delete all drugs for this provider
+        await Drug.destroy({ where: { providerId } });
+
+        await addAuditLog(req.models, {
+            action: 'drug.deleteAll',
+            message: `All drugs deleted for Provider ${provider.name} (${drugs.length} drugs)`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { providerId, deletedCount: drugs.length }
+        });
+
+        return res.success({ count: drugs.length }, `${drugs.length} drug(s) deleted for provider`);
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createDrug,
     updateDrug,
     deleteDrug,
     listDrugs,
-    getDrug
+    getDrug,
+    deleteAllDrugsByProvider
 };

@@ -2,6 +2,7 @@
 
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
+const { createAdminApproval } = require('../../../utils/adminApproval');
 
 async function createService(req, res, next) {
     try {
@@ -40,6 +41,27 @@ async function createService(req, res, next) {
             providerId,
             status: status || 'pending'
         });
+
+        // Create admin approval request
+        try {
+            await createAdminApproval(req.models, {
+                model: 'Service',
+                modelId: service.id,
+                action: 'create',
+                details: {
+                    name: service.name,
+                    code: service.code,
+                    requiresPreauthorization: service.requiresPreauthorization,
+                    price: service.price,
+                    providerId: service.providerId
+                },
+                requestedBy: (req.user && req.user.id) ? req.user.id : null,
+                requestedByType: (req.user && req.user.type) ? req.user.type : 'Admin',
+                comments: `New service created: ${service.name} (${service.code})`
+            });
+        } catch (approvalErr) {
+            if (console && console.warn) console.warn('Failed to create approval for service:', approvalErr.message || approvalErr);
+        }
 
         await addAuditLog(req.models, {
             action: 'service.create',
@@ -202,10 +224,44 @@ async function getService(req, res, next) {
     }
 }
 
+async function deleteAllServicesByProvider(req, res, next) {
+    try {
+        const { Service, Provider } = req.models;
+        const { providerId } = req.params;
+
+        // Verify provider exists
+        const provider = await Provider.findByPk(providerId);
+        if (!provider) return res.fail('Provider not found', 404);
+
+        // Get all services for this provider
+        const services = await Service.findAll({ where: { providerId } });
+
+        if (services.length === 0) {
+            return res.success({ count: 0 }, 'No services found for this provider');
+        }
+
+        // Delete all services for this provider
+        await Service.destroy({ where: { providerId } });
+
+        await addAuditLog(req.models, {
+            action: 'service.deleteAll',
+            message: `All services deleted for Provider ${provider.name} (${services.length} services)`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { providerId, deletedCount: services.length }
+        });
+
+        return res.success({ count: services.length }, `${services.length} service(s) deleted for provider`);
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createService,
     updateService,
     deleteService,
     listServices,
-    getService
+    getService,
+    deleteAllServicesByProvider
 };

@@ -109,7 +109,7 @@ async function createProvider(req, res, next) {
             providerSpecializationId,
             code: providerCode,
             upn: providerUPN,
-            status: 'pending_approval'
+            status: 'active'
         });
 
         // Associate plans if provided
@@ -129,34 +129,34 @@ async function createProvider(req, res, next) {
         });
 
         // Create an admin approval record for this provider and notify admins
-        (async () => {
-            try {
-                const requestedBy = (req.user && req.user.id) ? req.user.id : 'system';
-                const requestedByType = (req.user && req.user.type) ? req.user.type : 'Admin';
+        // (async () => {
+        //     try {
+        //         const requestedBy = (req.user && req.user.id) ? req.user.id : 'system';
+        //         const requestedByType = (req.user && req.user.type) ? req.user.type : 'Admin';
 
-                await createAdminApproval(req.models, {
-                    model: 'Provider',
-                    modelId: provider.id,
-                    action: 'create',
-                    details: JSON.stringify({
-                        name,
-                        category,
-                        email,
-                        state,
-                        address,
-                        bank,
-                        accountNumber
-                    }),
-                    requestedBy,
-                    requestedByType,
-                    comments: null,
-                    meta: { providerName: name }
-                });
-            } catch (err) {
-                // don't fail the main request if approval creation fails
-                if (console && console.warn) console.warn('Failed to create admin approval for provider:', err.message || err);
-            }
-        })();
+        //         await createAdminApproval(req.models, {
+        //             model: 'Provider',
+        //             modelId: provider.id,
+        //             action: 'create',
+        //             details: JSON.stringify({
+        //                 name,
+        //                 category,
+        //                 email,
+        //                 state,
+        //                 address,
+        //                 bank,
+        //                 accountNumber
+        //             }),
+        //             requestedBy,
+        //             requestedByType,
+        //             comments: null,
+        //             meta: { providerName: name }
+        //         });
+        //     } catch (err) {
+        //         // don't fail the main request if approval creation fails
+        //         if (console && console.warn) console.warn('Failed to create admin approval for provider:', err.message || err);
+        //     }
+        // })();
 
         const providerData = provider.toJSON();
 
@@ -477,6 +477,86 @@ async function removePlanFromProvider(req, res, next) {
     }
 }
 
+async function updateProviderPlans(req, res, next) {
+    try {
+        const { Provider, Plan } = req.models;
+        const { id } = req.params;
+
+        // Safely extract body - handle cases where req.body is undefined
+        const body = req.body || {};
+        const { planIds = [] } = body;
+
+        let planIdArray = [];
+        if (planIds && Array.isArray(planIds)) {
+            planIdArray = planIds;
+        } else if (planIds && !Array.isArray(planIds)) {
+            planIdArray = [planIds];
+        }
+
+        const provider = await Provider.findByPk(id);
+        if (!provider) return res.fail('Provider not found', 404);
+
+        // If planIds is empty, remove all plans
+        if (planIdArray.length === 0) {
+            await provider.setPlans([]);
+
+            // Reload provider with updated plans
+            const updatedProvider = await Provider.findByPk(provider.id, {
+                include: [
+                    {
+                        model: Plan,
+                        attributes: ['id', 'name', 'code', 'description'],
+                        through: { attributes: [] }
+                    }
+                ]
+            });
+
+            await addAuditLog(req.models, {
+                action: 'provider.updatePlans',
+                message: `All plans removed from Provider ${provider.name}`,
+                userId: (req.user && req.user.id) ? req.user.id : null,
+                userType: (req.user && req.user.type) ? req.user.type : null,
+                meta: { providerId: provider.id }
+            });
+            return res.success({ provider: updatedProvider }, 'All plans removed from provider');
+        }
+
+        // Find all the plans
+        const plans = await Plan.findAll({ where: { id: planIdArray } });
+
+        if (plans.length !== planIdArray.length) {
+            return res.fail(`${planIdArray.length - plans.length} plan(s) not found`, 404);
+        }
+
+        // Replace all plans (remove old ones and add new ones)
+        await provider.setPlans(plans);
+
+        // Reload provider with updated plans
+        const updatedProvider = await Provider.findByPk(provider.id, {
+            include: [
+                {
+                    model: Plan,
+                    attributes: ['id', 'name', 'code', 'description'],
+                    through: { attributes: [] }
+                }
+            ]
+        });
+
+        const planNames = plans.map(p => p.name).join(', ');
+        await addAuditLog(req.models, {
+            action: 'provider.updatePlans',
+            message: `Provider ${provider.name} plans updated to: ${planNames}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { providerId: provider.id, planIds: plans.map(p => p.id) }
+        });
+
+        return res.success({ provider: updatedProvider }, 'Provider plans updated');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createProvider,
     updateProvider,
@@ -484,5 +564,6 @@ module.exports = {
     listProviders,
     getProvider,
     addPlanToProvider,
-    removePlanFromProvider
+    removePlanFromProvider,
+    updateProviderPlans
 };

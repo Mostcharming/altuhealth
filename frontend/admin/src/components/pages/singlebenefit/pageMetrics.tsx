@@ -87,7 +87,6 @@ export default function PageMetricsUnits({
         onLoading: (l: boolean) => setLoading(l),
       });
 
-      // if backend returns created benefit category object, add it to store
       if (data?.data) {
         addPlan({
           id: data.data.id,

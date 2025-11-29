@@ -60,8 +60,8 @@ function defineModels(sequelize) {
   Benefit.belongsTo(BenefitCategory, { foreignKey: "benefitCategoryId" });
 
   // Provider <-> Admin (manager)
-  Admin.hasMany(Provider, { foreignKey: "managerId" });
-  Provider.belongsTo(Admin, { foreignKey: "managerId" });
+  Admin.hasMany(Provider, { foreignKey: "managerId", as: 'managedProviders' });
+  Provider.belongsTo(Admin, { foreignKey: "managerId", as: 'manager' });
 
   // Provider <-> ProviderSpecialization
   ProviderSpecialization.hasMany(Provider, { foreignKey: "providerSpecializationId" });

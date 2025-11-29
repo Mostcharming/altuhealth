@@ -22,27 +22,27 @@ async function createProviderSpecialization(req, res, next) {
         });
 
         // create an admin approval record for this provider specialization and notify admins
-        (async () => {
-            try {
-                const requestedBy = (req.user && req.user.id) ? req.user.id : 'system';
-                const requestedByType = (req.user && req.user.type) ? req.user.type : 'Admin';
+        // (async () => {
+        //     try {
+        //         const requestedBy = (req.user && req.user.id) ? req.user.id : 'system';
+        //         const requestedByType = (req.user && req.user.type) ? req.user.type : 'Admin';
 
-                await createAdminApproval(req.models, {
-                    model: 'ProviderSpecialization',
-                    modelId: providerSpecialization.id,
-                    action: 'create',
-                    details: JSON.stringify({ name, description }),
-                    requestedBy,
-                    requestedByType,
-                    comments: null,
-                    meta: { providerSpecializationName: name }
-                });
+        //         await createAdminApproval(req.models, {
+        //             model: 'ProviderSpecialization',
+        //             modelId: providerSpecialization.id,
+        //             action: 'create',
+        //             details: JSON.stringify({ name, description }),
+        //             requestedBy,
+        //             requestedByType,
+        //             comments: null,
+        //             meta: { providerSpecializationName: name }
+        //         });
 
-            } catch (err) {
-                // don't fail the main request if approval creation fails
-                if (console && console.warn) console.warn('Failed to create admin approval for provider specialization:', err.message || err);
-            }
-        })();
+        //     } catch (err) {
+        //         // don't fail the main request if approval creation fails
+        //         if (console && console.warn) console.warn('Failed to create admin approval for provider specialization:', err.message || err);
+        //     }
+        // })();
 
         return res.success({ providerSpecialization: providerSpecialization.toJSON() }, 'Provider Specialization created', 201);
     } catch (err) {

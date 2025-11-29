@@ -232,49 +232,46 @@ export default function EditRole({ isOpen, closeModal, role }: EditRoleProps) {
                     privileges.map((p) => (
                       <div
                         key={p.id}
-                        id={`task-${p.id}`}
-                        className="p-5 mb-4 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5"
+                        className="p-5 bg-white border border-gray-200 rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5"
                       >
-                        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-                          <div className="flex items-start w-full gap-4">
-                            <label
-                              htmlFor={`taskCheckbox${p.id}`}
-                              className="w-full cursor-pointer"
-                            >
-                              <div className="relative flex items-start">
-                                <input
-                                  type="checkbox"
-                                  id={`taskCheckbox${p.id}`}
-                                  className="sr-only taskCheckbox"
-                                  value={p.id}
-                                  checked={selectedIds.includes(String(p.id))}
-                                  onChange={() => togglePrivilege(String(p.id))}
-                                />
-                                <div className="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 dark:border-gray-700">
-                                  <span>
-                                    <svg
-                                      width="14"
-                                      height="14"
-                                      viewBox="0 0 14 14"
-                                      fill="none"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                      <path
-                                        d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
-                                        stroke="white"
-                                        strokeWidth="1.94437"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                  </span>
-                                </div>
-                                <p className="-mt-0.5 text-base text-gray-800 dark:text-white/90">
-                                  {p.description ?? p.name ?? String(p.id)}
-                                </p>
+                        <div className="flex items-start gap-4">
+                          <label
+                            htmlFor={`taskCheckbox${p.id}`}
+                            className="flex items-center w-full cursor-pointer gap-3"
+                          >
+                            <div className="relative flex items-center flex-shrink-0">
+                              <input
+                                type="checkbox"
+                                id={`taskCheckbox${p.id}`}
+                                className="sr-only taskCheckbox"
+                                value={p.id}
+                                checked={selectedIds.includes(String(p.id))}
+                                onChange={() => togglePrivilege(String(p.id))}
+                              />
+                              <div className="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 dark:border-gray-700">
+                                <span>
+                                  <svg
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 14 14"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
+                                      stroke="white"
+                                      strokeWidth="1.94437"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </span>
                               </div>
-                            </label>
-                          </div>
+                              <p className="-mt-0.5 text-base text-gray-800 dark:text-white/90">
+                                {p.description ?? p.name ?? String(p.id)}
+                              </p>
+                            </div>
+                          </label>
                         </div>
                       </div>
                     ))

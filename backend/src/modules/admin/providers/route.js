@@ -12,7 +12,8 @@ router.put('/:id', Providers.updateProvider);
 router.delete('/:id', Providers.deleteProvider);
 
 // Plan management for providers
-router.post('/:id/plans', Providers.addPlanToProvider);
+// router.post('/:id/plans', Providers.addPlanToProvider);
+router.post('/:id/plans', Providers.updateProviderPlans);
 router.delete('/:id/plans', Providers.removePlanFromProvider);
 
 module.exports = router;

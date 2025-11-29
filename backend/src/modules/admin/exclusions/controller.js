@@ -22,27 +22,27 @@ async function createExclusion(req, res, next) {
         });
 
         // create an admin approval record for this exclusion and notify admins
-        (async () => {
-            try {
-                const requestedBy = (req.user && req.user.id) ? req.user.id : 'system';
-                const requestedByType = (req.user && req.user.type) ? req.user.type : 'Admin';
+        // (async () => {
+        //     try {
+        //         const requestedBy = (req.user && req.user.id) ? req.user.id : 'system';
+        //         const requestedByType = (req.user && req.user.type) ? req.user.type : 'Admin';
 
-                await createAdminApproval(req.models, {
-                    model: 'Exclusion',
-                    modelId: exclusion.id,
-                    action: 'create',
-                    details: JSON.stringify({ description }),
-                    requestedBy,
-                    requestedByType,
-                    comments: null,
-                    meta: { exclusionDescription: description.substring(0, 100) }
-                });
+        //         await createAdminApproval(req.models, {
+        //             model: 'Exclusion',
+        //             modelId: exclusion.id,
+        //             action: 'create',
+        //             details: JSON.stringify({ description }),
+        //             requestedBy,
+        //             requestedByType,
+        //             comments: null,
+        //             meta: { exclusionDescription: description.substring(0, 100) }
+        //         });
 
-            } catch (err) {
-                // don't fail the main request if approval creation fails
-                if (console && console.warn) console.warn('Failed to create admin approval for exclusion:', err.message || err);
-            }
-        })();
+        //     } catch (err) {
+        //         // don't fail the main request if approval creation fails
+        //         if (console && console.warn) console.warn('Failed to create admin approval for exclusion:', err.message || err);
+        //     }
+        // })();
 
         return res.success({ exclusion: exclusion.toJSON() }, 'Exclusion created', 201);
     } catch (err) {

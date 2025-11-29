@@ -7,6 +7,7 @@ const Drugs = require('./controller');
 // CRUD for drugs
 router.post('/', Drugs.createDrug);
 router.get('/list', Drugs.listDrugs);
+router.delete('/provider/:providerId', Drugs.deleteAllDrugsByProvider);
 router.get('/:id', Drugs.getDrug);
 router.put('/:id', Drugs.updateDrug);
 router.delete('/:id', Drugs.deleteDrug);

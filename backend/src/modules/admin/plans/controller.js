@@ -31,28 +31,28 @@ async function createPlan(req, res, next) {
         });
 
         // create an admin approval record for this plan and notify admins
-        (async () => {
-            try {
-                const requestedBy = (req.user && req.user.id) ? req.user.id : 'system';
-                const requestedByType = (req.user && req.user.type) ? req.user.type : 'Admin';
+        // (async () => {
+        //     try {
+        //         const requestedBy = (req.user && req.user.id) ? req.user.id : 'system';
+        //         const requestedByType = (req.user && req.user.type) ? req.user.type : 'Admin';
 
-                await createAdminApproval(req.models, {
-                    model: 'Plan',
-                    modelId: plan.id,
-                    action: 'create',
-                    details: JSON.stringify({ name, code: codeUpper, description }),
-                    requestedBy,
-                    requestedByType,
-                    comments: null,
-                    meta: { planName: plan.name }
-                });
+        //         await createAdminApproval(req.models, {
+        //             model: 'Plan',
+        //             modelId: plan.id,
+        //             action: 'create',
+        //             details: JSON.stringify({ name, code: codeUpper, description }),
+        //             requestedBy,
+        //             requestedByType,
+        //             comments: null,
+        //             meta: { planName: plan.name }
+        //         });
 
 
-            } catch (err) {
-                // don't fail the main request if approval creation fails
-                if (console && console.warn) console.warn('Failed to create admin approval for plan:', err.message || err);
-            }
-        })();
+        //     } catch (err) {
+        //         // don't fail the main request if approval creation fails
+        //         if (console && console.warn) console.warn('Failed to create admin approval for plan:', err.message || err);
+        //     }
+        // })();
 
         return res.success({ plan: plan.toJSON() }, 'Plan created', 201);
     } catch (err) {
