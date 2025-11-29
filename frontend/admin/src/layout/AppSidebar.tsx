@@ -70,8 +70,8 @@ const navItems: NavItem[] = [
     icon: <PaperPlaneIcon />,
     subItems: [
       { name: "Companies", path: "/companies" },
-      { name: "Subscriptions & Plans", path: "/subscriptions" },
-      { name: "Contracts & SLAs", path: "/contracts" },
+      { name: "Subscriptions", path: "/subscriptions" },
+      { name: "Company Plans", path: "/plans" },
       { name: "Reviews", path: "/review" },
     ],
   },

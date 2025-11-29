@@ -11,6 +11,7 @@ export default function Plans({ data }: { data: any }) {
   const [loading, setLoading] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const setUsers = usePlanStore((s) => s.setPlans);
   const users = usePlanStore((s) => s.plans);
@@ -88,6 +89,16 @@ export default function Plans({ data }: { data: any }) {
     const allPlanIds = users.map((p) => String(p.id));
     setSelectedIds(allPlanIds);
   };
+
+  // Filter plans based on search term
+  const filteredPlans = React.useMemo(() => {
+    if (!users) return [];
+    return users.filter((p) => {
+      const searchLower = searchTerm.toLowerCase();
+      const planName = (p.description ?? p.name ?? String(p.id)).toLowerCase();
+      return planName.includes(searchLower);
+    });
+  }, [users, searchTerm]);
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/3">
       <div className="flex items-center justify-between mb-5">
@@ -110,8 +121,17 @@ export default function Plans({ data }: { data: any }) {
         <>
           {users && users.length ? (
             <>
-              <div className="space-y-3 mb-6">
-                {users.map((p) => {
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search plans..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-white/5 dark:text-white/90 dark:placeholder-gray-400"
+                />
+              </div>
+              <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                {filteredPlans.map((p) => {
                   const isChecked = selectedIds.includes(String(p.id));
                   return (
                     <div

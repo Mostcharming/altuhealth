@@ -1,6 +1,5 @@
 const { DataTypes } = require('sequelize');
 
-
 function defineModels(sequelize) {
   const License = require("./license.model")(sequelize, DataTypes);
   const Admin = require("./admin.model")(sequelize, DataTypes);
@@ -28,7 +27,11 @@ function defineModels(sequelize) {
   const ProviderPlan = require("./providerPlan.model")(sequelize, DataTypes);
   const Service = require("./service.model")(sequelize, DataTypes);
   const Drug = require("./drug.model")(sequelize, DataTypes);
-
+  const Company = require("./company.model")(sequelize, DataTypes);
+  const CompanyPlan = require("./companyPlan.model")(sequelize, DataTypes);
+  const CompanyPlanBenefitCategory = require("./companyPlanBenefitCategory.model")(sequelize, DataTypes);
+  const CompanyPlanExclusion = require("./companyPlanExclusion.model")(sequelize, DataTypes);
+  const CompanyPlanProvider = require("./companyPlanProvider.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -79,7 +82,23 @@ function defineModels(sequelize) {
   Provider.hasMany(Drug, { foreignKey: "providerId" });
   Drug.belongsTo(Provider, { foreignKey: "providerId" });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug };
+  // Company <-> CompanyPlan one-to-many
+  Company.hasMany(CompanyPlan, { foreignKey: "companyId" });
+  CompanyPlan.belongsTo(Company, { foreignKey: "companyId" });
+
+  // CompanyPlan <-> BenefitCategory many-to-many through CompanyPlanBenefitCategory
+  CompanyPlan.belongsToMany(BenefitCategory, { through: CompanyPlanBenefitCategory, foreignKey: 'companyPlanId', otherKey: 'benefitCategoryId' });
+  BenefitCategory.belongsToMany(CompanyPlan, { through: CompanyPlanBenefitCategory, foreignKey: 'benefitCategoryId', otherKey: 'companyPlanId' });
+
+  // CompanyPlan <-> Exclusion many-to-many through CompanyPlanExclusion
+  CompanyPlan.belongsToMany(Exclusion, { through: CompanyPlanExclusion, foreignKey: 'companyPlanId', otherKey: 'exclusionId' });
+  Exclusion.belongsToMany(CompanyPlan, { through: CompanyPlanExclusion, foreignKey: 'exclusionId', otherKey: 'companyPlanId' });
+
+  // CompanyPlan <-> Provider many-to-many through CompanyPlanProvider
+  CompanyPlan.belongsToMany(Provider, { through: CompanyPlanProvider, foreignKey: 'companyPlanId', otherKey: 'providerId' });
+  Provider.belongsToMany(CompanyPlan, { through: CompanyPlanProvider, foreignKey: 'providerId', otherKey: 'companyPlanId' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider };
 }
 
 module.exports = defineModels;
