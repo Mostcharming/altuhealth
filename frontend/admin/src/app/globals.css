@@ -6,7 +6,8 @@
 
 @theme {
   --font-*: initial;
-  --font-outfit: Poppins, sans-serif;
+  /* --font-outfit: Poppins, sans-serif; */
+  --font-outfit: Outfit, sans-serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;

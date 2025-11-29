@@ -24,6 +24,10 @@ function defineModels(sequelize) {
   const Benefit = require("./benefit.model")(sequelize, DataTypes);
   const Diagnosis = require("./diagnosis.model")(sequelize, DataTypes);
   const ProviderSpecialization = require("./providerSpecialization.model")(sequelize, DataTypes);
+  const Provider = require("./provider.model")(sequelize, DataTypes);
+  const ProviderPlan = require("./providerPlan.model")(sequelize, DataTypes);
+  const Service = require("./service.model")(sequelize, DataTypes);
+  const Drug = require("./drug.model")(sequelize, DataTypes);
 
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -55,7 +59,27 @@ function defineModels(sequelize) {
   BenefitCategory.hasMany(Benefit, { foreignKey: "benefitCategoryId" });
   Benefit.belongsTo(BenefitCategory, { foreignKey: "benefitCategoryId" });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization };
+  // Provider <-> Admin (manager)
+  Admin.hasMany(Provider, { foreignKey: "managerId" });
+  Provider.belongsTo(Admin, { foreignKey: "managerId" });
+
+  // Provider <-> ProviderSpecialization
+  ProviderSpecialization.hasMany(Provider, { foreignKey: "providerSpecializationId" });
+  Provider.belongsTo(ProviderSpecialization, { foreignKey: "providerSpecializationId" });
+
+  // Provider <-> Plan many-to-many through ProviderPlan
+  Provider.belongsToMany(Plan, { through: ProviderPlan, foreignKey: 'providerId', otherKey: 'planId' });
+  Plan.belongsToMany(Provider, { through: ProviderPlan, foreignKey: 'planId', otherKey: 'providerId' });
+
+  // Provider <-> Service one-to-many
+  Provider.hasMany(Service, { foreignKey: "providerId" });
+  Service.belongsTo(Provider, { foreignKey: "providerId" });
+
+  // Provider <-> Drug one-to-many
+  Provider.hasMany(Drug, { foreignKey: "providerId" });
+  Drug.belongsTo(Provider, { foreignKey: "providerId" });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug };
 }
 
 module.exports = defineModels;
