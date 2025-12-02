@@ -6,8 +6,8 @@ const { getNextSubscriptionCode } = require('../../../utils/subscriptionCodeGene
 
 async function createSubscription(req, res, next) {
     try {
-        const { Subscription } = req.models;
-        const { companyId, mode, subsidiaryId, startDate, endDate, notes } = req.body || {};
+        const { Subscription, SubscriptionPlan } = req.models;
+        const { companyId, mode, subsidiaryId, startDate, endDate, notes, planIds } = req.body || {};
 
         // Validate required fields
         if (!companyId) return res.fail('`companyId` is required', 400);
@@ -38,6 +38,16 @@ async function createSubscription(req, res, next) {
             notes
         });
 
+        // Add plans to subscription if provided
+        if (Array.isArray(planIds) && planIds.length > 0) {
+            for (const companyPlanId of planIds) {
+                await SubscriptionPlan.create({
+                    subscriptionId: subscription.id,
+                    companyPlanId
+                });
+            }
+        }
+
         await addAuditLog(req.models, {
             action: 'subscription.create',
             message: `Subscription ${subscription.code} created`,
@@ -54,9 +64,9 @@ async function createSubscription(req, res, next) {
 
 async function updateSubscription(req, res, next) {
     try {
-        const { Subscription } = req.models;
+        const { Subscription, SubscriptionPlan } = req.models;
         const { id } = req.params;
-        const { mode, subsidiaryId, startDate, endDate, notes, status } = req.body || {};
+        const { mode, subsidiaryId, startDate, endDate, notes, status, planIds } = req.body || {};
 
         const subscription = await Subscription.findByPk(id);
         if (!subscription) return res.fail('Subscription not found', 404);
@@ -94,6 +104,24 @@ async function updateSubscription(req, res, next) {
         }
 
         await subscription.update(updates);
+
+        // Update plans if provided
+        if (Array.isArray(planIds)) {
+            // Remove all existing plans
+            await SubscriptionPlan.destroy({
+                where: { subscriptionId: id }
+            });
+
+            // Add new plans
+            if (planIds.length > 0) {
+                for (const companyPlanId of planIds) {
+                    await SubscriptionPlan.create({
+                        subscriptionId: id,
+                        companyPlanId
+                    });
+                }
+            }
+        }
 
         await addAuditLog(req.models, {
             action: 'subscription.update',
@@ -180,6 +208,11 @@ async function listSubscriptions(req, res, next) {
                 {
                     association: 'CompanySubsidiary',
                     attributes: ['id', 'name', 'email']
+                },
+                {
+                    association: 'companyPlans',
+                    attributes: ['id', 'name', 'planCycle', 'annualPremiumPrice', 'isActive'],
+                    through: { attributes: [] }
                 }
             ],
             order: [['createdAt', 'DESC']]

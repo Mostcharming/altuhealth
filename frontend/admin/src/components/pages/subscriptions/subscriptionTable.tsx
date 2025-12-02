@@ -7,7 +7,6 @@ import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
-import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import {
   Subscription,
@@ -56,11 +55,12 @@ const SubscriptionTable: React.FC = () => {
 
   const headers: Header[] = [
     { key: "code", label: "Code" },
+    { key: "companyId", label: "Company" },
     { key: "mode", label: "Mode" },
     { key: "status", label: "Status" },
     { key: "startDate", label: "Start Date" },
     { key: "endDate", label: "End Date" },
-    { key: "createdAt", label: "Date Created" },
+    { key: "actions", label: "Plans" },
     { key: "actions", label: "Actions" },
   ];
 
@@ -283,7 +283,12 @@ const SubscriptionTable: React.FC = () => {
                 >
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {capitalizeWords(subscription.code) || "-"}
+                      {subscription.code || "-"}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {subscription.Company?.name || "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
@@ -318,11 +323,10 @@ const SubscriptionTable: React.FC = () => {
                         : "-"}
                     </p>
                   </td>
+
                   <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {subscription.createdAt
-                        ? formatDate(subscription.createdAt)
-                        : "-"}
+                    <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                      {subscription.companyPlans?.length ?? 0}
                     </p>
                   </td>
 

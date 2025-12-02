@@ -1,16 +1,20 @@
 "use client";
 
-import Input from "@/components/form/input/InputField";
+import DatePicker from "@/components/form/date-picker";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import MultiSelect from "@/components/form/MultiSelect";
 import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { fetchCompanies } from "@/lib/apis/company";
+import { fetchCompanyPlans } from "@/lib/apis/companyPlan";
+import { fetchCompanySubsidiaries } from "@/lib/apis/companySubsidiary";
 import { useSubscriptionStore } from "@/lib/store/subscriptionStore";
-import { ChangeEvent, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function PageMetricsSubscriptions({
   buttonText,
@@ -39,6 +43,91 @@ export default function PageMetricsSubscriptions({
     "Failed to save subscription. Please try again."
   );
 
+  // dropdown data
+  const [companies, setCompanies] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [subsidiaries, setSubsidiaries] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [plans, setPlans] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedPlans, setSelectedPlans] = useState<string[]>([]);
+
+  // Fetch companies on modal open
+  useEffect(() => {
+    if (isOpen) {
+      const fetchCompaniesData = async () => {
+        try {
+          const data = await fetchCompanies({ limit: 100 });
+          const companiesList = data?.data?.list || [];
+          setCompanies(
+            companiesList.map((c: { id: string; name: string }) => ({
+              id: c.id,
+              name: c.name,
+            }))
+          );
+        } catch (err) {
+          console.error("Failed to fetch companies", err);
+        }
+      };
+      fetchCompaniesData();
+    }
+  }, [isOpen]);
+
+  // Fetch subsidiaries when company changes
+  useEffect(() => {
+    if (companyId && isOpen) {
+      const fetchSubsidiariesData = async () => {
+        try {
+          const data = await fetchCompanySubsidiaries({
+            companyId,
+            limit: 100,
+          });
+          const subsidiariesList = data?.data?.list || [];
+          setSubsidiaries(
+            subsidiariesList.map((s: { id: string; name: string }) => ({
+              id: s.id,
+              name: s.name,
+            }))
+          );
+        } catch (err) {
+          console.error("Failed to fetch subsidiaries", err);
+        }
+      };
+      fetchSubsidiariesData();
+    } else {
+      setSubsidiaries([]);
+    }
+  }, [companyId, isOpen]);
+
+  // Fetch plans when company changes
+  useEffect(() => {
+    if (companyId && isOpen) {
+      const fetchPlansData = async () => {
+        try {
+          const data = await fetchCompanyPlans({
+            companyId,
+            limit: 100,
+            isActive: true,
+          });
+          const plansList = data?.data?.list || [];
+          setPlans(
+            plansList.map((p: { id: string; name: string }) => ({
+              id: p.id,
+              name: p.name,
+            }))
+          );
+        } catch (err) {
+          console.error("Failed to fetch plans", err);
+        }
+      };
+      fetchPlansData();
+    } else {
+      setPlans([]);
+      setSelectedPlans([]);
+    }
+  }, [companyId, isOpen]);
+
   const resetForm = () => {
     setCompanyId("");
     setMode("");
@@ -46,6 +135,7 @@ export default function PageMetricsSubscriptions({
     setStartDate("");
     setEndDate("");
     setNotes("");
+    setSelectedPlans([]);
   };
 
   const handleSuccessClose = () => {
@@ -96,6 +186,7 @@ export default function PageMetricsSubscriptions({
         startDate: string;
         endDate: string;
         notes?: string;
+        planIds?: string[];
       } = {
         companyId: companyId.trim(),
         mode: mode,
@@ -103,6 +194,7 @@ export default function PageMetricsSubscriptions({
         startDate: startDate,
         endDate: endDate,
         notes: notes.trim() || undefined,
+        planIds: selectedPlans.length > 0 ? selectedPlans : undefined,
       };
 
       const data = await apiClient("/admin/subscriptions", {
@@ -187,22 +279,26 @@ export default function PageMetricsSubscriptions({
             handlesubmit();
           }}
         >
-          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
+          <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 lg:col-span-1">
-                <Label>Company</Label>
-                <Input
-                  type="text"
-                  value={companyId}
-                  placeholder="Enter company ID..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCompanyId(e.target.value)
-                  }
+                <Label>Company *</Label>
+                <Select
+                  options={companies.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                  }))}
+                  placeholder="Select company"
+                  onChange={(value) => {
+                    setCompanyId(value as string);
+                    setSubsidiaryId("");
+                  }}
+                  defaultValue={companyId}
                 />
               </div>
 
               <div className="col-span-2 lg:col-span-1">
-                <Label>Mode</Label>
+                <Label>Mode *</Label>
                 <Select
                   options={[
                     { value: "parent_only", label: "Parent Only" },
@@ -222,36 +318,39 @@ export default function PageMetricsSubscriptions({
               </div>
 
               <div className="col-span-2 lg:col-span-1">
-                <Label>Subsidiary ID (Optional)</Label>
-                <Input
-                  type="text"
-                  value={subsidiaryId}
-                  placeholder="Enter subsidiary ID..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setSubsidiaryId(e.target.value)
-                  }
+                <Label>Subsidiary (Optional)</Label>
+                <Select
+                  options={subsidiaries.map((s) => ({
+                    value: s.id,
+                    label: s.name,
+                  }))}
+                  placeholder="Select subsidiary"
+                  onChange={(value) => setSubsidiaryId(value as string)}
+                  defaultValue={subsidiaryId}
                 />
               </div>
 
               <div className="col-span-2 lg:col-span-1">
-                <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setStartDate(e.target.value)
-                  }
+                <DatePicker
+                  id="start-date-picker"
+                  label="Start Date *"
+                  placeholder="Select start date"
+                  defaultDate={startDate}
+                  onChange={(dates, currentDateString) => {
+                    setStartDate(currentDateString);
+                  }}
                 />
               </div>
 
               <div className="col-span-2 lg:col-span-1">
-                <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setEndDate(e.target.value)
-                  }
+                <DatePicker
+                  id="end-date-picker"
+                  label="End Date *"
+                  placeholder="Select end date"
+                  defaultDate={endDate}
+                  onChange={(dates, currentDateString) => {
+                    setEndDate(currentDateString);
+                  }}
                 />
               </div>
 
@@ -262,6 +361,19 @@ export default function PageMetricsSubscriptions({
                   rows={4}
                   value={notes}
                   onChange={(value) => setNotes(value)}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <MultiSelect
+                  label="Company Plans"
+                  options={plans.map((p) => ({
+                    value: p.id,
+                    text: p.name,
+                    selected: selectedPlans.includes(p.id),
+                  }))}
+                  defaultSelected={selectedPlans}
+                  onChange={(selected) => setSelectedPlans(selected)}
                 />
               </div>
 
