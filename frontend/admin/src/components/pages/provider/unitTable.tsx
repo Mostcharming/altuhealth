@@ -69,8 +69,6 @@ const ProviderTable: React.FC = () => {
     { key: "upn", label: "Provider UPN" },
     { key: "category", label: "Category" },
     { key: "email", label: "Email" },
-    { key: "phoneNumber", label: "Phone Number" },
-    { key: "website", label: "Website" },
     { key: "Plans", label: "Number of Plans" },
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
@@ -303,27 +301,7 @@ const ProviderTable: React.FC = () => {
                       {provider.email}
                     </p>
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {provider.phoneNumber}
-                    </p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {provider.website ? (
-                        <a
-                          href={provider.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline dark:text-blue-400"
-                        >
-                          {provider.website}
-                        </a>
-                      ) : (
-                        "-"
-                      )}
-                    </p>
-                  </td>
+
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
                       {getPlansCount(provider)}

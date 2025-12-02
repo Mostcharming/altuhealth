@@ -24,7 +24,9 @@ router.use('/providers', require('./providers/route'));
 router.use('/services', require('./services/route'));
 router.use('/drugs', require('./drugs/route'));
 router.use('/companies', require('./companies/route'));
+router.use('/company-subsidiaries', require('./companySubsidiaries/route'));
 router.use('/company-plans', require('./companyPlans/route'));
+router.use('/subscriptions', require('./subscriptions/route'));
 
 router.use(errorHandler);
 

@@ -11,6 +11,8 @@ function defineModels(sequelize) {
   const UserUnit = require("./userUnit.model")(sequelize, DataTypes);
   const PolicyNumber = require("./policy.model")(sequelize, DataTypes);
   const GeneralSetting = require("./generalSetting.model")(sequelize, DataTypes);
+  const CompanySubsidiary = require("./companySubsidiary.model")(sequelize, DataTypes);
+  const UtilizationReview = require("./utilizationReview.model")(sequelize, DataTypes);
   const AdminNotification = require("./adminNotification.model")(sequelize, DataTypes);
   const NotificationLog = require("./notification.model")(sequelize, DataTypes);
   const NotificationTemplate = require("./notificationTemplate.model")(sequelize, DataTypes);
@@ -32,6 +34,8 @@ function defineModels(sequelize) {
   const CompanyPlanBenefitCategory = require("./companyPlanBenefitCategory.model")(sequelize, DataTypes);
   const CompanyPlanExclusion = require("./companyPlanExclusion.model")(sequelize, DataTypes);
   const CompanyPlanProvider = require("./companyPlanProvider.model")(sequelize, DataTypes);
+  const Subscription = require("./subscription.model")(sequelize, DataTypes);
+  const SubscriptionPlan = require("./subscriptionPlan.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -82,23 +86,50 @@ function defineModels(sequelize) {
   Provider.hasMany(Drug, { foreignKey: "providerId" });
   Drug.belongsTo(Provider, { foreignKey: "providerId" });
 
+  // Company <-> CompanySubsidiary one-to-many
+  Company.hasMany(CompanySubsidiary, { foreignKey: "companyId" });
+  CompanySubsidiary.belongsTo(Company, { foreignKey: "companyId" });
+
   // Company <-> CompanyPlan one-to-many
   Company.hasMany(CompanyPlan, { foreignKey: "companyId" });
   CompanyPlan.belongsTo(Company, { foreignKey: "companyId" });
 
+  // CompanyPlan <-> Plan many-to-one
+  Plan.hasMany(CompanyPlan, { foreignKey: "planId" });
+  CompanyPlan.belongsTo(Plan, { foreignKey: "planId" });
+
   // CompanyPlan <-> BenefitCategory many-to-many through CompanyPlanBenefitCategory
-  CompanyPlan.belongsToMany(BenefitCategory, { through: CompanyPlanBenefitCategory, foreignKey: 'companyPlanId', otherKey: 'benefitCategoryId' });
+  CompanyPlan.belongsToMany(BenefitCategory, { through: CompanyPlanBenefitCategory, foreignKey: 'companyPlanId', otherKey: 'benefitCategoryId', as: 'benefitCategories' });
   BenefitCategory.belongsToMany(CompanyPlan, { through: CompanyPlanBenefitCategory, foreignKey: 'benefitCategoryId', otherKey: 'companyPlanId' });
 
   // CompanyPlan <-> Exclusion many-to-many through CompanyPlanExclusion
-  CompanyPlan.belongsToMany(Exclusion, { through: CompanyPlanExclusion, foreignKey: 'companyPlanId', otherKey: 'exclusionId' });
+  CompanyPlan.belongsToMany(Exclusion, { through: CompanyPlanExclusion, foreignKey: 'companyPlanId', otherKey: 'exclusionId', as: 'exclusions' });
   Exclusion.belongsToMany(CompanyPlan, { through: CompanyPlanExclusion, foreignKey: 'exclusionId', otherKey: 'companyPlanId' });
 
   // CompanyPlan <-> Provider many-to-many through CompanyPlanProvider
-  CompanyPlan.belongsToMany(Provider, { through: CompanyPlanProvider, foreignKey: 'companyPlanId', otherKey: 'providerId' });
+  CompanyPlan.belongsToMany(Provider, { through: CompanyPlanProvider, foreignKey: 'companyPlanId', otherKey: 'providerId', as: 'providers' });
   Provider.belongsToMany(CompanyPlan, { through: CompanyPlanProvider, foreignKey: 'providerId', otherKey: 'companyPlanId' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider };
+  // Subscription <-> Company one-to-many
+  Company.hasMany(Subscription, { foreignKey: "companyId" });
+  Subscription.belongsTo(Company, { foreignKey: "companyId" });
+
+  // Subscription <-> CompanySubsidiary one-to-many
+  CompanySubsidiary.hasMany(Subscription, { foreignKey: "subsidiaryId" });
+  Subscription.belongsTo(CompanySubsidiary, { foreignKey: "subsidiaryId" });
+
+  // Subscription <-> CompanyPlan many-to-many through SubscriptionPlan
+  Subscription.belongsToMany(CompanyPlan, { through: SubscriptionPlan, foreignKey: 'subscriptionId', otherKey: 'companyPlanId', as: 'companyPlans' });
+  CompanyPlan.belongsToMany(Subscription, { through: SubscriptionPlan, foreignKey: 'companyPlanId', otherKey: 'subscriptionId', as: 'subscriptions' });
+
+  // SubscriptionPlan direct relationships for easier querying
+  SubscriptionPlan.belongsTo(Subscription, { foreignKey: 'subscriptionId' });
+  Subscription.hasMany(SubscriptionPlan, { foreignKey: 'subscriptionId' });
+
+  SubscriptionPlan.belongsTo(CompanyPlan, { foreignKey: 'companyPlanId' });
+  CompanyPlan.hasMany(SubscriptionPlan, { foreignKey: 'companyPlanId' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan };
 }
 
 module.exports = defineModels;

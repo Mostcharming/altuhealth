@@ -5,15 +5,17 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { PencilIcon, TrashBinIcon } from "@/icons";
+import { EyeIcon, PencilIcon, TrashBinIcon } from "@/icons";
 import { deleteCompany, fetchCompanies } from "@/lib/apis/company";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import { Company, useCompanyStore } from "@/lib/store/companyStore";
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import EditCompany from "./editCompany";
 
 const CompanyTable: React.FC = () => {
+  const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const errorModal = useModal();
   const successModal = useModal();
@@ -178,6 +180,10 @@ const CompanyTable: React.FC = () => {
     closeModal();
   };
 
+  const handlenavigate = (company: Company) => {
+    router.push(`/companies/${company.id}`);
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
@@ -282,6 +288,12 @@ const CompanyTable: React.FC = () => {
 
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
+                      <button
+                        onClick={() => handlenavigate(company)}
+                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                      >
+                        <EyeIcon />
+                      </button>
                       <button
                         onClick={() => handleView(company)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"

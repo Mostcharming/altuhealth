@@ -8,7 +8,7 @@ async function createCompanyPlan(req, res, next) {
         const { CompanyPlan } = req.models;
         const {
             companyId,
-            planType,
+            planId,
             name,
             ageLimit,
             dependentAgeLimit,
@@ -21,7 +21,7 @@ async function createCompanyPlan(req, res, next) {
         } = req.body || {};
 
         if (!companyId) return res.fail('`companyId` is required', 400);
-        if (!planType) return res.fail('`planType` is required', 400);
+        if (!planId) return res.fail('`planId` is required', 400);
         if (!name) return res.fail('`name` is required', 400);
         if (!planCycle) return res.fail('`planCycle` is required', 400);
         if (annualPremiumPrice === undefined || annualPremiumPrice === null) {
@@ -30,7 +30,7 @@ async function createCompanyPlan(req, res, next) {
 
         const companyPlan = await CompanyPlan.create({
             companyId,
-            planType,
+            planId,
             name,
             ageLimit,
             dependentAgeLimit,
@@ -62,7 +62,7 @@ async function updateCompanyPlan(req, res, next) {
         const { CompanyPlan } = req.models;
         const { id } = req.params;
         const {
-            planType,
+            planId,
             name,
             ageLimit,
             dependentAgeLimit,
@@ -79,7 +79,7 @@ async function updateCompanyPlan(req, res, next) {
         if (!companyPlan) return res.fail('Company Plan not found', 404);
 
         const updates = {};
-        if (planType !== undefined) updates.planType = planType;
+        if (planId !== undefined) updates.planId = planId;
         if (name !== undefined) updates.name = name;
         if (ageLimit !== undefined) updates.ageLimit = ageLimit;
         if (dependentAgeLimit !== undefined) updates.dependentAgeLimit = dependentAgeLimit;
@@ -133,8 +133,8 @@ async function deleteCompanyPlan(req, res, next) {
 
 async function listCompanyPlans(req, res, next) {
     try {
-        const { CompanyPlan } = req.models;
-        const { limit = 10, page = 1, q, companyId, isActive, planType } = req.query;
+        const { CompanyPlan, Plan } = req.models;
+        const { limit = 10, page = 1, q, companyId, isActive, planId } = req.query;
 
         const isAll = String(limit).toLowerCase() === 'all';
         const limitNum = isAll ? 0 : Number(limit);
@@ -150,8 +150,7 @@ async function listCompanyPlans(req, res, next) {
         if (q) {
             where[Op.or] = [
                 { name: { [Op.iLike || Op.like]: `%${q}%` } },
-                { description: { [Op.iLike || Op.like]: `%${q}%` } },
-                { planType: { [Op.iLike || Op.like]: `%${q}%` } }
+                { description: { [Op.iLike || Op.like]: `%${q}%` } }
             ];
         }
 
@@ -159,15 +158,22 @@ async function listCompanyPlans(req, res, next) {
             where.isActive = isActive === 'true' || isActive === true;
         }
 
-        if (planType) {
-            where.planType = planType;
+        if (planId) {
+            where.planId = planId;
         }
 
         const total = await CompanyPlan.count({ where });
 
         const findOptions = {
             where,
-            order: [['created_at', 'DESC']]
+            order: [['created_at', 'DESC']],
+            include: [
+                {
+                    model: Plan,
+                    attributes: ['id', 'name', 'code'],
+                    required: false
+                }
+            ]
         };
 
         if (!isAll) {
@@ -198,10 +204,57 @@ async function listCompanyPlans(req, res, next) {
 
 async function getCompanyPlan(req, res, next) {
     try {
-        const { CompanyPlan } = req.models;
+        const { CompanyPlan, Plan, BenefitCategory, Exclusion, Provider } = req.models;
         const { id } = req.params;
+        const { include } = req.query;
 
-        const companyPlan = await CompanyPlan.findByPk(id);
+        const includes = [];
+
+        // Always include Plan
+        includes.push({
+            model: Plan,
+            attributes: ['id', 'name', 'code'],
+            required: false
+        });
+
+        // Optionally include other models based on query parameter
+        if (include) {
+            const requestedIncludes = String(include).split(',').map(i => i.trim());
+
+            if (requestedIncludes.includes('benefitCategories')) {
+                includes.push({
+                    model: BenefitCategory,
+                    as: 'benefitCategories',
+                    attributes: ['id', 'name'],
+                    required: false,
+                    through: { attributes: [] }
+                });
+            }
+
+            if (requestedIncludes.includes('exclusions')) {
+                includes.push({
+                    model: Exclusion,
+                    as: 'exclusions',
+                    attributes: ['id', 'description'],
+                    required: false,
+                    through: { attributes: [] }
+                });
+            }
+
+            if (requestedIncludes.includes('providers')) {
+                includes.push({
+                    model: Provider,
+                    as: 'providers',
+                    attributes: ['id', 'name'],
+                    required: false,
+                    through: { attributes: [] }
+                });
+            }
+        }
+
+        const companyPlan = await CompanyPlan.findByPk(id, {
+            include: includes
+        });
         if (!companyPlan) return res.fail('Company Plan not found', 404);
 
         return res.success(companyPlan.toJSON());

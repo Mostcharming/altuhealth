@@ -18,10 +18,16 @@ module.exports = (sequelize, DataTypes) => {
             },
             field: 'company_id'
         },
-        planType: {
-            type: DataTypes.STRING,
+        planId: {
+            type: DataTypes.UUID,
             allowNull: false,
-            field: 'plan_type'
+            references: {
+                model: 'plans',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT',
+            field: 'plan_id'
         },
         name: {
             type: DataTypes.STRING,

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface CountryCode {
   code: string;
@@ -36,6 +36,13 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
   const [selectedCountry, setSelectedCountry] =
     useState<string>(initialCountry);
   const [phoneNumber, setPhoneNumber] = useState<string>(initialPhone);
+
+  // Update phone number when defaultValue prop changes
+  useEffect(() => {
+    if (defaultValue) {
+      setPhoneNumber(defaultValue);
+    }
+  }, [defaultValue]);
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCountry = e.target.value;

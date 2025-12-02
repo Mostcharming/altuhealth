@@ -267,10 +267,10 @@ export default function EditRole({ isOpen, closeModal, role }: EditRoleProps) {
                                   </svg>
                                 </span>
                               </div>
-                              <p className="-mt-0.5 text-base text-gray-800 dark:text-white/90">
-                                {p.description ?? p.name ?? String(p.id)}
-                              </p>
                             </div>
+                            <p className="-mt-0.5 text-base text-gray-800 dark:text-white/90">
+                              {p.description ?? p.name ?? String(p.id)}
+                            </p>
                           </label>
                         </div>
                       </div>

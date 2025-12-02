@@ -165,7 +165,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                 <Label>Severity</Label>
                 <Select
                   options={[
-                    { value: "", label: "Select severity" },
+                    // { value: "", label: "Select severity" },
                     { value: "mild", label: "Mild" },
                     { value: "moderate", label: "Moderate" },
                     { value: "severe", label: "Severe" },

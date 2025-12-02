@@ -10,13 +10,13 @@ import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import {
-  ProviderSpecialization,
-  useProviderSpecializationStore,
-} from "@/lib/store/providerSpecializationStore";
+  Subscription,
+  useSubscriptionStore,
+} from "@/lib/store/subscriptionStore";
 import React, { useCallback, useEffect, useState } from "react";
-import EditUnit from "./editUnit";
+import EditSubscription from "./editSubscription";
 
-const AdminTable: React.FC = () => {
+const SubscriptionTable: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
   const errorModal = useModal();
   const successModal = useModal();
@@ -28,28 +28,21 @@ const AdminTable: React.FC = () => {
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const providerSpecializations = useProviderSpecializationStore(
-    (s) => s.providerSpecializations
-  );
-  const setProviderSpecializations = useProviderSpecializationStore(
-    (s) => s.setProviderSpecializations
-  );
+  const subscriptions = useSubscriptionStore((s) => s.subscriptions);
+  const setSubscriptions = useSubscriptionStore((s) => s.setSubscriptions);
   const confirmModal = useModal();
-  const [
-    selectedProviderSpecializationId,
-    setSelectedProviderSpecializationId,
-  ] = useState<string | null>(null);
-  const [editingProviderSpecialization, setEditingProviderSpecialization] =
-    useState<ProviderSpecialization | null>(null);
-  const removeProviderSpecialization = useProviderSpecializationStore(
-    (s) => s.removeProviderSpecialization
-  );
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState<
+    string | null
+  >(null);
+  const [editingSubscription, setEditingSubscription] =
+    useState<Subscription | null>(null);
+  const removeSubscription = useSubscriptionStore((s) => s.removeSubscription);
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to delete provider specialization. Please try again."
+    "Failed to delete subscription. Please try again."
   );
 
   type Header = {
-    key: keyof ProviderSpecialization | "actions";
+    key: keyof Subscription | "actions";
     label: string;
   };
 
@@ -62,8 +55,11 @@ const AdminTable: React.FC = () => {
   ];
 
   const headers: Header[] = [
-    { key: "name", label: "Name" },
-    { key: "description", label: "Description" },
+    { key: "code", label: "Code" },
+    { key: "mode", label: "Mode" },
+    { key: "status", label: "Status" },
+    { key: "startDate", label: "Start Date" },
+    { key: "endDate", label: "End Date" },
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
@@ -77,31 +73,31 @@ const AdminTable: React.FC = () => {
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
 
-      const url = `/admin/provider-specializations/list?${params.toString()}`;
+      const url = `/admin/subscriptions/list?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
 
-      const items: ProviderSpecialization[] =
+      const items: Subscription[] =
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
 
-      setProviderSpecializations(items);
+      setSubscriptions(items);
       setTotalItems(data?.data?.count ?? 0);
       setHasNextPage(Boolean(data?.data?.hasNextPage));
       setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
       setTotalPages(data?.data?.totalPages ?? 1);
     } catch (err) {
-      console.warn("Provider Specialization fetch failed", err);
+      console.warn("Subscription fetch failed", err);
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setProviderSpecializations]);
+  }, [limit, currentPage, search, setSubscriptions]);
 
   useEffect(() => {
     fetch();
@@ -138,31 +134,31 @@ const AdminTable: React.FC = () => {
     setCurrentPage(1);
   };
   const handleDeleteModal = (id: string) => {
-    setSelectedProviderSpecializationId(id);
+    setSelectedSubscriptionId(id);
     confirmModal.openModal();
   };
   const handleCloseConfirm = () => {
-    setSelectedProviderSpecializationId(null);
+    setSelectedSubscriptionId(null);
     confirmModal.closeModal();
   };
-  const handleView = (providerSpecialization: ProviderSpecialization) => {
-    setEditingProviderSpecialization(providerSpecialization);
+  const handleView = (subscription: Subscription) => {
+    setEditingSubscription(subscription);
     openModal();
   };
 
-  const deleteProviderSpecialization = async () => {
-    if (!selectedProviderSpecializationId) return;
+  const deleteSubscription = async () => {
+    if (!selectedSubscriptionId) return;
     try {
       setLoading(true);
-      const url = `/admin/provider-specializations/${selectedProviderSpecializationId}`;
+      const url = `/admin/subscriptions/${selectedSubscriptionId}`;
       await apiClient(url, {
         method: "DELETE",
         onLoading: (l) => setLoading(l),
       });
 
       // refresh list after deletion
-      removeProviderSpecialization(selectedProviderSpecializationId);
-      setSelectedProviderSpecializationId(null);
+      removeSubscription(selectedSubscriptionId);
+      setSelectedSubscriptionId(null);
       confirmModal.closeModal();
       successModal.openModal();
     } catch (error: unknown) {
@@ -177,7 +173,7 @@ const AdminTable: React.FC = () => {
   };
 
   const handleCloseEdit = () => {
-    setEditingProviderSpecialization(null);
+    setEditingSubscription(null);
     closeModal();
   };
   const handleSuccessClose = () => {
@@ -190,12 +186,38 @@ const AdminTable: React.FC = () => {
     closeModal();
   };
 
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
+      case "suspended":
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400";
+      case "inactive":
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
+      case "expired":
+        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
+    }
+  };
+
+  const getModeBadgeColor = (mode: string) => {
+    switch (mode) {
+      case "parent_only":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400";
+      case "parent_and_subsidiaries":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
+    }
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Specializations Lisiting
+            Subscriptions Listing
           </h3>
         </div>
 
@@ -254,56 +276,77 @@ const AdminTable: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {providerSpecializations.map(
-                (providerSpecialization: ProviderSpecialization) => (
-                  <tr
-                    key={providerSpecialization.id}
-                    className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
-                  >
-                    <td className="p-4 whitespace-nowrap">
-                      <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                        {capitalizeWords(providerSpecialization.name) || "-"}
-                      </p>
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {capitalizeWords(
-                          providerSpecialization.description || ""
-                        ) || "-"}
-                      </p>
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {providerSpecialization.createdAt
-                          ? formatDate(providerSpecialization.createdAt)
-                          : "-"}
-                      </p>
-                    </td>
+              {subscriptions.map((subscription: Subscription) => (
+                <tr
+                  key={subscription.id}
+                  className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
+                >
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      {capitalizeWords(subscription.code) || "-"}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getModeBadgeColor(
+                        subscription.mode
+                      )}`}
+                    >
+                      {subscription.mode.replace(/_/g, " ")}
+                    </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getStatusBadgeColor(
+                        subscription.status
+                      )}`}
+                    >
+                      {subscription.status}
+                    </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {subscription.startDate
+                        ? formatDate(subscription.startDate)
+                        : "-"}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {subscription.endDate
+                        ? formatDate(subscription.endDate)
+                        : "-"}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {subscription.createdAt
+                        ? formatDate(subscription.createdAt)
+                        : "-"}
+                    </p>
+                  </td>
 
-                    <td className="p-4 whitespace-nowrap">
-                      <div className="flex items-center w-full gap-2">
-                        <button
-                          onClick={() => handleView(providerSpecialization)}
-                          className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                          title="View/Edit"
-                        >
-                          <PencilIcon />
-                        </button>
+                  <td className="p-4 whitespace-nowrap">
+                    <div className="flex items-center w-full gap-2">
+                      <button
+                        onClick={() => handleView(subscription)}
+                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                        title="View/Edit"
+                      >
+                        <PencilIcon />
+                      </button>
 
-                        <button
-                          onClick={() =>
-                            handleDeleteModal(providerSpecialization.id)
-                          }
-                          className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
-                          title="Delete"
-                        >
-                          <TrashBinIcon />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              )}
+                      <button
+                        onClick={() => handleDeleteModal(subscription.id)}
+                        className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
+                        title="Delete"
+                      >
+                        <TrashBinIcon />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -419,13 +462,13 @@ const AdminTable: React.FC = () => {
       </div>
       <ConfirmModal
         confirmModal={confirmModal}
-        handleSave={deleteProviderSpecialization}
+        handleSave={deleteSubscription}
         closeModal={handleCloseConfirm}
       />
-      <EditUnit
+      <EditSubscription
         isOpen={isOpen}
         closeModal={handleCloseEdit}
-        unit={editingProviderSpecialization}
+        subscription={editingSubscription}
       />
       <SuccessModal
         successModal={successModal}
@@ -441,4 +484,4 @@ const AdminTable: React.FC = () => {
   );
 };
 
-export default AdminTable;
+export default SubscriptionTable;

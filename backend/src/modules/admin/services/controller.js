@@ -51,25 +51,25 @@ async function createService(req, res, next) {
         });
 
         // Create admin approval request
-        try {
-            await createAdminApproval(req.models, {
-                model: 'Service',
-                modelId: service.id,
-                action: 'create',
-                details: {
-                    name: service.name,
-                    code: service.code,
-                    requiresPreauthorization: service.requiresPreauthorization,
-                    price: service.price,
-                    providerId: service.providerId
-                },
-                requestedBy: (req.user && req.user.id) ? req.user.id : null,
-                requestedByType: (req.user && req.user.type) ? req.user.type : 'Admin',
-                comments: `New service created: ${service.name} (${service.code})`
-            });
-        } catch (approvalErr) {
-            if (console && console.warn) console.warn('Failed to create approval for service:', approvalErr.message || approvalErr);
-        }
+        // try {
+        //     await createAdminApproval(req.models, {
+        //         model: 'Service',
+        //         modelId: service.id,
+        //         action: 'create',
+        //         details: {
+        //             name: service.name,
+        //             code: service.code,
+        //             requiresPreauthorization: service.requiresPreauthorization,
+        //             price: service.price,
+        //             providerId: service.providerId
+        //         },
+        //         requestedBy: (req.user && req.user.id) ? req.user.id : null,
+        //         requestedByType: (req.user && req.user.type) ? req.user.type : 'Admin',
+        //         comments: `New service created: ${service.name} (${service.code})`
+        //     });
+        // } catch (approvalErr) {
+        //     if (console && console.warn) console.warn('Failed to create approval for service:', approvalErr.message || approvalErr);
+        // }
 
         await addAuditLog(req.models, {
             action: 'service.create',

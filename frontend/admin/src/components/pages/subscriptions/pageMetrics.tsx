@@ -1,6 +1,5 @@
 "use client";
 
-import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
@@ -10,10 +9,10 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
-import { useDiagnosisStore } from "@/lib/store/diagnosisStore";
+import { useSubscriptionStore } from "@/lib/store/subscriptionStore";
 import { ChangeEvent, useState } from "react";
 
-export default function PageMetricsUnits({
+export default function PageMetricsSubscriptions({
   buttonText,
 }: {
   buttonText?: string;
@@ -25,29 +24,28 @@ export default function PageMetricsUnits({
   const successModal = useModal();
 
   // stores
-  const addPlan = useDiagnosisStore((s) => s.addDiagnosis);
+  const addSubscription = useSubscriptionStore((s) => s.addSubscription);
 
   // form state
-
-  const [description, setDescription] = useState("");
-  const [name, setName] = useState("");
-  const [severity, setSeverity] = useState<
-    "mild" | "moderate" | "severe" | "critical" | ""
+  const [companyId, setCompanyId] = useState("");
+  const [mode, setMode] = useState<
+    "parent_only" | "parent_and_subsidiaries" | ""
   >("");
-  const [symptoms, setSymptoms] = useState("");
-  const [treatment, setTreatment] = useState("");
-  const [isChronicCondition, setIsChronicCondition] = useState(false);
+  const [subsidiaryId, setSubsidiaryId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [notes, setNotes] = useState("");
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to save diagnosis. Please try again."
+    "Failed to save subscription. Please try again."
   );
 
   const resetForm = () => {
-    setDescription("");
-    setName("");
-    setSeverity("");
-    setSymptoms("");
-    setTreatment("");
-    setIsChronicCondition(false);
+    setCompanyId("");
+    setMode("");
+    setSubsidiaryId("");
+    setStartDate("");
+    setEndDate("");
+    setNotes("");
   };
 
   const handleSuccessClose = () => {
@@ -65,8 +63,26 @@ export default function PageMetricsUnits({
   const handlesubmit = async () => {
     try {
       // simple client-side validation
-      if (!name) {
-        setErrorMessage("Name is required.");
+      if (!companyId) {
+        setErrorMessage("Company is required.");
+        errorModal.openModal();
+        return;
+      }
+
+      if (!mode) {
+        setErrorMessage("Mode is required.");
+        errorModal.openModal();
+        return;
+      }
+
+      if (!startDate) {
+        setErrorMessage("Start date is required.");
+        errorModal.openModal();
+        return;
+      }
+
+      if (!endDate) {
+        setErrorMessage("End date is required.");
         errorModal.openModal();
         return;
       }
@@ -74,39 +90,40 @@ export default function PageMetricsUnits({
       setLoading(true);
 
       const payload: {
-        name: string;
-        description: string;
-        severity?: string;
-        symptoms?: string;
-        treatment?: string;
-        isChronicCondition: boolean;
+        companyId: string;
+        mode: string;
+        subsidiaryId?: string;
+        startDate: string;
+        endDate: string;
+        notes?: string;
       } = {
-        name: name.trim(),
-        description: description.trim(),
-        severity: severity || undefined,
-        symptoms: symptoms.trim() || undefined,
-        treatment: treatment.trim() || undefined,
-        isChronicCondition: isChronicCondition,
+        companyId: companyId.trim(),
+        mode: mode,
+        subsidiaryId: subsidiaryId || undefined,
+        startDate: startDate,
+        endDate: endDate,
+        notes: notes.trim() || undefined,
       };
 
-      const data = await apiClient("/admin/diagnosis", {
+      const data = await apiClient("/admin/subscriptions", {
         method: "POST",
         body: payload,
         onLoading: (l: boolean) => setLoading(l),
       });
 
-      // if backend returns created admin id or object, you can handle it here
-      // Optionally, if a unit was created/returned and you want to add to unit store
-      if (data?.data?.diagnosis) {
-        addPlan({
-          id: data.data.diagnosis.id,
-          name: name,
-          description: description,
-          severity: severity || null,
-          symptoms: symptoms || null,
-          treatment: treatment || null,
-          isChronicCondition: isChronicCondition,
-          createdAt: data.data.diagnosis.createdAt,
+      // if backend returns created subscription id or object, you can handle it here
+      if (data?.data?.subscription) {
+        addSubscription({
+          id: data.data.subscription.id,
+          code: data.data.subscription.code,
+          companyId: companyId,
+          mode: mode as "parent_only" | "parent_and_subsidiaries",
+          subsidiaryId: subsidiaryId || null,
+          startDate: startDate,
+          endDate: endDate,
+          notes: notes || null,
+          status: data.data.subscription.status || "active",
+          createdAt: data.data.subscription.createdAt,
         });
       }
 
@@ -119,9 +136,6 @@ export default function PageMetricsUnits({
     } finally {
       setLoading(false);
     }
-  };
-  const handleMessageChange = (value: string) => {
-    setDescription(value);
   };
 
   return (
@@ -159,10 +173,10 @@ export default function PageMetricsUnits({
       >
         <div className="px-2">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Add a new Diagnosis
+            Add a new Subscription
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the details below to create a new diagnosis.
+            Fill in the details below to create a new subscription.
           </p>
         </div>
 
@@ -176,72 +190,78 @@ export default function PageMetricsUnits({
           <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 lg:col-span-1">
-                <Label>Name</Label>
+                <Label>Company</Label>
                 <Input
                   type="text"
-                  value={name}
-                  placeholder="Enter diagnosis name..."
+                  value={companyId}
+                  placeholder="Enter company ID..."
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setName(e.target.value)
+                    setCompanyId(e.target.value)
                   }
                 />
               </div>
 
               <div className="col-span-2 lg:col-span-1">
-                <Label>Severity</Label>
+                <Label>Mode</Label>
                 <Select
                   options={[
-                    // { value: "", label: "Select severity" },
-                    { value: "mild", label: "Mild" },
-                    { value: "moderate", label: "Moderate" },
-                    { value: "severe", label: "Severe" },
-                    { value: "critical", label: "Critical" },
+                    { value: "parent_only", label: "Parent Only" },
+                    {
+                      value: "parent_and_subsidiaries",
+                      label: "Parent and Subsidiaries",
+                    },
                   ]}
-                  placeholder="Select severity"
+                  placeholder="Select mode"
                   onChange={(value) =>
-                    setSeverity(
-                      value as "mild" | "moderate" | "severe" | "critical" | ""
+                    setMode(
+                      value as "parent_only" | "parent_and_subsidiaries" | ""
                     )
                   }
-                  defaultValue={severity}
+                  defaultValue={mode}
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Subsidiary ID (Optional)</Label>
+                <Input
+                  type="text"
+                  value={subsidiaryId}
+                  placeholder="Enter subsidiary ID..."
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setSubsidiaryId(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setStartDate(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setEndDate(e.target.value)
+                  }
                 />
               </div>
 
               <div className="col-span-2">
-                <Label>Description</Label>
+                <Label>Notes</Label>
                 <TextArea
-                  placeholder="Type the description here..."
+                  placeholder="Enter notes..."
                   rows={4}
-                  value={description}
-                  onChange={handleMessageChange}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Label>Symptoms</Label>
-                <TextArea
-                  placeholder="Enter symptoms..."
-                  rows={4}
-                  value={symptoms}
-                  onChange={(value) => setSymptoms(value)}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Label>Treatment</Label>
-                <TextArea
-                  placeholder="Enter treatment details..."
-                  rows={4}
-                  value={treatment}
-                  onChange={(value) => setTreatment(value)}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Checkbox
-                  label="Is Chronic Condition"
-                  checked={isChronicCondition}
-                  onChange={(checked) => setIsChronicCondition(checked)}
+                  value={notes}
+                  onChange={(value) => setNotes(value)}
                 />
               </div>
 
@@ -258,7 +278,7 @@ export default function PageMetricsUnits({
                   disabled={loading}
                   className="px-4 py-2 rounded bg-brand-500 text-white"
                 >
-                  {loading ? "Creating..." : "Create Diagnosis"}
+                  {loading ? "Creating..." : "Create Subscription"}
                 </button>
               </div>
             </div>
