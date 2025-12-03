@@ -38,14 +38,21 @@ export default function SinglePHeader({ data }: { data: any }) {
       );
 
       if (response?.data.idCardUrl) {
-        // Trigger download
+        // Fetch the image and download it as a blob
+        const imageResponse = await fetch(response.data.idCardUrl);
+        const blob = await imageResponse.blob();
+
+        // Create a download link from the blob
+        const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.href = response.data.idCardUrl;
-        link.download = `${data?.firstName}-${data?.lastName}-id-card`;
+        link.href = blobUrl;
+        link.download = `${data?.firstName}-${data?.lastName}-id-card.jpg`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        // successModal.openModal();
+
+        // Clean up the blob URL
+        window.URL.revokeObjectURL(blobUrl);
       }
     } catch (err) {
       setErrorMessage(
@@ -68,9 +75,7 @@ export default function SinglePHeader({ data }: { data: any }) {
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : "Failed to resend verification code"
+        err instanceof Error ? err.message : "Failed to send verification code"
       );
       errorModal.openModal();
     } finally {
@@ -119,7 +124,7 @@ export default function SinglePHeader({ data }: { data: any }) {
             disabled={loading}
             className={getButtonClasses("not")}
           >
-            {loading ? "Processing..." : "Resend Verification"}
+            {loading ? "Processing..." : "Send Verification"}
           </button>
         </div>
       </div>

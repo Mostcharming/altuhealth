@@ -98,7 +98,7 @@ async function getAuthorizationCodes(req, res, next) {
             where,
             include: [
                 { model: Provider, attributes: ['id', 'name', 'code'] },
-                { model: Diagnosis, attributes: ['id', 'name', 'code'] }
+                { model: Diagnosis, attributes: ['id', 'name'] }
             ],
             limit: parseInt(limit),
             offset: parseInt(offset),
@@ -136,7 +136,7 @@ async function getAuthorizationCodeById(req, res, next) {
             where: { id: authorizationCodeId, enrolleeId },
             include: [
                 { model: Provider, attributes: ['id', 'name', 'code'] },
-                { model: Diagnosis, attributes: ['id', 'name', 'code'] }
+                { model: Diagnosis, attributes: ['id', 'name'] }
             ]
         });
 

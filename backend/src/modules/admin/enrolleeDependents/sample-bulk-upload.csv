@@ -1,0 +1,6 @@
+firstName,middleName,lastName,dateOfBirth,gender,relationshipToEnrollee,phoneNumber,email,occupation,maritalStatus,preexistingMedicalRecords
+John,Paul,Doe,1990-05-15,male,child,+2348012345678,john.doe@example.com,Student,single,Asthma history
+Jane,,Smith,1992-08-20,female,spouse,+2348087654321,jane.smith@example.com,Doctor,married,None
+Michael,James,Johnson,1988-03-10,male,parent,+2348055555555,michael.johnson@example.com,Engineer,married,Hypertension
+Sarah,,Williams,1995-12-01,female,sibling,+2348066666666,sarah.williams@example.com,Nurse,single,None
+David,Lee,Brown,1989-07-22,male,child,+2348077777777,david.brown@example.com,Unemployed,single,Diabetes

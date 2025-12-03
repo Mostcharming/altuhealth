@@ -2,6 +2,8 @@
 "use client";
 
 import PageBreadcrumbSub from "@/components/common/PageBreadCrumbSub";
+import DefaultTab from "@/components/pages/enrollee/single/DefaultTab";
+import EnrolleeDetails from "@/components/pages/enrollee/single/details";
 import EnrolleePHeader from "@/components/pages/enrollee/single/header";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { apiClient } from "@/lib/apiClient";
@@ -55,12 +57,11 @@ export default function SingleEnrollee() {
           />
           <div className="space-y-6 mt-6">
             <EnrolleePHeader data={enrollee} />
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <div>{/* <EnrolleeDetails data={enrollee} /> */}</div>
-              <div className="space-y-6"></div>
+            <div>
+              <EnrolleeDetails data={enrollee} />
             </div>
 
-            {/* <DefaultTab id={id} /> */}
+            <DefaultTab id={id} />
           </div>
         </>
       )}

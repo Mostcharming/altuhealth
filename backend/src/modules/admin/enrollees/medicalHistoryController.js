@@ -76,7 +76,7 @@ async function getMedicalHistories(req, res, next) {
             where,
             include: [
                 { model: Provider, attributes: ['id', 'name', 'code'] },
-                { model: Diagnosis, attributes: ['id', 'name', 'code'] }
+                { model: Diagnosis, attributes: ['id', 'name'] }
             ],
             limit: parseInt(limit),
             offset: parseInt(offset),

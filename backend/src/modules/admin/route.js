@@ -30,6 +30,7 @@ router.use('/subscriptions', require('./subscriptions/route'));
 router.use('/utilization-reviews', require('./utilizationReviews/route'));
 router.use('/staffs', require('./staffs/route'));
 router.use('/enrollees', require('./enrollees/route'));
+router.use('/enrollee-dependents', require('./enrolleeDependents/route'));
 
 router.use(errorHandler);
 

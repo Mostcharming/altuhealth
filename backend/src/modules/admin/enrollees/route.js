@@ -27,6 +27,11 @@ const {
     deleteAuthorizationCode
 } = require('./authorizationCodeController');
 
+const {
+    getEnrolleeBenefits,
+    getEnrolleeBenefitById
+} = require('./benefitsController');
+
 const router = require('express').Router();
 
 // Enrollee routes
@@ -50,6 +55,10 @@ router.put('/:enrolleeId/authorization-codes/:authorizationCodeId/use', useAutho
 router.put('/:enrolleeId/authorization-codes/:authorizationCodeId', updateAuthorizationCode);
 router.put('/:enrolleeId/authorization-codes/:authorizationCodeId/cancel', cancelAuthorizationCode);
 router.delete('/:enrolleeId/authorization-codes/:authorizationCodeId', deleteAuthorizationCode);
+
+// Benefits routes
+router.get('/:enrolleeId/benefits', getEnrolleeBenefits);
+router.get('/:enrolleeId/benefits/:benefitId', getEnrolleeBenefitById);
 
 // Verification routes
 router.post('/:enrolleeId/send-verification-code', sendVerificationCode);
