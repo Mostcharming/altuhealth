@@ -1,8 +1,13 @@
 "use client";
+import Checkbox from "@/components/form/input/Checkbox";
+import Input from "@/components/form/input/InputField";
+import TextArea from "@/components/form/input/TextArea";
+import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import ConfirmModal from "@/components/modals/confirm";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
+import { Modal } from "@/components/ui/modal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
@@ -10,11 +15,20 @@ import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate, formatPrice } from "@/lib/formatDate";
 import { Service, useServiceStore } from "@/lib/store/serviceStore";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import EditService from "./editService";
 
-const ServiceTable: React.FC = () => {
+interface ServiceTableProps {
+  id?: string;
+  buttonText?: string;
+}
+
+const ServiceTable: React.FC<ServiceTableProps> = ({
+  id,
+  buttonText = "Create a service",
+}) => {
   const { isOpen, openModal, closeModal } = useModal();
+  const createModal = useModal();
   const errorModal = useModal();
   const successModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -27,6 +41,7 @@ const ServiceTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const services = useServiceStore((s) => s.services);
   const setServices = useServiceStore((s) => s.setServices);
+  const addService = useServiceStore((s) => s.addService);
   const confirmModal = useModal();
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
     null
@@ -36,6 +51,17 @@ const ServiceTable: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState(
     "Failed to delete service. Please try again."
   );
+
+  // Create service form state
+  const [createName, setCreateName] = useState("");
+  const [createCode, setCreateCode] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createRequiresPreauthorization, setCreateRequiresPreauthorization] =
+    useState(false);
+  const [createPrice, setCreatePrice] = useState("");
+  const [createStatus, setCreateStatus] = useState<
+    "active" | "inactive" | "pending"
+  >("pending");
 
   type Header = {
     key: keyof Service | "actions";
@@ -176,16 +202,6 @@ const ServiceTable: React.FC = () => {
     closeModal();
   };
 
-  const handleSuccessClose = () => {
-    successModal.closeModal();
-    closeModal();
-  };
-
-  const handleErrorClose = () => {
-    errorModal.closeModal();
-    closeModal();
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -196,6 +212,94 @@ const ServiceTable: React.FC = () => {
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
+    }
+  };
+
+  const resetCreateForm = () => {
+    setCreateName("");
+    setCreateCode("");
+    setCreateDescription("");
+    setCreateRequiresPreauthorization(false);
+    setCreatePrice("");
+    setCreateStatus("pending");
+  };
+
+  const handleCreateSuccessClose = () => {
+    successModal.closeModal();
+    resetCreateForm();
+    createModal.closeModal();
+  };
+
+  const handleCreateErrorClose = () => {
+    errorModal.closeModal();
+  };
+
+  const handleCreateSubmit = async () => {
+    try {
+      if (!createName) {
+        setErrorMessage("Name is required.");
+        errorModal.openModal();
+        return;
+      }
+      if (!createPrice) {
+        setErrorMessage("Price is required.");
+        errorModal.openModal();
+        return;
+      }
+      if (!id) {
+        setErrorMessage("Provider is required.");
+        errorModal.openModal();
+        return;
+      }
+
+      setLoading(true);
+
+      const payload: {
+        name: string;
+        code?: string;
+        description?: string;
+        requiresPreauthorization: boolean;
+        price: number;
+        status: string;
+        providerId: string;
+      } = {
+        name: createName.trim(),
+        code: createCode.trim() || undefined,
+        description: createDescription.trim() || undefined,
+        requiresPreauthorization: createRequiresPreauthorization,
+        price: parseFloat(createPrice),
+        status: createStatus,
+        providerId: id,
+      };
+
+      const data = await apiClient("/admin/services", {
+        method: "POST",
+        body: payload,
+        onLoading: (l: boolean) => setLoading(l),
+      });
+
+      if (data?.data?.service) {
+        addService({
+          id: data.data.service.id,
+          name: createName,
+          code: createCode,
+          description: createDescription || null,
+          requiresPreauthorization: createRequiresPreauthorization,
+          price: parseFloat(createPrice),
+          status: createStatus,
+          providerId: id,
+          createdAt: data.data.service.createdAt,
+        });
+      }
+
+      successModal.openModal();
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
+      errorModal.openModal();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -238,6 +342,27 @@ const ServiceTable: React.FC = () => {
                 }
               />
             </div>
+            <button
+              onClick={createModal.openModal}
+              className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="none"
+              >
+                <path
+                  d="M5 10.0002H15.0006M10.0002 5V15.0006"
+                  stroke="white"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {buttonText}
+            </button>
           </div>
         </div>
       </div>
@@ -453,15 +578,130 @@ const ServiceTable: React.FC = () => {
         closeModal={handleCloseEdit}
         service={editingService}
       />
+      <Modal
+        isOpen={createModal.isOpen}
+        onClose={createModal.closeModal}
+        className="max-w-[900px] p-5 lg:p-10 m-4"
+      >
+        <div className="px-2">
+          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+            Add a new Service
+          </h4>
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+            Fill in the details below to create a new service.
+          </p>
+        </div>
+
+        <form
+          className="flex flex-col"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreateSubmit();
+          }}
+        >
+          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Name</Label>
+                <Input
+                  type="text"
+                  value={createName}
+                  placeholder="Enter service name..."
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setCreateName(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Code</Label>
+                <Input
+                  type="text"
+                  value={createCode}
+                  placeholder="Enter service code (optional)..."
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setCreateCode(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Price</Label>
+                <Input
+                  type="number"
+                  value={createPrice}
+                  placeholder="Enter price..."
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setCreatePrice(e.target.value)
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Status</Label>
+                <Select
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                    { value: "pending", label: "Pending" },
+                  ]}
+                  placeholder="Select status"
+                  onChange={(value) =>
+                    setCreateStatus(value as "active" | "inactive" | "pending")
+                  }
+                  defaultValue={createStatus}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Label>Description</Label>
+                <TextArea
+                  placeholder="Type the description here..."
+                  rows={4}
+                  value={createDescription}
+                  onChange={(value) => setCreateDescription(value)}
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Checkbox
+                  label="Requires Preauthorization"
+                  checked={createRequiresPreauthorization}
+                  onChange={(checked) =>
+                    setCreateRequiresPreauthorization(checked)
+                  }
+                />
+              </div>
+
+              <div className="col-span-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={createModal.closeModal}
+                  className="px-4 py-2 rounded border"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 rounded bg-brand-500 text-white"
+                >
+                  {loading ? "Creating..." : "Create Service"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </Modal>
       <SuccessModal
         successModal={successModal}
-        handleSuccessClose={handleSuccessClose}
+        handleSuccessClose={handleCreateSuccessClose}
       />
 
       <ErrorModal
         message={errorMessage}
         errorModal={errorModal}
-        handleErrorClose={handleErrorClose}
+        handleErrorClose={handleCreateErrorClose}
       />
     </div>
   );

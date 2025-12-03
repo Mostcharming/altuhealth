@@ -27,6 +27,9 @@ router.use('/companies', require('./companies/route'));
 router.use('/company-subsidiaries', require('./companySubsidiaries/route'));
 router.use('/company-plans', require('./companyPlans/route'));
 router.use('/subscriptions', require('./subscriptions/route'));
+router.use('/utilization-reviews', require('./utilizationReviews/route'));
+router.use('/staffs', require('./staffs/route'));
+router.use('/enrollees', require('./enrollees/route'));
 
 router.use(errorHandler);
 

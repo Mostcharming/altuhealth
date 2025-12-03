@@ -1,7 +1,5 @@
 "use client";
 import DrugTable from "@/components/pages/drugs/drugTable";
-import PageMetricsDrugs from "@/components/pages/drugs/pageMetrics";
-import PageMetricsServices from "@/components/pages/services/pageMetrics";
 import ServiceTable from "@/components/pages/services/serviceTable";
 import React, { useState } from "react";
 
@@ -52,17 +50,12 @@ const DefaultTab: React.FC<{ id: string }> = ({ id }) => {
               <div key={tab.key}>
                 {tab.key === "drugs" && (
                   <div>
-                    <PageMetricsDrugs id={id} buttonText="Create a drug" />
-                    <DrugTable />
+                    <DrugTable id={id} buttonText="Create a drug" />
                   </div>
                 )}
                 {tab.key === "services" && (
                   <div>
-                    <PageMetricsServices
-                      id={id}
-                      buttonText="Create a service"
-                    />
-                    <ServiceTable />
+                    <ServiceTable id={id} buttonText="Create a service" />
                   </div>
                 )}
               </div>

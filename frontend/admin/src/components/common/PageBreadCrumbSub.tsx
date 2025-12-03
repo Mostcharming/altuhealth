@@ -15,7 +15,7 @@ const PageBreadcrumbSub: React.FC<BreadcrumbSubProps> = ({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-        Selected: {currentTitle}
+        {/* Selected: {currentTitle} */}
       </h2>
       <nav>
         <ol className="flex items-center gap-1.5">

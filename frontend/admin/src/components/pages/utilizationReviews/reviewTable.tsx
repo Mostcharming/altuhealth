@@ -1,33 +1,22 @@
 "use client";
-import Input from "@/components/form/input/InputField";
-import TextArea from "@/components/form/input/TextArea";
-import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import ConfirmModal from "@/components/modals/confirm";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
-import { Modal } from "@/components/ui/modal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
-import capitalizeWords from "@/lib/capitalize";
-import { formatDate, formatPrice } from "@/lib/formatDate";
-import { Drug, useDrugStore } from "@/lib/store/drugStore";
-import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
-import EditDrug from "./editDrug";
+import { formatDate } from "@/lib/formatDate";
+import {
+  UtilizationReview,
+  useUtilizationReviewStore,
+} from "@/lib/store/utilizationReviewStore";
+import React, { useCallback, useEffect, useState } from "react";
+import EditReview from "./editReview";
 
-interface DrugTableProps {
-  id?: string;
-  buttonText?: string;
-}
-
-const DrugTable: React.FC<DrugTableProps> = ({
-  id,
-  buttonText = "Create a drug",
-}) => {
+const UtilizationReviewTable: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
-  const createModal = useModal();
   const errorModal = useModal();
   const successModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -38,29 +27,20 @@ const DrugTable: React.FC<DrugTableProps> = ({
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const drugs = useDrugStore((s) => s.drugs);
-  const setDrugs = useDrugStore((s) => s.setDrugs);
-  const addDrug = useDrugStore((s) => s.addDrug);
+  const reviews = useUtilizationReviewStore((s) => s.reviews);
+  const setReviews = useUtilizationReviewStore((s) => s.setReviews);
   const confirmModal = useModal();
-  const [selectedDrugId, setSelectedDrugId] = useState<string | null>(null);
-  const [editingDrug, setEditingDrug] = useState<Drug | null>(null);
-  const removeDrug = useDrugStore((s) => s.removeDrug);
+  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
+  const [editingReview, setEditingReview] = useState<UtilizationReview | null>(
+    null
+  );
+  const removeReview = useUtilizationReviewStore((s) => s.removeReview);
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to delete drug. Please try again."
+    "Failed to delete review. Please try again."
   );
 
-  // Create drug form state
-  const [createDescription, setCreateDescription] = useState("");
-  const [createName, setCreateName] = useState("");
-  const [createUnit, setCreateUnit] = useState("");
-  const [createStrength, setCreateStrength] = useState("");
-  const [createPrice, setCreatePrice] = useState("");
-  const [createStatus, setCreateStatus] = useState<
-    "active" | "inactive" | "pending"
-  >("pending");
-
   type Header = {
-    key: keyof Drug | "actions";
+    key: keyof UtilizationReview | "actions";
     label: string;
   };
 
@@ -73,10 +53,11 @@ const DrugTable: React.FC<DrugTableProps> = ({
   ];
 
   const headers: Header[] = [
-    { key: "name", label: "Name" },
-    { key: "unit", label: "Unit" },
-    { key: "strength", label: "Strength" },
-    { key: "price", label: "Price" },
+    { key: "quarter", label: "Quarter" },
+    { key: "Company", label: "Company" },
+    { key: "CompanyPlan", label: "Plan" },
+    { key: "totalEnrollees", label: "Enrollees" },
+    { key: "utilizationRate", label: "Utilization Rate" },
     { key: "status", label: "Status" },
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
@@ -91,31 +72,33 @@ const DrugTable: React.FC<DrugTableProps> = ({
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
 
-      const url = `/admin/drugs/list?${params.toString()}`;
+      const url = `/admin/utilization-reviews/list?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
 
-      const items: Drug[] =
-        data?.data?.list && Array.isArray(data.data.list)
-          ? data.data.list
+      const items: UtilizationReview[] =
+        data?.data?.reviews && Array.isArray(data.data.reviews)
+          ? data.data.reviews
           : Array.isArray(data)
           ? data
           : [];
 
-      setDrugs(items);
-      setTotalItems(data?.data?.count ?? 0);
-      setHasNextPage(Boolean(data?.data?.hasNextPage));
-      setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
-      setTotalPages(data?.data?.totalPages ?? 1);
+      setReviews(items);
+      setTotalItems(data?.data?.pagination?.total ?? 0);
+      setHasNextPage(
+        currentPage * limit < (data?.data?.pagination?.total ?? 0)
+      );
+      setHasPreviousPage(currentPage > 1);
+      setTotalPages(data?.data?.pagination?.pages ?? 1);
     } catch (err) {
-      console.warn("Drug fetch failed", err);
+      console.warn("Utilization Review fetch failed", err);
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setDrugs]);
+  }, [limit, currentPage, search, setReviews]);
 
   useEffect(() => {
     fetch();
@@ -154,32 +137,32 @@ const DrugTable: React.FC<DrugTableProps> = ({
   };
 
   const handleDeleteModal = (id: string) => {
-    setSelectedDrugId(id);
+    setSelectedReviewId(id);
     confirmModal.openModal();
   };
 
   const handleCloseConfirm = () => {
-    setSelectedDrugId(null);
+    setSelectedReviewId(null);
     confirmModal.closeModal();
   };
 
-  const handleView = (drug: Drug) => {
-    setEditingDrug(drug);
+  const handleView = (review: UtilizationReview) => {
+    setEditingReview(review);
     openModal();
   };
 
-  const deleteDrug = async () => {
-    if (!selectedDrugId) return;
+  const deleteReview = async () => {
+    if (!selectedReviewId) return;
     try {
       setLoading(true);
-      const url = `/admin/drugs/${selectedDrugId}`;
+      const url = `/admin/utilization-reviews/${selectedReviewId}`;
       await apiClient(url, {
         method: "DELETE",
         onLoading: (l) => setLoading(l),
       });
 
-      removeDrug(selectedDrugId);
-      setSelectedDrugId(null);
+      removeReview(selectedReviewId);
+      setSelectedReviewId(null);
       confirmModal.closeModal();
       successModal.openModal();
     } catch (error: unknown) {
@@ -194,113 +177,30 @@ const DrugTable: React.FC<DrugTableProps> = ({
   };
 
   const handleCloseEdit = () => {
-    setEditingDrug(null);
+    setEditingReview(null);
     closeModal();
   };
 
-  const getStatusColor = (status: string) => {
+  const handleSuccessClose = () => {
+    successModal.closeModal();
+    closeModal();
+  };
+
+  const handleErrorClose = () => {
+    errorModal.closeModal();
+    closeModal();
+  };
+
+  const getStatusBadgeColor = (status?: string) => {
     switch (status) {
-      case "active":
+      case "approved":
         return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
-      case "inactive":
-        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
-      case "pending":
+      case "completed":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400";
+      case "draft":
         return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
-    }
-  };
-
-  const resetCreateForm = () => {
-    setCreateDescription("");
-    setCreateName("");
-    setCreateUnit("");
-    setCreateStrength("");
-    setCreatePrice("");
-    setCreateStatus("pending");
-  };
-
-  const handleCreateSuccessClose = () => {
-    successModal.closeModal();
-    resetCreateForm();
-    createModal.closeModal();
-  };
-
-  const handleCreateErrorClose = () => {
-    errorModal.closeModal();
-  };
-
-  const handleCreateSubmit = async () => {
-    try {
-      if (!createName) {
-        setErrorMessage("Name is required.");
-        errorModal.openModal();
-        return;
-      }
-      if (!createUnit) {
-        setErrorMessage("Unit is required.");
-        errorModal.openModal();
-        return;
-      }
-      if (!createPrice) {
-        setErrorMessage("Price is required.");
-        errorModal.openModal();
-        return;
-      }
-      if (!id) {
-        setErrorMessage("Provider is required.");
-        errorModal.openModal();
-        return;
-      }
-
-      setLoading(true);
-
-      const payload: {
-        name: string;
-        unit: string;
-        description?: string;
-        strength?: string;
-        price: number;
-        status: string;
-        providerId: string;
-      } = {
-        name: createName.trim(),
-        unit: createUnit.trim(),
-        description: createDescription.trim() || undefined,
-        strength: createStrength.trim() || undefined,
-        price: parseFloat(createPrice),
-        status: createStatus,
-        providerId: id,
-      };
-
-      const data = await apiClient("/admin/drugs", {
-        method: "POST",
-        body: payload,
-        onLoading: (l: boolean) => setLoading(l),
-      });
-
-      if (data?.data?.drug) {
-        addDrug({
-          id: data.data.drug.id,
-          name: createName,
-          unit: createUnit,
-          description: createDescription || null,
-          strength: createStrength || null,
-          price: parseFloat(createPrice),
-          status: createStatus,
-          providerId: id,
-          createdAt: data.data.drug.createdAt,
-        });
-      }
-
-      successModal.openModal();
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -309,7 +209,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Drugs Listing
+            Utilization Reviews
           </h3>
         </div>
 
@@ -343,30 +243,10 @@ const DrugTable: React.FC<DrugTableProps> = ({
                 }
               />
             </div>
-            <button
-              onClick={createModal.openModal}
-              className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-              >
-                <path
-                  d="M5 10.0002H15.0006M10.0002 5V15.0006"
-                  stroke="white"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              {buttonText}
-            </button>
           </div>
         </div>
       </div>
+
       {loading ? (
         <SpinnerThree />
       ) : (
@@ -377,7 +257,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
                 {headers.map((h) => (
                   <th
                     key={h.key}
-                    className={` p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400`}
+                    className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
                   >
                     <div className="flex items-center gap-3">
                       <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
@@ -389,50 +269,55 @@ const DrugTable: React.FC<DrugTableProps> = ({
               </tr>
             </thead>
             <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {drugs.map((drug: Drug) => (
+              {reviews.map((review: UtilizationReview) => (
                 <tr
-                  key={drug.id}
+                  key={review.id}
                   className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {capitalizeWords(drug.name) || "-"}
+                      {review.quarter || "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(drug.unit) || "-"}
+                      {review.Company?.name || "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {drug.strength || "-"}
+                      {review.CompanyPlan?.name || "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {formatPrice(drug.price)}
+                      {review.totalEnrollees || 0}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      {review.utilizationRate}%
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getStatusColor(
-                        drug.status
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getStatusBadgeColor(
+                        review.status || ""
                       )}`}
                     >
-                      {drug.status}
+                      {review.status || "Unknown"}
                     </span>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {drug.createdAt ? formatDate(drug.createdAt) : "-"}
+                      {review.createdAt ? formatDate(review.createdAt) : "-"}
                     </p>
                   </td>
 
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
                       <button
-                        onClick={() => handleView(drug)}
+                        onClick={() => handleView(review)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
                         title="View/Edit"
                       >
@@ -440,7 +325,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
                       </button>
 
                       <button
-                        onClick={() => handleDeleteModal(drug.id)}
+                        onClick={() => handleDeleteModal(review.id)}
                         className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
                         title="Delete"
                       >
@@ -565,142 +450,26 @@ const DrugTable: React.FC<DrugTableProps> = ({
       </div>
       <ConfirmModal
         confirmModal={confirmModal}
-        handleSave={deleteDrug}
+        handleSave={deleteReview}
         closeModal={handleCloseConfirm}
       />
-      <EditDrug
+      <EditReview
         isOpen={isOpen}
         closeModal={handleCloseEdit}
-        drug={editingDrug}
+        review={editingReview}
       />
-      <Modal
-        isOpen={createModal.isOpen}
-        onClose={createModal.closeModal}
-        className="max-w-[900px] p-5 lg:p-10 m-4"
-      >
-        <div className="px-2">
-          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Add a new Drug
-          </h4>
-          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the details below to create a new drug.
-          </p>
-        </div>
-
-        <form
-          className="flex flex-col"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleCreateSubmit();
-          }}
-        >
-          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
-            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Name</Label>
-                <Input
-                  type="text"
-                  value={createName}
-                  placeholder="Enter drug name..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreateName(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Unit</Label>
-                <Input
-                  type="number"
-                  value={createUnit}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreateUnit(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Strength</Label>
-                <Input
-                  type="text"
-                  value={createStrength}
-                  placeholder="e.g., 500mg, 250ml..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreateStrength(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Price</Label>
-                <Input
-                  type="number"
-                  value={createPrice}
-                  placeholder="Enter price..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreatePrice(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Status</Label>
-                <Select
-                  options={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                    { value: "pending", label: "Pending" },
-                  ]}
-                  placeholder="Select status"
-                  onChange={(value) =>
-                    setCreateStatus(value as "active" | "inactive" | "pending")
-                  }
-                  defaultValue={createStatus}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Label>Description</Label>
-                <TextArea
-                  placeholder="Type the description here..."
-                  rows={4}
-                  value={createDescription}
-                  onChange={(value) => setCreateDescription(value)}
-                />
-              </div>
-
-              <div className="col-span-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={createModal.closeModal}
-                  className="px-4 py-2 rounded border"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 rounded bg-brand-500 text-white"
-                >
-                  {loading ? "Creating..." : "Create Drug"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
-      </Modal>
       <SuccessModal
         successModal={successModal}
-        handleSuccessClose={handleCreateSuccessClose}
+        handleSuccessClose={handleSuccessClose}
       />
 
       <ErrorModal
         message={errorMessage}
         errorModal={errorModal}
-        handleErrorClose={handleCreateErrorClose}
+        handleErrorClose={handleErrorClose}
       />
     </div>
   );
 };
 
-export default DrugTable;
+export default UtilizationReviewTable;

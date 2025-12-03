@@ -1,9 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import CompanyPlansTable from "../companyPlans/companyPlansTable";
-import CompanyPlansPageMetrics from "../companyPlans/pageMetrics";
 import CompanySubsidiariesTable from "../companySubsidiaries/companySubsidiariesTable";
-import CompanySubsidiariesPageMetrics from "../companySubsidiaries/pageMetrics";
 
 interface TabItem {
   key: string;
@@ -52,13 +50,11 @@ const DefaultTab: React.FC<{ id: string }> = ({ id }) => {
               <div key={tab.key}>
                 {tab.key === "subsidiaries" && (
                   <div>
-                    <CompanySubsidiariesPageMetrics companyId={id} />
                     <CompanySubsidiariesTable companyId={id} />
                   </div>
                 )}
                 {tab.key === "plans" && (
                   <div>
-                    <CompanyPlansPageMetrics companyId={id} />
                     <CompanyPlansTable companyId={id} />
                   </div>
                 )}

@@ -1,66 +1,48 @@
 "use client";
-import Input from "@/components/form/input/InputField";
-import TextArea from "@/components/form/input/TextArea";
-import Label from "@/components/form/Label";
+
 import Select from "@/components/form/Select";
 import ConfirmModal from "@/components/modals/confirm";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
-import { Modal } from "@/components/ui/modal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
-import capitalizeWords from "@/lib/capitalize";
-import { formatDate, formatPrice } from "@/lib/formatDate";
-import { Drug, useDrugStore } from "@/lib/store/drugStore";
-import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
-import EditDrug from "./editDrug";
+import { Staff, useStaffStore } from "@/lib/store/staffStore";
+import React, { useCallback, useEffect, useState } from "react";
+import EditStaff from "./editStaff";
 
-interface DrugTableProps {
-  id?: string;
-  buttonText?: string;
+interface Company {
+  id: string;
+  name: string;
 }
 
-const DrugTable: React.FC<DrugTableProps> = ({
-  id,
-  buttonText = "Create a drug",
-}) => {
+const StaffsTable: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
-  const createModal = useModal();
   const errorModal = useModal();
   const successModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const drugs = useDrugStore((s) => s.drugs);
-  const setDrugs = useDrugStore((s) => s.setDrugs);
-  const addDrug = useDrugStore((s) => s.addDrug);
+  const staffs = useStaffStore((s) => s.staffs);
+  const setStaffs = useStaffStore((s) => s.setStaffs);
   const confirmModal = useModal();
-  const [selectedDrugId, setSelectedDrugId] = useState<string | null>(null);
-  const [editingDrug, setEditingDrug] = useState<Drug | null>(null);
-  const removeDrug = useDrugStore((s) => s.removeDrug);
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const removeStaff = useStaffStore((s) => s.removeStaff);
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to delete drug. Please try again."
+    "Failed to delete staff. Please try again."
   );
 
-  // Create drug form state
-  const [createDescription, setCreateDescription] = useState("");
-  const [createName, setCreateName] = useState("");
-  const [createUnit, setCreateUnit] = useState("");
-  const [createStrength, setCreateStrength] = useState("");
-  const [createPrice, setCreatePrice] = useState("");
-  const [createStatus, setCreateStatus] = useState<
-    "active" | "inactive" | "pending"
-  >("pending");
-
   type Header = {
-    key: keyof Drug | "actions";
+    key: keyof Staff | "actions";
     label: string;
   };
 
@@ -73,14 +55,30 @@ const DrugTable: React.FC<DrugTableProps> = ({
   ];
 
   const headers: Header[] = [
-    { key: "name", label: "Name" },
-    { key: "unit", label: "Unit" },
-    { key: "strength", label: "Strength" },
-    { key: "price", label: "Price" },
-    { key: "status", label: "Status" },
-    { key: "createdAt", label: "Date Created" },
+    { key: "firstName", label: "First Name" },
+    { key: "lastName", label: "Last Name" },
+    { key: "email", label: "Email" },
+    { key: "staffId", label: "Staff ID" },
+    { key: "enrollmentStatus", label: "Enrollment Status" },
+    { key: "isNotified", label: "Notified" },
     { key: "actions", label: "Actions" },
   ];
+
+  // Fetch companies on mount
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const data = await apiClient("/admin/companies/list?limit=all", {
+          method: "GET",
+        });
+        const companiesList = data?.data?.list || [];
+        setCompanies(companiesList);
+      } catch (err) {
+        console.warn("Failed to fetch companies", err);
+      }
+    };
+    fetchCompanies();
+  }, []);
 
   const fetch = useCallback(async () => {
     try {
@@ -90,32 +88,33 @@ const DrugTable: React.FC<DrugTableProps> = ({
       if (limit) params.append("limit", String(limit));
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
+      if (selectedCompanyId) params.append("companyId", selectedCompanyId);
 
-      const url = `/admin/drugs/list?${params.toString()}`;
+      const url = `/admin/staffs/list?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
 
-      const items: Drug[] =
+      const items: Staff[] =
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
 
-      setDrugs(items);
+      setStaffs(items);
       setTotalItems(data?.data?.count ?? 0);
       setHasNextPage(Boolean(data?.data?.hasNextPage));
       setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
       setTotalPages(data?.data?.totalPages ?? 1);
     } catch (err) {
-      console.warn("Drug fetch failed", err);
+      console.warn("Staff fetch failed", err);
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setDrugs]);
+  }, [limit, currentPage, search, selectedCompanyId, setStaffs]);
 
   useEffect(() => {
     fetch();
@@ -154,32 +153,32 @@ const DrugTable: React.FC<DrugTableProps> = ({
   };
 
   const handleDeleteModal = (id: string) => {
-    setSelectedDrugId(id);
+    setSelectedStaffId(id);
     confirmModal.openModal();
   };
 
   const handleCloseConfirm = () => {
-    setSelectedDrugId(null);
+    setSelectedStaffId(null);
     confirmModal.closeModal();
   };
 
-  const handleView = (drug: Drug) => {
-    setEditingDrug(drug);
+  const handleView = (staff: Staff) => {
+    setEditingStaff(staff);
     openModal();
   };
 
-  const deleteDrug = async () => {
-    if (!selectedDrugId) return;
+  const deleteStaff = async () => {
+    if (!selectedStaffId) return;
     try {
       setLoading(true);
-      const url = `/admin/drugs/${selectedDrugId}`;
+      const url = `/admin/staffs/${selectedStaffId}`;
       await apiClient(url, {
         method: "DELETE",
         onLoading: (l) => setLoading(l),
       });
 
-      removeDrug(selectedDrugId);
-      setSelectedDrugId(null);
+      removeStaff(selectedStaffId);
+      setSelectedStaffId(null);
       confirmModal.closeModal();
       successModal.openModal();
     } catch (error: unknown) {
@@ -194,114 +193,18 @@ const DrugTable: React.FC<DrugTableProps> = ({
   };
 
   const handleCloseEdit = () => {
-    setEditingDrug(null);
+    setEditingStaff(null);
     closeModal();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
-      case "inactive":
-        return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
-    }
-  };
-
-  const resetCreateForm = () => {
-    setCreateDescription("");
-    setCreateName("");
-    setCreateUnit("");
-    setCreateStrength("");
-    setCreatePrice("");
-    setCreateStatus("pending");
-  };
-
-  const handleCreateSuccessClose = () => {
+  const handleSuccessClose = () => {
     successModal.closeModal();
-    resetCreateForm();
-    createModal.closeModal();
+    closeModal();
   };
 
-  const handleCreateErrorClose = () => {
+  const handleErrorClose = () => {
     errorModal.closeModal();
-  };
-
-  const handleCreateSubmit = async () => {
-    try {
-      if (!createName) {
-        setErrorMessage("Name is required.");
-        errorModal.openModal();
-        return;
-      }
-      if (!createUnit) {
-        setErrorMessage("Unit is required.");
-        errorModal.openModal();
-        return;
-      }
-      if (!createPrice) {
-        setErrorMessage("Price is required.");
-        errorModal.openModal();
-        return;
-      }
-      if (!id) {
-        setErrorMessage("Provider is required.");
-        errorModal.openModal();
-        return;
-      }
-
-      setLoading(true);
-
-      const payload: {
-        name: string;
-        unit: string;
-        description?: string;
-        strength?: string;
-        price: number;
-        status: string;
-        providerId: string;
-      } = {
-        name: createName.trim(),
-        unit: createUnit.trim(),
-        description: createDescription.trim() || undefined,
-        strength: createStrength.trim() || undefined,
-        price: parseFloat(createPrice),
-        status: createStatus,
-        providerId: id,
-      };
-
-      const data = await apiClient("/admin/drugs", {
-        method: "POST",
-        body: payload,
-        onLoading: (l: boolean) => setLoading(l),
-      });
-
-      if (data?.data?.drug) {
-        addDrug({
-          id: data.data.drug.id,
-          name: createName,
-          unit: createUnit,
-          description: createDescription || null,
-          strength: createStrength || null,
-          price: parseFloat(createPrice),
-          status: createStatus,
-          providerId: id,
-          createdAt: data.data.drug.createdAt,
-        });
-      }
-
-      successModal.openModal();
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
+    closeModal();
   };
 
   return (
@@ -309,61 +212,62 @@ const DrugTable: React.FC<DrugTableProps> = ({
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Drugs Listing
+            Staff Listing
           </h3>
         </div>
 
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
+            <div>
+              <Select
+                options={[
+                  { value: "", label: "All Companies" },
+                  ...companies.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                  })),
+                ]}
+                placeholder="Select company"
+                onChange={(value) => {
+                  setSelectedCompanyId(value as string);
+                  setCurrentPage(1);
+                }}
+                defaultValue={selectedCompanyId}
+              />
+            </div>
             <div className="relative">
-              <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-                <svg
-                  className="fill-current"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    fillRule="evenodd"
-                    clipRule="evenodd"
-                    d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
-                    fill=""
-                  />
-                </svg>
-              </span>
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search by name, email or staff ID..."
                 className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 value={search}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearch(e.target.value)
                 }
               />
-            </div>
-            <button
-              onClick={createModal.openModal}
-              className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
-            >
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
                 fill="none"
               >
                 <path
-                  d="M5 10.0002H15.0006M10.0002 5V15.0006"
-                  stroke="white"
+                  d="M8.25 14.25C11.5637 14.25 14.25 11.5637 14.25 8.25C14.25 4.93629 11.5637 2.25 8.25 2.25C4.93629 2.25 2.25 4.93629 2.25 8.25C2.25 11.5637 4.93629 14.25 8.25 14.25Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M15.75 15.75L12.8325 12.8325"
+                  stroke="currentColor"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               </svg>
-              {buttonText}
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -389,50 +293,60 @@ const DrugTable: React.FC<DrugTableProps> = ({
               </tr>
             </thead>
             <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {drugs.map((drug: Drug) => (
+              {staffs.map((staff: Staff) => (
                 <tr
-                  key={drug.id}
+                  key={staff.id}
                   className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {capitalizeWords(drug.name) || "-"}
+                      {staff.firstName}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(drug.unit) || "-"}
+                      {staff.lastName}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {drug.strength || "-"}
+                      {staff.email}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {formatPrice(drug.price)}
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {staff.staffId}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getStatusColor(
-                        drug.status
-                      )}`}
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${
+                        staff.enrollmentStatus === "enrolled"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                      }`}
                     >
-                      {drug.status}
+                      {staff.enrollmentStatus === "enrolled"
+                        ? "Enrolled"
+                        : "Not Enrolled"}
                     </span>
                   </td>
                   <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {drug.createdAt ? formatDate(drug.createdAt) : "-"}
-                    </p>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${
+                        staff.isNotified
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+                      }`}
+                    >
+                      {staff.isNotified ? "Yes" : "No"}
+                    </span>
                   </td>
 
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
                       <button
-                        onClick={() => handleView(drug)}
+                        onClick={() => handleView(staff)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
                         title="View/Edit"
                       >
@@ -440,7 +354,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
                       </button>
 
                       <button
-                        onClick={() => handleDeleteModal(drug.id)}
+                        onClick={() => handleDeleteModal(staff.id)}
                         className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
                         title="Delete"
                       >
@@ -461,7 +375,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
             options={select}
             placeholder="Select limit"
             onChange={handleSelectChange}
-            defaultValue=""
+            defaultValue="10"
           />
         </div>
         <div className="pb-4 sm:pb-0">
@@ -565,142 +479,27 @@ const DrugTable: React.FC<DrugTableProps> = ({
       </div>
       <ConfirmModal
         confirmModal={confirmModal}
-        handleSave={deleteDrug}
+        handleSave={deleteStaff}
         closeModal={handleCloseConfirm}
+        // message="Are you sure you want to delete this staff member? This action cannot be undone."
       />
-      <EditDrug
+      <EditStaff
         isOpen={isOpen}
         closeModal={handleCloseEdit}
-        drug={editingDrug}
+        staff={editingStaff}
       />
-      <Modal
-        isOpen={createModal.isOpen}
-        onClose={createModal.closeModal}
-        className="max-w-[900px] p-5 lg:p-10 m-4"
-      >
-        <div className="px-2">
-          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Add a new Drug
-          </h4>
-          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the details below to create a new drug.
-          </p>
-        </div>
-
-        <form
-          className="flex flex-col"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleCreateSubmit();
-          }}
-        >
-          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
-            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Name</Label>
-                <Input
-                  type="text"
-                  value={createName}
-                  placeholder="Enter drug name..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreateName(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Unit</Label>
-                <Input
-                  type="number"
-                  value={createUnit}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreateUnit(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Strength</Label>
-                <Input
-                  type="text"
-                  value={createStrength}
-                  placeholder="e.g., 500mg, 250ml..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreateStrength(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Price</Label>
-                <Input
-                  type="number"
-                  value={createPrice}
-                  placeholder="Enter price..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreatePrice(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Status</Label>
-                <Select
-                  options={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                    { value: "pending", label: "Pending" },
-                  ]}
-                  placeholder="Select status"
-                  onChange={(value) =>
-                    setCreateStatus(value as "active" | "inactive" | "pending")
-                  }
-                  defaultValue={createStatus}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Label>Description</Label>
-                <TextArea
-                  placeholder="Type the description here..."
-                  rows={4}
-                  value={createDescription}
-                  onChange={(value) => setCreateDescription(value)}
-                />
-              </div>
-
-              <div className="col-span-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={createModal.closeModal}
-                  className="px-4 py-2 rounded border"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 rounded bg-brand-500 text-white"
-                >
-                  {loading ? "Creating..." : "Create Drug"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
-      </Modal>
       <SuccessModal
         successModal={successModal}
-        handleSuccessClose={handleCreateSuccessClose}
+        handleSuccessClose={handleSuccessClose}
       />
 
       <ErrorModal
         message={errorMessage}
         errorModal={errorModal}
-        handleErrorClose={handleCreateErrorClose}
+        handleErrorClose={handleErrorClose}
       />
     </div>
   );
 };
 
-export default DrugTable;
+export default StaffsTable;

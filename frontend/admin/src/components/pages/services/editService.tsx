@@ -152,7 +152,7 @@ export default function EditService({
         </div>
 
         <form className="flex flex-col">
-          <div className="custom-scrollbar h-[450px] sm:h-[550px] overflow-y-auto px-2">
+          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 lg:col-span-1">
                 <Label>Name</Label>

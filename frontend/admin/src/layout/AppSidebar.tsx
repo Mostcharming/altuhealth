@@ -70,8 +70,9 @@ const navItems: NavItem[] = [
     icon: <PaperPlaneIcon />,
     subItems: [
       { name: "Companies", path: "/companies" },
+      { name: "Company Staffs", path: "/staffs" },
       { name: "Subscriptions", path: "/subscriptions" },
-      // { name: "Reviews", path: "/review" },
+      { name: "Utilization Reviews", path: "/utilization-reviews" },
     ],
   },
   {
@@ -80,10 +81,6 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Enrollee List", path: "/enrollees" },
       { name: "Dependents", path: "/dependents" },
-      { name: "Retail Enrollees", path: "/retail-enrollees" },
-      { name: "Form Setup", path: "/form-setup" },
-      { name: "Birthday Setup", path: "/birthday-setup" },
-      { name: "Bulk Upload", path: "/enrollees/bulk-upload" },
     ],
   },
   {
