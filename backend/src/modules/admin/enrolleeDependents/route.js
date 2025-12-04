@@ -36,7 +36,7 @@ const upload = multer({
 
 // CRUD for enrollee dependents
 router.post('/', EnrolleeDependent.createEnrolleeDependent);
-router.get('/list', EnrolleeDependent.listEnrolleeDependents);
+router.get('/', EnrolleeDependent.listEnrolleeDependents);
 router.get('/relationship-options', EnrolleeDependent.getRelationshipOptions);
 router.get('/:id', EnrolleeDependent.getEnrolleeDependent);
 router.put('/:id', EnrolleeDependent.updateEnrolleeDependent);

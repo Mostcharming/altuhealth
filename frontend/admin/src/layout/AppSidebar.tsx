@@ -81,6 +81,8 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Enrollee List", path: "/enrollees" },
       { name: "Dependents", path: "/enrollee-dependents" },
+      { name: "Retail Enrollees", path: "/retail-enrollees" },
+      { name: "Retail Dependents", path: "/retail-dependents" },
     ],
   },
   {

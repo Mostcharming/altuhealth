@@ -3,6 +3,7 @@
 
 import DatePicker from "@/components/form/date-picker";
 import PhoneInput from "@/components/form/group-input/PhoneInput";
+import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
@@ -16,6 +17,7 @@ import {
   EnrolleeDependent,
   useEnrolleeDependentStore,
 } from "@/lib/store/enrolleeDependentStore";
+import { Enrollee } from "@/lib/store/enrolleeStore";
 import { ChangeEvent, useEffect, useState } from "react";
 
 interface EditEnrolleeDependentProps {
@@ -87,11 +89,17 @@ export default function EditEnrolleeDependent({
 
   const fetchEnrollees = async () => {
     try {
-      const data = await apiClient("/admin/enrollees/list?limit=all", {
+      const data = await apiClient("/admin/enrollees?limit=all", {
         method: "GET",
       });
-      const enrolleesList = data?.data?.list || [];
-      setEnrollees(enrolleesList);
+      const items: Enrollee[] =
+        data?.data?.enrollees && Array.isArray(data.data.enrollees)
+          ? data.data.enrollees
+          : Array.isArray(data)
+          ? data
+          : [];
+
+      setEnrollees(items);
     } catch (err) {
       console.warn("Failed to fetch enrollees", err);
     }
@@ -167,16 +175,16 @@ export default function EditEnrolleeDependent({
 
       updateDependent(id, {
         firstName,
-        middleName: middleName || null,
+        middleName: middleName || undefined,
         lastName,
-        dateOfBirth: dateOfBirth || null,
+        dateOfBirth: dateOfBirth || undefined,
         gender,
         relationshipToEnrollee,
-        phoneNumber: phoneNumber || null,
-        email: email || null,
-        occupation: occupation || null,
-        maritalStatus: (maritalStatus as any) || null,
-        preexistingMedicalRecords: preexistingMedicalRecords || null,
+        phoneNumber: phoneNumber || undefined,
+        email: email || undefined,
+        occupation: occupation || undefined,
+        maritalStatus: (maritalStatus as any) || undefined,
+        preexistingMedicalRecords: preexistingMedicalRecords || undefined,
         isActive,
       });
 
@@ -218,7 +226,7 @@ export default function EditEnrolleeDependent({
         </div>
 
         <form className="flex flex-col">
-          <div className="custom-scrollbar h-[450px] sm:h-[550px] overflow-y-auto px-2">
+          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div>
                 <Label>Enrollee</Label>
@@ -230,7 +238,6 @@ export default function EditEnrolleeDependent({
                   placeholder="Select enrollee"
                   onChange={(value) => setEnrolleeId(value as string)}
                   defaultValue={enrolleeId}
-                  disabled
                 />
               </div>
 
@@ -271,10 +278,18 @@ export default function EditEnrolleeDependent({
               </div>
 
               <div>
-                <Label>Date of Birth</Label>
                 <DatePicker
-                  value={dateOfBirth}
-                  onChange={(date) => setDateOfBirth(date)}
+                  id="dob-edit"
+                  label="Date of Birth"
+                  placeholder="Select date of birth"
+                  defaultDate={dateOfBirth}
+                  onChange={(selectedDates) => {
+                    if (selectedDates && selectedDates.length > 0) {
+                      const date = selectedDates[0];
+                      const formattedDate = date.toISOString().split("T")[0];
+                      setDateOfBirth(formattedDate);
+                    }
+                  }}
                 />
               </div>
 
@@ -320,7 +335,7 @@ export default function EditEnrolleeDependent({
               </div>
 
               <div>
-                <Label>Phone Number</Label>
+                <Label htmlFor="phone">Phone Number</Label>
                 <PhoneInput
                   selectPosition="start"
                   countries={countries}
@@ -384,23 +399,17 @@ export default function EditEnrolleeDependent({
                 <Label>Pre-existing Medical Records</Label>
                 <TextArea
                   placeholder="Enter any pre-existing medical records..."
+                  rows={4}
                   value={preexistingMedicalRecords}
-                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                    setPreexistingMedicalRecords(e.target.value)
-                  }
+                  onChange={(value) => setPreexistingMedicalRecords(value)}
                 />
               </div>
 
-              <div>
-                <Label>Active Status</Label>
-                <Select
-                  options={[
-                    { value: "true", label: "Active" },
-                    { value: "false", label: "Inactive" },
-                  ]}
-                  placeholder="Select status"
-                  onChange={(value) => setIsActive(value === "true")}
-                  defaultValue={isActive ? "true" : "false"}
+              <div className="col-span-2 flex items-end">
+                <Checkbox
+                  label="Is Active"
+                  checked={isActive}
+                  onChange={(checked) => setIsActive(checked)}
                 />
               </div>
             </div>
@@ -410,17 +419,17 @@ export default function EditEnrolleeDependent({
             <button
               type="button"
               onClick={closeModal}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]"
             >
               Cancel
             </button>
             <button
-              type="button"
-              onClick={handlesubmit}
               disabled={loading}
-              className="px-4 py-2 rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
+              onClick={handlesubmit}
+              type="button"
+              className="flex justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Save Changes"}
+              Update Dependent
             </button>
           </div>
         </form>

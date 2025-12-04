@@ -134,8 +134,9 @@ async function getEnrollees(req, res, next) {
             isActive = true
         } = req.query;
 
-        const offset = (page - 1) * limit;
         const where = {};
+        const parsedLimit = limit === 'all' ? null : parseInt(limit);
+        const offset = limit === 'all' ? 0 : (page - 1) * parseInt(limit);
 
         if (isActive !== undefined && isActive !== 'all') {
             where.isActive = isActive === 'true' || isActive === true;
@@ -154,27 +155,32 @@ async function getEnrollees(req, res, next) {
             ];
         }
 
-        const { count, rows } = await Enrollee.findAndCountAll({
+        const queryOptions = {
             where,
             include: [
                 { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId'] },
                 { model: Company, attributes: ['id', 'name'] },
                 { model: CompanyPlan, attributes: ['id', 'name'] }
             ],
-            limit: parseInt(limit),
-            offset: parseInt(offset),
             order: [['createdAt', 'DESC']],
             subQuery: false
-        });
+        };
+
+        if (parsedLimit !== null) {
+            queryOptions.limit = parsedLimit;
+            queryOptions.offset = offset;
+        }
+
+        const { count, rows } = await Enrollee.findAndCountAll(queryOptions);
 
         return res.success(
             {
                 enrollees: rows,
                 pagination: {
                     total: count,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    pages: Math.ceil(count / limit)
+                    page: parsedLimit === null ? 1 : parseInt(page),
+                    limit: parsedLimit === null ? count : parseInt(limit),
+                    pages: parsedLimit === null ? 1 : Math.ceil(count / parseInt(limit))
                 }
             },
             'Enrollees retrieved successfully'

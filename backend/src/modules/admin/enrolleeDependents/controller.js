@@ -7,9 +7,8 @@ const config = require('../../../config');
  * Generate dependent policy number from enrollee policy number
  * Format: ENROLLEE_POLICY-XX where XX is a 2-digit sequence number
  */
-async function generateDependentPolicyNumber(enrolleeId, EnrolleeDependent) {
+async function generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enrollee) {
     try {
-        const { Enrollee } = require('../../../database').models;
 
         // Get the enrollee's policy number
         const enrollee = await Enrollee.findByPk(enrolleeId, {
@@ -69,7 +68,7 @@ async function createEnrolleeDependent(req, res, next) {
         if (!enrollee) return res.fail('Enrollee not found', 404);
 
         // Generate policy number
-        const policyNumber = await generateDependentPolicyNumber(enrolleeId, EnrolleeDependent);
+        const policyNumber = await generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enrollee);
 
         const dependent = await EnrolleeDependent.create({
             enrolleeId,
@@ -388,7 +387,7 @@ async function bulkCreateEnrolleeDependents(req, res, next) {
                 }
 
                 // Generate policy number
-                const policyNumber = await generateDependentPolicyNumber(enrolleeId, EnrolleeDependent);
+                const policyNumber = await generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enrollee);
 
                 // Create the dependent
                 const dependent = await EnrolleeDependent.create({

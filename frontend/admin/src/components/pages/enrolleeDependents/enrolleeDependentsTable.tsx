@@ -4,8 +4,9 @@ import Select from "@/components/form/Select";
 import ConfirmModal from "@/components/modals/confirm";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
-import SpinnerThree from "@/components/ui/spinner";
+import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
+import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import {
   EnrolleeDependent,
@@ -75,11 +76,17 @@ const EnrolleeDependentsTable: React.FC = () => {
   useEffect(() => {
     const fetchEnrollees = async () => {
       try {
-        const data = await apiClient("/admin/enrollees/list?limit=all", {
+        const data = await apiClient("/admin/enrollees?limit=all", {
           method: "GET",
         });
-        const enrolleesList = data?.data?.list || [];
-        setEnrollees(enrolleesList);
+        const items: Enrollee[] =
+          data?.data?.enrollees && Array.isArray(data.data.enrollees)
+            ? data.data.enrollees
+            : Array.isArray(data)
+            ? data
+            : [];
+
+        setEnrollees(items);
       } catch (err) {
         console.warn("Failed to fetch enrollees", err);
       }
@@ -97,7 +104,7 @@ const EnrolleeDependentsTable: React.FC = () => {
       if (search) params.append("q", search);
       if (selectedEnrolleeId) params.append("enrolleeId", selectedEnrolleeId);
 
-      const url = `/admin/enrollee-dependents/list?${params.toString()}`;
+      const url = `/admin/enrollee-dependents?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
@@ -252,6 +259,28 @@ const EnrolleeDependentsTable: React.FC = () => {
                   setSearch(e.target.value)
                 }
               />
+              <svg
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                fill="none"
+              >
+                <path
+                  d="M8.25 14.25C11.5637 14.25 14.25 11.5637 14.25 8.25C14.25 4.93629 11.5637 2.25 8.25 2.25C4.93629 2.25 2.25 4.93629 2.25 8.25C2.25 11.5637 4.93629 14.25 8.25 14.25Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M15.75 15.75L12.8325 12.8325"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
           </div>
         </div>
@@ -264,12 +293,16 @@ const EnrolleeDependentsTable: React.FC = () => {
           <table className="w-full table-auto">
             <thead>
               <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-                {headers.map((header) => (
+                {headers.map((h) => (
                   <th
-                    key={header.key}
-                    className="px-5 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300"
+                    key={h.key}
+                    className={` p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400`}
                   >
-                    {header.label}
+                    <div className="flex items-center gap-3">
+                      <p className="text-theme-xs font-medium text-gray-700 dark:text-gray-400">
+                        {h.label}
+                      </p>
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -278,49 +311,61 @@ const EnrolleeDependentsTable: React.FC = () => {
               {dependents.map((dependent: EnrolleeDependent) => (
                 <tr
                   key={dependent.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
-                  <td className="px-5 py-4 text-sm text-gray-800 dark:text-gray-300">
-                    {dependent.firstName}
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      {dependent.firstName}
+                    </p>
                   </td>
-                  <td className="px-5 py-4 text-sm text-gray-800 dark:text-gray-300">
-                    {dependent.lastName}
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {dependent.lastName}
+                    </p>
                   </td>
-                  <td className="px-5 py-4 text-sm text-gray-800 dark:text-gray-300">
-                    {dependent.policyNumber}
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {dependent.policyNumber}
+                    </p>
                   </td>
-                  <td className="px-5 py-4 text-sm text-gray-800 dark:text-gray-300">
-                    <span className="capitalize">
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400 capitalize">
                       {dependent.relationshipToEnrollee}
-                    </span>
+                    </p>
                   </td>
-                  <td className="px-5 py-4 text-sm text-gray-800 dark:text-gray-300">
-                    <span className="capitalize">{dependent.gender}</span>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400 capitalize">
+                      {dependent.gender}
+                    </p>
                   </td>
-                  <td className="px-5 py-4 text-sm">
+                  <td className="p-4 whitespace-nowrap">
                     <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${
                         dependent.isActive
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                          : "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400"
                       }`}
                     >
                       {dependent.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="flex gap-2">
+
+                  <td className="p-4 whitespace-nowrap">
+                    <div className="flex items-center w-full gap-2">
                       <button
                         onClick={() => handleView(dependent)}
-                        className="text-brand-500 hover:text-brand-600 text-sm font-medium"
+                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                        title="View/Edit"
                       >
-                        Edit
+                        <PencilIcon />
                       </button>
+
                       <button
                         onClick={() => handleDeleteModal(dependent.id)}
-                        className="text-red-500 hover:text-red-600 text-sm font-medium"
+                        className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
+                        title="Delete"
                       >
-                        Delete
+                        <TrashBinIcon />
                       </button>
                     </div>
                   </td>
@@ -362,7 +407,21 @@ const EnrolleeDependentsTable: React.FC = () => {
             onClick={previousPage}
             disabled={!hasPreviousPage}
           >
-            ← Previous
+            <svg
+              className="fill-current"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M2.58203 9.99868C2.58174 10.1909 2.6549 10.3833 2.80152 10.53L7.79818 15.5301C8.09097 15.8231 8.56584 15.8233 8.85883 15.5305C9.15183 15.2377 9.152 14.7629 8.85921 14.4699L5.13911 10.7472L16.6665 10.7472C17.0807 10.7472 17.4165 10.4114 17.4165 9.99715C17.4165 9.58294 17.0807 9.24715 16.6665 9.24715L5.14456 9.24715L8.85919 5.53016C9.15199 5.23717 9.15184 4.7623 8.85885 4.4695C8.56587 4.1767 8.09099 4.17685 7.79819 4.46984L2.84069 9.43049C2.68224 9.568 2.58203 9.77087 2.58203 9.99715C2.58203 9.99766 2.58203 9.99817 2.58203 9.99868Z"
+                fill=""
+              />
+            </svg>
           </button>
           <span className="block text-sm font-medium text-gray-700 sm:hidden dark:text-gray-400">
             Page {currentPage} of {totalPages}
@@ -372,16 +431,33 @@ const EnrolleeDependentsTable: React.FC = () => {
               <li key={page}>
                 <button
                   onClick={() => goToPage(page)}
-                  className={`h-8 w-8 rounded-lg text-sm font-medium transition ${
-                    currentPage === page
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium ${
+                    page === currentPage
                       ? "bg-brand-500 text-white"
-                      : "border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                      : "hover:bg-brand-500 text-gray-700 hover:text-white dark:text-gray-400 dark:hover:text-white"
                   }`}
                 >
                   {page}
                 </button>
               </li>
             ))}
+            {visiblePages[visiblePages.length - 1] < totalPages && (
+              <>
+                <li>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium text-gray-700 dark:text-gray-400">
+                    ...
+                  </span>
+                </li>
+                <li>
+                  <button
+                    onClick={() => goToPage(totalPages)}
+                    className="hover:bg-brand-500 flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium text-gray-700 hover:text-white dark:text-gray-400 dark:hover:text-white"
+                  >
+                    {totalPages}
+                  </button>
+                </li>
+              </>
+            )}
           </ul>
           <button
             className={`shadow-theme-xs flex items-center gap-2 rounded-lg border border-gray-300 bg-white p-2 text-gray-700 hover:bg-gray-50 hover:text-gray-800 sm:p-2.5 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 ${
@@ -390,7 +466,21 @@ const EnrolleeDependentsTable: React.FC = () => {
             onClick={nextPage}
             disabled={!hasNextPage}
           >
-            Next →
+            <svg
+              className="fill-current"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M17.4165 9.9986C17.4168 10.1909 17.3437 10.3832 17.197 10.53L12.2004 15.5301C11.9076 15.8231 11.4327 15.8233 11.1397 15.5305C10.8467 15.2377 10.8465 14.7629 11.1393 14.4699L14.8594 10.7472L3.33203 10.7472C2.91782 10.7472 2.58203 10.4114 2.58203 9.99715C2.58203 9.58294 2.91782 9.24715 3.33203 9.24715L14.854 9.24715L11.1393 5.53016C10.8465 5.23717 10.8467 4.7623 11.1397 4.4695C11.4327 4.1767 11.9075 4.17685 12.2003 4.46984L17.1578 9.43049C17.3163 9.568 17.4165 9.77087 17.4165 9.99715C17.4165 9.99763 17.4165 9.99812 17.4165 9.9986Z"
+                fill=""
+              />
+            </svg>
           </button>
         </div>
       </div>

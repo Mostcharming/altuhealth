@@ -3,16 +3,19 @@
 
 import DatePicker from "@/components/form/date-picker";
 import PhoneInput from "@/components/form/group-input/PhoneInput";
+import FileInput from "@/components/form/input/FileInput";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
+import Switch from "@/components/form/switch/Switch";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { useEnrolleeDependentStore } from "@/lib/store/enrolleeDependentStore";
+import { Enrollee } from "@/lib/store/enrolleeStore";
 import { ChangeEvent, useEffect, useState } from "react";
 
 export default function PageMetricsEnrolleeDependents({
@@ -93,11 +96,17 @@ export default function PageMetricsEnrolleeDependents({
 
   const fetchEnrollees = async () => {
     try {
-      const data = await apiClient("/admin/enrollees/list?limit=all", {
+      const data = await apiClient("/admin/enrollees?limit=all", {
         method: "GET",
       });
-      const enrolleesList = data?.data?.list || [];
-      setEnrollees(enrolleesList);
+      const items: Enrollee[] =
+        data?.data?.enrollees && Array.isArray(data.data.enrollees)
+          ? data.data.enrollees
+          : Array.isArray(data)
+          ? data
+          : [];
+
+      setEnrollees(items);
     } catch (err) {
       console.warn("Failed to fetch enrollees", err);
     }
@@ -105,11 +114,16 @@ export default function PageMetricsEnrolleeDependents({
 
   const fetchBulkEnrollees = async () => {
     try {
-      const data = await apiClient("/admin/enrollees/list?limit=all", {
+      const data = await apiClient("/admin/enrollees?limit=all", {
         method: "GET",
       });
-      const enrolleesList = data?.data?.list || [];
-      setBulkEnrollees(enrolleesList);
+      const items: Enrollee[] =
+        data?.data?.enrollees && Array.isArray(data.data.enrollees)
+          ? data.data.enrollees
+          : Array.isArray(data)
+          ? data
+          : [];
+      setBulkEnrollees(items);
     } catch (err) {
       console.warn("Failed to fetch enrollees", err);
     }
@@ -321,72 +335,74 @@ export default function PageMetricsEnrolleeDependents({
 
   return (
     <div className="p-4 sm:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-      <div className="flex items-center justify-between">
+      <div className=" flex items-center justify-between">
         <div></div>
-        <button
-          onClick={openModal}
-          className="flex items-center gap-2.5 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg hover:bg-brand-600 transition"
-        >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div>
+          <div
+            onClick={openModal}
+            className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          {buttonText || "Add New"}
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+            >
+              <path
+                d="M5 10.0002H15.0006M10.0002 5V15.0006"
+                stroke="white"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            {buttonText}
+          </div>
+        </div>
       </div>
-
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
         className="max-w-[900px] p-5 lg:p-10 m-4"
       >
-        <div className="px-2 mb-6">
-          <div className="flex gap-4 mb-6">
-            <button
-              onClick={() => setIsBulkUpload(false)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                !isBulkUpload
-                  ? "bg-brand-500 text-white"
-                  : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-              }`}
-            >
-              Single Dependent
-            </button>
-            <button
-              onClick={() => setIsBulkUpload(true)}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                isBulkUpload
-                  ? "bg-brand-500 text-white"
-                  : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-              }`}
-            >
-              Bulk Upload
-            </button>
+        <div className="px-2">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                {isBulkUpload
+                  ? "Bulk Upload Dependents"
+                  : "Add a new Dependent"}
+              </h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {isBulkUpload
+                  ? "Upload multiple dependents at once using a CSV file."
+                  : "Fill in the details below to add a new dependent."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                label="Bulk Upload"
+                defaultChecked={isBulkUpload}
+                onChange={(checked) => {
+                  setIsBulkUpload(checked);
+                  resetForm();
+                }}
+              />
+            </div>
           </div>
-
-          <h4 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
-            {isBulkUpload ? "Bulk Upload Dependents" : "Add New Dependent"}
-          </h4>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {isBulkUpload
-              ? "Upload multiple dependents using a CSV file."
-              : "Add a new dependent to an enrollee."}
-          </p>
         </div>
 
         {isBulkUpload ? (
-          <form className="flex flex-col">
-            <div className="custom-scrollbar h-[300px] overflow-y-auto px-2">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5">
+          <form
+            className="flex flex-col"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleBulkUpload();
+            }}
+          >
+            <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
                   <Label>Enrollee *</Label>
                   <Select
@@ -400,51 +416,57 @@ export default function PageMetricsEnrolleeDependents({
                   />
                 </div>
 
-                <div>
-                  <Label>Select CSV File *</Label>
-                  <input
-                    type="file"
+                <div className="col-span-2">
+                  <Label>CSV File *</Label>
+                  <FileInput
                     accept=".csv,.xlsx,.xls"
-                    onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-500 file:text-white hover:file:bg-brand-600"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setBulkFile(e.target.files[0]);
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Supported formats: CSV, XLSX, XLS (Max 10MB)
+                    Supported formats: CSV, XLSX, XLS
                   </p>
                 </div>
 
-                <div>
+                <div className="col-span-2 flex items-center justify-between gap-3 pt-4">
                   <button
                     type="button"
                     onClick={downloadSampleTemplate}
-                    className="text-brand-500 hover:text-brand-600 underline text-sm font-medium"
+                    className="px-4 py-2 rounded border border-brand-500 text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10"
                   >
-                    Download Sample Template
+                    📥 Download Sample Template
                   </button>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
+                    >
+                      {loading ? "Uploading..." : "Upload Dependents"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <div className="flex gap-3 justify-end mt-6 px-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleBulkUpload}
-                disabled={loading}
-                className="px-4 py-2 rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
-              >
-                {loading ? "Uploading..." : "Upload"}
-              </button>
-            </div>
           </form>
         ) : (
-          <form className="flex flex-col">
+          <form
+            className="flex flex-col"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handlesubmit();
+            }}
+          >
             <div className="custom-scrollbar h-[450px] sm:h-[550px] overflow-y-auto px-2">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
@@ -464,7 +486,7 @@ export default function PageMetricsEnrolleeDependents({
                   <Label>First Name *</Label>
                   <Input
                     type="text"
-                    placeholder="First name"
+                    placeholder="Enter first name..."
                     value={firstName}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setFirstName(e.target.value)
@@ -476,7 +498,7 @@ export default function PageMetricsEnrolleeDependents({
                   <Label>Middle Name</Label>
                   <Input
                     type="text"
-                    placeholder="Middle name"
+                    placeholder="Enter middle name..."
                     value={middleName}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setMiddleName(e.target.value)
@@ -488,7 +510,7 @@ export default function PageMetricsEnrolleeDependents({
                   <Label>Last Name *</Label>
                   <Input
                     type="text"
-                    placeholder="Last name"
+                    placeholder="Enter last name..."
                     value={lastName}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setLastName(e.target.value)
@@ -497,10 +519,18 @@ export default function PageMetricsEnrolleeDependents({
                 </div>
 
                 <div>
-                  <Label>Date of Birth *</Label>
                   <DatePicker
-                    value={dateOfBirth}
-                    onChange={(date) => setDateOfBirth(date)}
+                    id="dob-create"
+                    label="Date of Birth *"
+                    placeholder="Select date of birth"
+                    defaultDate={dateOfBirth}
+                    onChange={(selectedDates) => {
+                      if (selectedDates && selectedDates.length > 0) {
+                        const date = selectedDates[0];
+                        const formattedDate = date.toISOString().split("T")[0];
+                        setDateOfBirth(formattedDate);
+                      }
+                    }}
                   />
                 </div>
 
@@ -546,7 +576,7 @@ export default function PageMetricsEnrolleeDependents({
                 </div>
 
                 <div>
-                  <Label>Phone Number</Label>
+                  <Label htmlFor="phone">Phone Number</Label>
                   <PhoneInput
                     selectPosition="start"
                     countries={countries}
@@ -560,7 +590,7 @@ export default function PageMetricsEnrolleeDependents({
                   <Label>Email</Label>
                   <Input
                     type="email"
-                    placeholder="Email address"
+                    placeholder="Enter email address..."
                     value={email}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setEmail(e.target.value)
@@ -572,7 +602,7 @@ export default function PageMetricsEnrolleeDependents({
                   <Label>Occupation</Label>
                   <Input
                     type="text"
-                    placeholder="Occupation"
+                    placeholder="Enter occupation..."
                     value={occupation}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setOccupation(e.target.value)
@@ -606,35 +636,33 @@ export default function PageMetricsEnrolleeDependents({
                   />
                 </div>
 
-                <div className="lg:col-span-2">
+                <div className="col-span-2">
                   <Label>Pre-existing Medical Records</Label>
                   <TextArea
-                    placeholder="Enter any pre-existing medical records..."
+                    placeholder="Enter any relevant medical history or conditions..."
+                    rows={4}
                     value={preexistingMedicalRecords}
-                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-                      setPreexistingMedicalRecords(e.target.value)
-                    }
+                    onChange={(value) => setPreexistingMedicalRecords(value)}
                   />
                 </div>
-              </div>
-            </div>
 
-            <div className="flex gap-3 justify-end mt-6 px-2 border-t border-gray-200 dark:border-gray-700 pt-4">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handlesubmit}
-                disabled={loading}
-                className="px-4 py-2 rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
-              >
-                {loading ? "Creating..." : "Create Dependent"}
-              </button>
+                <div className="col-span-2 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
+                  >
+                    {loading ? "Creating..." : "Create Dependent"}
+                  </button>
+                </div>
+              </div>
             </div>
           </form>
         )}
