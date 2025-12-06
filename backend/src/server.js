@@ -31,6 +31,7 @@ app.use(responseFormatter);
 
 app.use(dbSelector);
 
+// serve uploaded files at /upload so stored URLs like /upload/<filename> are accessible
 if (config && config.uploads && config.uploads.profileDir) {
   app.use('/upload', express.static(config.uploads.profileDir));
 }
