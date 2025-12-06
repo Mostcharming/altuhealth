@@ -108,7 +108,7 @@ async function getRetailEnrollees(req, res, next) {
             where,
             include: [
                 { model: Plan, as: 'plan', attributes: ['id', 'name', 'description'] },
-                { model: Admin, as: 'soldBy', attributes: ['id', 'firstName', 'lastName', 'email'] }
+                { model: Admin, as: 'soldByUser', attributes: ['id', 'firstName', 'lastName', 'email'] }
             ],
             limit: parseInt(limit),
             offset,
@@ -141,7 +141,7 @@ async function getRetailEnrolleeById(req, res, next) {
         const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId, {
             include: [
                 { model: Plan, as: 'plan', attributes: ['id', 'name', 'description'] },
-                { model: Admin, as: 'soldBy', attributes: ['id', 'firstName', 'lastName', 'email'] }
+                { model: Admin, as: 'soldByUser', attributes: ['id', 'firstName', 'lastName', 'email'] }
             ]
         });
 

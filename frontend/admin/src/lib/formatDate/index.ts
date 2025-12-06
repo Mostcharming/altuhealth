@@ -6,12 +6,10 @@ export function formatDate(
 
   if (isNaN(date.getTime())) return "Invalid date";
 
-  return date.toLocaleString(locale, {
+  return date.toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 }
 

@@ -89,6 +89,16 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: true,
             field: 'is_active'
+        },
+        pictureUrl: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'picture_url'
+        },
+        idCardUrl: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'id_card_url'
         }
     }, {
         tableName: 'retail_enrollee_dependents',

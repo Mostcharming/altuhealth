@@ -206,8 +206,8 @@ function defineModels(sequelize) {
   EnrolleeDependent.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
 
   // RetailEnrollee <-> Plan one-to-many
-  Plan.hasMany(RetailEnrollee, { foreignKey: "planId" });
-  RetailEnrollee.belongsTo(Plan, { foreignKey: "planId" });
+  Plan.hasMany(RetailEnrollee, { foreignKey: "planId", as: 'retailEnrollees' });
+  RetailEnrollee.belongsTo(Plan, { foreignKey: "planId", as: 'plan' });
 
   // RetailEnrollee <-> Admin (sold by) one-to-many
   Admin.hasMany(RetailEnrollee, { foreignKey: "soldByUserId", as: 'retailEnrolleesSoldBy' });

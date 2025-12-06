@@ -1,19 +1,19 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import EnrolleeDependentsTable from "@/components/pages/enrolleeDependents/enrolleeDependentsTable";
-import PageMetricsEnrolleeDependents from "@/components/pages/enrolleeDependents/pageMetrics";
+import PageMetricsRetailEnrollee from "@/components/pages/retailEnrollee/pageMetrics";
+import RetailEnrolleeTable from "@/components/pages/retailEnrollee/retailEnrolleeTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "AltuHealth Admin Retail Enrollee Management",
-  description: "Manage retail enrollee within the AltuHealth admin panel.",
+  description: "Manage retail enrollees within the AltuHealth admin panel.",
 };
 
-export default function EnrolleeDependents() {
+export default function RetailEnrollee() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Retail Enrollee Management" />
-      <PageMetricsEnrolleeDependents buttonText="Add New Enrollee" />
-      <EnrolleeDependentsTable />
+      <PageMetricsRetailEnrollee buttonText="Add New Enrollee" />
+      <RetailEnrolleeTable />
     </div>
   );
 }

@@ -75,19 +75,27 @@ async function createRetailEnrolleeDependent(req, res, next) {
 
 async function getRetailEnrolleeDependents(req, res, next) {
     try {
-        const { RetailEnrolleeDependent } = req.models;
-        const { retailEnrolleeId } = req.params;
-        const { page = 1, limit = 20, search, isActive, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+        const { RetailEnrolleeDependent, RetailEnrollee } = req.models;
+        const { retailEnrolleeId: paramRetailEnrolleeId } = req.params;
+        const { page = 1, limit = 20, search, isActive, retailEnrolleeId: queryRetailEnrolleeId, sortBy = 'createdAt', sortOrder = 'DESC', q } = req.query;
 
         const offset = (page - 1) * limit;
-        const where = { retailEnrolleeId };
+        const where = {};
 
-        if (search) {
+        // Handle both param-based and query-based filtering
+        const retailEnrolleeId = paramRetailEnrolleeId || queryRetailEnrolleeId;
+        if (retailEnrolleeId) {
+            where.retailEnrolleeId = retailEnrolleeId;
+        }
+
+        // Search by first name, last name, email, or phone number
+        const searchQuery = search || q;
+        if (searchQuery) {
             where[Op.or] = [
-                { firstName: { [Op.iLike]: `%${search}%` } },
-                { lastName: { [Op.iLike]: `%${search}%` } },
-                { email: { [Op.iLike]: `%${search}%` } },
-                { phoneNumber: { [Op.iLike]: `%${search}%` } }
+                { firstName: { [Op.iLike]: `%${searchQuery}%` } },
+                { lastName: { [Op.iLike]: `%${searchQuery}%` } },
+                { email: { [Op.iLike]: `%${searchQuery}%` } },
+                { phoneNumber: { [Op.iLike]: `%${searchQuery}%` } }
             ];
         }
 
@@ -98,18 +106,23 @@ async function getRetailEnrolleeDependents(req, res, next) {
             limit: parseInt(limit),
             offset,
             order: [[sortBy, sortOrder]],
+            include: [{
+                model: RetailEnrollee,
+                as: 'RetailEnrollee',
+                attributes: ['id', 'firstName', 'lastName', 'email']
+            }],
             distinct: true
         });
 
         return res.success(
             {
-                dependents: rows,
-                pagination: {
-                    total: count,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    pages: Math.ceil(count / limit)
-                }
+                list: rows,
+                count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(count / limit),
+                hasNextPage: parseInt(page) * parseInt(limit) < count,
+                hasPreviousPage: parseInt(page) > 1
             },
             'Retail enrollee dependents retrieved successfully'
         );
@@ -120,13 +133,19 @@ async function getRetailEnrolleeDependents(req, res, next) {
 
 async function getRetailEnrolleeDependentById(req, res, next) {
     try {
-        const { RetailEnrolleeDependent } = req.models;
-        const { retailEnrolleeId, dependentId } = req.params;
+        const { RetailEnrolleeDependent, RetailEnrollee } = req.models;
+        const { retailEnrolleeId: paramRetailEnrolleeId, dependentId } = req.params;
 
-        const dependent = await RetailEnrolleeDependent.findByPk(dependentId);
+        const dependent = await RetailEnrolleeDependent.findByPk(dependentId, {
+            include: [{
+                model: RetailEnrollee,
+                as: 'RetailEnrollee',
+                attributes: ['id', 'firstName', 'lastName', 'email']
+            }]
+        });
         if (!dependent) return res.fail('Retail enrollee dependent not found', 404);
 
-        if (dependent.retailEnrolleeId !== retailEnrolleeId) {
+        if (paramRetailEnrolleeId && dependent.retailEnrolleeId !== paramRetailEnrolleeId) {
             return res.fail('Dependent does not belong to the specified enrollee', 400);
         }
 
@@ -139,7 +158,7 @@ async function getRetailEnrolleeDependentById(req, res, next) {
 async function updateRetailEnrolleeDependent(req, res, next) {
     try {
         const { RetailEnrolleeDependent } = req.models;
-        const { retailEnrolleeId, dependentId } = req.params;
+        const { retailEnrolleeId: paramRetailEnrolleeId, dependentId } = req.params;
         const {
             firstName,
             middleName,
@@ -159,7 +178,7 @@ async function updateRetailEnrolleeDependent(req, res, next) {
         const dependent = await RetailEnrolleeDependent.findByPk(dependentId);
         if (!dependent) return res.fail('Retail enrollee dependent not found', 404);
 
-        if (dependent.retailEnrolleeId !== retailEnrolleeId) {
+        if (paramRetailEnrolleeId && dependent.retailEnrolleeId !== paramRetailEnrolleeId) {
             return res.fail('Dependent does not belong to the specified enrollee', 400);
         }
 
@@ -192,7 +211,7 @@ async function updateRetailEnrolleeDependent(req, res, next) {
             message: `Dependent ${dependent.firstName} ${dependent.lastName} updated`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { dependentId: dependent.id, retailEnrolleeId }
+            meta: { dependentId: dependent.id, retailEnrolleeId: dependent.retailEnrolleeId }
         });
 
         return res.success({ dependent }, 'Retail enrollee dependent updated successfully');
@@ -204,12 +223,12 @@ async function updateRetailEnrolleeDependent(req, res, next) {
 async function deleteRetailEnrolleeDependent(req, res, next) {
     try {
         const { RetailEnrolleeDependent } = req.models;
-        const { retailEnrolleeId, dependentId } = req.params;
+        const { retailEnrolleeId: paramRetailEnrolleeId, dependentId } = req.params;
 
         const dependent = await RetailEnrolleeDependent.findByPk(dependentId);
         if (!dependent) return res.fail('Retail enrollee dependent not found', 404);
 
-        if (dependent.retailEnrolleeId !== retailEnrolleeId) {
+        if (paramRetailEnrolleeId && dependent.retailEnrolleeId !== paramRetailEnrolleeId) {
             return res.fail('Dependent does not belong to the specified enrollee', 400);
         }
 
@@ -221,7 +240,7 @@ async function deleteRetailEnrolleeDependent(req, res, next) {
             message: `Dependent ${dependent.firstName} ${dependent.lastName} deleted`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { dependentId: dependent.id, retailEnrolleeId }
+            meta: { dependentId: dependent.id, retailEnrolleeId: dependent.retailEnrolleeId }
         });
 
         return res.success(null, 'Retail enrollee dependent deleted successfully');
