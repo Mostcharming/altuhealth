@@ -44,6 +44,7 @@ function defineModels(sequelize) {
   const RetailEnrollee = require("./retailEnrollee.model")(sequelize, DataTypes);
   const RetailEnrolleeNextOfKin = require("./retailEnrolleeNextOfKin.model")(sequelize, DataTypes);
   const RetailEnrolleeDependent = require("./retailEnrolleeDependent.model")(sequelize, DataTypes);
+  const RetailEnrolleeMedicalHistory = require("./retailEnrolleeMedicalHistory.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -220,7 +221,19 @@ function defineModels(sequelize) {
   RetailEnrollee.hasMany(RetailEnrolleeDependent, { foreignKey: "retailEnrolleeId", as: 'dependents' });
   RetailEnrolleeDependent.belongsTo(RetailEnrollee, { foreignKey: "retailEnrolleeId" });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent };
+  // RetailEnrolleeMedicalHistory <-> RetailEnrollee one-to-many
+  RetailEnrollee.hasMany(RetailEnrolleeMedicalHistory, { foreignKey: "retailEnrolleeId", as: 'medicalHistories' });
+  RetailEnrolleeMedicalHistory.belongsTo(RetailEnrollee, { foreignKey: "retailEnrolleeId" });
+
+  // RetailEnrolleeMedicalHistory <-> Provider one-to-many
+  Provider.hasMany(RetailEnrolleeMedicalHistory, { foreignKey: "providerId" });
+  RetailEnrolleeMedicalHistory.belongsTo(Provider, { foreignKey: "providerId" });
+
+  // RetailEnrolleeMedicalHistory <-> Diagnosis one-to-many
+  Diagnosis.hasMany(RetailEnrolleeMedicalHistory, { foreignKey: "diagnosisId" });
+  RetailEnrolleeMedicalHistory.belongsTo(Diagnosis, { foreignKey: "diagnosisId" });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory };
 }
 
 module.exports = defineModels;

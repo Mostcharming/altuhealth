@@ -31,6 +31,8 @@ router.use('/utilization-reviews', require('./utilizationReviews/route'));
 router.use('/staffs', require('./staffs/route'));
 router.use('/enrollees', require('./enrollees/route'));
 router.use('/enrollee-dependents', require('./enrolleeDependents/route'));
+router.use('/retail-enrollees', require('./retailEnrollees/route'));
+router.use('/retail-enrollees/:retailEnrolleeId/dependents', require('./retailEnrolleeDependents/route'));
 
 router.use(errorHandler);
 
