@@ -9,6 +9,12 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: DataTypes.UUIDV4,
             field: 'id'
         },
+        policyNumber: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            unique: true,
+            field: 'policy_number'
+        },
         retailEnrolleeId: {
             type: DataTypes.UUID,
             allowNull: false,

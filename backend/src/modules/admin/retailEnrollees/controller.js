@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
+const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
 
@@ -50,11 +51,15 @@ async function createRetailEnrollee(req, res, next) {
             if (!admin) return res.fail('Admin user not found', 404);
         }
 
+        // Generate unique policy number
+        const policyNumber = await getUniquePolicyNumber(RetailEnrollee);
+
         // Create retail enrollee
         const enrollee = await RetailEnrollee.create({
             firstName,
             middleName: middleName || null,
             lastName,
+            policyNumber,
             phoneNumber,
             email,
             dateOfBirth,
