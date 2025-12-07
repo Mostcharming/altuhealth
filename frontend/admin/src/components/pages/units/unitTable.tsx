@@ -5,15 +5,7 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-<<<<<<< HEAD
-<<<<<<< HEAD
 import { PencilIcon, TrashBinIcon } from "@/icons";
-=======
-import { EyeIcon, TrashBinIcon } from "@/icons";
->>>>>>> a96fa49 (Unit model)
-=======
-import { PencilIcon, TrashBinIcon } from "@/icons";
->>>>>>> 4c85381 (enrolle)
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
@@ -39,18 +31,9 @@ const UnitTable: React.FC = () => {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<Unit | null>(null);
   const removeUnit = useUnitStore((s) => s.removeUnit);
-<<<<<<< HEAD
-<<<<<<< HEAD
   const [errorMessage, setErrorMessage] = useState<string>(
     "Failed to delete unit."
   );
-=======
->>>>>>> a96fa49 (Unit model)
-=======
-  const [errorMessage, setErrorMessage] = useState<string>(
-    "Failed to delete unit."
-  );
->>>>>>> 4c85381 (enrolle)
 
   type Header = {
     key: keyof Unit | "actions";
@@ -169,22 +152,10 @@ const UnitTable: React.FC = () => {
       setSelectedRoleId(null);
       confirmModal.closeModal();
       successModal.openModal();
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 4c85381 (enrolle)
     } catch (err: unknown) {
       setErrorMessage(
         err instanceof Error ? err.message : "An unexpected error occurred."
       );
-<<<<<<< HEAD
-=======
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      console.log(err);
->>>>>>> a96fa49 (Unit model)
-=======
->>>>>>> 4c85381 (enrolle)
       errorModal.openModal();
     } finally {
       setLoading(false);
@@ -297,15 +268,7 @@ const UnitTable: React.FC = () => {
                         onClick={() => handleView(invoice)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
                       >
-<<<<<<< HEAD
-<<<<<<< HEAD
                         <PencilIcon />
-=======
-                        <EyeIcon />
->>>>>>> a96fa49 (Unit model)
-=======
-                        <PencilIcon />
->>>>>>> 4c85381 (enrolle)
                       </button>
 
                       <button
@@ -446,21 +409,11 @@ const UnitTable: React.FC = () => {
         handleSuccessClose={handleSuccessClose}
       />
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 4c85381 (enrolle)
       <ErrorModal
         message={errorMessage}
         errorModal={errorModal}
         handleErrorClose={handleErrorClose}
       />
-<<<<<<< HEAD
-=======
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
->>>>>>> a96fa49 (Unit model)
-=======
->>>>>>> 4c85381 (enrolle)
     </div>
   );
 };
