@@ -13,7 +13,10 @@ async function createPaymentBatch(req, res, next) {
             numberOfProviders,
             conflictCount,
             totalClaimsAmount,
-            reconciliationAmount
+            reconciliationAmount,
+            paymentDate,
+            dueDate,
+            notes
         } = req.body || {};
 
         if (!title) return res.fail('`title` is required', 400);
@@ -26,6 +29,10 @@ async function createPaymentBatch(req, res, next) {
             conflictCount: conflictCount || 0,
             totalClaimsAmount: totalClaimsAmount || 0,
             reconciliationAmount: reconciliationAmount || 0,
+            paymentDate: paymentDate || null,
+            dueDate: dueDate || null,
+            notes: notes || null,
+            createdBy: (req.user && req.user.id) ? req.user.id : null,
             status: 'pending'
         });
 
@@ -60,7 +67,13 @@ async function updatePaymentBatch(req, res, next) {
             numberPaid,
             numberUnpaid,
             paidAmount,
-            unpaidAmount
+            unpaidAmount,
+            paymentDate,
+            dueDate,
+            notes,
+            approvedBy,
+            approvedDate,
+            processingNotes
         } = req.body || {};
 
         const paymentBatch = await PaymentBatch.findByPk(id);
@@ -80,6 +93,15 @@ async function updatePaymentBatch(req, res, next) {
         if (numberUnpaid !== undefined) updates.numberUnpaid = numberUnpaid;
         if (paidAmount !== undefined) updates.paidAmount = paidAmount;
         if (unpaidAmount !== undefined) updates.unpaidAmount = unpaidAmount;
+        if (paymentDate !== undefined) updates.paymentDate = paymentDate;
+        if (dueDate !== undefined) updates.dueDate = dueDate;
+        if (notes !== undefined) updates.notes = notes;
+        if (approvedBy !== undefined) updates.approvedBy = approvedBy;
+        if (approvedDate !== undefined) updates.approvedDate = approvedDate;
+        if (processingNotes !== undefined) updates.processingNotes = processingNotes;
+
+        // Always update updatedBy
+        updates.updatedBy = (req.user && req.user.id) ? req.user.id : null;
 
         await paymentBatch.update(updates);
 
@@ -220,7 +242,10 @@ async function addBatchDetail(req, res, next) {
             period,
             claimsCount,
             reconciliationCount,
-            reconciliationAmount
+            reconciliationAmount,
+            claimsAmount,
+            paymentStatus,
+            notes
         } = req.body || {};
 
         if (!providerId) return res.fail('`providerId` is required', 400);
@@ -246,7 +271,10 @@ async function addBatchDetail(req, res, next) {
             period,
             claimsCount: claimsCount || 0,
             reconciliationCount: reconciliationCount || 0,
-            reconciliationAmount: reconciliationAmount || 0
+            reconciliationAmount: reconciliationAmount || 0,
+            claimsAmount: claimsAmount || 0,
+            paymentStatus: paymentStatus || 'pending',
+            notes: notes || null
         });
 
         await addAuditLog(req.models, {
@@ -271,7 +299,10 @@ async function updateBatchDetail(req, res, next) {
             period,
             claimsCount,
             reconciliationCount,
-            reconciliationAmount
+            reconciliationAmount,
+            claimsAmount,
+            paymentStatus,
+            notes
         } = req.body || {};
 
         const detail = await PaymentBatchDetail.findByPk(detailId);
@@ -282,6 +313,9 @@ async function updateBatchDetail(req, res, next) {
         if (claimsCount !== undefined) updates.claimsCount = claimsCount;
         if (reconciliationCount !== undefined) updates.reconciliationCount = reconciliationCount;
         if (reconciliationAmount !== undefined) updates.reconciliationAmount = reconciliationAmount;
+        if (claimsAmount !== undefined) updates.claimsAmount = claimsAmount;
+        if (paymentStatus !== undefined) updates.paymentStatus = paymentStatus;
+        if (notes !== undefined) updates.notes = notes;
 
         await detail.update(updates);
 

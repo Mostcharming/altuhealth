@@ -84,6 +84,46 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 0,
             field: 'unpaid_amount'
+        },
+        paymentDate: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'payment_date'
+        },
+        dueDate: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'due_date'
+        },
+        notes: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'notes'
+        },
+        createdBy: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            field: 'created_by'
+        },
+        updatedBy: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            field: 'updated_by'
+        },
+        approvedBy: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            field: 'approved_by'
+        },
+        approvedDate: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'approved_date'
+        },
+        processingNotes: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'processing_notes'
         }
     }, {
         tableName: 'payment_batches',

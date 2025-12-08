@@ -41,6 +41,23 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 0,
             field: 'reconciliation_amount'
+        },
+        claimsAmount: {
+            type: DataTypes.DECIMAL(15, 2),
+            allowNull: false,
+            defaultValue: 0,
+            field: 'claims_amount'
+        },
+        paymentStatus: {
+            type: DataTypes.ENUM('pending', 'paid', 'partial', 'disputed'),
+            allowNull: false,
+            defaultValue: 'pending',
+            field: 'payment_status'
+        },
+        notes: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'notes'
         }
     }, {
         tableName: 'payment_batch_details',

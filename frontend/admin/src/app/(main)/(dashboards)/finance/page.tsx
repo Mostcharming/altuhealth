@@ -8,10 +8,8 @@ import SaasMetrics from "@/components/saas/SaasMetrics";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title:
-    "Next.js SaaS Dashboard | TailAdmin - Next.js Admin Dashboard Template",
-  description:
-    "This is Next.js SaaS Dashboard page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+  title: "AltuHealth Admin - Finance Dashboard",
+  description: "This is the AltuHealth Admin - Finance Dashboard page",
 };
 
 export default function SaaS() {
