@@ -1,44 +1,47 @@
-/* eslint-disable @next/next/no-img-element */
-import GridShape from "@/components/common/GridShape";
+import ActivitiesCard from "@/components/saas/ActivitiesCard";
+import ChurnRateChart from "@/components/saas/ChurnRate";
+import FunnelChart from "@/components/saas/FunnelChart";
+import GrowthChart from "@/components/saas/GrowthRate";
+import ProductPerformanceTab from "@/components/saas/ProductPerformanceTab";
+import SaasInvoiceTable from "@/components/saas/SaasInvoiceTable";
+import SaasMetrics from "@/components/saas/SaasMetrics";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin",
-  description: "",
+  title:
+    "Next.js SaaS Dashboard | TailAdmin - Next.js Admin Dashboard Template",
+  description:
+    "This is Next.js SaaS Dashboard page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
 };
 
-export default function Maintenance() {
+export default function SaaS() {
   return (
-    <>
-      <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden z-1">
-        <GridShape />
+    <div className="space-y-6">
+      <SaasMetrics />
 
-        <div>
-          <div className="mx-auto w-full max-w-[274px] text-center sm:max-w-[555px]">
-            <div className="mx-auto mb-10 w-full max-w-[155px] text-center sm:max-w-[204px]">
-              <img
-                src="/images/error/maintenance.svg"
-                alt="maintenance"
-                className="dark:hidden"
-              />
-              <img
-                src="/images/error/maintenance-dark.svg"
-                alt="maintenance"
-                className="hidden dark:block"
-              />
+      <div className="gap-6 space-y-5 sm:space-y-6 xl:grid xl:grid-cols-12 xl:space-y-0">
+        <div className="xl:col-span-7 2xl:col-span-8">
+          <div className="space-y-5 sm:space-y-6">
+            <div className="grid gap-5 sm:gap-6 lg:grid-cols-2">
+              <ChurnRateChart />
+              <GrowthChart />
             </div>
 
-            <h1 className="mb-2 font-bold text-gray-800 text-title-md dark:text-white/90 xl:text-title-2xl">
-              MAINTENANCE
-            </h1>
+            {/* Funnel */}
+            <FunnelChart />
 
-            <p className="mt-6 mb-6 text-base text-gray-700 dark:text-gray-400 sm:text-lg">
-              This page is Currently under maintenance We will be back Shortly
-              Thank You For Patience
-            </p>
+            {/* Table */}
+            <SaasInvoiceTable />
           </div>
         </div>
+        <div className="space-y-5 sm:space-y-6 xl:col-span-5 2xl:col-span-4">
+          {/* Product Performance */}
+          <ProductPerformanceTab />
+
+          {/* Activities */}
+          <ActivitiesCard />
+        </div>
       </div>
-    </>
+    </div>
   );
 }
