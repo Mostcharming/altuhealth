@@ -98,14 +98,14 @@ export default function Details({ data }: { data: any }) {
             {capitalizeWords(data?.lga) || "N/A"}
           </span>
         </li>
-        <li className="flex items-start gap-5 py-2.5">
+        {/* <li className="flex items-start gap-5 py-2.5">
           <span className="w-1/2 text-sm text-gray-500 sm:w-1/3 dark:text-gray-400">
             Payment Batch
           </span>
           <span className="w-1/2 text-sm text-gray-700 sm:w-2/3 dark:text-gray-400">
             {capitalizeWords(data?.paymentBatch) || "N/A"}
           </span>
-        </li>
+        </li> */}
         <li className="flex items-start gap-5 py-2.5">
           <span className="w-1/2 text-sm text-gray-500 sm:w-1/3 dark:text-gray-400">
             Bank Name
