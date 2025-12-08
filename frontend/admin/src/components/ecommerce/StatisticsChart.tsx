@@ -1,9 +1,8 @@
 "use client";
-import React from "react";
 // import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
-import ChartTab from "../common/ChartTab";
 import dynamic from "next/dynamic";
+import ChartTab from "../common/ChartTab";
 
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
@@ -111,12 +110,12 @@ export default function StatisticsChart() {
 
   const series = [
     {
-      name: "Sales",
-      data: [180, 190, 170, 160, 175, 165, 170, 205, 230, 210, 240, 235],
+      name: "Retail Enrollees",
+      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
-      name: "Revenue",
-      data: [40, 30, 50, 40, 55, 40, 70, 100, 110, 120, 150, 140],
+      name: "Active Dependent Enrollees",
+      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
   ];
   return (
@@ -124,10 +123,10 @@ export default function StatisticsChart() {
       <div className="flex flex-col gap-5 mb-6 sm:flex-row sm:justify-between">
         <div className="w-full">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Statistics
+            Retail Enrollees
           </h3>
           <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
-            Target you’ve set for each month
+            Monthly retail enrollee tracking
           </p>
         </div>
         <div className="flex items-start w-full gap-3 sm:justify-end">
