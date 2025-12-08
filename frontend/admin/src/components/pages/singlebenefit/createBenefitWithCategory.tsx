@@ -1,22 +1,27 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { useBenefitStore } from "@/lib/store/benefitStore";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 
-export default function PageMetricsUnits({
-  id,
+interface BenefitCategory {
+  value: string;
+  label: string;
+}
+
+export default function CreateBenefitWithCategory({
   buttonText,
 }: {
   buttonText?: string;
-  id: string;
 }) {
   const { isOpen, openModal, closeModal } = useModal();
   const [loading, setLoading] = useState(false);
@@ -25,23 +30,51 @@ export default function PageMetricsUnits({
   const successModal = useModal();
 
   // stores
-  const addPlan = useBenefitStore((s) => s.addBenefit);
+  const addBenefit = useBenefitStore((s) => s.addBenefit);
 
   // form state
-
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [limit, setLimit] = useState("");
   const [amount, setAmount] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [categories, setCategories] = useState<BenefitCategory[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>(
     "Failed to create benefit."
   );
+
+  // Fetch benefit categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await apiClient(
+          "/admin/benefit-categories/list?limit=all",
+          {
+            method: "GET",
+          }
+        );
+        const items = data?.data?.list || data?.data || [];
+        const categoryOptions = Array.isArray(items)
+          ? items.map((cat: any) => ({
+              value: cat.id,
+              label: cat.name,
+            }))
+          : [];
+        setCategories(categoryOptions);
+      } catch (err) {
+        console.warn("Failed to fetch benefit categories", err);
+      } finally {
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const resetForm = () => {
     setDescription("");
     setAmount("");
     setLimit("");
     setName("");
+    setSelectedCategoryId("");
   };
 
   const handleSuccessClose = () => {
@@ -65,6 +98,12 @@ export default function PageMetricsUnits({
         return;
       }
 
+      if (!selectedCategoryId) {
+        setErrorMessage("Please select a benefit category.");
+        errorModal.openModal();
+        return;
+      }
+
       setLoading(true);
 
       const payload: {
@@ -76,9 +115,9 @@ export default function PageMetricsUnits({
       } = {
         name: name.trim(),
         description: description.trim(),
-        limit: parseInt(limit),
-        amount: parseFloat(amount),
-        benefitCategoryId: id,
+        limit: parseInt(limit) || 0,
+        amount: parseFloat(amount) || 0,
+        benefitCategoryId: selectedCategoryId,
       };
 
       const data = await apiClient("/admin/benefits", {
@@ -87,18 +126,23 @@ export default function PageMetricsUnits({
         onLoading: (l: boolean) => setLoading(l),
       });
 
-      if (data?.data) {
-        addPlan({
+      if (data) {
+        // const selectedCategory = categories.find(
+        //   (cat) => cat.value === selectedCategoryId
+        // );
+        addBenefit({
           id: data.data.id,
-          name: description,
+          name: name,
           description: description,
           limit: limit,
           amount: parseFloat(amount),
-          benefitCategoryId: id,
+          benefitCategoryId: selectedCategoryId,
           createdAt: data.data.createdAt,
           BenefitCategory: {
-            id: id,
-            name: "",
+            id: selectedCategoryId,
+            name:
+              categories.find((cat) => cat.value === selectedCategoryId)
+                ?.label || "",
           },
         });
       }
@@ -113,12 +157,14 @@ export default function PageMetricsUnits({
       setLoading(false);
     }
   };
+
   const handleMessageChange = (value: string) => {
     setDescription(value);
   };
+
   return (
     <div className="p-4 sm:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-      <div className=" flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div></div>
         <div>
           <div
@@ -168,6 +214,16 @@ export default function PageMetricsUnits({
           <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 lg:col-span-1">
+                <Label>Benefit Category</Label>
+                <Select
+                  options={categories}
+                  placeholder="Select a benefit category"
+                  onChange={(value) => setSelectedCategoryId(value as string)}
+                  defaultValue={selectedCategoryId}
+                  //   disabled={categoriesLoading}
+                />
+              </div>
+              <div className="col-span-2 lg:col-span-1">
                 <Label>Name</Label>
                 <Input
                   type="text"
@@ -197,7 +253,7 @@ export default function PageMetricsUnits({
                   }
                 />
               </div>
-              <div className="col-span-2 ">
+              <div className="col-span-2">
                 <Label>Description</Label>
                 <TextArea
                   placeholder="Type your message here..."

@@ -103,8 +103,8 @@ module.exports = (sequelize, DataTypes) => {
         },
         paymentBatch: {
             type: DataTypes.ENUM('batch_a', 'batch_b', 'batch_c', 'batch_d'),
-            allowNull: false,
-            defaultValue: 'batch_a',
+            allowNull: true,
+            defaultValue: null,
             field: 'payment_batch'
         },
         managerId: {

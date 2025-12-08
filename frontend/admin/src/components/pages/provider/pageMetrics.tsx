@@ -234,11 +234,11 @@ export default function PageMetricsProviders({
         errorModal.openModal();
         return;
       }
-      if (!paymentBatch) {
-        setErrorMessage("Payment batch is required.");
-        errorModal.openModal();
-        return;
-      }
+      // if (!paymentBatch) {
+      //   setErrorMessage("Payment batch is required.");
+      //   errorModal.openModal();
+      //   return;
+      // }
       if (!providerSpecializationId) {
         setErrorMessage("Provider specialization is required.");
         errorModal.openModal();
@@ -299,12 +299,12 @@ export default function PageMetricsProviders({
     { value: "specialized", label: "Specialized" },
   ];
 
-  const paymentBatchOptions = [
-    { value: "batch_a", label: "Batch A" },
-    { value: "batch_b", label: "Batch B" },
-    { value: "batch_c", label: "Batch C" },
-    { value: "batch_d", label: "Batch D" },
-  ];
+  // const paymentBatchOptions = [
+  //   { value: "batch_a", label: "Batch A" },
+  //   { value: "batch_b", label: "Batch B" },
+  //   { value: "batch_c", label: "Batch C" },
+  //   { value: "batch_d", label: "Batch D" },
+  // ];
 
   const providerSpecializations = useProviderSpecializationStore(
     (s) => s.providerSpecializations
@@ -591,7 +591,7 @@ export default function PageMetricsProviders({
               </div>
 
               {/* Payment Batch */}
-              <div>
+              {/* <div>
                 <Label>Payment Batch*</Label>
                 <Select
                   options={paymentBatchOptions}
@@ -599,7 +599,7 @@ export default function PageMetricsProviders({
                   onChange={(value: string) => setPaymentBatch(value)}
                   defaultValue={paymentBatch}
                 />
-              </div>
+              </div> */}
 
               {/* Provider Specialization */}
               <div>

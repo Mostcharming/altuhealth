@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 
 export interface Benefit {
+  BenefitCategory: any;
   id: string;
   name: string;
   description?: string | null;
