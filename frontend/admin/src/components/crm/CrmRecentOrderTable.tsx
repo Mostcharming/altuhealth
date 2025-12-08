@@ -1,5 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import { useState } from "react";
+import { TrashBinIcon } from "../../icons";
+import Checkbox from "../form/input/Checkbox";
+import AvatarText from "../ui/avatar/AvatarText";
+import Badge from "../ui/badge/Badge";
 import {
   Table,
   TableBody,
@@ -7,136 +11,26 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { TrashBinIcon } from "../../icons";
-import AvatarText from "../ui/avatar/AvatarText";
-import Checkbox from "../form/input/Checkbox";
-import Badge from "../ui/badge/Badge";
 
 // Interface for the table row data
-interface TableRowData {
-  id: string; // Unique identifier for the row
+interface DoctorRowData {
+  id: string; // Unique identifier for the doctor
   user: {
     initials: string; // Initials for the avatar
-    name: string; // User's full name
-    email: string; // User's email address
+    name: string; // Doctor's full name
+    email: string; // Doctor's email address
   };
   avatarColor: "brand" | "blue" | "green" | "red" | "yellow" | "gray"; // Color variant for the avatar
-  product: {
-    name: string; // Product name
-    price: string; // Product price
-    purchaseDate: string; // Date of purchase
-  };
-  status: {
-    // label: string; // Status text
-    type: "Complete" | "Warning" | "Cancel" | "Pending"; // Size of the badge
-  };
+  isOnline: boolean; // Whether the doctor is online
+  availableTime: string; // Doctor's available time slots
+  bookingsCount: number; // Number of times booked
+  specialty: string; // Medical specialty
   actions: {
     delete: boolean; // Indicates a delete action is available
   };
 }
 
-const tableRowData: TableRowData[] = [
-  {
-    id: "DE124321",
-    user: {
-      initials: "AB",
-      name: "John Doe",
-      email: "johndoe@gmail.com",
-    },
-    avatarColor: "brand",
-    product: {
-      name: "Software License",
-      price: "$18,50.34",
-      purchaseDate: "2024-06-15",
-    },
-    status: {
-      type: "Complete",
-    },
-    actions: {
-      delete: true,
-    },
-  },
-  {
-    id: "DE124322",
-    user: {
-      initials: "CD",
-      name: "Jane Smith",
-      email: "janesmith@gmail.com",
-    },
-    avatarColor: "brand",
-    product: {
-      name: "Cloud Hosting",
-      price: "$12,99.00",
-      purchaseDate: "2024-06-18",
-    },
-    status: {
-      type: "Pending",
-    },
-    actions: {
-      delete: true,
-    },
-  },
-  {
-    id: "DE124323",
-    user: {
-      initials: "EF",
-      name: "Michael Brown",
-      email: "michaelbrown@gmail.com",
-    },
-    avatarColor: "brand",
-    product: {
-      name: "Web Domain",
-      price: "$9,50.00",
-      purchaseDate: "2024-06-20",
-    },
-    status: {
-      type: "Cancel",
-    },
-    actions: {
-      delete: true,
-    },
-  },
-  {
-    id: "DE124324",
-    user: {
-      initials: "GH",
-      name: "Alice Johnson",
-      email: "alicejohnson@gmail.com",
-    },
-    avatarColor: "brand",
-    product: {
-      name: "SSL Certificate",
-      price: "$2,30.45",
-      purchaseDate: "2024-06-25",
-    },
-    status: {
-      type: "Pending",
-    },
-    actions: {
-      delete: true,
-    },
-  },
-  {
-    id: "DE124325",
-    user: {
-      initials: "IJ",
-      name: "Robert Lee",
-      email: "robertlee@gmail.com",
-    },
-    avatarColor: "brand",
-    product: {
-      name: "Premium Support",
-      price: "$15,20.00",
-      purchaseDate: "2024-06-30",
-    },
-    status: {
-      type: "Complete",
-    },
-    actions: {
-      delete: true,
-    },
-  },
-];
+const tableRowData: DoctorRowData[] = [];
 
 export default function CrmRecentOrderTable() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -163,7 +57,7 @@ export default function CrmRecentOrderTable() {
       <div className="flex flex-col gap-4 px-6 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Recent Orders
+            Recent Doctors Added
           </h3>
         </div>
         <div className="flex items-center gap-3">
@@ -226,25 +120,25 @@ export default function CrmRecentOrderTable() {
                     </div>
                     <div>
                       <span className="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
-                        Deal ID
+                        Doctor ID
                       </span>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
-                  Customer
+                  Doctor Name
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
-                  Product/Service
-                </TableCell>
-                <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
-                  Deal Value
-                </TableCell>
-                <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
-                  Close Date
+                  Specialty
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
                   Status
+                </TableCell>
+                <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
+                  Available Time
+                </TableCell>
+                <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
+                  Bookings
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
                   Action
@@ -252,7 +146,7 @@ export default function CrmRecentOrderTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tableRowData.map((row: TableRowData) => (
+              {tableRowData.map((row: DoctorRowData) => (
                 <TableRow key={row.id}>
                   <TableCell className="px-4 sm:px-6 py-3.5">
                     <div className="flex items-center gap-3">
@@ -284,33 +178,27 @@ export default function CrmRecentOrderTable() {
                   </TableCell>
                   <TableCell className="px-4 sm:px-6 py-3.5">
                     <p className="text-gray-700 text-theme-sm dark:text-gray-400">
-                      {row.product.name}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    <p className="text-gray-700 text-theme-sm dark:text-gray-400">
-                      {row.product.price}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    <p className="text-gray-700 text-theme-sm dark:text-gray-400">
-                      {row.product.purchaseDate}
+                      {row.specialty}
                     </p>
                   </TableCell>
                   <TableCell className="px-4 sm:px-6 py-3.5">
                     <Badge
                       variant="light"
-                      color={
-                        row.status.type === "Complete"
-                          ? "success"
-                          : row.status.type === "Pending"
-                          ? "warning"
-                          : "error"
-                      }
+                      color={row.isOnline ? "success" : "error"}
                       size="sm"
                     >
-                      {row.status.type}
+                      {row.isOnline ? "Online" : "Offline"}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="px-4 sm:px-6 py-3.5">
+                    <p className="text-gray-700 text-theme-sm dark:text-gray-400">
+                      {row.availableTime}
+                    </p>
+                  </TableCell>
+                  <TableCell className="px-4 sm:px-6 py-3.5">
+                    <p className="text-gray-700 text-theme-sm font-medium dark:text-gray-400">
+                      {row.bookingsCount}
+                    </p>
                   </TableCell>
                   <TableCell className="px-4 sm:px-6 py-3.5">
                     {row.actions.delete && (
