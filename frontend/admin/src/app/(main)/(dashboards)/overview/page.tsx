@@ -1,44 +1,40 @@
-/* eslint-disable @next/next/no-img-element */
-import GridShape from "@/components/common/GridShape";
-import { Metadata } from "next";
+import DemographicCard from "@/components/ecommerce/DemographicCard";
+import { EcommerceMetrics } from "@/components/ecommerce/EcommerceMetrics";
+import MonthlySalesChart from "@/components/ecommerce/MonthlySalesChart";
+import MonthlyTarget from "@/components/ecommerce/MonthlyTarget";
+import RecentOrders from "@/components/ecommerce/RecentOrders";
+import StatisticsChart from "@/components/ecommerce/StatisticsChart";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin",
-  description: "",
+  title: "AltuHealth Admin Dashboard",
+  description: "Admin dashboard overview for AltuHealth platform.",
 };
 
-export default function Maintenance() {
+export default function Ecommerce() {
   return (
-    <>
-      <div className="relative flex flex-col items-center justify-center min-h-screen p-6 overflow-hidden z-1">
-        <GridShape />
+    <div className="grid grid-cols-12 gap-4 md:gap-6">
+      <div className="col-span-12 space-y-6 xl:col-span-7">
+        <EcommerceMetrics />
 
-        <div>
-          <div className="mx-auto w-full max-w-[274px] text-center sm:max-w-[555px]">
-            <div className="mx-auto mb-10 w-full max-w-[155px] text-center sm:max-w-[204px]">
-              <img
-                src="/images/error/maintenance.svg"
-                alt="maintenance"
-                className="dark:hidden"
-              />
-              <img
-                src="/images/error/maintenance-dark.svg"
-                alt="maintenance"
-                className="hidden dark:block"
-              />
-            </div>
-
-            <h1 className="mb-2 font-bold text-gray-800 text-title-md dark:text-white/90 xl:text-title-2xl">
-              MAINTENANCE
-            </h1>
-
-            <p className="mt-6 mb-6 text-base text-gray-700 dark:text-gray-400 sm:text-lg">
-              This page is Currently under maintenance We will be back Shortly
-              Thank You For Patience
-            </p>
-          </div>
-        </div>
+        <MonthlySalesChart />
       </div>
-    </>
+
+      <div className="col-span-12 xl:col-span-5">
+        <MonthlyTarget />
+      </div>
+
+      <div className="col-span-12">
+        <StatisticsChart />
+      </div>
+
+      <div className="col-span-12 xl:col-span-5">
+        <DemographicCard />
+      </div>
+
+      <div className="col-span-12 xl:col-span-7">
+        <RecentOrders />
+      </div>
+    </div>
   );
 }
