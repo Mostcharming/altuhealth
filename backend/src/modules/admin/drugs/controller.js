@@ -14,7 +14,7 @@ async function createDrug(req, res, next) {
             strength,
             price,
             providerId,
-            status
+            // status
         } = req.body || {};
 
         // Validate required fields
@@ -35,7 +35,7 @@ async function createDrug(req, res, next) {
             strength,
             price,
             providerId,
-            status: status || 'pending'
+            // status: status || 'pending'
         });
 
         // Create admin approval request
