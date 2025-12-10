@@ -3,6 +3,7 @@
 import PhoneInput from "@/components/form/group-input/PhoneInput";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
@@ -189,19 +190,15 @@ export default function EditCompany({
               {company && (
                 <div className="col-span-2 lg:col-span-1">
                   <Label>Status</Label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={isActive}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setIsActive(e.target.checked)
-                      }
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Active
-                    </span>
-                  </div>
+                  <Select
+                    options={[
+                      { value: "true", label: "Active" },
+                      { value: "false", label: "Inactive" },
+                    ]}
+                    placeholder="Select status"
+                    onChange={(val) => setIsActive(val === "true")}
+                    defaultValue={isActive ? "true" : "false"}
+                  />
                 </div>
               )}
 

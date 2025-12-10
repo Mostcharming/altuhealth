@@ -2,7 +2,6 @@
 
 import DatePicker from "@/components/form/date-picker";
 import PhoneInput from "@/components/form/group-input/PhoneInput";
-import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
@@ -688,17 +687,16 @@ export default function EditCompanySubsidiary({
 
             {subsidiary && (
               <div className="mb-6">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    label="Status"
-                    checked={isActive}
-                    onChange={(checked) => setIsActive(checked)}
-                  />
-
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {isActive ? "Active" : "Inactive"}
-                  </span>
-                </div>
+                <Label>Status</Label>
+                <Select
+                  options={[
+                    { value: "true", label: "Active" },
+                    { value: "false", label: "Inactive" },
+                  ]}
+                  placeholder="Select status"
+                  onChange={(val) => setIsActive(val === "true")}
+                  defaultValue={isActive ? "true" : "false"}
+                />
               </div>
             )}
           </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import DatePicker from "@/components/form/date-picker";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
@@ -347,13 +348,18 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
 
             {/* Due Date */}
             <div>
-              <Label>Due Date</Label>
-              <Input
-                type="date"
-                value={dueDate}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setDueDate(e.target.value)
-                }
+              <DatePicker
+                id="due-date-edit"
+                label="Due Date"
+                placeholder="Select due date"
+                defaultDate={dueDate}
+                onChange={(selectedDates) => {
+                  if (selectedDates && selectedDates.length > 0) {
+                    const date = selectedDates[0];
+                    const formattedDate = date.toISOString().split("T")[0];
+                    setDueDate(formattedDate);
+                  }
+                }}
               />
             </div>
 

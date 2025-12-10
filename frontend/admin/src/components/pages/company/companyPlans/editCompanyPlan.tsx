@@ -100,7 +100,7 @@ export default function EditCompanyPlan({
       setName(plan.name ?? "");
       setPlanId(plan.planId ?? "");
       setPlanCycle(plan.planCycle ?? "");
-      setAnnualPremiumPrice(plan.annualPremiumPrice ?? 0);
+      setAnnualPremiumPrice(plan.annualPremiumPrice);
       setAgeLimit(plan.ageLimit);
       setDependentAgeLimit(plan.dependentAgeLimit);
       setMaxNumberOfDependents(plan.maxNumberOfDependents);
@@ -345,17 +345,16 @@ export default function EditCompanyPlan({
 
               {plan && (
                 <div className="col-span-2 lg:col-span-1">
-                  <div className="flex items-center gap-3">
-                    <Checkbox
-                      label="Status"
-                      checked={isActive}
-                      onChange={(checked) => setIsActive(checked)}
-                    />
-
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {isActive ? "Active" : "Inactive"}
-                    </span>
-                  </div>
+                  <Label>Status</Label>
+                  <Select
+                    options={[
+                      { value: "true", label: "Active" },
+                      { value: "false", label: "Inactive" },
+                    ]}
+                    placeholder="Select status"
+                    onChange={(val) => setIsActive(val === "true")}
+                    defaultValue={isActive ? "true" : "false"}
+                  />
                 </div>
               )}
             </div>
