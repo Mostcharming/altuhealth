@@ -336,6 +336,7 @@ export default function UserInfoCard() {
                       selectPosition="start"
                       countries={countries}
                       placeholder="+1 (555) 000-0000"
+                      defaultValue={phone}
                       onChange={handlePhoneChange}
                     />
                   </div>
