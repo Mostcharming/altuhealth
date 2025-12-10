@@ -170,6 +170,10 @@ async function deletePaymentBatch(req, res, next) {
         const paymentBatch = await PaymentBatch.findByPk(id);
         if (!paymentBatch) return res.fail('Payment Batch not found', 404);
 
+        if (paymentBatch.status !== 'pending') {
+            return res.fail('Only pending payment batches can be deleted', 400);
+        }
+
         await paymentBatch.destroy();
 
         await addAuditLog(req.models, {
