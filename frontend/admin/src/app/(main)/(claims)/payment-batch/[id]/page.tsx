@@ -23,6 +23,8 @@ export default function PaymentBatchDetail() {
   const [markingAsPaid, setMarkingAsPaid] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<any | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailClaims, setDetailClaims] = useState<any[]>([]);
+  const [detailConflicts, setDetailConflicts] = useState<any[]>([]);
   const errorModal = useModal();
   const successModal = useModal();
   const [errorMessage, setErrorMessage] = useState(
@@ -132,9 +134,29 @@ export default function PaymentBatchDetail() {
     }
   };
 
-  const handleViewDetail = (detail: any) => {
-    setSelectedDetail(detail);
-    setIsDetailModalOpen(true);
+  const handleViewDetail = async (detail: any) => {
+    try {
+      setSelectedDetail(detail);
+
+      // Fetch claims for this detail
+      const claimsResponse = await apiClient(
+        `/admin/payment-batches/details/${detail.id}/claims?limit=all`
+      );
+      setDetailClaims(claimsResponse.data?.list || []);
+
+      // Fetch conflicts for this detail
+      const conflictsResponse = await apiClient(
+        `/admin/payment-batches/details/${detail.id}/conflicts?limit=all`
+      );
+      setDetailConflicts(conflictsResponse.data?.list || []);
+
+      setIsDetailModalOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch detail data:", error);
+      setDetailClaims([]);
+      setDetailConflicts([]);
+      setIsDetailModalOpen(true);
+    }
   };
 
   return (
@@ -453,8 +475,12 @@ export default function PaymentBatchDetail() {
         onClose={() => {
           setIsDetailModalOpen(false);
           setSelectedDetail(null);
+          setDetailClaims([]);
+          setDetailConflicts([]);
         }}
         detail={selectedDetail}
+        claims={detailClaims}
+        conflicts={detailConflicts}
       />
 
       <SuccessModal

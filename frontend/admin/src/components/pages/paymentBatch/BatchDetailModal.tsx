@@ -87,27 +87,9 @@ const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
           (tab) =>
             activeTab === tab.key && (
               <div key={tab.key}>
+                {/* Claims Tab */}
                 {tab.key === "claims" && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                          Claims Count
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {detail?.claimsCount || 0}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                          Claims Amount
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {formatPrice(detail?.claimsAmount) ?? "0.00"}
-                        </p>
-                      </div>
-                    </div>
-
+                  <div>
                     {claims && claims.length > 0 ? (
                       <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                         <table className="w-full text-sm">
@@ -117,10 +99,28 @@ const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                                 Claim Number
                               </th>
                               <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                                Amount
+                                Enrollee
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Policy Number
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Service Date
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Claim Amount
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Approved Amount
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Service Type
                               </th>
                               <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
                                 Status
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Description
                               </th>
                             </tr>
                           </thead>
@@ -128,18 +128,56 @@ const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                             {claims.map((claim) => (
                               <tr
                                 key={claim.id}
-                                className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                                className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                               >
-                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                <td className="p-3 text-gray-900 dark:text-gray-200 font-medium">
                                   {claim.claimNumber || "N/A"}
                                 </td>
                                 <td className="p-3 text-gray-700 dark:text-gray-400">
-                                  {formatPrice(claim.amount || 0) ?? "0.00"}
+                                  {claim.Enrollee
+                                    ? `${claim.Enrollee.firstName} ${claim.Enrollee.lastName}`
+                                    : "N/A"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {claim.Enrollee?.policyNumber || "N/A"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {claim.serviceDate
+                                    ? new Date(
+                                        claim.serviceDate
+                                      ).toLocaleDateString()
+                                    : "N/A"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {formatPrice(claim.claimAmount || 0) ??
+                                    "0.00"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {formatPrice(claim.approvedAmount || 0) ??
+                                    "0.00"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {claim.serviceType
+                                    ? capitalizeWords(claim.serviceType)
+                                    : "N/A"}
                                 </td>
                                 <td className="p-3">
-                                  <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                  <span
+                                    className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                                      claim.status === "approved"
+                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                        : claim.status === "rejected"
+                                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                        : claim.status === "pending"
+                                        ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                        : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+                                    }`}
+                                  >
                                     {capitalizeWords(claim.status || "pending")}
                                   </span>
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400 max-w-xs truncate">
+                                  {claim.description || "N/A"}
                                 </td>
                               </tr>
                             ))}
@@ -155,40 +193,41 @@ const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                     )}
                   </div>
                 )}
-                {tab.key === "conflicts" && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                          Reconciliation Count
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {detail?.reconciliationCount || 0}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                          Reconciliation Amount
-                        </p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {formatPrice(detail?.reconciliationAmount) ?? "0.00"}
-                        </p>
-                      </div>
-                    </div>
 
+                {/* Conflicts Tab */}
+                {tab.key === "conflicts" && (
+                  <div>
                     {conflicts && conflicts.length > 0 ? (
                       <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
                               <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                                Type
+                                Claim Number
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Enrollee
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Conflict Type
                               </th>
                               <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
                                 Description
                               </th>
                               <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                                Severity
+                                Claimed Amount
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Resolved Amount
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Status
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Assigned To
+                              </th>
+                              <th className="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                                Resolution Comment
                               </th>
                             </tr>
                           </thead>
@@ -196,28 +235,57 @@ const BatchDetailModal: React.FC<BatchDetailModalProps> = ({
                             {conflicts.map((conflict) => (
                               <tr
                                 key={conflict.id}
-                                className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                                className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                               >
-                                <td className="p-3 text-gray-700 dark:text-gray-400">
-                                  {capitalizeWords(conflict.type || "unknown")}
+                                <td className="p-3 text-gray-900 dark:text-gray-200 font-medium">
+                                  {conflict.claimNumber || "N/A"}
                                 </td>
                                 <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {conflict.Enrollee
+                                    ? `${conflict.Enrollee.firstName} ${conflict.Enrollee.lastName}`
+                                    : "N/A"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {conflict.conflictType
+                                    ? capitalizeWords(conflict.conflictType)
+                                    : "N/A"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400 max-w-xs truncate">
                                   {conflict.description || "N/A"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {formatPrice(conflict.claimedAmount || 0) ??
+                                    "0.00"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {formatPrice(conflict.resolvedAmount || 0) ??
+                                    "0.00"}
                                 </td>
                                 <td className="p-3">
                                   <span
                                     className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                      conflict.severity === "high"
+                                      conflict.status === "resolved"
+                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                        : conflict.status === "open"
                                         ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                        : conflict.severity === "medium"
+                                        : conflict.status === "in_progress"
                                         ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                        : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                        : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
                                     }`}
                                   >
                                     {capitalizeWords(
-                                      conflict.severity || "low"
+                                      conflict.status?.replace(/_/g, " ") ||
+                                        "open"
                                     )}
                                   </span>
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400">
+                                  {conflict.assignedAdmin
+                                    ? `${conflict.assignedAdmin.firstName} ${conflict.assignedAdmin.lastName}`
+                                    : "Unassigned"}
+                                </td>
+                                <td className="p-3 text-gray-700 dark:text-gray-400 max-w-xs truncate">
+                                  {conflict.resolutionComment || "N/A"}
                                 </td>
                               </tr>
                             ))}
