@@ -47,6 +47,8 @@ function defineModels(sequelize) {
   const RetailEnrolleeMedicalHistory = require("./retailEnrolleeMedicalHistory.model")(sequelize, DataTypes);
   const PaymentBatch = require("./paymentBatch.model")(sequelize, DataTypes);
   const PaymentBatchDetail = require("./paymentBatchDetail.model")(sequelize, DataTypes);
+  const ClaimInfo = require("./claimInfo.model")(sequelize, DataTypes);
+  const Conflict = require("./conflict.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -243,7 +245,27 @@ function defineModels(sequelize) {
   Provider.hasMany(PaymentBatchDetail, { foreignKey: "providerId", as: 'paymentBatchDetails' });
   PaymentBatchDetail.belongsTo(Provider, { foreignKey: "providerId" });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail };
+  // ClaimInfo <-> PaymentBatchDetail one-to-many
+  PaymentBatchDetail.hasMany(ClaimInfo, { foreignKey: "paymentBatchDetailId", as: 'claims' });
+  ClaimInfo.belongsTo(PaymentBatchDetail, { foreignKey: "paymentBatchDetailId" });
+
+  // ClaimInfo <-> Enrollee one-to-many
+  Enrollee.hasMany(ClaimInfo, { foreignKey: "enrolleeId", as: 'claimInfos' });
+  ClaimInfo.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
+
+  // Conflict <-> PaymentBatchDetail one-to-many
+  PaymentBatchDetail.hasMany(Conflict, { foreignKey: "paymentBatchDetailId", as: 'conflicts' });
+  Conflict.belongsTo(PaymentBatchDetail, { foreignKey: "paymentBatchDetailId" });
+
+  // Conflict <-> Enrollee one-to-many
+  Enrollee.hasMany(Conflict, { foreignKey: "enrolleeId", as: 'conflicts' });
+  Conflict.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
+
+  // Conflict <-> Admin (assigned to) one-to-many
+  Admin.hasMany(Conflict, { foreignKey: "assignedTo", as: 'assignedConflicts' });
+  Conflict.belongsTo(Admin, { foreignKey: "assignedTo", as: 'assignedAdmin' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, ClaimInfo, Conflict };
 }
 
 module.exports = defineModels;
