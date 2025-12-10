@@ -48,6 +48,7 @@ function defineModels(sequelize) {
   const PaymentBatch = require("./paymentBatch.model")(sequelize, DataTypes);
   const PaymentBatchDetail = require("./paymentBatchDetail.model")(sequelize, DataTypes);
   const ClaimInfo = require("./claimInfo.model")(sequelize, DataTypes);
+  const Claim = require("./claim.model")(sequelize, DataTypes);
   const Conflict = require("./conflict.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -265,7 +266,15 @@ function defineModels(sequelize) {
   Admin.hasMany(Conflict, { foreignKey: "assignedTo", as: 'assignedConflicts' });
   Conflict.belongsTo(Admin, { foreignKey: "assignedTo", as: 'assignedAdmin' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, ClaimInfo, Conflict };
+  // Claim <-> Provider one-to-many
+  Provider.hasMany(Claim, { foreignKey: "providerId", as: 'claims' });
+  Claim.belongsTo(Provider, { foreignKey: "providerId" });
+
+  // Claim <-> PaymentBatch one-to-many
+  PaymentBatch.hasMany(Claim, { foreignKey: "paymentBatchId", as: 'claims' });
+  Claim.belongsTo(PaymentBatch, { foreignKey: "paymentBatchId" });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, ClaimInfo, Claim, Conflict };
 }
 
 module.exports = defineModels;
