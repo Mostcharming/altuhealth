@@ -86,7 +86,6 @@ const navItems: NavItem[] = [
       { name: "Retail Enrollees", path: "/retail-enrollees" },
       { name: "Form Setup", path: "/form-setup" },
       { name: "Birthday Setup", path: "/birthday-setup" },
-      { name: "Bulk Upload", path: "/enrollees/bulk-upload" },
     ],
   },
   {

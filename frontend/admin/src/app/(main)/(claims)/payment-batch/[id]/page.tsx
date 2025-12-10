@@ -105,7 +105,7 @@ export default function PaymentBatchDetail() {
   const handleMarkAsPaid = async () => {
     try {
       setMarkingAsPaid(true);
-      const response = await apiClient(`/admin/payment-batches/${id}`, {
+      await apiClient(`/admin/payment-batches/${id}`, {
         method: "PUT",
         body: {
           ...paymentBatch,
@@ -113,14 +113,14 @@ export default function PaymentBatchDetail() {
         },
       });
 
-      if (response.data?.paymentBatch) {
-        setPaymentBatch(response.data.paymentBatch);
-      } else {
-        setPaymentBatch({
-          ...paymentBatch,
-          isPaid: true,
-        });
-      }
+      // if (response.data?.paymentBatch) {
+      //   setPaymentBatch(response.data.paymentBatch);
+      // } else {
+      setPaymentBatch({
+        ...paymentBatch,
+        isPaid: true,
+      });
+      // }
       successModal.openModal();
     } catch (error) {
       setErrorMessage(

@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const fs = require('fs');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { validateBenefit, validateBenefitUpdate } = require('../../../utils/benefitValidation');
 
@@ -263,10 +264,199 @@ async function getBenefit(req, res, next) {
     }
 }
 
+async function bulkCreateBenefits(req, res, next) {
+    try {
+        const { Benefit, BenefitCategory } = req.models;
+        const file = req.file;
+
+        if (!file) {
+            return res.fail('File is required', 400);
+        }
+
+        if (!file.originalname.match(/\.(csv|xlsx|xls)$/i)) {
+            return res.fail('Invalid file format. Only CSV and Excel files are allowed', 400);
+        }
+
+        let rows;
+
+        if (file.mimetype === 'text/csv') {
+            // Parse CSV
+            const csv = require('csv-parser');
+            const results = [];
+            fs.createReadStream(file.path)
+                .pipe(csv())
+                .on('data', (row) => results.push(row))
+                .on('end', async () => {
+                    try {
+                        rows = results;
+                        await processBenefitRows(rows, file, req, res);
+                    } catch (err) {
+                        return next(err);
+                    }
+                })
+                .on('error', (err) => {
+                    return next(err);
+                });
+        } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || file.mimetype === 'application/vnd.ms-excel') {
+            // Parse Excel
+            const XLSX = require('xlsx');
+            const workbook = XLSX.readFile(file.path);
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            rows = XLSX.utils.sheet_to_json(worksheet);
+
+            try {
+                await processBenefitRows(rows, file, req, res);
+            } catch (err) {
+                return next(err);
+            }
+        } else {
+            return res.fail('Invalid file format. Only CSV and Excel files are allowed', 400);
+        }
+    } catch (err) {
+        // Clean up uploaded file
+        if (req.file) {
+            try {
+                fs.unlinkSync(req.file.path);
+            } catch (e) {
+                console.error('Error deleting uploaded file:', e);
+            }
+        }
+        return next(err);
+    }
+}
+
+async function processBenefitRows(rows, file, req, res) {
+    try {
+        const { Benefit, BenefitCategory } = req.models;
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return res.fail('File is empty or has no valid data', 400);
+        }
+
+        const createdBenefits = [];
+        const errors = [];
+
+        for (let i = 0; i < rows.length; i++) {
+            try {
+                const row = rows[i];
+                const rowNumber = i + 2; // +2 because row 1 is header, i starts from 0
+
+                // Validate required fields
+                if (!row.name || !row.name.trim()) {
+                    errors.push({ row: rowNumber, error: 'name is required' });
+                    continue;
+                }
+
+                if (!row.benefitCategoryId || !row.benefitCategoryId.trim()) {
+                    errors.push({ row: rowNumber, error: 'benefitCategoryId is required' });
+                    continue;
+                }
+
+                // Validate that amount or limit is provided
+                if ((row.amount === undefined || row.amount === '') && (row.limit === undefined || row.limit === '')) {
+                    errors.push({ row: rowNumber, error: 'At least one of amount or limit is required' });
+                    continue;
+                }
+
+                // Validate that benefitCategoryId exists
+                const benefitCategory = await BenefitCategory.findByPk(row.benefitCategoryId.trim());
+                if (!benefitCategory) {
+                    errors.push({ row: rowNumber, error: `Benefit category with ID ${row.benefitCategoryId} not found` });
+                    continue;
+                }
+
+                // Check if benefit name already exists within the same category
+                const existingBenefit = await Benefit.findOne({
+                    where: {
+                        name: row.name.trim(),
+                        benefitCategoryId: row.benefitCategoryId.trim()
+                    }
+                });
+                if (existingBenefit) {
+                    errors.push({ row: rowNumber, error: `Benefit with this name already exists in this category` });
+                    continue;
+                }
+
+                // Validate amount if provided
+                const amount = row.amount !== undefined && row.amount !== '' ? parseFloat(row.amount) : null;
+                if (amount !== null && isNaN(amount)) {
+                    errors.push({ row: rowNumber, error: `Invalid amount value: ${row.amount}` });
+                    continue;
+                }
+
+                // Validate limit if provided
+                const limit = row.limit !== undefined && row.limit !== '' ? parseInt(row.limit) : null;
+                if (limit !== null && isNaN(limit)) {
+                    errors.push({ row: rowNumber, error: `Invalid limit value: ${row.limit}` });
+                    continue;
+                }
+
+                const sequelize = Benefit.sequelize;
+
+                let benefit;
+                await sequelize.transaction(async (t) => {
+                    benefit = await Benefit.create({
+                        name: row.name.trim(),
+                        description: row.description ? row.description.trim() : null,
+                        amount: amount,
+                        limit: limit,
+                        benefitCategoryId: row.benefitCategoryId.trim()
+                    }, { transaction: t });
+
+                    // Update benefit category count
+                    await benefitCategory.increment('count', { transaction: t });
+                });
+
+                createdBenefits.push(benefit.toJSON());
+            } catch (err) {
+                const rowNumber = i + 2;
+                errors.push({ row: rowNumber, error: err.message });
+            }
+        }
+
+        // Clean up uploaded file
+        try {
+            fs.unlinkSync(file.path);
+        } catch (err) {
+            console.error('Error deleting uploaded file:', err);
+        }
+
+        // Log the bulk creation
+        await addAuditLog(req.models, {
+            action: 'benefit.bulk_create',
+            message: `${createdBenefits.length} benefit(s) created via bulk upload`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { createdCount: createdBenefits.length, errorCount: errors.length }
+        });
+
+        // Return response
+        const message =
+            errors.length > 0
+                ? `${createdBenefits.length} benefit(s) created with ${errors.length} error(s)`
+                : `${createdBenefits.length} benefit(s) created successfully`;
+
+        return res.success(
+            { benefits: createdBenefits, errors, createdCount: createdBenefits.length, errorCount: errors.length },
+            message,
+            201
+        );
+    } catch (err) {
+        // Clean up uploaded file
+        try {
+            fs.unlinkSync(file.path);
+        } catch (e) {
+            console.error('Error deleting uploaded file:', e);
+        }
+        throw err;
+    }
+}
+
 module.exports = {
     createBenefit,
     updateBenefit,
     deleteBenefit,
     listBenefits,
     getBenefit,
+    bulkCreateBenefits,
 };
