@@ -29,9 +29,33 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
     {}
   );
 
-  const initialCountry =
-    defaultCountry ?? (countries[0] && countries[0].code) ?? "US";
-  const initialPhone = defaultValue ?? countryCodes[initialCountry] ?? "+1";
+  // Extract country and phone number from defaultValue
+  const extractCountryAndPhone = (value: string) => {
+    if (!value) {
+      return {
+        country: defaultCountry ?? (countries[0] && countries[0].code) ?? "US",
+        phone: "",
+      };
+    }
+
+    // Try to find a matching country code in the value
+    for (const { code, label } of countries) {
+      if (value.startsWith(label)) {
+        // Remove the country code from the phone number
+        const phone = value.substring(label.length).trim();
+        return { country: code, phone };
+      }
+    }
+
+    // If no country code found, use default country
+    return {
+      country: defaultCountry ?? (countries[0] && countries[0].code) ?? "US",
+      phone: value,
+    };
+  };
+
+  const { country: initialCountry, phone: initialPhone } =
+    extractCountryAndPhone(defaultValue ?? "");
 
   const [selectedCountry, setSelectedCountry] =
     useState<string>(initialCountry);
@@ -40,9 +64,27 @@ const PhoneInput: React.FC<PhoneInputProps> = ({
   // Update phone number when defaultValue prop changes
   useEffect(() => {
     if (defaultValue) {
-      setPhoneNumber(defaultValue);
+      if (!defaultValue) {
+        return;
+      }
+
+      // Try to find a matching country code in the value
+      let foundCountry =
+        defaultCountry ?? (countries[0] && countries[0].code) ?? "US";
+      let foundPhone = defaultValue;
+
+      for (const { code, label } of countries) {
+        if (defaultValue.startsWith(label)) {
+          foundCountry = code;
+          foundPhone = defaultValue.substring(label.length).trim();
+          break;
+        }
+      }
+
+      setSelectedCountry(foundCountry);
+      setPhoneNumber(foundPhone);
     }
-  }, [defaultValue]);
+  }, [defaultValue, countries, defaultCountry]);
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCountry = e.target.value;

@@ -6,7 +6,7 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { PencilIcon, TrashBinIcon } from "@/icons";
+import { EyeIcon, PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
@@ -14,10 +14,12 @@ import {
   PaymentBatch,
   usePaymentBatchStore,
 } from "@/lib/store/paymentBatchStore";
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import EditPaymentBatch from "./editPaymentBatch";
 
 const PaymentBatchTable: React.FC = () => {
+  const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const errorModal = useModal();
   const successModal = useModal();
@@ -196,13 +198,17 @@ const PaymentBatchTable: React.FC = () => {
     closeModal();
   };
 
+  const handleNavigate = (batch: PaymentBatch) => {
+    router.push(`/payment-batch/${batch.id}`);
+  };
+
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case "completed":
         return "bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400";
       case "pending":
         return "bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400";
-      case "processing":
+      case "Processing":
         return "bg-info-100 text-info-700 dark:bg-info-900/30 dark:text-info-400";
       case "failed":
         return "bg-error-100 text-error-700 dark:bg-error-900/30 dark:text-error-400";
@@ -336,6 +342,12 @@ const PaymentBatchTable: React.FC = () => {
 
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
+                      <button
+                        onClick={() => handleNavigate(batch)}
+                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                      >
+                        <EyeIcon />
+                      </button>
                       <button
                         onClick={() => handleView(batch)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
