@@ -1,9 +1,11 @@
 "use client";
 import Checkbox from "@/components/form/input/Checkbox";
+import FileInput from "@/components/form/input/FileInput";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
+import Switch from "@/components/form/switch/Switch";
 import ConfirmModal from "@/components/modals/confirm";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
@@ -62,6 +64,10 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
   const [createStatus, setCreateStatus] = useState<
     "active" | "inactive" | "pending"
   >("pending");
+
+  // Bulk upload state
+  const [isBulkUpload, setIsBulkUpload] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
 
   type Header = {
     key: keyof Service | "actions";
@@ -293,6 +299,98 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
       }
 
       successModal.openModal();
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred."
+      );
+      errorModal.openModal();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const downloadSampleTemplate = () => {
+    const sampleData = [
+      {
+        name: "Consultation",
+        code: "CONS-001",
+        description: "General consultation service",
+        requiresPreauthorization: "false",
+        price: "5000",
+        status: "active",
+      },
+      {
+        name: "Laboratory Test",
+        code: "LAB-001",
+        description: "Basic laboratory test",
+        requiresPreauthorization: "true",
+        price: "3000",
+        status: "active",
+      },
+    ];
+
+    const headers = Object.keys(sampleData[0]);
+    const csv = [
+      headers.join(","),
+      ...sampleData.map((row) =>
+        headers
+          .map((header) => {
+            const value = row[header as keyof typeof row];
+            return typeof value === "string" && value.includes(",")
+              ? `"${value}"`
+              : value;
+          })
+          .join(",")
+      ),
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "service_bulk_upload_template.csv";
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const handleBulkUpload = async () => {
+    try {
+      if (!bulkFile) {
+        setErrorMessage("Please select a file to upload.");
+        errorModal.openModal();
+        return;
+      }
+
+      if (!id) {
+        setErrorMessage("Provider is required.");
+        errorModal.openModal();
+        return;
+      }
+
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("file", bulkFile);
+      formData.append("providerId", id);
+
+      const data = await apiClient("/admin/services/bulk/create", {
+        method: "POST",
+        formData,
+        onLoading: (l: boolean) => setLoading(l),
+      });
+
+      if (data?.data?.services && Array.isArray(data.data.services)) {
+        data.data.services.forEach((service: Service) => {
+          addService(service);
+        });
+      }
+
+      successModal.openModal();
+      setIsBulkUpload(false);
+      setBulkFile(null);
+      resetCreateForm();
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "An unexpected error occurred."
@@ -584,114 +682,188 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         className="max-w-[900px] p-5 lg:p-10 m-4"
       >
         <div className="px-2">
-          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Add a new Service
-          </h4>
-          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the details below to create a new service.
-          </p>
-        </div>
-
-        <form
-          className="flex flex-col"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleCreateSubmit();
-          }}
-        >
-          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
-            <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Name</Label>
-                <Input
-                  type="text"
-                  value={createName}
-                  placeholder="Enter service name..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreateName(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Code</Label>
-                <Input
-                  type="text"
-                  value={createCode}
-                  placeholder="Enter service code (optional)..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreateCode(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Price</Label>
-                <Input
-                  type="number"
-                  value={createPrice}
-                  placeholder="Enter price..."
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCreatePrice(e.target.value)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Status</Label>
-                <Select
-                  options={[
-                    { value: "active", label: "Active" },
-                    { value: "inactive", label: "Inactive" },
-                    { value: "pending", label: "Pending" },
-                  ]}
-                  placeholder="Select status"
-                  onChange={(value) =>
-                    setCreateStatus(value as "active" | "inactive" | "pending")
-                  }
-                  defaultValue={createStatus}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Label>Description</Label>
-                <TextArea
-                  placeholder="Type the description here..."
-                  rows={4}
-                  value={createDescription}
-                  onChange={(value) => setCreateDescription(value)}
-                />
-              </div>
-
-              <div className="col-span-2">
-                <Checkbox
-                  label="Requires Preauthorization"
-                  checked={createRequiresPreauthorization}
-                  onChange={(checked) =>
-                    setCreateRequiresPreauthorization(checked)
-                  }
-                />
-              </div>
-
-              <div className="col-span-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={createModal.closeModal}
-                  className="px-4 py-2 rounded border"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 rounded bg-brand-500 text-white"
-                >
-                  {loading ? "Creating..." : "Create Service"}
-                </button>
-              </div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                {isBulkUpload ? "Bulk Upload Services" : "Add a new Service"}
+              </h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {isBulkUpload
+                  ? "Upload multiple services at once using a CSV file."
+                  : "Fill in the details below to create a new service."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                label="Bulk Upload"
+                defaultChecked={isBulkUpload}
+                onChange={(checked) => {
+                  setIsBulkUpload(checked);
+                  resetCreateForm();
+                  setBulkFile(null);
+                }}
+              />
             </div>
           </div>
-        </form>
+        </div>
+
+        {isBulkUpload ? (
+          <form
+            className="flex flex-col"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleBulkUpload();
+            }}
+          >
+            <div className="custom-scrollbar h-full sm:h-full overflow-y-auto px-2">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5">
+                <div>
+                  <Label>CSV File *</Label>
+                  <FileInput
+                    accept=".csv,.xlsx,.xls"
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setBulkFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Supported formats: CSV, XLSX, XLS
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={downloadSampleTemplate}
+                    className="px-4 py-2 rounded border border-brand-500 text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10"
+                  >
+                    📥 Download Sample Template
+                  </button>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={createModal.closeModal}
+                      className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
+                    >
+                      {loading ? "Uploading..." : "Upload Services"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        ) : (
+          <form
+            className="flex flex-col"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCreateSubmit();
+            }}
+          >
+            <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
+              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Name</Label>
+                  <Input
+                    type="text"
+                    value={createName}
+                    placeholder="Enter service name..."
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setCreateName(e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Code</Label>
+                  <Input
+                    type="text"
+                    value={createCode}
+                    placeholder="Enter service code (optional)..."
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setCreateCode(e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Price</Label>
+                  <Input
+                    type="number"
+                    value={createPrice}
+                    placeholder="Enter price..."
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setCreatePrice(e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Status</Label>
+                  <Select
+                    options={[
+                      { value: "active", label: "Active" },
+                      { value: "inactive", label: "Inactive" },
+                      { value: "pending", label: "Pending" },
+                    ]}
+                    placeholder="Select status"
+                    onChange={(value) =>
+                      setCreateStatus(
+                        value as "active" | "inactive" | "pending"
+                      )
+                    }
+                    defaultValue={createStatus}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Label>Description</Label>
+                  <TextArea
+                    placeholder="Type the description here..."
+                    rows={4}
+                    value={createDescription}
+                    onChange={(value) => setCreateDescription(value)}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <Checkbox
+                    label="Requires Preauthorization"
+                    checked={createRequiresPreauthorization}
+                    onChange={(checked) =>
+                      setCreateRequiresPreauthorization(checked)
+                    }
+                  />
+                </div>
+
+                <div className="col-span-2 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={createModal.closeModal}
+                    className="px-4 py-2 rounded border"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 rounded bg-brand-500 text-white"
+                  >
+                    {loading ? "Creating..." : "Create Service"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        )}
       </Modal>
       <SuccessModal
         successModal={successModal}
