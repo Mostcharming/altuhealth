@@ -1,0 +1,7 @@
+name,code,description,requiresPreauthorization,price,status
+Consultation,CONS-001,General medical consultation,false,5000,active
+Laboratory Test,LAB-001,Basic laboratory test package,true,3000,active
+X-Ray Imaging,IMG-001,Chest X-ray imaging service,true,8000,active
+Blood Test,BLT-001,Complete blood count and analysis,false,2500,pending
+Ultrasound Scan,USG-001,Abdominal ultrasound imaging,true,4500,active
+ECG Test,ECG-001,Electrocardiogram heart examination,false,1500,active
