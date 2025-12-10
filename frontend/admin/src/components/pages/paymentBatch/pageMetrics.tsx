@@ -4,13 +4,22 @@ import DatePicker from "@/components/form/date-picker";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import MultiSelect from "@/components/form/MultiSelect";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { usePaymentBatchStore } from "@/lib/store/paymentBatchStore";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
+
+interface Provider {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  category?: string;
+}
 
 export default function PageMetricsPaymentBatch({
   buttonText,
@@ -19,6 +28,9 @@ export default function PageMetricsPaymentBatch({
 }) {
   const { isOpen, openModal, closeModal } = useModal();
   const [loading, setLoading] = useState(false);
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
 
   const errorModal = useModal();
   const successModal = useModal();
@@ -30,7 +42,6 @@ export default function PageMetricsPaymentBatch({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [numberOfBatches, setNumberOfBatches] = useState("");
-  const [numberOfProviders, setNumberOfProviders] = useState("");
   const [conflictCount, setConflictCount] = useState("");
   const [totalClaimsAmount, setTotalClaimsAmount] = useState("");
   const [reconciliationAmount, setReconciliationAmount] = useState("");
@@ -40,16 +51,48 @@ export default function PageMetricsPaymentBatch({
     "Failed to create payment batch. Please try again."
   );
 
+  const fetchProviders = useCallback(async () => {
+    try {
+      setProvidersLoading(true);
+      const data = await apiClient("/admin/providers/list?limit=all", {
+        method: "GET",
+        // onLoading: (l) => setProvidersLoading(l),
+      });
+
+      const items: Provider[] =
+        data?.data?.list && Array.isArray(data.data.list)
+          ? data.data.list
+          : Array.isArray(data)
+          ? data
+          : [];
+
+      setProviders(items);
+    } catch (err) {
+      console.warn("Providers fetch failed", err);
+      setErrorMessage("Failed to load providers");
+      setProvidersLoading(false);
+    } finally {
+      setProvidersLoading(false);
+    }
+  }, []);
+
+  // Fetch providers on modal open
+  useEffect(() => {
+    if (isOpen) {
+      fetchProviders();
+    }
+  }, [isOpen, fetchProviders]);
+
   const resetForm = () => {
     setTitle("");
     setDescription("");
     setNumberOfBatches("");
-    setNumberOfProviders("");
     setConflictCount("");
     setTotalClaimsAmount("");
     setReconciliationAmount("");
     setDueDate("");
     setNotes("");
+    setSelectedProviders([]);
   };
 
   const handleSuccessClose = () => {
@@ -73,13 +116,18 @@ export default function PageMetricsPaymentBatch({
         return;
       }
 
+      if (selectedProviders.length === 0) {
+        setErrorMessage("Please select at least one provider.");
+        errorModal.openModal();
+        return;
+      }
+
       setLoading(true);
 
       const payload = {
         title: title.trim(),
         description: description.trim() || null,
         numberOfBatches: numberOfBatches ? Number(numberOfBatches) : 0,
-        numberOfProviders: numberOfProviders ? Number(numberOfProviders) : 0,
         conflictCount: conflictCount ? Number(conflictCount) : 0,
         totalClaimsAmount: totalClaimsAmount ? Number(totalClaimsAmount) : 0,
         reconciliationAmount: reconciliationAmount
@@ -87,6 +135,7 @@ export default function PageMetricsPaymentBatch({
           : 0,
         dueDate: dueDate || null,
         notes: notes.trim() || null,
+        providerIds: selectedProviders,
       };
 
       const data = await apiClient("/admin/payment-batches", {
@@ -146,7 +195,7 @@ export default function PageMetricsPaymentBatch({
       >
         <div className="px-2">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Add a new payment batch
+            Payment batch
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
             Fill in the details below to create a new payment batch.
@@ -176,7 +225,7 @@ export default function PageMetricsPaymentBatch({
               </div>
 
               {/* Number of Batches */}
-              <div>
+              {/* <div>
                 <Label>Number of Batches</Label>
                 <Input
                   type="number"
@@ -186,23 +235,10 @@ export default function PageMetricsPaymentBatch({
                     setNumberOfBatches(e.target.value)
                   }
                 />
-              </div>
-
-              {/* Number of Providers */}
-              <div>
-                <Label>Number of Providers</Label>
-                <Input
-                  type="number"
-                  placeholder="Enter number of providers"
-                  value={numberOfProviders}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setNumberOfProviders(e.target.value)
-                  }
-                />
-              </div>
+              </div> */}
 
               {/* Conflict Count */}
-              <div>
+              {/* <div>
                 <Label>Conflict Count</Label>
                 <Input
                   type="number"
@@ -212,10 +248,10 @@ export default function PageMetricsPaymentBatch({
                     setConflictCount(e.target.value)
                   }
                 />
-              </div>
+              </div> */}
 
               {/* Total Claims Amount */}
-              <div>
+              {/* <div>
                 <Label>Total Claims Amount</Label>
                 <Input
                   type="number"
@@ -225,10 +261,10 @@ export default function PageMetricsPaymentBatch({
                     setTotalClaimsAmount(e.target.value)
                   }
                 />
-              </div>
+              </div> */}
 
               {/* Reconciliation Amount */}
-              <div>
+              {/* <div>
                 <Label>Reconciliation Amount</Label>
                 <Input
                   type="number"
@@ -238,7 +274,7 @@ export default function PageMetricsPaymentBatch({
                     setReconciliationAmount(e.target.value)
                   }
                 />
-              </div>
+              </div> */}
 
               {/* Due Date */}
               <div>
@@ -255,6 +291,26 @@ export default function PageMetricsPaymentBatch({
                     }
                   }}
                 />
+              </div>
+
+              {/* Providers - Multiselect (Full width) */}
+              <div className="lg:col-span-2">
+                {providersLoading ? (
+                  <div className="text-sm text-gray-500">
+                    Loading providers...
+                  </div>
+                ) : (
+                  <MultiSelect
+                    label="Providers*"
+                    options={providers.map((provider) => ({
+                      value: provider.id,
+                      text: `${provider.name} (${provider.email})`,
+                      selected: selectedProviders.includes(provider.id),
+                    }))}
+                    defaultSelected={selectedProviders}
+                    onChange={setSelectedProviders}
+                  />
+                )}
               </div>
 
               {/* Notes - Full Width */}

@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import DatePicker from "@/components/form/date-picker";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import MultiSelect from "@/components/form/MultiSelect";
 import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
@@ -14,7 +16,15 @@ import {
   PaymentBatch,
   usePaymentBatchStore,
 } from "@/lib/store/paymentBatchStore";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
+
+interface Provider {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  category?: string;
+}
 
 interface EditPaymentBatchProps {
   isOpen: boolean;
@@ -36,6 +46,9 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
   batch,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const errorModal = useModal();
   const successModal = useModal();
   const updatePaymentBatch = usePaymentBatchStore((s) => s.updatePaymentBatch);
@@ -44,10 +57,6 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [numberOfBatches, setNumberOfBatches] = useState("");
-  const [numberOfProviders, setNumberOfProviders] = useState("");
-  const [conflictCount, setConflictCount] = useState("");
-  const [totalClaimsAmount, setTotalClaimsAmount] = useState("");
-  const [reconciliationAmount, setReconciliationAmount] = useState("");
   const [status, setStatus] = useState<PaymentBatch["status"]>("pending");
   const [isPaid, setIsPaid] = useState(false);
   const [numberPaid, setNumberPaid] = useState("");
@@ -60,16 +69,61 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
     "Failed to update payment batch. Please try again."
   );
 
+  // Fetch providers
+  const fetchProviders = useCallback(async () => {
+    try {
+      setProvidersLoading(true);
+      const data = await apiClient("/admin/providers/list?limit=all", {
+        method: "GET",
+        // onLoading: (l) => setProvidersLoading(l),
+      });
+
+      const items: Provider[] =
+        data?.data?.list && Array.isArray(data.data.list)
+          ? data.data.list
+          : Array.isArray(data)
+          ? data
+          : [];
+
+      setProviders(items);
+    } catch (err) {
+      console.warn("Providers fetch failed", err);
+    } finally {
+      setProvidersLoading(false);
+    }
+  }, []);
+
+  // Fetch current batch providers
+  const fetchBatchProviders = useCallback(async (batchId: string) => {
+    try {
+      const data = await apiClient(
+        `/admin/payment-batches/${batchId}/details/list`,
+        {
+          method: "GET",
+        }
+      );
+
+      const details = data?.data?.list || [];
+      const providerIds = details.map((detail: any) => detail.providerId);
+      setSelectedProviders(providerIds);
+    } catch (err) {
+      console.warn("Failed to fetch batch providers", err);
+    }
+  }, []);
+
+  // Fetch data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchProviders();
+    }
+  }, [isOpen, fetchProviders]);
+
   // populate form when batch changes
   useEffect(() => {
-    if (batch) {
+    if (batch && isOpen) {
       setTitle(batch.title || "");
       setDescription(batch.description || "");
       setNumberOfBatches(String(batch.numberOfBatches || 0));
-      setNumberOfProviders(String(batch.numberOfProviders || 0));
-      setConflictCount(String(batch.conflictCount || 0));
-      setTotalClaimsAmount(String(batch.totalClaimsAmount || 0));
-      setReconciliationAmount(String(batch.reconciliationAmount || 0));
       setStatus(batch.status || "pending");
       setIsPaid(batch.isPaid || false);
       setNumberPaid(String(batch.numberPaid || 0));
@@ -78,17 +132,15 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
       setUnpaidAmount(String(batch.unpaidAmount || 0));
       setDueDate(batch.dueDate ? batch.dueDate.split("T")[0] : "");
       setNotes(batch.notes || "");
+      // Fetch batch providers to pre-populate the MultiSelect
+      fetchBatchProviders(batch.id);
     }
-  }, [batch, isOpen]);
+  }, [batch, isOpen, fetchBatchProviders]);
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
     setNumberOfBatches("");
-    setNumberOfProviders("");
-    setConflictCount("");
-    setTotalClaimsAmount("");
-    setReconciliationAmount("");
     setStatus("pending");
     setIsPaid(false);
     setNumberPaid("");
@@ -97,6 +149,7 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
     setUnpaidAmount("");
     setDueDate("");
     setNotes("");
+    setSelectedProviders([]);
   };
 
   const handleSuccessClose = () => {
@@ -107,6 +160,10 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
+  };
+
+  const handleProviderSelect = (providerIds: string[]) => {
+    setSelectedProviders(providerIds);
   };
 
   const handleSubmit = async () => {
@@ -126,12 +183,7 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
         title: title.trim(),
         description: description.trim() || null,
         numberOfBatches: numberOfBatches ? Number(numberOfBatches) : 0,
-        numberOfProviders: numberOfProviders ? Number(numberOfProviders) : 0,
-        conflictCount: conflictCount ? Number(conflictCount) : 0,
-        totalClaimsAmount: totalClaimsAmount ? Number(totalClaimsAmount) : 0,
-        reconciliationAmount: reconciliationAmount
-          ? Number(reconciliationAmount)
-          : 0,
+        numberOfProviders: selectedProviders.length,
         status,
         isPaid,
         numberPaid: numberPaid ? Number(numberPaid) : 0,
@@ -216,7 +268,7 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
             </div>
 
             {/* Number of Batches */}
-            <div>
+            {/* <div>
               <Label>Number of Batches</Label>
               <Input
                 type="number"
@@ -226,63 +278,11 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
                   setNumberOfBatches(e.target.value)
                 }
               />
-            </div>
-
-            {/* Number of Providers */}
-            <div>
-              <Label>Number of Providers</Label>
-              <Input
-                type="number"
-                placeholder="Enter number of providers"
-                value={numberOfProviders}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setNumberOfProviders(e.target.value)
-                }
-              />
-            </div>
-
-            {/* Conflict Count */}
-            <div>
-              <Label>Conflict Count</Label>
-              <Input
-                type="number"
-                placeholder="Enter conflict count"
-                value={conflictCount}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setConflictCount(e.target.value)
-                }
-              />
-            </div>
-
-            {/* Total Claims Amount */}
-            <div>
-              <Label>Total Claims Amount</Label>
-              <Input
-                type="number"
-                placeholder="Enter total claims amount"
-                value={totalClaimsAmount}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setTotalClaimsAmount(e.target.value)
-                }
-              />
-            </div>
-
-            {/* Reconciliation Amount */}
-            <div>
-              <Label>Reconciliation Amount</Label>
-              <Input
-                type="number"
-                placeholder="Enter reconciliation amount"
-                value={reconciliationAmount}
-                onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                  setReconciliationAmount(e.target.value)
-                }
-              />
-            </div>
+            </div> */}
 
             {/* Is Paid */}
             <div>
-              <Label>Paid</Label>
+              <Label>Is Paid</Label>
               <Select
                 options={[
                   { value: "true", label: "Yes" },
@@ -347,7 +347,7 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
             </div>
 
             {/* Due Date */}
-            <div>
+            <div className="lg:col-span-2">
               <DatePicker
                 id="due-date-edit"
                 label="Due Date"
@@ -363,8 +363,28 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
               />
             </div>
 
-            {/* Description - Full Width */}
-            <div className="col-span-1 lg:col-span-2">
+            {/* Providers - Multiselect (Full width) */}
+            <div className="lg:col-span-2">
+              {providersLoading ? (
+                <div className="text-sm text-gray-500">
+                  Loading providers...
+                </div>
+              ) : (
+                <MultiSelect
+                  label="Providers"
+                  options={providers.map((provider) => ({
+                    value: provider.id,
+                    text: `${provider.name} (${provider.email})`,
+                    selected: selectedProviders.includes(provider.id),
+                  }))}
+                  defaultSelected={selectedProviders}
+                  onChange={handleProviderSelect}
+                />
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="lg:col-span-2">
               <Label>Description</Label>
               <TextArea
                 placeholder="Enter payment batch description"
@@ -374,8 +394,8 @@ const EditPaymentBatch: React.FC<EditPaymentBatchProps> = ({
               />
             </div>
 
-            {/* Additional Notes */}
-            <div className="col-span-1 lg:col-span-2">
+            {/* Notes */}
+            <div className="lg:col-span-2">
               <Label>Notes</Label>
               <TextArea
                 placeholder="Enter additional notes"

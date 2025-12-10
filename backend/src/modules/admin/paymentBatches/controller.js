@@ -2,33 +2,34 @@
 
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
+const { createAdminApproval } = require('../../../utils/adminApproval');
 
 async function createPaymentBatch(req, res, next) {
     try {
-        const { PaymentBatch } = req.models;
+        const { PaymentBatch, PaymentBatchDetail } = req.models;
         const {
             title,
             description,
             numberOfBatches,
-            numberOfProviders,
-            conflictCount,
-            totalClaimsAmount,
-            reconciliationAmount,
             paymentDate,
             dueDate,
-            notes
+            notes,
+            providerIds = []
         } = req.body || {};
 
         if (!title) return res.fail('`title` is required', 400);
 
+        if (!Array.isArray(providerIds) || providerIds.length === 0)
+            return res.fail('At least one provider must be selected', 400);
+
         const paymentBatch = await PaymentBatch.create({
             title,
             description,
-            numberOfBatches: numberOfBatches || 0,
-            numberOfProviders: numberOfProviders || 0,
-            conflictCount: conflictCount || 0,
-            totalClaimsAmount: totalClaimsAmount || 0,
-            reconciliationAmount: reconciliationAmount || 0,
+            numberOfBatches: numberOfBatches || providerIds.length,
+            numberOfProviders: providerIds.length,
+            conflictCount: 0,
+            totalClaimsAmount: 0,
+            reconciliationAmount: 0,
             paymentDate: paymentDate || null,
             dueDate: dueDate || null,
             notes: notes || null,
@@ -36,15 +37,57 @@ async function createPaymentBatch(req, res, next) {
             status: 'pending'
         });
 
+        // Auto-create payment batch details for each provider
+        const batchDetails = await Promise.all(
+            providerIds.map(providerId =>
+                PaymentBatchDetail.create({
+                    paymentBatchId: paymentBatch.id,
+                    providerId,
+                    period: new Date().toISOString().split('T')[0],
+                    claimsCount: 0,
+                    reconciliationCount: 0,
+                    reconciliationAmount: 0,
+                    claimsAmount: 0,
+                    paymentStatus: 'pending',
+                    notes: null
+                })
+            )
+        );
+
+        // Create admin approval request
+        try {
+            await createAdminApproval(req.models, {
+                model: 'PaymentBatch',
+                modelId: paymentBatch.id,
+                action: 'create',
+                details: {
+                    title: paymentBatch.title,
+                    description: paymentBatch.description,
+                    numberOfProviders: providerIds.length,
+                    paymentDate: paymentBatch.paymentDate,
+                    dueDate: paymentBatch.dueDate,
+                    notes: paymentBatch.notes
+                },
+                requestedBy: (req.user && req.user.id) ? req.user.id : null,
+                requestedByType: (req.user && req.user.type) ? req.user.type : 'Admin',
+                comments: `New payment batch created: ${paymentBatch.title} with ${providerIds.length} providers`
+            });
+        } catch (approvalErr) {
+            if (console && console.warn) console.warn('Failed to create approval for payment batch:', approvalErr.message || approvalErr);
+        }
+
         await addAuditLog(req.models, {
             action: 'paymentBatch.create',
-            message: `Payment Batch ${paymentBatch.title} created`,
+            message: `Payment Batch ${paymentBatch.title} created with ${providerIds.length} providers`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { paymentBatchId: paymentBatch.id }
+            meta: { paymentBatchId: paymentBatch.id, providerCount: providerIds.length }
         });
 
-        return res.success({ paymentBatch: paymentBatch.toJSON() }, 'Payment Batch created', 201);
+        return res.success({
+            paymentBatch: paymentBatch.toJSON(),
+            details: batchDetails.map(d => d.toJSON())
+        }, 'Payment Batch created', 201);
     } catch (err) {
         return next(err);
     }
