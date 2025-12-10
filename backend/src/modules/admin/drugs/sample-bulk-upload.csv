@@ -1,0 +1,9 @@
+name,unit,strength,description,price,status
+Paracetamol,tablet,500mg,Pain reliever and fever reducer,500,active
+Amoxicillin,capsule,250mg,Antibiotic medication for infections,1500,active
+Metformin,tablet,500mg,Diabetes management medication,2000,active
+Insulin Injection,injection,100IU/ml,Insulin for diabetes control,5000,active
+Aspirin,tablet,75mg,Blood thinner and pain reliever,300,active
+Ibuprofen,tablet,400mg,Anti-inflammatory and pain relief,400,pending
+Cough Syrup,bottle,200ml,Cold and cough relief,1200,active
+Vitamin C,tablet,500mg,Immune system booster supplement,800,active
