@@ -90,9 +90,10 @@ const navItems: NavItem[] = [
     icon: <EnvelopeIcon />,
     subItems: [
       { name: "Claims Management", path: "/claims" },
-      { name: "Capture & Validation", path: "/capture" },
-      { name: "Vetting & Adjudication", path: "/vetting" },
-      { name: "Assigned Claims", path: "/assigned-claims" },
+      // { name: "Capture & Validation", path: "/capture" },
+      { name: "Vetting & Adjudication", path: "/vet-claims" },
+      // { name: "Assigned Claims", path: "/assigned-claims" },
+      { name: "Awaiting Payment", path: "/awaiting-payment" },
       { name: "Payment Batch", path: "/payment-batch" },
       { name: "Payment Advice", path: "/payment-advice" },
       { name: "Reconciliation", path: "/reconciliation" },
@@ -140,7 +141,6 @@ const navItems: NavItem[] = [
       { name: "Benefit Categories", path: "/benefits" },
       { name: "Benefit Listing", path: "/benefit-listing" },
       { name: "Notification Settings", path: "/notification-settings" },
-      { name: "Integrations", path: "/integrations" },
     ],
   },
 ];
@@ -183,6 +183,8 @@ const othersItems: NavItem[] = [
     subItems: [
       { name: "API Keys", path: "/api-keys" },
       { name: "Webhooks", path: "/webhooks" },
+      { name: "Integrations", path: "/integrations" },
+      { name: "Jobs", path: "/jobs" },
     ],
   },
 ];

@@ -310,35 +310,44 @@ async function submitClaim(req, res, next) {
 }
 
 /**
- * Vet a claim (move to pending_vetting status)
+ * Vet a claim (move to under_review status - vetting complete)
  */
 async function vetClaim(req, res, next) {
     try {
-        const { Claim } = req.models;
+        const { Claim, ClaimDetail } = req.models;
         const { id } = req.params;
-        const { vetterNotes } = req.body;
+        const { vetterNotes, updateClaimDetails, detailStatus } = req.body;
 
         const claim = await Claim.findByPk(id);
         if (!claim) return res.fail('Claim not found', 404);
 
-        if (claim.status !== 'submitted') {
-            return res.fail('Only submitted claims can be vetted', 400);
+        if (claim.status !== 'pending_vetting') {
+            return res.fail('Only pending vetting claims can complete vetting', 400);
         }
 
+        // Update claim status to under_review
         await claim.update({
-            status: 'pending_vetting',
+            status: 'under_review',
             vetterNotes: vetterNotes || claim.vetterNotes
         });
 
+        // Update all claim details to partially_approved if requested
+        if (updateClaimDetails && detailStatus === 'partially_approved') {
+            await ClaimDetail.update(
+                { status: 'partially_approved' },
+                { where: { claimId: id } }
+            );
+        }
+
         await addAuditLog(req.models, {
             action: 'claim.vet',
-            message: `Claim ${claim.claimReference} marked as pending vetting`,
+            message: `Claim ${claim.claimReference} vetting complete - moved to under review`,
             userId: req.user?.id || null,
             userType: req.user?.type || 'Admin',
             meta: { claimId: claim.id }
         });
 
-        return res.success(claim, 'Claim moved to pending vetting', 200);
+        return res.success(claim, 'Claim vetting complete - moved to under review', 200);
     } catch (err) {
         return next(err);
     }
@@ -349,9 +358,9 @@ async function vetClaim(req, res, next) {
  */
 async function approveClaim(req, res, next) {
     try {
-        const { Claim } = req.models;
+        const { Claim, ClaimDetail } = req.models;
         const { id } = req.params;
-        const { amountProcessed, vetterNotes } = req.body;
+        const { amountProcessed, vetterNotes, updateClaimDetails, detailStatus } = req.body;
 
         const claim = await Claim.findByPk(id);
         if (!claim) return res.fail('Claim not found', 404);
@@ -369,6 +378,14 @@ async function approveClaim(req, res, next) {
             difference,
             vetterNotes: vetterNotes || claim.vetterNotes
         });
+
+        // Update all claim details to approved if requested
+        if (updateClaimDetails && detailStatus === 'approved') {
+            await ClaimDetail.update(
+                { status: 'approved' },
+                { where: { claimId: id } }
+            );
+        }
 
         await addAuditLog(req.models, {
             action: 'claim.approve',
@@ -389,9 +406,9 @@ async function approveClaim(req, res, next) {
  */
 async function rejectClaim(req, res, next) {
     try {
-        const { Claim } = req.models;
+        const { Claim, ClaimDetail } = req.models;
         const { id } = req.params;
-        const { rejectionReason, vetterNotes } = req.body;
+        const { rejectionReason, vetterNotes, updateClaimDetails, detailStatus } = req.body;
 
         const claim = await Claim.findByPk(id);
         if (!claim) return res.fail('Claim not found', 404);
@@ -407,6 +424,14 @@ async function rejectClaim(req, res, next) {
             rejectionReason,
             vetterNotes: vetterNotes || claim.vetterNotes
         });
+
+        // Update all claim details to rejected if requested
+        if (updateClaimDetails && detailStatus === 'rejected') {
+            await ClaimDetail.update(
+                { status: 'rejected' },
+                { where: { claimId: id } }
+            );
+        }
 
         await addAuditLog(req.models, {
             action: 'claim.reject',
@@ -464,7 +489,7 @@ async function queryClaim(req, res, next) {
  */
 async function markClaimAsPaid(req, res, next) {
     try {
-        const { Claim, PaymentBatch } = req.models;
+        const { Claim, PaymentBatch, ClaimDetail } = req.models;
         const { id } = req.params;
         const { paymentBatchId, datePaid, bankUsedForPayment, bankAccountNumber } = req.body;
 
@@ -489,6 +514,12 @@ async function markClaimAsPaid(req, res, next) {
             bankAccountNumber: bankAccountNumber || claim.bankAccountNumber
         });
 
+        // Ensure all claim details are marked as approved
+        await ClaimDetail.update(
+            { status: 'approved' },
+            { where: { claimId: id } }
+        );
+
         await addAuditLog(req.models, {
             action: 'claim.mark_paid',
             message: `Claim ${claim.claimReference} marked as paid`,
@@ -508,9 +539,9 @@ async function markClaimAsPaid(req, res, next) {
  */
 async function markClaimAsPartiallyPaid(req, res, next) {
     try {
-        const { Claim, PaymentBatch } = req.models;
+        const { Claim, PaymentBatch, ClaimDetail } = req.models;
         const { id } = req.params;
-        const { partialAmount, paymentBatchId, datePaid, bankUsedForPayment } = req.body;
+        const { amountPaid, paymentBatchId, datePaid, bankUsedForPayment } = req.body;
 
         const claim = await Claim.findByPk(id);
         if (!claim) return res.fail('Claim not found', 404);
@@ -519,12 +550,12 @@ async function markClaimAsPartiallyPaid(req, res, next) {
             return res.fail('Claim cannot be partially paid from current status', 400);
         }
 
-        if (!partialAmount || partialAmount <= 0) {
-            return res.fail('`partialAmount` must be a positive number', 400);
+        if (!amountPaid || amountPaid <= 0) {
+            return res.fail('`amountPaid` must be a positive number', 400);
         }
 
-        if (partialAmount > claim.amountProcessed) {
-            return res.fail('Partial amount cannot exceed processed amount', 400);
+        if (amountPaid > claim.amountProcessed) {
+            return res.fail('Paid amount cannot exceed processed amount', 400);
         }
 
         // Verify payment batch exists if provided
@@ -540,12 +571,18 @@ async function markClaimAsPartiallyPaid(req, res, next) {
             bankUsedForPayment: bankUsedForPayment || claim.bankUsedForPayment
         });
 
+        // Ensure all claim details are marked as approved
+        await ClaimDetail.update(
+            { status: 'approved' },
+            { where: { claimId: id } }
+        );
+
         await addAuditLog(req.models, {
             action: 'claim.mark_partially_paid',
-            message: `Claim ${claim.claimReference} marked as partially paid - Amount: ${partialAmount}`,
+            message: `Claim ${claim.claimReference} marked as partially paid - Amount: ${amountPaid}`,
             userId: req.user?.id || null,
             userType: req.user?.type || 'Admin',
-            meta: { claimId: claim.id, partialAmount }
+            meta: { claimId: claim.id, amountPaid }
         });
 
         return res.success(claim, 'Claim marked as partially paid successfully', 200);
