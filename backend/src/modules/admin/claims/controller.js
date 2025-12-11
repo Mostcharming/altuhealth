@@ -124,7 +124,7 @@ async function listClaims(req, res, next) {
  */
 async function getClaimById(req, res, next) {
     try {
-        const { Claim, Provider, PaymentBatch, ClaimDetail, Enrollee, RetailEnrollee, Diagnosis, Company } = req.models;
+        const { Claim, Provider, PaymentBatch, ClaimDetail, ClaimDetailItem, Enrollee, RetailEnrollee, Diagnosis, Company } = req.models;
         const { id } = req.params;
 
         const claim = await Claim.findByPk(id, {
@@ -141,7 +141,6 @@ async function getClaimById(req, res, next) {
                 {
                     model: ClaimDetail,
                     as: 'claimDetails',
-                    // attributes: ['id', 'claimId', 'enrolleeId', 'retailEnrolleeId', 'providerId', 'serviceDate', 'description', 'unitPrice', 'quantity', 'amountSubmitted', 'amountApproved', 'diagnosisId', 'companyId'],
                     include: [
                         {
                             model: Enrollee,
@@ -166,6 +165,12 @@ async function getClaimById(req, res, next) {
                         {
                             model: Company,
                             attributes: ['id', 'name',],
+                            required: false
+                        },
+                        {
+                            model: ClaimDetailItem,
+                            as: 'items',
+                            attributes: ['id', 'itemType', 'itemName', 'quantity', 'unitPrice', 'totalAmount', 'unit', 'description'],
                             required: false
                         }
                     ],
