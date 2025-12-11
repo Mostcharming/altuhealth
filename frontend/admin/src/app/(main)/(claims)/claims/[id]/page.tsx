@@ -32,14 +32,14 @@ export default function ClaimDetail() {
   useEffect(() => {
     const fetchClaim = async () => {
       try {
-        setLoading(true);
+        // setLoading(true);
         const response = await apiClient(`/admin/claims/${id}`);
 
         if (response.data) {
           setClaim(response.data);
+          setLoading(false);
         }
       } catch (error) {
-        setLoading(false);
         console.error("Failed to fetch claim:", error);
         setErrorMessage(
           error instanceof Error
@@ -47,7 +47,6 @@ export default function ClaimDetail() {
             : "Failed to fetch claim. Please try again."
         );
         errorModal.openModal();
-      } finally {
         setLoading(false);
       }
     };
@@ -55,7 +54,7 @@ export default function ClaimDetail() {
     if (id) {
       fetchClaim();
     }
-  }, [id, errorModal]);
+  }, [id]);
 
   useEffect(() => {
     document.title = "AltuHealth Admin Claim Details";
@@ -170,6 +169,14 @@ export default function ClaimDetail() {
                     </p>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
                       {claim?.submittedByType || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Claim ID
+                    </p>
+                    <p className="text-xs font-mono text-gray-700 dark:text-gray-300 break-all">
+                      {claim?.id || "N/A"}
                     </p>
                   </div>
                 </div>
@@ -293,6 +300,51 @@ export default function ClaimDetail() {
                   </p>
                 </div>
               )}
+
+              {/* Rejection Reason Card */}
+              {claim?.rejectionReason && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-900/30 dark:bg-red-900/20">
+                  <h3 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-4">
+                    Rejection Reason
+                  </h3>
+                  <p className="text-sm text-red-600 dark:text-red-300">
+                    {claim.rejectionReason}
+                  </p>
+                </div>
+              )}
+
+              {/* Payment Information Card */}
+              {(claim?.datePaid ||
+                claim?.bankUsedForPayment ||
+                claim?.paymentBatchId) && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-6 dark:border-green-900/30 dark:bg-green-900/20">
+                  <h3 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-4">
+                    Payment Details
+                  </h3>
+                  <div className="space-y-3">
+                    {claim?.datePaid && (
+                      <div>
+                        <p className="text-xs text-green-600 dark:text-green-300">
+                          Date Paid
+                        </p>
+                        <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                          {formatDate(claim.datePaid)}
+                        </p>
+                      </div>
+                    )}
+                    {claim?.paymentBatchId && (
+                      <div>
+                        <p className="text-xs text-green-600 dark:text-green-300">
+                          Payment Batch ID
+                        </p>
+                        <p className="text-xs font-mono text-green-700 dark:text-green-400 break-all">
+                          {claim.paymentBatchId}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Additional Information */}
@@ -312,8 +364,71 @@ export default function ClaimDetail() {
               </div>
             )}
 
+            {/* Provider Information Card */}
+            {claim?.Provider && (
+              <div className="rounded-xl border border-gray-200 bg-white overflow-hidden dark:border-gray-800 dark:bg-white/[0.03]">
+                <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Provider Information
+                  </h3>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Provider Name
+                      </p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {claim.Provider.name || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Provider Code
+                      </p>
+                      <p className="text-sm font-mono text-gray-900 dark:text-white">
+                        {claim.Provider.code || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Category
+                      </p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {capitalizeWords(claim.Provider.category || "N/A")}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Email
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        {claim.Provider.email || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Phone Number
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        {claim.Provider.phoneNumber || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Address
+                      </p>
+                      <p className="text-sm text-gray-900 dark:text-white">
+                        {claim.Provider.address || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Batch Details Table - Display encounters/claim details */}
-            {claim?.ClaimDetails && claim.ClaimDetails.length > 0 && (
+            {claim?.claimDetails && claim.claimDetails.length > 0 && (
               <div className="rounded-xl border border-gray-200 bg-white overflow-hidden dark:border-gray-800 dark:bg-white/[0.03]">
                 <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -331,13 +446,16 @@ export default function ClaimDetail() {
                           Service Type
                         </th>
                         <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                          Diagnosis Code
+                          Diagnosis
                         </th>
                         <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                          Amount
+                          Enrollee
                         </th>
                         <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                          Approved Amount
+                          Amount Submitted
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                          Amount Approved
                         </th>
                         <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
                           Status
@@ -348,27 +466,32 @@ export default function ClaimDetail() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                      {claim.ClaimDetails.map((detail: any, index: number) => (
+                      {claim?.claimDetails.map((detail: any, index: number) => (
                         <tr
                           key={index}
                           className="hover:bg-gray-50 dark:hover:bg-gray-900"
                         >
                           <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                            {detail.encounterDate
-                              ? formatDate(detail.encounterDate)
+                            {detail.serviceDate
+                              ? formatDate(detail.serviceDate)
                               : "N/A"}
                           </td>
                           <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
                             {capitalizeWords(detail.serviceType || "N/A")}
                           </td>
                           <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                            {detail.diagnosisCode || "N/A"}
+                            {detail.Diagnosis ? detail.Diagnosis.name : "N/A"}
                           </td>
                           <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                            {formatPrice(detail.amount) ?? "0.00"}
+                            {detail.Enrollee
+                              ? `${detail.Enrollee.firstName} ${detail.Enrollee.lastName}`
+                              : "N/A"}
                           </td>
                           <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                            {formatPrice(detail.approvedAmount) ?? "0.00"}
+                            {formatPrice(detail.amountSubmitted) ?? "0.00"}
+                          </td>
+                          <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
+                            {formatPrice(detail.amountApproved) ?? "0.00"}
                           </td>
                           <td className="p-4 text-sm">
                             <span
@@ -397,7 +520,7 @@ export default function ClaimDetail() {
             )}
 
             {/* No details message */}
-            {(!claim?.ClaimDetails || claim.ClaimDetails.length === 0) && (
+            {(!claim?.claimDetails || claim.claimDetails.length === 0) && (
               <div className="rounded-xl border border-gray-200 bg-white p-8 text-center dark:border-gray-800 dark:bg-white/[0.03]">
                 <p className="text-gray-500 dark:text-gray-400">
                   No claim details/encounters available for this claim

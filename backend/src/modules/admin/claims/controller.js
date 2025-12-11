@@ -124,7 +124,7 @@ async function listClaims(req, res, next) {
  */
 async function getClaimById(req, res, next) {
     try {
-        const { Claim, Provider, PaymentBatch } = req.models;
+        const { Claim, Provider, PaymentBatch, ClaimDetail, Enrollee, RetailEnrollee, Diagnosis, Company } = req.models;
         const { id } = req.params;
 
         const claim = await Claim.findByPk(id, {
@@ -136,6 +136,39 @@ async function getClaimById(req, res, next) {
                 {
                     model: PaymentBatch,
                     attributes: ['id', 'title', 'status', 'paymentDate', 'dueDate'],
+                    required: false
+                },
+                {
+                    model: ClaimDetail,
+                    as: 'claimDetails',
+                    // attributes: ['id', 'claimId', 'enrolleeId', 'retailEnrolleeId', 'providerId', 'serviceDate', 'description', 'unitPrice', 'quantity', 'amountSubmitted', 'amountApproved', 'diagnosisId', 'companyId'],
+                    include: [
+                        {
+                            model: Enrollee,
+                            attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
+                            required: false
+                        },
+                        {
+                            model: RetailEnrollee,
+                            attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
+                            required: false
+                        },
+                        {
+                            model: Provider,
+                            attributes: ['id', 'name', 'code', 'email', 'category'],
+                            required: false
+                        },
+                        {
+                            model: Diagnosis,
+                            attributes: ['id', 'name', 'description'],
+                            required: false
+                        },
+                        {
+                            model: Company,
+                            attributes: ['id', 'name',],
+                            required: false
+                        }
+                    ],
                     required: false
                 }
             ]

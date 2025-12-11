@@ -199,6 +199,26 @@ const ClaimTable: React.FC = () => {
     }
   };
 
+  const getMonthName = (monthNumber: number | string) => {
+    const monthNames = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    const month =
+      typeof monthNumber === "string" ? parseInt(monthNumber) : monthNumber;
+    return monthNames[month - 1] || "-";
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
@@ -323,7 +343,7 @@ const ClaimTable: React.FC = () => {
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {claim.month}
+                      {getMonthName(claim.month)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
