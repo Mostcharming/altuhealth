@@ -793,6 +793,340 @@ async function getPaymentStatistics(req, res, next) {
 }
 
 /**
+ * List all claim details for a specific claim
+ */
+async function listClaimDetails(req, res, next) {
+    try {
+        const { ClaimDetail, Claim, Enrollee, RetailEnrollee, Provider, Diagnosis, Company } = req.models;
+        const { claimId } = req.params;
+        const { page = 1, limit = 20 } = req.query;
+
+        // Verify claim exists
+        const claim = await Claim.findByPk(claimId);
+        if (!claim) return res.fail('Claim not found', 404);
+
+        const offset = (page - 1) * limit;
+        const { count, rows } = await ClaimDetail.findAndCountAll({
+            where: { claimId },
+            include: [
+                {
+                    model: Enrollee,
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
+                    required: false
+                },
+                {
+                    model: RetailEnrollee,
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
+                    required: false
+                },
+                {
+                    model: Provider,
+                    attributes: ['id', 'name', 'code', 'email', 'category'],
+                    required: false
+                },
+                {
+                    model: Diagnosis,
+                    attributes: ['id', 'name', 'code', 'description'],
+                    required: false
+                },
+                {
+                    model: Company,
+                    attributes: ['id', 'name', 'code'],
+                    required: false
+                }
+            ],
+            limit: parseInt(limit),
+            offset,
+            order: [['serviceDate', 'DESC']]
+        });
+
+        return res.success(
+            {
+                claimDetails: rows,
+                pagination: {
+                    total: count,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    pages: Math.ceil(count / limit)
+                }
+            },
+            'Claim details retrieved successfully',
+            200
+        );
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/**
+ * Get a single claim detail by ID
+ */
+async function getClaimDetailById(req, res, next) {
+    try {
+        const { ClaimDetail, Claim, Enrollee, RetailEnrollee, Provider, Diagnosis, Company } = req.models;
+        const { claimId, detailId } = req.params;
+
+        // Verify claim exists
+        const claim = await Claim.findByPk(claimId);
+        if (!claim) return res.fail('Claim not found', 404);
+
+        const claimDetail = await ClaimDetail.findByPk(detailId, {
+            include: [
+                {
+                    model: Enrollee,
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber', 'dateOfBirth'],
+                    required: false
+                },
+                {
+                    model: RetailEnrollee,
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber', 'dateOfBirth'],
+                    required: false
+                },
+                {
+                    model: Provider,
+                    attributes: ['id', 'name', 'code', 'email', 'category', 'address', 'phoneNumber'],
+                    required: false
+                },
+                {
+                    model: Diagnosis,
+                    attributes: ['id', 'name', 'code', 'description'],
+                    required: false
+                },
+                {
+                    model: Company,
+                    attributes: ['id', 'name', 'code', 'email'],
+                    required: false
+                }
+            ]
+        });
+
+        if (!claimDetail) return res.fail('Claim detail not found', 404);
+
+        // Verify the detail belongs to this claim
+        if (claimDetail.claimId !== claimId) {
+            return res.fail('Claim detail does not belong to this claim', 400);
+        }
+
+        return res.success(claimDetail, 'Claim detail retrieved successfully', 200);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/**
+ * Create a new claim detail (encounter)
+ */
+async function createClaimDetail(req, res, next) {
+    try {
+        const { ClaimDetail, Claim, Enrollee, RetailEnrollee, Provider, Diagnosis, Company } = req.models;
+        const { claimId } = req.params;
+        const {
+            enrolleeId,
+            retailEnrolleeId,
+            companyId,
+            diagnosisId,
+            serviceDate,
+            dischargeDate,
+            amountClaimed,
+            amountApproved,
+            serviceType,
+            description,
+            notes,
+            referralNumber,
+            authorizationCode
+        } = req.body || {};
+
+        // Verify claim exists
+        const claim = await Claim.findByPk(claimId);
+        if (!claim) return res.fail('Claim not found', 404);
+
+        // Validate that either enrolleeId or retailEnrolleeId is provided
+        if (!enrolleeId && !retailEnrolleeId) {
+            return res.fail('Either `enrolleeId` or `retailEnrolleeId` is required', 400);
+        }
+
+        // Validate required fields
+        if (!claim.providerId) return res.fail('Claim provider ID is missing', 400);
+        if (!serviceDate) return res.fail('`serviceDate` is required', 400);
+        if (!amountClaimed) return res.fail('`amountClaimed` is required', 400);
+
+        // Verify enrollee exists if provided
+        if (enrolleeId) {
+            const enrollee = await Enrollee.findByPk(enrolleeId);
+            if (!enrollee) return res.fail('Enrollee not found', 404);
+        }
+
+        // Verify retail enrollee exists if provided
+        if (retailEnrolleeId) {
+            const retailEnrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
+            if (!retailEnrollee) return res.fail('Retail enrollee not found', 404);
+        }
+
+        // Verify provider exists
+        const provider = await Provider.findByPk(claim.providerId);
+        if (!provider) return res.fail('Provider not found', 404);
+
+        // Verify diagnosis exists if provided
+        if (diagnosisId) {
+            const diagnosis = await Diagnosis.findByPk(diagnosisId);
+            if (!diagnosis) return res.fail('Diagnosis not found', 404);
+        }
+
+        // Verify company exists if provided
+        if (companyId) {
+            const company = await Company.findByPk(companyId);
+            if (!company) return res.fail('Company not found', 404);
+        }
+
+        const claimDetail = await ClaimDetail.create({
+            claimId,
+            enrolleeId: enrolleeId || null,
+            retailEnrolleeId: retailEnrolleeId || null,
+            companyId: companyId || null,
+            providerId: claim.providerId,
+            diagnosisId: diagnosisId || null,
+            serviceDate,
+            dischargeDate: dischargeDate || null,
+            amountClaimed,
+            amountApproved: amountApproved || 0,
+            serviceType: serviceType || null,
+            description: description || null,
+            notes: notes || null,
+            referralNumber: referralNumber || null,
+            authorizationCode: authorizationCode || null
+        });
+
+        // Update claim's numberOfEncounters and amountSubmitted
+        const detailCount = await ClaimDetail.count({ where: { claimId } });
+        const totalAmountClaimed = await ClaimDetail.sum('amountClaimed', { where: { claimId } });
+
+        await claim.update({
+            numberOfEncounters: detailCount,
+            amountSubmitted: totalAmountClaimed || 0
+        });
+
+        await addAuditLog(req.models, {
+            action: 'claim_detail.create',
+            message: `Claim detail created for claim ${claim.claimReference}`,
+            userId: req.user?.id || null,
+            userType: req.user?.type || 'Admin',
+            meta: { claimId, claimDetailId: claimDetail.id, amountClaimed }
+        });
+
+        return res.success(claimDetail, 'Claim detail created successfully', 201);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/**
+ * Update claim detail
+ */
+async function updateClaimDetail(req, res, next) {
+    try {
+        const { ClaimDetail, Claim } = req.models;
+        const { claimId, detailId } = req.params;
+        const updates = req.body;
+
+        // Verify claim exists
+        const claim = await Claim.findByPk(claimId);
+        if (!claim) return res.fail('Claim not found', 404);
+
+        const claimDetail = await ClaimDetail.findByPk(detailId);
+        if (!claimDetail) return res.fail('Claim detail not found', 404);
+
+        // Verify the detail belongs to this claim
+        if (claimDetail.claimId !== claimId) {
+            return res.fail('Claim detail does not belong to this claim', 400);
+        }
+
+        // Prevent certain fields from being updated
+        delete updates.claimId;
+        delete updates.providerId;
+
+        await claimDetail.update(updates);
+
+        // Recalculate claim totals
+        const detailCount = await ClaimDetail.count({ where: { claimId } });
+        const totalAmountClaimed = await ClaimDetail.sum('amountClaimed', { where: { claimId } });
+        const totalAmountApproved = await ClaimDetail.sum('amountApproved', { where: { claimId } });
+
+        await claim.update({
+            numberOfEncounters: detailCount,
+            amountSubmitted: totalAmountClaimed || 0,
+            amountProcessed: totalAmountApproved || 0,
+            difference: (totalAmountClaimed || 0) - (totalAmountApproved || 0)
+        });
+
+        await addAuditLog(req.models, {
+            action: 'claim_detail.update',
+            message: `Claim detail updated for claim ${claim.claimReference}`,
+            userId: req.user?.id || null,
+            userType: req.user?.type || 'Admin',
+            meta: { claimId, claimDetailId: claimDetail.id }
+        });
+
+        return res.success(claimDetail, 'Claim detail updated successfully', 200);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/**
+ * Delete claim detail
+ */
+async function deleteClaimDetail(req, res, next) {
+    try {
+        const { ClaimDetail, Claim } = req.models;
+        const { claimId, detailId } = req.params;
+
+        // Verify claim exists
+        const claim = await Claim.findByPk(claimId);
+        if (!claim) return res.fail('Claim not found', 404);
+
+        const claimDetail = await ClaimDetail.findByPk(detailId);
+        if (!claimDetail) return res.fail('Claim detail not found', 404);
+
+        // Verify the detail belongs to this claim
+        if (claimDetail.claimId !== claimId) {
+            return res.fail('Claim detail does not belong to this claim', 400);
+        }
+
+        // Only allow deletion if claim is in draft status
+        if (claim.status !== 'draft') {
+            return res.fail('Can only delete details from draft claims', 400);
+        }
+
+        const amountClaimed = claimDetail.amountClaimed;
+        await claimDetail.destroy();
+
+        // Recalculate claim totals
+        const detailCount = await ClaimDetail.count({ where: { claimId } });
+        const totalAmountClaimed = await ClaimDetail.sum('amountClaimed', { where: { claimId } });
+        const totalAmountApproved = await ClaimDetail.sum('amountApproved', { where: { claimId } });
+
+        await claim.update({
+            numberOfEncounters: detailCount || 0,
+            amountSubmitted: totalAmountClaimed || 0,
+            amountProcessed: totalAmountApproved || 0,
+            difference: (totalAmountClaimed || 0) - (totalAmountApproved || 0)
+        });
+
+        await addAuditLog(req.models, {
+            action: 'claim_detail.delete',
+            message: `Claim detail deleted from claim ${claim.claimReference}`,
+            userId: req.user?.id || null,
+            userType: req.user?.type || 'Admin',
+            meta: { claimId, claimDetailId: detailId, amountClaimed }
+        });
+
+        return res.success(null, 'Claim detail deleted successfully', 200);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/**
  * Helper function to generate unique claim reference
  */
 function generateClaimReference() {
@@ -821,5 +1155,10 @@ module.exports = {
     getClaimsSummary,
     getClaimsByStatusCount,
     getClaimsByProviderCount,
-    getPaymentStatistics
+    getPaymentStatistics,
+    listClaimDetails,
+    getClaimDetailById,
+    createClaimDetail,
+    updateClaimDetail,
+    deleteClaimDetail
 };

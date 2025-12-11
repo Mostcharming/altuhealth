@@ -7,6 +7,14 @@ const ClaimsController = require('./controller');
 // CRUD for claims
 router.post('/', ClaimsController.createClaim);
 router.get('/list', ClaimsController.listClaims);
+
+// Claim details routes (must come before /:id routes to avoid conflicts)
+router.get('/:claimId/details/list', ClaimsController.listClaimDetails);
+router.get('/:claimId/details/:detailId', ClaimsController.getClaimDetailById);
+router.post('/:claimId/details', ClaimsController.createClaimDetail);
+router.put('/:claimId/details/:detailId', ClaimsController.updateClaimDetail);
+router.delete('/:claimId/details/:detailId', ClaimsController.deleteClaimDetail);
+
 router.get('/:id', ClaimsController.getClaimById);
 router.put('/:id', ClaimsController.updateClaim);
 router.delete('/:id', ClaimsController.deleteClaim);
