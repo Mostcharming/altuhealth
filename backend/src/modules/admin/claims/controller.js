@@ -321,8 +321,8 @@ async function vetClaim(req, res, next) {
         const claim = await Claim.findByPk(id);
         if (!claim) return res.fail('Claim not found', 404);
 
-        if (claim.status !== 'pending_vetting') {
-            return res.fail('Only pending vetting claims can complete vetting', 400);
+        if (!['submitted', 'pending_vetting'].includes(claim.status)) {
+            return res.fail('Only submitted or pending vetting claims can complete vetting', 400);
         }
 
         // Update claim status to under_review

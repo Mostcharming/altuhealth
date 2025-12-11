@@ -5,7 +5,7 @@ import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
 import { fetchClaims, fetchProviders } from "@/lib/apis/claim";
 import capitalizeWords from "@/lib/capitalize";
-import { formatDate, formatPrice } from "@/lib/formatDate";
+import { formatDate, formatPrice, getMonthName } from "@/lib/formatDate";
 import { Claim, useClaimStore } from "@/lib/store/claimStore";
 import { Provider, useProviderStore } from "@/lib/store/providerStore";
 import { useRouter } from "next/navigation";
@@ -163,26 +163,6 @@ const AwaitingPaymentClaimTable: React.FC = () => {
       default:
         return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
     }
-  };
-
-  const getMonthName = (monthNumber: number | string) => {
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const month =
-      typeof monthNumber === "string" ? parseInt(monthNumber) : monthNumber;
-    return monthNames[month - 1] || "-";
   };
 
   return (

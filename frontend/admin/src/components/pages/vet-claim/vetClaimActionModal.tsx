@@ -79,7 +79,7 @@ const VetClaimActionModal: React.FC<VetClaimActionModalProps> = ({
 
       const response = await apiClient(endpoint, {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       if (response.success || response.data) {

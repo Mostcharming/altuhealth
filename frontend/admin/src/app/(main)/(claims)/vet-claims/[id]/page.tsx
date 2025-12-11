@@ -12,7 +12,7 @@ import { useModal } from "@/hooks/useModal";
 import { EyeIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
-import { formatDate, formatPrice } from "@/lib/formatDate";
+import { formatDate, formatPrice, getMonthName } from "@/lib/formatDate";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -67,7 +67,7 @@ export default function VetClaimDetail() {
         return "bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400";
       case "awaiting_payment":
         return "bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400";
-      case "under_review":
+      case "Under_review":
         return "bg-info-100 text-info-700 dark:bg-info-900/30 dark:text-info-400";
       case "rejected":
         return "bg-error-100 text-error-700 dark:bg-error-900/30 dark:text-error-400";
@@ -120,7 +120,7 @@ export default function VetClaimDetail() {
       ) : (
         <>
           <PageBreadcrumbSub
-            parentTitle="Vet Claims"
+            parentTitle="Vet/Review Claims"
             parentHref="/vet-claims"
             currentTitle={pageTitle}
           />
@@ -180,7 +180,9 @@ export default function VetClaimDetail() {
                       Period
                     </p>
                     <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {claim?.month ? `${claim.month}/${claim.year}` : "N/A"}
+                      {claim?.month
+                        ? `${getMonthName(claim.month)}/${claim.year}`
+                        : "N/A"}
                     </p>
                   </div>
                   <div>
