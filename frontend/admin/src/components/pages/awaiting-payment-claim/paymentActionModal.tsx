@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import DatePicker from "@/components/form/date-picker";
 import { Modal } from "@/components/ui/modal";
 import { apiClient } from "@/lib/apiClient";
 import React, { useState } from "react";
@@ -73,7 +74,7 @@ const PaymentActionModal: React.FC<PaymentActionModalProps> = ({
 
       const response = await apiClient(endpoint, {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       if (response.success || response.data) {
@@ -188,17 +189,20 @@ const PaymentActionModal: React.FC<PaymentActionModalProps> = ({
         {selectedAction && (
           <>
             {/* Payment Date */}
-            <div>
-              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
-                Payment Date
-              </label>
-              <input
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-              />
-            </div>
+            <DatePicker
+              id="payment-date"
+              label="Payment Date"
+              placeholder="Select payment date"
+              mode="single"
+              defaultDate={paymentDate || undefined}
+              onChange={(selectedDates) => {
+                if (selectedDates.length > 0) {
+                  const date = new Date(selectedDates[0]);
+                  const formattedDate = date.toISOString().split("T")[0];
+                  setPaymentDate(formattedDate);
+                }
+              }}
+            />
 
             {/* Paid Amount - only for partially paid */}
             {selectedAction === "partially_paid" && (
@@ -218,7 +222,7 @@ const PaymentActionModal: React.FC<PaymentActionModalProps> = ({
             )}
 
             {/* Bank Used */}
-            <div>
+            {/* <div>
               <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
                 Bank Used (Optional)
               </label>
@@ -229,10 +233,10 @@ const PaymentActionModal: React.FC<PaymentActionModalProps> = ({
                 placeholder="e.g., GTBank, First Bank"
                 className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               />
-            </div>
+            </div> */}
 
             {/* Payment Batch ID */}
-            <div>
+            {/* <div>
               <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 block">
                 Payment Batch ID (Optional)
               </label>
@@ -243,7 +247,7 @@ const PaymentActionModal: React.FC<PaymentActionModalProps> = ({
                 placeholder="Enter batch ID if applicable"
                 className="w-full p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               />
-            </div>
+            </div> */}
           </>
         )}
       </div>

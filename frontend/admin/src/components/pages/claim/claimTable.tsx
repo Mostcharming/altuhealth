@@ -5,7 +5,7 @@ import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
 import { fetchClaims, fetchProviders } from "@/lib/apis/claim";
 import capitalizeWords from "@/lib/capitalize";
-import { formatDate, formatPrice } from "@/lib/formatDate";
+import { formatDate, formatPrice, getMonthName } from "@/lib/formatDate";
 import { Claim, useClaimStore } from "@/lib/store/claimStore";
 import { Provider, useProviderStore } from "@/lib/store/providerStore";
 import { useRouter } from "next/navigation";
@@ -182,7 +182,7 @@ const ClaimTable: React.FC = () => {
         return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
       case "pending_vetting":
         return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "under_review":
+      case "Under_review":
         return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
       case "awaiting_payment":
         return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
@@ -197,26 +197,6 @@ const ClaimTable: React.FC = () => {
       default:
         return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
     }
-  };
-
-  const getMonthName = (monthNumber: number | string) => {
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const month =
-      typeof monthNumber === "string" ? parseInt(monthNumber) : monthNumber;
-    return monthNames[month - 1] || "-";
   };
 
   return (

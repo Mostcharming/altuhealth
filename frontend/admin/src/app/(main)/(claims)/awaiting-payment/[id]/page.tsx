@@ -67,7 +67,7 @@ export default function AwaitingPaymentClaimDetail() {
         return "bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-400";
       case "awaiting_payment":
         return "bg-warning-100 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400";
-      case "under_review":
+      case "Under_review":
         return "bg-info-100 text-info-700 dark:bg-info-900/30 dark:text-info-400";
       case "rejected":
         return "bg-error-100 text-error-700 dark:bg-error-900/30 dark:text-error-400";
