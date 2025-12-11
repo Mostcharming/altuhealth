@@ -50,6 +50,7 @@ function defineModels(sequelize) {
   const ClaimInfo = require("./claimInfo.model")(sequelize, DataTypes);
   const Claim = require("./claim.model")(sequelize, DataTypes);
   const ClaimDetail = require("./claimDetail.model")(sequelize, DataTypes);
+  const ClaimDetailItem = require("./claimDetailItem.model")(sequelize, DataTypes);
   const Conflict = require("./conflict.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
@@ -299,7 +300,19 @@ function defineModels(sequelize) {
   Diagnosis.hasMany(ClaimDetail, { foreignKey: "diagnosisId", as: 'claimDetails' });
   ClaimDetail.belongsTo(Diagnosis, { foreignKey: "diagnosisId" });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, ClaimInfo, Claim, ClaimDetail, Conflict };
+  // ClaimDetailItem <-> ClaimDetail one-to-many
+  ClaimDetail.hasMany(ClaimDetailItem, { foreignKey: "claimDetailId", as: 'items' });
+  ClaimDetailItem.belongsTo(ClaimDetail, { foreignKey: "claimDetailId" });
+
+  // ClaimDetailItem <-> Drug one-to-many (when itemType is 'drug')
+  Drug.hasMany(ClaimDetailItem, { foreignKey: "itemId", constraints: false, scope: { itemType: 'drug' }, as: 'claimDetailItems' });
+  ClaimDetailItem.belongsTo(Drug, { foreignKey: "itemId", constraints: false, as: 'drug' });
+
+  // ClaimDetailItem <-> Service one-to-many (when itemType is 'service')
+  Service.hasMany(ClaimDetailItem, { foreignKey: "itemId", constraints: false, scope: { itemType: 'service' }, as: 'claimDetailItems' });
+  ClaimDetailItem.belongsTo(Service, { foreignKey: "itemId", constraints: false, as: 'service' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict };
 }
 
 module.exports = defineModels;

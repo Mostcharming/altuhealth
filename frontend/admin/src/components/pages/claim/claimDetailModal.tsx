@@ -229,6 +229,76 @@ const ClaimDetailModal: React.FC<ClaimDetailModalProps> = ({
               </div>
             )}
 
+            {/* Items (Drugs/Services) */}
+            {detail.items && detail.items.length > 0 && (
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                  Items ({detail.items.length})
+                </h5>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-400">
+                          Type
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-400">
+                          Name
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 dark:text-gray-400">
+                          Quantity
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-semibold text-gray-700 dark:text-gray-400">
+                          Unit
+                        </th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-400">
+                          Unit Price
+                        </th>
+                        <th className="px-3 py-2 text-right text-xs font-semibold text-gray-700 dark:text-gray-400">
+                          Total Amount
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detail.items.map((item: any, index: number) => (
+                        <tr
+                          key={index}
+                          className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                        >
+                          <td className="px-3 py-3 text-xs">
+                            <span
+                              className={`inline-block px-2 py-1 rounded-full font-medium ${
+                                item.itemType === "drug"
+                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                  : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              }`}
+                            >
+                              {capitalizeWords(item.itemType)}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-sm text-gray-900 dark:text-white font-medium">
+                            {item.itemName}
+                          </td>
+                          <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                            {item.quantity}
+                          </td>
+                          <td className="px-3 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
+                            {item.unit || "-"}
+                          </td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">
+                            {formatPrice(item.unitPrice)}
+                          </td>
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">
+                            {formatPrice(item.totalAmount)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* Financial Details */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">

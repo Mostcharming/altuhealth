@@ -446,6 +446,9 @@ export default function ClaimDetail() {
                           Service Type
                         </th>
                         <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                          Items
+                        </th>
+                        <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
                           Diagnosis
                         </th>
                         <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
@@ -478,6 +481,42 @@ export default function ClaimDetail() {
                           </td>
                           <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
                             {capitalizeWords(detail.serviceType || "N/A")}
+                          </td>
+                          <td className="p-4 text-sm">
+                            {detail.items && detail.items.length > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                {detail.items
+                                  .slice(0, 2)
+                                  .map((item: any, idx: number) => (
+                                    <div
+                                      key={idx}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <span
+                                        className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                          item.itemType === "drug"
+                                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                            : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                        }`}
+                                      >
+                                        {item.itemName}
+                                      </span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        x{item.quantity}
+                                      </span>
+                                    </div>
+                                  ))}
+                                {detail.items.length > 2 && (
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold">
+                                    +{detail.items.length - 2} more
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 dark:text-gray-400">
+                                No items
+                              </span>
+                            )}
                           </td>
                           <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
                             {detail.Diagnosis ? detail.Diagnosis.name : "N/A"}
