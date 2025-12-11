@@ -30,9 +30,10 @@ export default function PaymentAdviceDetail() {
         setLoading(true);
         const response = await apiClient(`/admin/payment-advices/${id}`);
 
-        if (response.data) {
-          setPaymentAdvice(response.data);
+        if (response.data && response.data.paymentAdvice) {
+          setPaymentAdvice(response.data.paymentAdvice);
         }
+        console.log(response.data);
       } catch (error) {
         console.error("Failed to fetch payment advice:", error);
         setErrorMessage(
@@ -98,7 +99,7 @@ export default function PaymentAdviceDetail() {
                     {paymentAdvice?.paymentAdviceNumber}
                   </h1>
                   <p className="text-gray-600 dark:text-gray-400 mt-2">
-                    {paymentAdvice?.provider?.name}
+                    {capitalizeWords(paymentAdvice?.provider?.name)}
                   </p>
                 </div>
                 <span
