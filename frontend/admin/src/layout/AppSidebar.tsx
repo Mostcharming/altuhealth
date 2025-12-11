@@ -96,7 +96,7 @@ const navItems: NavItem[] = [
       { name: "Awaiting Payment", path: "/awaiting-payment" },
       { name: "Payment Batch", path: "/payment-batch" },
       { name: "Payment Advice", path: "/payment-advice" },
-      { name: "Reconciliation", path: "/reconciliation" },
+      // { name: "Reconciliation", path: "/reconciliation" },
     ],
   },
   {
