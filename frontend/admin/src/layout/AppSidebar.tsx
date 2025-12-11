@@ -92,10 +92,10 @@ const navItems: NavItem[] = [
       { name: "Claims Management", path: "/claims" },
       { name: "Capture & Validation", path: "/capture" },
       { name: "Vetting & Adjudication", path: "/vetting" },
+      { name: "Assigned Claims", path: "/assigned-claims" },
       { name: "Payment Batch", path: "/payment-batch" },
       { name: "Payment Advice", path: "/payment-advice" },
       { name: "Reconciliation", path: "/reconciliation" },
-      { name: "Assigned Claims", path: "/assigned-claims" },
     ],
   },
   {
