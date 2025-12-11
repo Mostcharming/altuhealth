@@ -35,6 +35,7 @@ router.use('/retail-enrollees', require('./retailEnrollees/route'));
 router.use('/retail-enrollee-dependents', require('./retailEnrolleeDependents/route'));
 router.use('/retail-enrollees/:retailEnrolleeId/dependents', require('./retailEnrolleeDependents/route'));
 router.use('/payment-batches', require('./paymentBatches/route'));
+router.use('/payment-advices', require('./paymentAdvices/route'));
 router.use('/claims', require('./claims/route'));
 
 router.use(errorHandler);
