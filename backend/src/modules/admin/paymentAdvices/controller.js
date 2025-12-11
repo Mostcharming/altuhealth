@@ -10,7 +10,7 @@ async function generatePaymentAdviceNumber(PaymentAdvice) {
     const timestamp = date.getFullYear().toString().slice(-2) +
         String(date.getMonth() + 1).padStart(2, '0') +
         String(date.getDate()).padStart(2, '0');
-    return `PA-${timestamp}-${String(count + 1).padStart(5, '0')}`;
+    return `AHL-PAY-${timestamp}-${String(count + 1).padStart(5, '0')}`;
 }
 
 async function createPaymentAdvice(req, res, next) {
@@ -68,14 +68,16 @@ async function createPaymentAdvice(req, res, next) {
 
         // Add audit log
         await addAuditLog(req.models, {
+
+
+            action: 'paymentAdvise.create',
+            message: 'Payment Advice created',
             userId: (req.user && req.user.id) ? req.user.id : null,
-            action: 'CREATE',
-            tableName: 'payment_advices',
-            recordId: paymentAdvice.id,
-            changes: { created: true }
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { paymentAdiceId: paymentAdvice.id, providerId }
         });
 
-        res.success('Payment Advice created successfully', { paymentAdvice }, 201);
+        res.success({ paymentAdvice }, 'Payment Advice created successfully', 201);
     } catch (error) {
         next(error);
     }
@@ -114,7 +116,7 @@ async function listPaymentAdvices(req, res, next) {
             distinct: true
         });
 
-        res.success('Payment Advices retrieved successfully', {
+        res.success({
             paymentAdvices: rows,
             pagination: {
                 total: count,
@@ -122,7 +124,7 @@ async function listPaymentAdvices(req, res, next) {
                 limit: parseInt(limit),
                 pages: Math.ceil(count / limit)
             }
-        });
+        }, 'Payment Advices retrieved successfully');
     } catch (error) {
         next(error);
     }
@@ -145,7 +147,7 @@ async function getPaymentAdvice(req, res, next) {
 
         if (!paymentAdvice) return res.fail('Payment Advice not found', 404);
 
-        res.success('Payment Advice retrieved successfully', { paymentAdvice });
+        res.success({ paymentAdvice }, 'Payment Advice retrieved successfully');
     } catch (error) {
         next(error);
     }
@@ -200,7 +202,7 @@ async function updatePaymentAdvice(req, res, next) {
             changes
         });
 
-        res.success('Payment Advice updated successfully', { paymentAdvice });
+        res.success({ paymentAdvice }, 'Payment Advice updated successfully');
     } catch (error) {
         next(error);
     }
@@ -230,7 +232,7 @@ async function deletePaymentAdvice(req, res, next) {
             changes: { deleted: true }
         });
 
-        res.success('Payment Advice deleted successfully');
+        res.success({}, 'Payment Advice deleted successfully');
     } catch (error) {
         next(error);
     }
@@ -263,7 +265,7 @@ async function approvePaymentAdvice(req, res, next) {
             changes: { status: { old: 'draft', new: 'approved' } }
         });
 
-        res.success('Payment Advice approved successfully', { paymentAdvice });
+        res.success({ paymentAdvice }, 'Payment Advice approved successfully');
     } catch (error) {
         next(error);
     }
@@ -295,7 +297,7 @@ async function sendPaymentAdvice(req, res, next) {
             changes: { status: { old: 'approved', new: 'sent' } }
         });
 
-        res.success('Payment Advice sent successfully', { paymentAdvice });
+        res.success({ paymentAdvice }, 'Payment Advice sent successfully');
     } catch (error) {
         next(error);
     }
@@ -327,7 +329,7 @@ async function acknowledgePaymentAdvice(req, res, next) {
             changes: { status: { old: 'sent', new: 'acknowledged' } }
         });
 
-        res.success('Payment Advice acknowledged successfully', { paymentAdvice });
+        res.success({ paymentAdvice }, 'Payment Advice acknowledged successfully');
     } catch (error) {
         next(error);
     }
@@ -356,7 +358,7 @@ async function getPaymentAdvicesByBatch(req, res, next) {
             distinct: true
         });
 
-        res.success('Payment Advices for batch retrieved successfully', {
+        res.success({
             paymentAdvices: rows,
             pagination: {
                 total: count,
@@ -364,7 +366,7 @@ async function getPaymentAdvicesByBatch(req, res, next) {
                 limit: parseInt(limit),
                 pages: Math.ceil(count / limit)
             }
-        });
+        }, 'Payment Advices for batch retrieved successfully');
     } catch (error) {
         next(error);
     }

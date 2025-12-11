@@ -47,6 +47,7 @@ function defineModels(sequelize) {
   const RetailEnrolleeMedicalHistory = require("./retailEnrolleeMedicalHistory.model")(sequelize, DataTypes);
   const PaymentBatch = require("./paymentBatch.model")(sequelize, DataTypes);
   const PaymentBatchDetail = require("./paymentBatchDetail.model")(sequelize, DataTypes);
+  const PaymentAdvice = require("./paymentAdvice.model")(sequelize, DataTypes);
   const ClaimInfo = require("./claimInfo.model")(sequelize, DataTypes);
   const Claim = require("./claim.model")(sequelize, DataTypes);
   const ClaimDetail = require("./claimDetail.model")(sequelize, DataTypes);
@@ -248,6 +249,22 @@ function defineModels(sequelize) {
   Provider.hasMany(PaymentBatchDetail, { foreignKey: "providerId", as: 'paymentBatchDetails' });
   PaymentBatchDetail.belongsTo(Provider, { foreignKey: "providerId" });
 
+  // PaymentAdvice <-> Provider one-to-many
+  Provider.hasMany(PaymentAdvice, { foreignKey: "providerId", as: 'paymentAdvices' });
+  PaymentAdvice.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
+
+  // PaymentAdvice <-> PaymentBatch one-to-many
+  PaymentBatch.hasMany(PaymentAdvice, { foreignKey: "paymentBatchId", as: 'paymentAdvices' });
+  PaymentAdvice.belongsTo(PaymentBatch, { foreignKey: "paymentBatchId", as: 'paymentBatch' });
+
+  // PaymentAdvice <-> Admin (approved by) one-to-many
+  Admin.hasMany(PaymentAdvice, { foreignKey: "approvedBy", as: 'approvedPaymentAdvices', constraints: false });
+  PaymentAdvice.belongsTo(Admin, { foreignKey: "approvedBy", as: 'approver', constraints: false });
+
+  // PaymentAdvice <-> Admin (created by) one-to-many
+  Admin.hasMany(PaymentAdvice, { foreignKey: "createdBy", as: 'createdPaymentAdvices', constraints: false });
+  PaymentAdvice.belongsTo(Admin, { foreignKey: "createdBy", as: 'creator', constraints: false });
+
   // ClaimInfo <-> PaymentBatchDetail one-to-many
   PaymentBatchDetail.hasMany(ClaimInfo, { foreignKey: "paymentBatchDetailId", as: 'claims' });
   ClaimInfo.belongsTo(PaymentBatchDetail, { foreignKey: "paymentBatchDetailId" });
@@ -312,7 +329,7 @@ function defineModels(sequelize) {
   Service.hasMany(ClaimDetailItem, { foreignKey: "itemId", constraints: false, scope: { itemType: 'service' }, as: 'claimDetailItems' });
   ClaimDetailItem.belongsTo(Service, { foreignKey: "itemId", constraints: false, as: 'service' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict };
 }
 
 module.exports = defineModels;

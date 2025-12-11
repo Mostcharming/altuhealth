@@ -49,7 +49,7 @@ export default function PaymentAdviceDetail() {
     if (id) {
       fetchPaymentAdvice();
     }
-  }, [id, errorModal]);
+  }, [id]);
 
   useEffect(() => {
     document.title = "AltuHealth Admin Payment Advice Details";

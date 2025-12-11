@@ -94,8 +94,8 @@ const PaymentAdviceTable: React.FC = () => {
       });
 
       const items: PaymentAdvice[] =
-        data?.data?.list && Array.isArray(data.data.list)
-          ? data.data.list
+        data?.data?.paymentAdvices && Array.isArray(data.data.paymentAdvices)
+          ? data.data.paymentAdvices
           : Array.isArray(data)
           ? data
           : [];
