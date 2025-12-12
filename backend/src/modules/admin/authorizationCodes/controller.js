@@ -279,17 +279,17 @@ async function listAuthorizationCodes(req, res, next) {
                 },
                 {
                     model: Diagnosis,
-                    attributes: ['id', 'diagnosisName', 'diagnosisCode'],
+                    attributes: ['id', 'name',],
                     required: false
                 },
                 {
                     model: Company,
-                    attributes: ['id', 'companyName', 'companyCode'],
+                    attributes: ['id', 'name'],
                     required: false
                 },
                 {
                     model: CompanyPlan,
-                    attributes: ['id', 'planName', 'planCode'],
+                    attributes: ['id', 'name',],
                     required: false
                 },
                 {

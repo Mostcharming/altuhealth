@@ -126,8 +126,8 @@ const AuthorizationCodesTable: React.FC = () => {
         const [enrolleesData, providersData, companiesData] = await Promise.all(
           [
             apiClient("/admin/enrollees?limit=all", { method: "GET" }),
-            apiClient("/admin/providers?limit=all", { method: "GET" }),
-            apiClient("/admin/companies?limit=all", { method: "GET" }),
+            apiClient("/admin/providers/list?limit=all", { method: "GET" }),
+            apiClient("/admin/companies/list?limit=all", { method: "GET" }),
           ]
         );
 
@@ -141,18 +141,16 @@ const AuthorizationCodesTable: React.FC = () => {
         setEnrollees(enrolleesList);
 
         const providersList: Provider[] =
-          providersData?.data?.providers &&
-          Array.isArray(providersData.data.providers)
-            ? providersData.data.providers
+          providersData?.data?.list && Array.isArray(providersData.data.list)
+            ? providersData.data.list
             : Array.isArray(providersData)
             ? providersData
             : [];
         setProviders(providersList);
 
         const companiesList: Company[] =
-          companiesData?.data?.companies &&
-          Array.isArray(companiesData.data.companies)
-            ? companiesData.data.companies
+          companiesData?.data?.list && Array.isArray(companiesData.data.list)
+            ? companiesData.data.list
             : Array.isArray(companiesData)
             ? companiesData
             : [];

@@ -455,13 +455,9 @@ export default function EditAuthorizationCode({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Valid From
                 </label>
-                <input
-                  type="date"
-                  value={validFrom}
-                  onChange={(e) => setValidFrom(e.target.value)}
-                  disabled
-                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 cursor-not-allowed"
-                />
+                <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 cursor-not-allowed">
+                  {validFrom}
+                </div>
               </div>
 
               {/* Valid To (Read-only) */}
@@ -469,13 +465,9 @@ export default function EditAuthorizationCode({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Valid To
                 </label>
-                <input
-                  type="date"
-                  value={validTo}
-                  onChange={(e) => setValidTo(e.target.value)}
-                  disabled
-                  className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 cursor-not-allowed"
-                />
+                <div className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 cursor-not-allowed">
+                  {validTo}
+                </div>
               </div>
 
               {/* Amount Authorized */}

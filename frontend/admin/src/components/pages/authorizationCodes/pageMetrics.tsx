@@ -1,6 +1,7 @@
 "use client";
 
 import Select from "@/components/form/Select";
+import DatePicker from "@/components/form/date-picker";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
@@ -90,9 +91,37 @@ export default function PageMetricsAuthorizationCodes({
       fetchProviders();
       fetchDiagnoses();
       fetchCompanies();
-      fetchCompanyPlans();
     }
   }, [isOpen]);
+
+  // Fetch company plans when company is selected
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const data = await apiClient(
+          `/admin/company-plans/list?limit=all&companyId=${companyId}`,
+          {
+            method: "GET",
+          }
+        );
+        const items: CompanyPlan[] =
+          data?.data?.list && Array.isArray(data.data.list)
+            ? data.data.list
+            : Array.isArray(data)
+            ? data
+            : [];
+        setCompanyPlans(items);
+      } catch (err) {
+        console.warn("Failed to fetch company plans", err);
+      }
+    };
+
+    if (companyId) {
+      fetchPlans();
+    } else {
+      setCompanyPlans([]);
+    }
+  }, [companyId]);
 
   const fetchEnrollees = async () => {
     try {
@@ -117,8 +146,8 @@ export default function PageMetricsAuthorizationCodes({
         method: "GET",
       });
       const items: Provider[] =
-        data?.data?.providers && Array.isArray(data.data.providers)
-          ? data.data.providers
+        data?.data?.list && Array.isArray(data.data.list)
+          ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
@@ -130,12 +159,12 @@ export default function PageMetricsAuthorizationCodes({
 
   const fetchDiagnoses = async () => {
     try {
-      const data = await apiClient("/admin/diagnoses/list?limit=all", {
+      const data = await apiClient("/admin/diagnosis/list?limit=all", {
         method: "GET",
       });
       const items: Diagnosis[] =
-        data?.data?.diagnoses && Array.isArray(data.data.diagnoses)
-          ? data.data.diagnoses
+        data?.data?.list && Array.isArray(data.data.list)
+          ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
@@ -151,31 +180,14 @@ export default function PageMetricsAuthorizationCodes({
         method: "GET",
       });
       const items: Company[] =
-        data?.data?.companies && Array.isArray(data.data.companies)
-          ? data.data.companies
+        data?.data?.list && Array.isArray(data.data.list)
+          ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
       setCompanies(items);
     } catch (err) {
       console.warn("Failed to fetch companies", err);
-    }
-  };
-
-  const fetchCompanyPlans = async () => {
-    try {
-      const data = await apiClient("/admin/company-plans/list?limit=all", {
-        method: "GET",
-      });
-      const items: CompanyPlan[] =
-        data?.data?.plans && Array.isArray(data.data.plans)
-          ? data.data.plans
-          : Array.isArray(data)
-          ? data
-          : [];
-      setCompanyPlans(items);
-    } catch (err) {
-      console.warn("Failed to fetch company plans", err);
     }
   };
 
@@ -373,7 +385,7 @@ export default function PageMetricsAuthorizationCodes({
                 <Select
                   options={diagnoses.map((d) => ({
                     value: d.id,
-                    label: `${d.name} (${d.code})`,
+                    label: `${d.name} `,
                   }))}
                   placeholder="Select diagnosis"
                   onChange={(value) => setDiagnosisId(value as string)}
@@ -421,27 +433,33 @@ export default function PageMetricsAuthorizationCodes({
 
               {/* Valid From */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
-                  Valid From *
-                </label>
-                <input
-                  type="date"
-                  value={validFrom}
-                  onChange={(e) => setValidFrom(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                <DatePicker
+                  id="validFrom"
+                  label="Valid From *"
+                  placeholder="Select date"
+                  defaultDate={validFrom}
+                  onChange={(selectedDates) => {
+                    if (selectedDates[0]) {
+                      const date = new Date(selectedDates[0]);
+                      setValidFrom(date.toISOString().split('T')[0]);
+                    }
+                  }}
                 />
               </div>
 
               {/* Valid To */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
-                  Valid To *
-                </label>
-                <input
-                  type="date"
-                  value={validTo}
-                  onChange={(e) => setValidTo(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                <DatePicker
+                  id="validTo"
+                  label="Valid To *"
+                  placeholder="Select date"
+                  defaultDate={validTo}
+                  onChange={(selectedDates) => {
+                    if (selectedDates[0]) {
+                      const date = new Date(selectedDates[0]);
+                      setValidTo(date.toISOString().split('T')[0]);
+                    }
+                  }}
                 />
               </div>
 
