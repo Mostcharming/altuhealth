@@ -39,6 +39,7 @@ router.use('/payment-batches', require('./paymentBatches/route'));
 router.use('/payment-advices', require('./paymentAdvices/route'));
 router.use('/claims', require('./claims/route'));
 router.use('/appointments', require('./appointments/route'));
+router.use('/admission-trackers', require('./admissionTrackers/route'));
 
 router.use(errorHandler);
 

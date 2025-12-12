@@ -54,6 +54,7 @@ function defineModels(sequelize) {
   const ClaimDetailItem = require("./claimDetailItem.model")(sequelize, DataTypes);
   const Conflict = require("./conflict.model")(sequelize, DataTypes);
   const Appointment = require("./appointment.model")(sequelize, DataTypes);
+  const AdmissionTracker = require("./admissionTracker.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -366,7 +367,27 @@ function defineModels(sequelize) {
   Admin.hasMany(Appointment, { foreignKey: "rejectedBy", constraints: false, scope: { rejectedBy: null }, as: 'rejectedAppointments' });
   Appointment.belongsTo(Admin, { foreignKey: "rejectedBy", constraints: false, as: 'rejector' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment };
+  // AdmissionTracker <-> Enrollee one-to-many
+  Enrollee.hasMany(AdmissionTracker, { foreignKey: "enrolleeId", as: 'admissions' });
+  AdmissionTracker.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
+
+  // AdmissionTracker <-> Provider one-to-many
+  Provider.hasMany(AdmissionTracker, { foreignKey: "providerId", as: 'admissions' });
+  AdmissionTracker.belongsTo(Provider, { foreignKey: "providerId" });
+
+  // AdmissionTracker <-> Company one-to-many
+  Company.hasMany(AdmissionTracker, { foreignKey: "companyId", as: 'admissions' });
+  AdmissionTracker.belongsTo(Company, { foreignKey: "companyId" });
+
+  // AdmissionTracker <-> CompanySubsidiary one-to-many
+  CompanySubsidiary.hasMany(AdmissionTracker, { foreignKey: "subsidiaryId", as: 'admissions' });
+  AdmissionTracker.belongsTo(CompanySubsidiary, { foreignKey: "subsidiaryId", as: 'subsidiary' });
+
+  // AdmissionTracker <-> Admin (approvedBy)
+  Admin.hasMany(AdmissionTracker, { foreignKey: "approvedBy", constraints: false, as: 'approvedAdmissions' });
+  AdmissionTracker.belongsTo(Admin, { foreignKey: "approvedBy", constraints: false, as: 'approver' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker };
 }
 
 module.exports = defineModels;
