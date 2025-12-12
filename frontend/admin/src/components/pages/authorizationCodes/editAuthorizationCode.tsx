@@ -6,6 +6,7 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
 import { useEffect, useState } from "react";
 
 interface AuthorizationCode {
@@ -69,6 +70,9 @@ export default function EditAuthorizationCode({
   const [loading, setLoading] = useState(false);
   const errorModal = useModal();
   const successModal = useModal();
+  const updateAuthorizationCode = useAuthorizationCodeStore(
+    (state) => state.updateAuthorizationCode
+  );
 
   // Form state
   const [id, setId] = useState<string>("");
@@ -283,6 +287,7 @@ export default function EditAuthorizationCode({
         onLoading: (l: boolean) => setLoading(l),
       });
 
+      updateAuthorizationCode(id, payload);
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
