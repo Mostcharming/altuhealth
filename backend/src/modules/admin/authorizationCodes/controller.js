@@ -69,7 +69,7 @@ async function createAuthorizationCode(req, res, next) {
 
         // Generate authorization code
         const authorizationCodeGenerator = require('../../../utils/authorizationCodeGenerator');
-        const authCode = await authorizationCodeGenerator();
+        const authCode = await authorizationCodeGenerator.getUniqueAuthorizationCode(AuthorizationCode);
 
         const authorizationCode = await AuthorizationCode.create({
             authorizationCode: authCode,

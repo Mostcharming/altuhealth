@@ -8,6 +8,8 @@ import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
+import capitalizeWords from "@/lib/capitalize";
+import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditAuthorizationCode from "./editAuthorizationCode";
 
@@ -15,18 +17,26 @@ interface AuthorizationCode {
   id: string;
   authorizationCode: string;
   enrolleeId: string;
-  enrollee?: {
+  Enrollee?: {
     firstName: string;
     lastName: string;
     policyNumber: string;
   };
   providerId?: string;
-  provider?: {
+  Provider?: {
     name: string;
     code: string;
   };
+  diagnosisId?: string;
+  Diagnosis?: {
+    name: string;
+  };
   companyId: string;
-  company?: {
+  Company?: {
+    name: string;
+  };
+  companyPlanId?: string;
+  CompanyPlan?: {
     name: string;
   };
   authorizationType: string;
@@ -60,6 +70,16 @@ const AuthorizationCodesTable: React.FC = () => {
   const successModal = useModal();
   const confirmModal = useModal();
 
+  const authorizationCodes = useAuthorizationCodeStore(
+    (state) => state.authorizationCodes
+  );
+  const setAuthorizationCodesStore = useAuthorizationCodeStore(
+    (state) => state.setAuthorizationCodes
+  );
+  const removeAuthorizationCode = useAuthorizationCodeStore(
+    (state) => state.removeAuthorizationCode
+  );
+
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -70,9 +90,6 @@ const AuthorizationCodesTable: React.FC = () => {
   const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [authorizationCodes, setAuthorizationCodes] = useState<
-    AuthorizationCode[]
-  >([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
@@ -110,9 +127,11 @@ const AuthorizationCodesTable: React.FC = () => {
 
   const headers: Header[] = [
     { key: "authorizationCode", label: "Auth Code" },
-    { key: "enrollee", label: "Enrollee" },
-    { key: "provider", label: "Provider" },
-    { key: "company", label: "Company" },
+    { key: "Enrollee", label: "Enrollee" },
+    { key: "Provider", label: "Provider" },
+    { key: "Diagnosis", label: "Diagnosis" },
+    { key: "Company", label: "Company" },
+    { key: "CompanyPlan", label: "Plan" },
     { key: "authorizationType", label: "Type" },
     { key: "status", label: "Status" },
     { key: "validFrom", label: "Valid From" },
@@ -189,7 +208,7 @@ const AuthorizationCodesTable: React.FC = () => {
           ? data
           : [];
 
-      setAuthorizationCodes(items);
+      setAuthorizationCodesStore(items);
       setTotalItems(data?.data?.count ?? 0);
       setHasNextPage(Boolean(data?.data?.hasNextPage));
       setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
@@ -207,6 +226,7 @@ const AuthorizationCodesTable: React.FC = () => {
     selectedProviderId,
     selectedCompanyId,
     selectedStatus,
+    setAuthorizationCodesStore,
   ]);
 
   useEffect(() => {
@@ -268,9 +288,7 @@ const AuthorizationCodesTable: React.FC = () => {
         method: "DELETE",
         onLoading: (l) => setLoading(l),
       });
-      setAuthorizationCodes((prev) =>
-        prev.filter((code) => code.id !== selectedCodeId)
-      );
+      removeAuthorizationCode(selectedCodeId);
       setSelectedCodeId(null);
       confirmModal.closeModal();
       successModal.openModal();
@@ -483,29 +501,39 @@ const AuthorizationCodesTable: React.FC = () => {
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {code.enrollee
-                          ? `${code.enrollee.firstName} ${code.enrollee.lastName}`
+                        {code.Enrollee
+                          ? `${code.Enrollee.firstName} ${code.Enrollee.lastName}`
                           : "—"}
                       </p>
-                      {code.enrollee && (
+                      {code.Enrollee && (
                         <p className="text-xs text-gray-500 dark:text-gray-500">
-                          {code.enrollee.policyNumber}
+                          {code.Enrollee.policyNumber}
                         </p>
                       )}
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {code.provider ? code.provider.name : "—"}
+                        {code.Provider ? code.Provider.name : "—"}
                       </p>
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {code.company ? code.company.name : "—"}
+                        {code.Diagnosis ? code.Diagnosis.name : "—"}
+                      </p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-sm text-gray-700 dark:text-gray-400">
+                        {code.Company ? code.Company.name : "—"}
+                      </p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-sm text-gray-700 dark:text-gray-400">
+                        {code.CompanyPlan ? code.CompanyPlan.name : "—"}
                       </p>
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <span className="inline-block rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                        {code.authorizationType}
+                        {capitalizeWords(code.authorizationType)}
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
@@ -514,7 +542,7 @@ const AuthorizationCodesTable: React.FC = () => {
                           code.status
                         )}`}
                       >
-                        {code.status}
+                        {capitalizeWords(code.status)}
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">

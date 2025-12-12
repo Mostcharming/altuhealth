@@ -7,6 +7,7 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
 import { useEffect, useState } from "react";
 
 interface Enrollee {
@@ -45,6 +46,9 @@ export default function PageMetricsAuthorizationCodes({
 }) {
   const { isOpen, openModal, closeModal } = useModal();
   const [loading, setLoading] = useState(false);
+  const addAuthorizationCode = useAuthorizationCodeStore(
+    (state) => state.addAuthorizationCode
+  );
 
   const errorModal = useModal();
   const successModal = useModal();
@@ -271,6 +275,7 @@ export default function PageMetricsAuthorizationCodes({
       });
 
       if (data?.data?.authorizationCode) {
+        addAuthorizationCode(data.data.authorizationCode);
         successModal.openModal();
       }
     } catch (err) {
@@ -441,7 +446,7 @@ export default function PageMetricsAuthorizationCodes({
                   onChange={(selectedDates) => {
                     if (selectedDates[0]) {
                       const date = new Date(selectedDates[0]);
-                      setValidFrom(date.toISOString().split('T')[0]);
+                      setValidFrom(date.toISOString().split("T")[0]);
                     }
                   }}
                 />
@@ -457,7 +462,7 @@ export default function PageMetricsAuthorizationCodes({
                   onChange={(selectedDates) => {
                     if (selectedDates[0]) {
                       const date = new Date(selectedDates[0]);
-                      setValidTo(date.toISOString().split('T')[0]);
+                      setValidTo(date.toISOString().split("T")[0]);
                     }
                   }}
                 />
