@@ -6,7 +6,6 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
@@ -65,7 +64,11 @@ interface Company {
 }
 
 const AuthorizationCodesTable: React.FC = () => {
-  const { isOpen, openModal, closeModal } = useModal();
+  const {
+    isOpen,
+    // openModal,
+    closeModal,
+  } = useModal();
   const errorModal = useModal();
   const successModal = useModal();
   const confirmModal = useModal();
@@ -135,7 +138,7 @@ const AuthorizationCodesTable: React.FC = () => {
     { key: "authorizationType", label: "Type" },
     { key: "status", label: "Status" },
     { key: "validFrom", label: "Valid From" },
-    { key: "actions", label: "Actions" },
+    // { key: "actions", label: "Actions" },
   ];
 
   // Fetch enrollees, providers, companies on mount
@@ -264,20 +267,20 @@ const AuthorizationCodesTable: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleDeleteModal = (id: string) => {
-    setSelectedCodeId(id);
-    confirmModal.openModal();
-  };
+  // const handleDeleteModal = (id: string) => {
+  //   setSelectedCodeId(id);
+  //   confirmModal.openModal();
+  // };
 
   const handleCloseConfirm = () => {
     setSelectedCodeId(null);
     confirmModal.closeModal();
   };
 
-  const handleView = (code: AuthorizationCode) => {
-    setEditingCode(code);
-    openModal();
-  };
+  // const handleView = (code: AuthorizationCode) => {
+  //   setEditingCode(code);
+  //   openModal();
+  // };
 
   const deleteCode = async () => {
     if (!selectedCodeId) return;
@@ -550,7 +553,7 @@ const AuthorizationCodesTable: React.FC = () => {
                         {formatDate(code.validFrom)}
                       </p>
                     </td>
-                    <td className="p-4 whitespace-nowrap">
+                    {/* <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <button
                           onClick={() => handleView(code)}
@@ -565,7 +568,7 @@ const AuthorizationCodesTable: React.FC = () => {
                           <TrashBinIcon />
                         </button>
                       </div>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               ) : (
