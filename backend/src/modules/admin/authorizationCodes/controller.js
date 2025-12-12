@@ -274,7 +274,7 @@ async function listAuthorizationCodes(req, res, next) {
                 },
                 {
                     model: Provider,
-                    attributes: ['id', 'providerName', 'providerCode', 'email'],
+                    attributes: ['id', 'name', 'code', 'email'],
                     required: false
                 },
                 {
@@ -341,7 +341,7 @@ async function getAuthorizationCode(req, res, next) {
                 },
                 {
                     model: Provider,
-                    attributes: ['id', 'providerName', 'providerCode', 'email'],
+                    attributes: ['id', 'name', 'code', 'email'],
                     required: false
                 },
                 {
