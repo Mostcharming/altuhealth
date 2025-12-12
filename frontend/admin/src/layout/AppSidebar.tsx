@@ -103,10 +103,11 @@ const navItems: NavItem[] = [
     name: "Authorizations",
     icon: <PencilIcon />,
     subItems: [
-      { name: "Requests", path: "/authorizations" },
-      { name: "Tracker", path: "/authorization-tracking" },
-      { name: "Create Authorization", path: "/new-authorization" },
+      { name: "Authorization codes", path: "/authorization-codes" },
+      { name: "Appointments", path: "/appointments" },
+      { name: "Admission Tracker", path: "/admission-tracker" },
       { name: "Verification Monitor", path: "/verification-monitor" },
+      { name: "Pharmacy Monitor", path: "/pharmacy-monitor" },
     ],
   },
   {
@@ -114,7 +115,7 @@ const navItems: NavItem[] = [
     icon: <CartIcon />,
     subItems: [
       { name: "Service Catalog", path: "/service-catalog" }, //medical checkup
-      { name: "Appointments & Memos", path: "/call-memo" },
+      { name: "Call Memos", path: "/call-memo" },
       { name: "Surveys", path: "/surveys" },
       { name: "Service Cycles", path: "/service-cycles" },
     ],
