@@ -162,7 +162,7 @@ async function listAppointments(req, res, next) {
                 },
                 {
                     model: Provider,
-                    attributes: ['id', 'firstName', 'lastName', 'email'],
+                    attributes: ['id', 'name', 'email', 'phoneNumber'],
                     required: false
                 },
                 {
@@ -219,7 +219,7 @@ async function getAppointment(req, res, next) {
                 },
                 {
                     model: Provider,
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
+                    attributes: ['id', 'name', 'email', 'phoneNumber'],
                     required: false
                 },
                 {
