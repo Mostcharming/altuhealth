@@ -178,7 +178,7 @@ async function listAdmissionRecords(req, res, next) {
                 },
                 {
                     model: Provider,
-                    attributes: ['id', 'firstName', 'lastName', 'email'],
+                    attributes: ['id', 'name', 'email', 'phoneNumber'],
                     required: false
                 },
                 {
@@ -235,7 +235,7 @@ async function getAdmissionRecord(req, res, next) {
                 },
                 {
                     model: Provider,
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
+                    attributes: ['id', 'name', 'email', 'phoneNumber'],
                     required: false
                 },
                 {
