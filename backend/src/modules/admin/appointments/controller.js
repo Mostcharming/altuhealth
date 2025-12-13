@@ -157,17 +157,17 @@ async function listAppointments(req, res, next) {
             include: [
                 {
                     model: Enrollee,
-                    attributes: ['id', 'firstName', 'lastName', 'email'],
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
                     required: false
                 },
                 {
                     model: Provider,
-                    attributes: ['id', 'name', 'email', 'phoneNumber'],
+                    attributes: ['id', 'name', 'code', 'category', 'status', 'email', 'phoneNumber', 'state', 'lga', 'address'],
                     required: false
                 },
                 {
                     model: Company,
-                    attributes: ['id', 'name', 'email'],
+                    attributes: ['id', 'name', 'email', 'phoneNumber', 'isActive'],
                     required: false
                 },
                 {
@@ -214,17 +214,17 @@ async function getAppointment(req, res, next) {
             include: [
                 {
                     model: Enrollee,
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
                     required: false
                 },
                 {
                     model: Provider,
-                    attributes: ['id', 'name', 'email', 'phoneNumber'],
+                    attributes: ['id', 'name', 'code', 'category', 'status', 'email', 'phoneNumber', 'state', 'lga', 'address'],
                     required: false
                 },
                 {
                     model: Company,
-                    attributes: ['id', 'name', 'email'],
+                    attributes: ['id', 'name', 'email', 'phoneNumber', 'isActive'],
                     required: false
                 },
                 {
