@@ -106,18 +106,20 @@ const navItems: NavItem[] = [
       { name: "Authorization codes", path: "/authorization-codes" },
       { name: "Appointments", path: "/appointments" },
       { name: "Admission Tracker", path: "/admission-tracker" },
-      { name: "Verification Monitor", path: "/verification-monitor" },
-      { name: "Pharmacy Monitor", path: "/pharmacy-monitor" },
+      // { name: "Verification Monitor", path: "/verification-monitor" },
+      // { name: "Pharmacy Monitor", path: "/pharmacy-monitor" },
     ],
   },
   {
     name: "Services",
     icon: <CartIcon />,
     subItems: [
-      { name: "Service Catalog", path: "/service-catalog" }, //medical checkup
-      { name: "Call Memos", path: "/call-memo" },
-      { name: "Surveys", path: "/surveys" },
-      { name: "Service Cycles", path: "/service-cycles" },
+      { name: "Provider Utilization", path: "/provider-utilization" },
+      { name: "Client Utilization ", path: "/client-utilization" },
+      // { name: "Service Catalog", path: "/service-catalog" }, //medical checkup
+      // { name: "Call Memos", path: "/call-memo" },
+      // { name: "Surveys", path: "/surveys" },
+      // { name: "Service Cycles", path: "/service-cycles" },
     ],
   },
   {
