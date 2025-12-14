@@ -57,6 +57,7 @@ function defineModels(sequelize) {
   const AdmissionTracker = require("./admissionTracker.model")(sequelize, DataTypes);
   const Invoice = require("./invoice.model")(sequelize, DataTypes);
   const InvoiceLineItem = require("./invoiceLineItem.model")(sequelize, DataTypes);
+  const Payment = require("./payment.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -409,7 +410,23 @@ function defineModels(sequelize) {
   Service.hasMany(InvoiceLineItem, { foreignKey: "serviceId", as: 'invoiceLineItems' });
   InvoiceLineItem.belongsTo(Service, { foreignKey: "serviceId" });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem };
+  // Invoice <-> Admin (issuedBy) one-to-many
+  Admin.hasMany(Invoice, { foreignKey: "issuedBy", constraints: false, as: 'issuedInvoices' });
+  Invoice.belongsTo(Admin, { foreignKey: "issuedBy", constraints: false, as: 'issuedByAdmin' });
+
+  // Invoice <-> Payment one-to-many
+  Invoice.hasMany(Payment, { foreignKey: "invoiceId", as: 'payments' });
+  Payment.belongsTo(Invoice, { foreignKey: "invoiceId" });
+
+  // Payment <-> Admin (processedBy) one-to-many
+  Admin.hasMany(Payment, { foreignKey: "processedBy", constraints: false, as: 'processedPayments' });
+  Payment.belongsTo(Admin, { foreignKey: "processedBy", constraints: false, as: 'processedByAdmin' });
+
+  // Payment <-> Admin (verifiedBy) one-to-many
+  Admin.hasMany(Payment, { foreignKey: "verifiedBy", constraints: false, as: 'verifiedPayments' });
+  Payment.belongsTo(Admin, { foreignKey: "verifiedBy", constraints: false, as: 'verifiedByAdmin' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment };
 }
 
 module.exports = defineModels;
