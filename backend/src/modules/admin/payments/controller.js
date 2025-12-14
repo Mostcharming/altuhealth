@@ -154,52 +154,13 @@ async function updatePayment(req, res, next) {
 
 async function deletePayment(req, res, next) {
     try {
-        const { Payment, Invoice } = req.models;
+        const { Payment } = req.models;
         const { id } = req.params;
 
         const payment = await Payment.findByPk(id);
         if (!payment) return res.fail('Payment not found', 404);
 
-        const invoice = await Invoice.findByPk(payment.invoiceId);
-
-        // Recalculate invoice totals
-        if (invoice) {
-            const newPaidAmount = Math.max(0, parseFloat(invoice.paidAmount) - parseFloat(payment.paymentAmount));
-            const newBalanceAmount = parseFloat(invoice.totalAmount) - newPaidAmount;
-
-            let newPaymentStatus = 'unpaid';
-            let newInvoiceStatus = invoice.status;
-
-            if (newPaidAmount >= parseFloat(invoice.totalAmount)) {
-                newPaymentStatus = 'paid';
-            } else if (newPaidAmount > 0) {
-                newPaymentStatus = 'partially_paid';
-            }
-
-            // Reset invoice status if needed
-            if (invoice.status === 'paid' && newPaymentStatus !== 'paid') {
-                newInvoiceStatus = newPaymentStatus === 'partially_paid' ? 'partially_paid' : 'issued';
-            }
-
-            await invoice.update({
-                paidAmount: newPaidAmount,
-                balanceAmount: newBalanceAmount,
-                paymentStatus: newPaymentStatus,
-                status: newInvoiceStatus
-            });
-        }
-
-        await payment.destroy();
-
-        await addAuditLog(req.models, {
-            action: 'payment.delete',
-            message: `Payment deleted`,
-            userId: (req.user && req.user.id) ? req.user.id : null,
-            userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { paymentId: id }
-        });
-
-        return res.success(null, 'Payment deleted');
+        return res.fail('Payments cannot be deleted. Please contact support if you need to modify this payment.', 403);
     } catch (err) {
         return next(err);
     }

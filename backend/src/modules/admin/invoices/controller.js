@@ -175,6 +175,10 @@ async function deleteInvoice(req, res, next) {
         const invoice = await Invoice.findByPk(id);
         if (!invoice) return res.fail('Invoice not found', 404);
 
+        if (invoice.status !== 'draft') {
+            return res.fail(`Only invoices with 'draft' status can be deleted. Current status: ${invoice.status}`, 403);
+        }
+
         await invoice.destroy();
 
         await addAuditLog(req.models, {
