@@ -1,17 +1,13 @@
 "use client";
-import React, { useState } from "react";
+import { MoreDotIcon } from "@/icons";
+import { useState } from "react";
 import Checkbox from "../form/input/Checkbox";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { MoreDotIcon } from "@/icons";
 
 export default function UpcomingSchedule() {
   // Define the state with an index signature for dynamic string keys
-  const [checkedItems, setCheckedItems] = useState<{ [key: string]: boolean }>({
-    "wed-11-jan": false,
-    "fri-15-feb": false,
-    "thu-18-mar": false,
-  });
+  const [checkedItems, setCheckedItems] = useState<{ [key: string]: boolean }>({});
 
   const handleCheckboxChange = (id: string) => {
     setCheckedItems((prevState) => ({
@@ -33,7 +29,7 @@ export default function UpcomingSchedule() {
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Upcoming Schedule
+          Upcoming Appointments
         </h3>
 
         <div className="relative h-fit">
@@ -64,89 +60,89 @@ export default function UpcomingSchedule() {
       <div className="max-w-full overflow-x-auto custom-scrollbar">
         <div className="min-w-[500px] xl:min-w-full">
           <div className="flex flex-col gap-2">
-            {/* Item 1 */}
+            {/* Appointment 1 */}
             <div className="flex cursor-pointer items-center gap-9 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-white/[0.03]">
               <div className="flex items-start gap-3">
                 <div>
                   <Checkbox
                     className="w-5 h-5 rounded-md"
-                    checked={checkedItems["wed-11-jan"]}
-                    onChange={() => handleCheckboxChange("wed-11-jan")}
+                    checked={checkedItems["apt-001"] || false}
+                    onChange={() => handleCheckboxChange("apt-001")}
                   />
                 </div>
                 <div>
                   <span className="mb-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-                    Wed, 11 Jan
+                    Wed, 11 Jan • 09:20 AM
                   </span>
                   <span className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                    09:20 AM
+                    Enrollee: John Doe
                   </span>
                 </div>
               </div>
               <div>
                 <span className="block mb-1 font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  Business Analytics Press
+                  Policy #: POL-2025-00123
                 </span>
                 <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-                  Exploring the Future of Data-Driven +6 more
+                  Check-up appointment
                 </span>
               </div>
             </div>
 
-            {/* Item 2 */}
+            {/* Appointment 2 */}
             <div className="flex cursor-pointer items-center gap-9 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-white/[0.03]">
               <div className="flex items-start gap-3">
                 <div>
                   <Checkbox
                     className="w-5 h-5 rounded-md"
-                    checked={checkedItems["fri-15-feb"]}
-                    onChange={() => handleCheckboxChange("fri-15-feb")}
+                    checked={checkedItems["apt-002"] || false}
+                    onChange={() => handleCheckboxChange("apt-002")}
                   />
                 </div>
                 <div>
                   <span className="mb-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-                    Fri, 15 Feb
+                    Fri, 15 Feb • 10:35 AM
                   </span>
                   <span className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                    10:35 AM
+                    Enrollee: Jane Smith
                   </span>
                 </div>
               </div>
               <div>
                 <span className="block mb-1 font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  Business Sprint
+                  Policy #: POL-2025-00456
                 </span>
                 <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-                  Techniques from Business Sprint +2 more
+                  Follow-up consultation
                 </span>
               </div>
             </div>
 
-            {/* Item 3 */}
+            {/* Appointment 3 */}
             <div className="flex cursor-pointer items-center gap-9 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-white/[0.03]">
               <div className="flex items-start gap-3">
                 <div>
                   <Checkbox
                     className="w-5 h-5 rounded-md"
-                    checked={checkedItems["thu-18-mar"]}
-                    onChange={() => handleCheckboxChange("thu-18-mar")}
+                    checked={checkedItems["apt-003"] || false}
+                    onChange={() => handleCheckboxChange("apt-003")}
                   />
                 </div>
                 <div>
                   <span className="mb-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-                    Thu, 18 Mar
+                    Thu, 18 Mar • 1:15 PM
                   </span>
                   <span className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                    1:15 AM
+                    Enrollee: Michael Johnson
                   </span>
                 </div>
               </div>
               <div>
                 <span className="block mb-1 font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  Customer Review Meeting
+                  Policy #: POL-2025-00789
                 </span>
                 <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-                  Insights from the Customer Review Meeting +8 more
+                  Annual physical exam
                 </span>
               </div>
             </div>
