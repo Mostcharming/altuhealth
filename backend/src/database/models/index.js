@@ -58,6 +58,8 @@ function defineModels(sequelize) {
   const Invoice = require("./invoice.model")(sequelize, DataTypes);
   const InvoiceLineItem = require("./invoiceLineItem.model")(sequelize, DataTypes);
   const Payment = require("./payment.model")(sequelize, DataTypes);
+  const Conversation = require("./conversation.model")(sequelize, DataTypes);
+  const Message = require("./message.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -426,7 +428,15 @@ function defineModels(sequelize) {
   Admin.hasMany(Payment, { foreignKey: "verifiedBy", constraints: false, as: 'verifiedPayments' });
   Payment.belongsTo(Admin, { foreignKey: "verifiedBy", constraints: false, as: 'verifiedByAdmin' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment };
+  // Conversation <-> Admin (assignedTo) one-to-many
+  Admin.hasMany(Conversation, { foreignKey: "assignedToId", constraints: false, as: 'assignedConversations' });
+  Conversation.belongsTo(Admin, { foreignKey: "assignedToId", constraints: false, as: 'assignedAdmin' });
+
+  // Conversation <-> Message one-to-many
+  Conversation.hasMany(Message, { foreignKey: "conversationId", as: 'messages' });
+  Message.belongsTo(Conversation, { foreignKey: "conversationId" });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message };
 }
 
 module.exports = defineModels;
