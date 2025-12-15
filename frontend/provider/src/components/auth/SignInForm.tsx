@@ -125,7 +125,7 @@ export default function SignInForm() {
         bodyPayload.policyNumber = identifier;
       }
 
-      const data = await apiClient("/admin/auth/login", {
+      const data = await apiClient("/provider/auth/login", {
         method: "POST",
         body: bodyPayload,
         onLoading: setIsLoading,

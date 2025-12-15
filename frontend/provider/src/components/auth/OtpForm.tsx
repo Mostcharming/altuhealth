@@ -175,7 +175,7 @@ export default function OtpForm() {
 
       try {
         setIsLoading(true);
-        const data = await apiClient("/admin/auth/reset", {
+        const data = await apiClient("/provider/auth/reset", {
           method: "POST",
           body: { token, password },
           onLoading: setIsLoading,
