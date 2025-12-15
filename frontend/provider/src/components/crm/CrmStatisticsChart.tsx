@@ -118,12 +118,12 @@ export default function CrmStatisticsChart() {
 
   const series = [
     {
-      name: "Sales",
-      data: [180, 190, 170, 160, 175, 165, 170, 205, 230, 210, 240, 235],
+      name: "Drugs",
+      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
-      name: "Revenue",
-      data: [40, 30, 50, 40, 55, 40, 70, 100, 110, 120, 150, 140],
+      name: "Services",
+      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
   ];
   return (
@@ -144,27 +144,27 @@ export default function CrmStatisticsChart() {
         <div className="flex items-start gap-2">
           <div>
             <h4 className="text-base font-bold text-gray-800 dark:text-white/90 sm:text-theme-xl">
-              NGN 212,142.12
+              0
             </h4>
             <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-              Avg. Yearly Profit
+              Drugs Used
             </span>
           </div>
           <span className="mt-1.5 flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-theme-xs font-medium text-success-600 dark:bg-success-500/15 dark:text-success-500">
-            +23.2%
+            0%
           </span>
         </div>
         <div className="flex items-start gap-2">
           <div>
             <h4 className="text-base font-bold text-gray-800 dark:text-white/90 sm:text-theme-xl">
-              NGN 30,321.23
+              0
             </h4>
             <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-              Avg. Yearly Profit
+              Services Used
             </span>
           </div>
           <span className="mt-1.5 flex items-center gap-1 rounded-full bg-error-50 px-2 py-0.5 text-theme-xs font-medium text-error-600 dark:bg-error-500/15 dark:text-error-500">
-            -12.3%
+            0%
           </span>
         </div>
       </div>
