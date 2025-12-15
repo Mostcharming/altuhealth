@@ -4,9 +4,9 @@ import UserMetaCard from "@/components/user-profile/UserMetaCard";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Profile",
+  title: "AltuHealth Provider Profile",
   description:
-    "Manage your profile information within the AltuHealth admin panel.",
+    "Manage your profile information within the AltuHealth provider panel.",
 };
 
 export default function Profile() {

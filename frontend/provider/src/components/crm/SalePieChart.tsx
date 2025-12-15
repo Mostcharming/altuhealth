@@ -15,7 +15,7 @@ export default function SalePieChart() {
   // ApexCharts configuration
   const options: ApexOptions = {
     colors: ["#3641f5", "#7592ff", "#dde9ff"],
-    labels: ["Affiliate", "Direct", "Adsense"],
+    labels: ["Authorization Code Requested", "Authorization Code Used"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "donut",
@@ -107,7 +107,7 @@ export default function SalePieChart() {
     ],
   };
 
-  const series = [900, 700, 850];
+  const series = [0, 0];
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -122,7 +122,7 @@ export default function SalePieChart() {
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Claims Category
+          Authorization Code
         </h3>
         <div className="relative h-fit">
           <button onClick={toggleDropdown} className="dropdown-toggle">
@@ -162,15 +162,15 @@ export default function SalePieChart() {
             <div className="mt-1.5 h-2 w-2 rounded-full bg-brand-500"></div>
             <div>
               <h5 className="mb-1 font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                Paid
+                Requested
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  48%
+                  0%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  2,040 Claims
+                  0
                 </p>
               </div>
             </div>
@@ -180,15 +180,15 @@ export default function SalePieChart() {
             <div className="mt-1.5 h-2 w-2 rounded-full bg-brand-500"></div>
             <div>
               <h5 className="mb-1 font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                Unpaid
+                Used
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  33%
+                  0%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-400 text-theme-sm dark:text-gray-400">
-                  1,402 Claims
+                  0
                 </p>
               </div>
             </div>
@@ -202,11 +202,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  19%
+                  0%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  510 Claims
+                  0
                 </p>
               </div>
             </div>
