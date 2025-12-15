@@ -41,13 +41,14 @@ const navItems: NavItem[] = [
     icon: <GroupIcon />,
     subItems: [
       { name: "Enrollee List", path: "/enrollees" },
-      { name: "Dependents", path: "/dependents" },
+      { name: "Dependents", path: "/enrollee-dependents" },
     ],
   },
   {
     name: "Appointments/Authorizations",
     icon: <GroupIcon />,
     subItems: [
+      { name: "Admissions", path: "/admission-tracker" },
       { name: "Authorization codes", path: "/authorization-codes" },
       { name: "Appointments", path: "/appointments" },
     ],
