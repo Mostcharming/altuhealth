@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const compression = require('compression');
 const dbSelector = require('./middlewares/common/dbSelector');
 const adminRouter = require('./modules/admin/route');
+const providerRouter = require('./modules/provider/route');
 
 require('./database');
 require('dotenv').config();
@@ -37,6 +38,7 @@ if (config && config.uploads && config.uploads.profileDir) {
 }
 
 app.use(`/api/${config.apiVersion}/admin`, adminRouter);
+app.use(`/api/${config.apiVersion}/provider`, providerRouter);
 
 app.get('/', (req, res) => {
   res.json({
