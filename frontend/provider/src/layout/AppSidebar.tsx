@@ -258,21 +258,24 @@ const AppSidebar: React.FC = () => {
       // others: filteredOthersItems,
     };
 
-    (
-      ["main", "support", "others"] as Array<"main" | "support" | "others">
-    ).some((menuType) => {
-      const items = menuItemsMap[menuType];
-      return items.some((nav, index) => {
-        if (!nav.subItems) return false;
-        return nav.subItems.some((subItem) => {
-          if (isActive(subItem.path)) {
-            matched = { type: menuType, index };
-            return true;
-          }
-          return false;
-        });
-      });
-    });
+    (Object.keys(menuItemsMap) as Array<"main" | "support" | "others">).some(
+      (menuType) => {
+        const items = menuItemsMap[menuType];
+        return (
+          items &&
+          items.some((nav, index) => {
+            if (!nav.subItems) return false;
+            return nav.subItems.some((subItem) => {
+              if (isActive(subItem.path)) {
+                matched = { type: menuType, index };
+                return true;
+              }
+              return false;
+            });
+          })
+        );
+      }
+    );
 
     // Only update state if the matched submenu is different from current state
     setOpenSubmenu((prev) => {
