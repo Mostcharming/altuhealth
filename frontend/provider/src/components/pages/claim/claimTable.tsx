@@ -4,6 +4,7 @@ import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
 import { fetchClaims, fetchProviders } from "@/lib/apis/claim";
+import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate, formatPrice, getMonthName } from "@/lib/formatDate";
 import { Claim, useClaimStore } from "@/lib/store/claimStore";
@@ -25,7 +26,7 @@ const ClaimTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const claims = useClaimStore((s) => s.claims);
   const setClaims = useClaimStore((s) => s.setClaims);
-  const providers = useProviderStore((s) => s.providers);
+  // const providers = useProviderStore((s) => s.providers);
   const setProviders = useProviderStore((s) => s.setProviders);
 
   type Header = {
@@ -65,9 +66,10 @@ const ClaimTable: React.FC = () => {
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
-
+  const user = useAuthStore((s) => s.user);
   const fetch = useCallback(async () => {
     try {
+      setSelectedProviderId(user?.id || "");
       setLoading(true);
 
       const data = await fetchClaims({
@@ -135,10 +137,10 @@ const ClaimTable: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleProviderChange = (selectedValue: string) => {
-    setSelectedProviderId(selectedValue);
-    setCurrentPage(1);
-  };
+  // const handleProviderChange = (selectedValue: string) => {
+  //   setSelectedProviderId(selectedValue);
+  //   setCurrentPage(1);
+  // };
 
   const handleStatusChange = (selectedValue: string) => {
     setSelectedStatus(selectedValue);
@@ -210,7 +212,7 @@ const ClaimTable: React.FC = () => {
 
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
-            <Select
+            {/* <Select
               options={[
                 { value: "", label: "All Providers" },
                 ...providers.map((provider) => ({
@@ -221,7 +223,7 @@ const ClaimTable: React.FC = () => {
               placeholder="Select provider"
               onChange={handleProviderChange}
               defaultValue={selectedProviderId}
-            />
+            /> */}
             <Select
               options={claimStatuses}
               placeholder="Select status"

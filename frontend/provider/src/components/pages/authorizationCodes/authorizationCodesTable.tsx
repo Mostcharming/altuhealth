@@ -7,6 +7,7 @@ import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
 import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
 import React, { useCallback, useEffect, useState } from "react";
@@ -52,11 +53,11 @@ interface Enrollee {
   policyNumber: string;
 }
 
-interface Provider {
-  id: string;
-  name: string;
-  code: string;
-}
+// interface Provider {
+//   id: string;
+//   name: string;
+//   code: string;
+// }
 
 interface Company {
   id: string;
@@ -91,7 +92,7 @@ const AuthorizationCodesTable: React.FC = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
+  // const [providers, setProviders] = useState<Provider[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(0);
@@ -140,18 +141,17 @@ const AuthorizationCodesTable: React.FC = () => {
     { key: "validFrom", label: "Valid From" },
     // { key: "actions", label: "Actions" },
   ];
-
+  const user = useAuthStore((s) => s.user);
   // Fetch enrollees, providers, companies on mount
   useEffect(() => {
+    setSelectedProviderId(user?.id || "");
     const fetchInitialData = async () => {
       try {
-        const [enrolleesData, providersData, companiesData] = await Promise.all(
-          [
-            apiClient("/admin/enrollees?limit=all", { method: "GET" }),
-            apiClient("/admin/providers/list?limit=all", { method: "GET" }),
-            apiClient("/admin/companies/list?limit=all", { method: "GET" }),
-          ]
-        );
+        const [enrolleesData, companiesData] = await Promise.all([
+          apiClient("/admin/enrollees?limit=all", { method: "GET" }),
+          apiClient("/admin/providers/list?limit=all", { method: "GET" }),
+          apiClient("/admin/companies/list?limit=all", { method: "GET" }),
+        ]);
 
         const enrolleesList: Enrollee[] =
           enrolleesData?.data?.enrollees &&
@@ -162,13 +162,13 @@ const AuthorizationCodesTable: React.FC = () => {
             : [];
         setEnrollees(enrolleesList);
 
-        const providersList: Provider[] =
-          providersData?.data?.list && Array.isArray(providersData.data.list)
-            ? providersData.data.list
-            : Array.isArray(providersData)
-            ? providersData
-            : [];
-        setProviders(providersList);
+        // const providersList: Provider[] =
+        //   providersData?.data?.list && Array.isArray(providersData.data.list)
+        //     ? providersData.data.list
+        //     : Array.isArray(providersData)
+        //     ? providersData
+        //     : [];
+        // setProviders(providersList);
 
         const companiesList: Company[] =
           companiesData?.data?.list && Array.isArray(companiesData.data.list)
@@ -381,7 +381,7 @@ const AuthorizationCodesTable: React.FC = () => {
             </div>
 
             {/* Provider Filter */}
-            <div>
+            {/* <div>
               <Select
                 options={[
                   { value: "", label: "All Providers" },
@@ -397,7 +397,7 @@ const AuthorizationCodesTable: React.FC = () => {
                 }}
                 defaultValue={selectedProviderId}
               />
-            </div>
+            </div> */}
 
             {/* Company Filter */}
             <div>

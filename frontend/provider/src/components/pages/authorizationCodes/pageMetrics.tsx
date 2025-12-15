@@ -17,11 +17,11 @@ interface Enrollee {
   policyNumber: string;
 }
 
-interface Provider {
-  id: string;
-  name: string;
-  code: string;
-}
+// interface Provider {
+//   id: string;
+//   name: string;
+//   code: string;
+// }
 
 interface Diagnosis {
   id: string;
@@ -71,7 +71,7 @@ export default function PageMetricsAuthorizationCodes({
 
   // Fetch data
   const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
+  // const [providers, setProviders] = useState<Provider[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyPlans, setCompanyPlans] = useState<CompanyPlan[]>([]);
@@ -89,10 +89,11 @@ export default function PageMetricsAuthorizationCodes({
   ];
 
   // Fetch all related data when modal opens
+
   useEffect(() => {
     if (isOpen) {
       fetchEnrollees();
-      fetchProviders();
+      // fetchProviders();
       fetchDiagnoses();
       fetchCompanies();
     }
@@ -144,22 +145,22 @@ export default function PageMetricsAuthorizationCodes({
     }
   };
 
-  const fetchProviders = async () => {
-    try {
-      const data = await apiClient("/admin/providers/list?limit=all", {
-        method: "GET",
-      });
-      const items: Provider[] =
-        data?.data?.list && Array.isArray(data.data.list)
-          ? data.data.list
-          : Array.isArray(data)
-          ? data
-          : [];
-      setProviders(items);
-    } catch (err) {
-      console.warn("Failed to fetch providers", err);
-    }
-  };
+  // const fetchProviders = async () => {
+  //   try {
+  //     const data = await apiClient("/admin/providers/list?limit=all", {
+  //       method: "GET",
+  //     });
+  //     const items: Provider[] =
+  //       data?.data?.list && Array.isArray(data.data.list)
+  //         ? data.data.list
+  //         : Array.isArray(data)
+  //         ? data
+  //         : [];
+  //     setProviders(items);
+  //   } catch (err) {
+  //     console.warn("Failed to fetch providers", err);
+  //   }
+  // };
 
   const fetchDiagnoses = async () => {
     try {
@@ -367,7 +368,7 @@ export default function PageMetricsAuthorizationCodes({
               </div>
 
               {/* Provider */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Provider
                 </label>
@@ -380,7 +381,7 @@ export default function PageMetricsAuthorizationCodes({
                   onChange={(value) => setProviderId(value as string)}
                   defaultValue={providerId}
                 />
-              </div>
+              </div> */}
 
               {/* Diagnosis */}
               <div>

@@ -4,6 +4,7 @@ import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
 import { fetchAdmissions, fetchProviders } from "@/lib/apis/admissionTracker";
+import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import {
@@ -30,7 +31,7 @@ const AdmissionTrackerTable: React.FC = () => {
     useState<AdmissionTracker | null>(null);
   const admissions = useAdmissionTrackerStore((s) => s.admissions);
   const setAdmissions = useAdmissionTrackerStore((s) => s.setAdmissions);
-  const providers = useProviderStore((s) => s.providers);
+  // const providers = useProviderStore((s) => s.providers);
   const setProviders = useProviderStore((s) => s.setProviders);
 
   type Header = {
@@ -65,9 +66,10 @@ const AdmissionTrackerTable: React.FC = () => {
     { key: "createdAt", label: "Created At" },
     { key: "actions", label: "Actions" },
   ];
-
+  const user = useAuthStore((s) => s.user);
   const fetch = useCallback(async () => {
     try {
+      setSelectedProviderId(user?.id || "");
       setLoading(true);
 
       const data = await fetchAdmissions({
@@ -135,10 +137,10 @@ const AdmissionTrackerTable: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleProviderChange = (selectedValue: string) => {
-    setSelectedProviderId(selectedValue);
-    setCurrentPage(1);
-  };
+  // const handleProviderChange = (selectedValue: string) => {
+  //   setSelectedProviderId(selectedValue);
+  //   setCurrentPage(1);
+  // };
 
   const handleStatusChange = (selectedValue: string) => {
     setSelectedStatus(selectedValue);
@@ -208,7 +210,7 @@ const AdmissionTrackerTable: React.FC = () => {
 
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
-            <Select
+            {/* <Select
               options={[
                 { value: "", label: "All Providers" },
                 ...providers.map((provider) => ({
@@ -219,7 +221,7 @@ const AdmissionTrackerTable: React.FC = () => {
               placeholder="Select provider"
               onChange={handleProviderChange}
               defaultValue={selectedProviderId}
-            />
+            /> */}
             <Select
               options={admissionStatuses}
               placeholder="Select status"
