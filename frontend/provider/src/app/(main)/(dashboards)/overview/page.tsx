@@ -2,6 +2,7 @@ import CrmMetrics from "@/components/crm/CrmMetrics";
 import CrmStatisticsChart from "@/components/crm/CrmStatisticsChart";
 import EstimatedRevenue from "@/components/crm/EstimatedRevenue";
 import SalePieChart from "@/components/crm/SalePieChart";
+import UpcomingSchedule from "@/components/crm/UpcomingSchedule";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -30,12 +31,8 @@ export default function Crm() {
       </div>
 
       <div className="col-span-12 xl:col-span-6">
-        {/* <UpcomingSchedule /> */}
+        <UpcomingSchedule />
       </div>
-
-      {/* <div className="col-span-12">
-        <CrmRecentOrderTable />
-      </div> */}
     </div>
   );
 }

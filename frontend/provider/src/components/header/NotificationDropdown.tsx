@@ -64,7 +64,7 @@ export default function NotificationDropdown() {
     }
 
     try {
-      await apiClient("/admin/notifications/read", {
+      await apiClient("/provider/notifications/read", {
         method: "PUT",
         body: { id: n.id },
       });
@@ -80,7 +80,7 @@ export default function NotificationDropdown() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiClient("/admin/notifications/list", {
+      const data = await apiClient("/provider/notifications/list", {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
