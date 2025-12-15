@@ -4,9 +4,9 @@ import RoleTable from "@/components/pages/roles/RoleTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Roles",
+  title: "AltuHealth Provider Roles",
   description:
-    "Manage roles and permissions within the AltuHealth admin panel.",
+    "Manage roles and permissions within the AltuHealth provider panel.",
 };
 
 export default function Roles() {

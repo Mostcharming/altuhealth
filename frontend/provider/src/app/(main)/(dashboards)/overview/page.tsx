@@ -6,9 +6,9 @@ import UpcomingSchedule from "@/components/crm/UpcomingSchedule";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Finances Dashboard",
+  title: "AltuHealth Provider Finances Dashboard",
   description:
-    "This is Next.js CRM Dashboard page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+    "Overview of financial metrics and statistics for AltuHealth providers.",
 };
 
 export default function Crm() {
