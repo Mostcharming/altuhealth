@@ -56,7 +56,7 @@ const ClaimTable: React.FC = () => {
   ];
 
   const headers: Header[] = [
-    { key: "claimReference", label: "Claim Reference" },
+    { key: "claimReference", label: "Bill Reference" },
     { key: "providerId", label: "Provider" },
     { key: "amountSubmitted", label: "Amount Submitted" },
     { key: "amountProcessed", label: "Amount Processed" },
