@@ -40,11 +40,11 @@ interface Enrollee {
   policyNumber: string;
 }
 
-interface Provider {
-  id: string;
-  name: string;
-  code: string;
-}
+// interface Provider {
+//   id: string;
+//   name: string;
+//   code: string;
+// }
 
 interface Diagnosis {
   id: string;
@@ -94,7 +94,7 @@ export default function EditAuthorizationCode({
 
   // Fetch data
   const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
-  const [providers, setProviders] = useState<Provider[]>([]);
+  // const [providers, setProviders] = useState<Provider[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [companyPlans, setCompanyPlans] = useState<CompanyPlan[]>([]);
@@ -123,7 +123,7 @@ export default function EditAuthorizationCode({
   useEffect(() => {
     if (isOpen) {
       fetchEnrollees();
-      fetchProviders();
+      // fetchProviders();
       fetchDiagnoses();
       fetchCompanies();
       fetchCompanyPlans();
@@ -147,22 +147,22 @@ export default function EditAuthorizationCode({
     }
   };
 
-  const fetchProviders = async () => {
-    try {
-      const data = await apiClient("/admin/providers?limit=all", {
-        method: "GET",
-      });
-      const items: Provider[] =
-        data?.data?.providers && Array.isArray(data.data.providers)
-          ? data.data.providers
-          : Array.isArray(data)
-          ? data
-          : [];
-      setProviders(items);
-    } catch (err) {
-      console.warn("Failed to fetch providers", err);
-    }
-  };
+  // const fetchProviders = async () => {
+  //   try {
+  //     const data = await apiClient("/admin/providers?limit=all", {
+  //       method: "GET",
+  //     });
+  //     const items: Provider[] =
+  //       data?.data?.providers && Array.isArray(data.data.providers)
+  //         ? data.data.providers
+  //         : Array.isArray(data)
+  //         ? data
+  //         : [];
+  //     setProviders(items);
+  //   } catch (err) {
+  //     console.warn("Failed to fetch providers", err);
+  //   }
+  // };
 
   const fetchDiagnoses = async () => {
     try {
@@ -373,7 +373,7 @@ export default function EditAuthorizationCode({
               </div>
 
               {/* Provider */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Provider
                 </label>
@@ -386,7 +386,7 @@ export default function EditAuthorizationCode({
                   onChange={(value) => setProviderId(value as string)}
                   defaultValue={providerId}
                 />
-              </div>
+              </div> */}
 
               {/* Diagnosis */}
               <div>

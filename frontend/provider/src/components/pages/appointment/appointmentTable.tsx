@@ -4,6 +4,7 @@ import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
 import { fetchAppointments, fetchProviders } from "@/lib/apis/appointment";
+import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import { Appointment, useAppointmentStore } from "@/lib/store/appointmentStore";
@@ -27,7 +28,7 @@ const AppointmentTable: React.FC = () => {
     useState<Appointment | null>(null);
   const appointments = useAppointmentStore((s) => s.appointments);
   const setAppointments = useAppointmentStore((s) => s.setAppointments);
-  const providers = useProviderStore((s) => s.providers);
+  // const providers = useProviderStore((s) => s.providers);
   const setProviders = useProviderStore((s) => s.setProviders);
 
   type Header = {
@@ -102,8 +103,9 @@ const AppointmentTable: React.FC = () => {
     selectedStatus,
     setAppointments,
   ]);
-
+  const user = useAuthStore((s) => s.user);
   useEffect(() => {
+    setSelectedProviderId(user?.id || "");
     fetch();
   }, [fetch]);
 
@@ -134,10 +136,10 @@ const AppointmentTable: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleProviderChange = (selectedValue: string) => {
-    setSelectedProviderId(selectedValue);
-    setCurrentPage(1);
-  };
+  // const handleProviderChange = (selectedValue: string) => {
+  //   setSelectedProviderId(selectedValue);
+  //   setCurrentPage(1);
+  // };
 
   const handleStatusChange = (selectedValue: string) => {
     setSelectedStatus(selectedValue);
@@ -211,7 +213,7 @@ const AppointmentTable: React.FC = () => {
 
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
-            <Select
+            {/* <Select
               options={[
                 { value: "", label: "All Providers" },
                 ...providers.map((provider) => ({
@@ -222,7 +224,7 @@ const AppointmentTable: React.FC = () => {
               placeholder="Select provider"
               onChange={handleProviderChange}
               defaultValue={selectedProviderId}
-            />
+            /> */}
             <Select
               options={appointmentStatuses}
               placeholder="Select status"
