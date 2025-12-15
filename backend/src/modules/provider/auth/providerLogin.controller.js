@@ -3,17 +3,28 @@ const Sequelize = require('sequelize');
 
 const providerLogin = async (req, res, next) => {
     try {
-        const { email, upn, password, remember, location } = req.body || {};
+        const { policyNumber, email, upn, password, remember, location } = req.body || {};
 
         if (!password) return res.fail('Password is required', 400);
-        if (!email && !upn) return res.fail('Provide email or UPN', 400);
+        if (!policyNumber && !email && !upn) return res.fail('Provide policy number, email, or UPN', 400);
 
         const ProviderModel = req.models && req.models['Provider'];
         if (!ProviderModel) return res.fail('Server configuration error (models missing)', 500);
 
         let provider = null;
 
-        if (upn) {
+        if (policyNumber) {
+            // policyNumber from frontend is treated as email lookup
+            const lookupEmail = (typeof policyNumber === 'string') ? policyNumber.toLowerCase() : policyNumber;
+            try {
+                provider = await ProviderModel.findOne({
+                    where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupEmail)
+                });
+            } catch (e) {
+                // fallback: if the DB or dialect doesn't support lower() in this context, try a plain lookup
+                provider = await ProviderModel.findOne({ where: { email: lookupEmail } });
+            }
+        } else if (upn) {
             const lookupUPN = (typeof upn === 'string') ? upn.toUpperCase() : upn;
             provider = await ProviderModel.findOne({ where: { upn: lookupUPN } });
         } else if (email) {
