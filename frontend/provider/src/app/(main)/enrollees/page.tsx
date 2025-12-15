@@ -4,8 +4,8 @@ import PageMetricsEnrollees from "@/components/pages/enrollee/pageMetrics";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Enrollees",
-  description: "Manage enrollees within the AltuHealth admin panel.",
+  title: "AltuHealth Provider Enrollees",
+  description: "Manage enrollees within the AltuHealth provider panel.",
 };
 
 export default function Enrollees() {

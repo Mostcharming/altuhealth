@@ -4,9 +4,9 @@ import PageMetricsAuthorizationCodes from "@/components/pages/authorizationCodes
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Authorization Codes Management",
+  title: "AltuHealth Provider Authorization Codes Management",
   description:
-    "Manage authorization codes and their details within the AltuHealth admin panel.",
+    "Manage authorization codes and their details within the AltuHealth provider panel.",
 };
 
 export default function AuthorizationCodes() {

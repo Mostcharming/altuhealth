@@ -4,8 +4,8 @@ import PageMetricsClaims from "@/components/pages/claim/pageMetrics";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Appointments",
-  description: "Manage appointments within the AltuHealth admin panel.",
+  title: "AltuHealth Provider Appointments",
+  description: "Manage appointments within the AltuHealth provider panel.",
 };
 
 export default function Appointments() {

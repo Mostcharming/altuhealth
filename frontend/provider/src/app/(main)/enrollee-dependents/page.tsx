@@ -4,9 +4,9 @@ import EnrolleeDependentsTable from "@/components/pages/enrolleeDependents/enrol
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Enrollee Dependents Management",
+  title: "AltuHealth Provider Enrollee Dependents Management",
   description:
-    "Manage enrollee dependents and their details within the AltuHealth admin panel.",
+    "Manage enrollee dependents and their details within the AltuHealth provider panel.",
 };
 
 export default function EnrolleeDependents() {
