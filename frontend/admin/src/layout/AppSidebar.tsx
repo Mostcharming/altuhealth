@@ -164,7 +164,7 @@ const supportItems: NavItem[] = [
     icon: <CallIcon />,
     name: "Support",
     subItems: [
-      { name: "Support Tickets", path: "/support-tickets" },
+      { name: "Support/Messages", path: "/messages" },
       // { name: "Ticket Replies", path: "/support-ticket-reply" },
       // { name: "Knowledge Base", path: "/knowledge-base" },
       // { name: "SLA Management", path: "/sla-management" },
