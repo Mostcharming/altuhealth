@@ -136,6 +136,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: false,
             field: 'is_deleted'
+        },
+        password: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'password'
         }
     }, {
         tableName: 'providers',
