@@ -66,18 +66,18 @@ export default function EstimatedRevenue() {
     stroke: {
       lineCap: "round",
     },
-    labels: ["June Goals"],
+    labels: ["Bill Submitted"],
   };
-  const series = [90];
+  const series = [0];
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
       <div className="flex justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Estimated Revenue
+            Bills
           </h3>
           <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
-            Target you’ve set for each month
+            Overview of your bills
           </p>
         </div>
 
@@ -116,30 +116,30 @@ export default function EstimatedRevenue() {
           />
         </div>
         <span className="absolute left-1/2 top-[60%] -translate-x-1/2 -translate-y-[60%] text-xs font-normal text-gray-500 dark:text-gray-400">
-          June Goals
+          Bill Submitted
         </span>
       </div>
 
       <div className="pt-6 mt-6 space-y-5 border-t border-gary-200 dark:border-gray-800">
         <div>
           <p className="mb-2 text-gray-500 text-theme-sm dark:text-gray-400">
-            CRM Subscriptions
+            Bill Paid
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  NGN 30,569.00
+                  NGN 0.00
                 </p>
               </div>
             </div>
 
             <div className="flex w-full max-w-[140px] items-center gap-3">
               <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-                <div className="absolute left-0 top-0 flex h-full w-[85%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
+                <div className="absolute left-0 top-0 flex h-full w-[0%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
               </div>
               <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                85%
+                0%
               </p>
             </div>
           </div>
@@ -147,23 +147,23 @@ export default function EstimatedRevenue() {
 
         <div>
           <p className="mb-2 text-gray-500 text-theme-sm dark:text-gray-400">
-            Claims Paid
+            In Draft
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  NGN 20,486.00
+                  NGN 0.00
                 </p>
               </div>
             </div>
 
             <div className="flex w-full max-w-[140px] items-center gap-3">
               <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-                <div className="absolute left-0 top-0 flex h-full w-[55%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
+                <div className="absolute left-0 top-0 flex h-full w-[0%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
               </div>
               <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                55%
+                0%
               </p>
             </div>
           </div>
