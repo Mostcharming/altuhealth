@@ -53,6 +53,21 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             field: 'state'
         },
+        currentLocation: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'current_location'
+        },
+        latitude: {
+            type: DataTypes.DECIMAL(10, 8),
+            allowNull: true,
+            field: 'latitude'
+        },
+        longitude: {
+            type: DataTypes.DECIMAL(11, 8),
+            allowNull: true,
+            field: 'longitude'
+        },
         code: {
             type: DataTypes.STRING,
             allowNull: false,
