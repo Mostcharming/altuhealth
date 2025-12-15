@@ -17,7 +17,6 @@ import {
   UserCircleIcon,
   UserIcon,
 } from "@/icons";
-import { useAuthStore } from "@/lib/authStore";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -192,47 +191,15 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
-  const user = useAuthStore((s) => s.user);
 
-  // Map privileges to the top-level menu names they should enable
-  const privilegeMap: Record<string, string[]> = {
-    "admins.manage": ["Admins"],
-    "providers.manage": ["Providers"],
-    "organizations.manage": ["Organizations"],
-    "enrollees.manage": ["Enrollees"],
-    "claims.manage": ["Claims"],
-    "authorizations.manage": ["Authorizations"],
-    "services.manage": ["Services"],
-    "billing.manage": ["Billing"],
-    "config.manage": ["Configuration"],
-    "operations.manage": ["Operations"],
-    "support.manage": ["Support"],
-    "logs.view": ["Logs"],
-    "developer.manage": ["Developer"],
-  };
-
-  // Memoize user's privilege names to avoid recreating the Set each render
-  const userPrivNames = useMemo(() => {
-    const rolePrivilegesArr = (user?.rolePrivileges || []) as Array<
-      { name?: string } | undefined
-    >;
-    return new Set<string>(
-      rolePrivilegesArr
-        .map((p) => p?.name)
-        .filter((n): n is string => Boolean(n))
-    );
-  }, [user?.rolePrivileges]);
-
-  // Always allow Dashboard and add menu names based on privileges (memoized)
+  // Allow all menu items (no privilege check needed for providers)
   const allowedMenuNames = useMemo(() => {
-    const set = new Set<string>(["Dashboard"]);
-    Object.entries(privilegeMap).forEach(([priv, names]) => {
-      if (userPrivNames.has(priv)) {
-        names.forEach((n) => set.add(n));
-      }
-    });
+    const set = new Set<string>();
+    navItems.forEach((item) => set.add(item.name));
+    supportItems.forEach((item) => set.add(item.name));
+    othersItems.forEach((item) => set.add(item.name));
     return set;
-  }, [userPrivNames]);
+  }, []);
 
   // Filter the top-level arrays so only allowed sections are rendered (memoized)
   const filteredNavItems = useMemo(
