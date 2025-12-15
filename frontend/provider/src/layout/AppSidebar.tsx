@@ -58,7 +58,7 @@ const navItems: NavItem[] = [
     name: "Billing Management",
     icon: <TaskIcon />,
     subItems: [
-      { name: "Capture Bill", path: "/bill" },
+      { name: "Capture Bill", path: "/bills" },
       { name: "Saved Bills", path: "/saved-bills" },
       { name: "Submitted Bills", path: "/submitted-bills" },
     ],

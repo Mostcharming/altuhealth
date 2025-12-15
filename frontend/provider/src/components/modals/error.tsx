@@ -5,11 +5,13 @@ import { Modal } from "../ui/modal";
 type SuccessModalProps = {
   errorModal: { isOpen: boolean };
   handleErrorClose: () => void;
+  message: string;
 };
 
 export default function ErrorModal({
   errorModal,
   handleErrorClose,
+  message,
 }: SuccessModalProps) {
   return (
     <Modal
@@ -57,7 +59,7 @@ export default function ErrorModal({
           Error!
         </h4>
         <p className="text-sm leading-6 text-gray-500 dark:text-gray-400">
-          Error completing action please try again!
+          {message}
         </p>
 
         <div className="flex items-center justify-center w-full gap-3 mt-7">
