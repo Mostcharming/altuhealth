@@ -57,7 +57,7 @@ export default function ClaimDetail() {
   }, [id]);
 
   useEffect(() => {
-    document.title = "AltuHealth Admin Claim Details";
+    document.title = "AltuHealth Provider Claim Details";
   }, []);
 
   const getStatusBadgeColor = (status: string) => {

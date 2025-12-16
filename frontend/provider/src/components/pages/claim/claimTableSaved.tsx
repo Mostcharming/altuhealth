@@ -42,19 +42,6 @@ const ClaimTable: React.FC = () => {
     { value: "50", label: "50" },
   ];
 
-  const claimStatuses = [
-    { value: "", label: "All Statuses" },
-    { value: "draft", label: "Draft" },
-    { value: "submitted", label: "Submitted" },
-    { value: "pending_vetting", label: "Pending Vetting" },
-    { value: "under_review", label: "Under Review" },
-    { value: "awaiting_payment", label: "Awaiting Payment" },
-    { value: "paid", label: "Paid" },
-    { value: "rejected", label: "Rejected" },
-    { value: "partially_paid", label: "Partially Paid" },
-    { value: "queried", label: "Queried" },
-  ];
-
   const headers: Header[] = [
     { key: "claimReference", label: "Bill Reference" },
     { key: "providerId", label: "Provider" },
@@ -70,6 +57,7 @@ const ClaimTable: React.FC = () => {
   const fetch = useCallback(async () => {
     try {
       setSelectedProviderId(user?.id || "");
+      setSelectedStatus("draft");
       setLoading(true);
 
       const data = await fetchClaims({
@@ -143,10 +131,10 @@ const ClaimTable: React.FC = () => {
   //   setCurrentPage(1);
   // };
 
-  const handleStatusChange = (selectedValue: string) => {
-    setSelectedStatus(selectedValue);
-    setCurrentPage(1);
-  };
+  // const handleStatusChange = (selectedValue: string) => {
+  //   setSelectedStatus(selectedValue);
+  //   setCurrentPage(1);
+  // };
 
   const previousPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -225,12 +213,12 @@ const ClaimTable: React.FC = () => {
               onChange={handleProviderChange}
               defaultValue={selectedProviderId}
             /> */}
-            <Select
+            {/* <Select
               options={claimStatuses}
               placeholder="Select status"
               onChange={handleStatusChange}
               defaultValue={selectedStatus}
-            />
+            /> */}
             <div className="relative">
               <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
                 <svg
