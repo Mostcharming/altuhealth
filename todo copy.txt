@@ -56,13 +56,22 @@ band of hospitals -
 plans
 corporate plans - standard (attached to any)
 Bespoke plans - 
-retail plans - pending
+retail plans - pendingJSON_Invoice_WBSCELTELR112025-627AA675-20251215
 
 
 
 
+UPDATE
+Bespoke (Unique) -- done
+create new ones -- done
+use standard -- not done
+bulk uploads - not done
 
-CURRENT 
-Bespoke plans
--each company has customized plans 
----attach different providers
+Standard (corporate) (General)
+-benefit and providers -- not done
+bulk uploads -- not done 
+
+Retail plans
+coming soon (can pick from standard)
+(seperate create)
+(bulk upload)
