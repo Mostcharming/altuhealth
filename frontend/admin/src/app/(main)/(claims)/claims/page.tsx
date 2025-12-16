@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function Claims() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Bills" />
+      <PageBreadcrumb pageTitle="Claims" />
       <PageMetricsClaims />
       <ClaimTable />
     </div>

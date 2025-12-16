@@ -6,6 +6,7 @@ const ClaimsController = require('./controller');
 
 // CRUD for claims
 router.post('/', ClaimsController.createClaim);
+router.post('/with-details', ClaimsController.createClaimWithDetails);
 router.get('/list', ClaimsController.listClaims);
 
 // Claim details routes (must come before /:id routes to avoid conflicts)

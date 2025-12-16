@@ -1202,6 +1202,230 @@ async function deleteClaimDetail(req, res, next) {
 }
 
 /**
+ * Create a claim with details and detail items in one request (bulk submission)
+ */
+async function createClaimWithDetails(req, res, next) {
+    const { sequelize, Claim, ClaimDetail, ClaimDetailItem, Provider } = req.models;
+    const transaction = await sequelize.transaction();
+
+    try {
+        const {
+            providerId,
+            numberOfEncounters,
+            amountSubmitted,
+            year,
+            month,
+            bankUsedForPayment,
+            bankAccountNumber,
+            accountName,
+            description,
+            attachmentUrl,
+            claimDetails = []
+        } = req.body || {};
+
+        // Validate required fields
+        if (!providerId) return res.fail('`providerId` is required', 400);
+        if (!numberOfEncounters) return res.fail('`numberOfEncounters` is required', 400);
+        if (!amountSubmitted) return res.fail('`amountSubmitted` is required', 400);
+        if (!year) return res.fail('`year` is required', 400);
+        if (!month || month < 1 || month > 12) return res.fail('`month` must be between 1 and 12', 400);
+        if (!Array.isArray(claimDetails) || claimDetails.length === 0) {
+            return res.fail('`claimDetails` must be a non-empty array', 400);
+        }
+
+        // Verify provider exists
+        const provider = await Provider.findByPk(providerId, { transaction });
+        if (!provider) {
+            await transaction.rollback();
+            return res.fail('Provider not found', 404);
+        }
+
+        // Generate unique claim reference
+        const claimReference = generateClaimReference();
+
+        // Create the main claim
+        const claim = await Claim.create({
+            providerId,
+            numberOfEncounters,
+            amountSubmitted,
+            amountProcessed: 0,
+            difference: 0,
+            year,
+            month,
+            dateSubmitted: new Date(),
+            bankUsedForPayment: bankUsedForPayment || null,
+            bankAccountNumber: bankAccountNumber || null,
+            accountName: accountName || null,
+            paymentBatchId: null,
+            submittedByType: req.user?.type || 'Admin',
+            submittedById: req.user?.id || null,
+            status: 'draft',
+            claimReference,
+            description: description || null,
+            attachmentUrl: attachmentUrl || null
+        }, { transaction });
+
+        // Create claim details with their items
+        const createdDetails = [];
+        let totalDetailAmount = 0;
+
+        for (const detail of claimDetails) {
+            // Validate required fields for each detail
+            if (!detail.enrolleeId && !detail.retailEnrolleeId && !detail.companyId) {
+                await transaction.rollback();
+                return res.fail('Each claim detail must have either `enrolleeId`, `retailEnrolleeId`, or `companyId`', 400);
+            }
+            if (!detail.serviceDate) {
+                await transaction.rollback();
+                return res.fail('Each claim detail must have `serviceDate`', 400);
+            }
+            if (!detail.serviceType) {
+                await transaction.rollback();
+                return res.fail('Each claim detail must have `serviceType`', 400);
+            }
+            if (detail.amountSubmitted === undefined || detail.amountSubmitted === null) {
+                await transaction.rollback();
+                return res.fail('Each claim detail must have `amountSubmitted`', 400);
+            }
+
+            // Validate detail items if provided
+            const detailItems = detail.items || [];
+            let itemsTotalAmount = 0;
+
+            if (detailItems.length > 0) {
+                for (const item of detailItems) {
+                    if (!item.itemType) {
+                        await transaction.rollback();
+                        return res.fail('Each detail item must have `itemType` (drug or service)', 400);
+                    }
+                    if (!item.itemId) {
+                        await transaction.rollback();
+                        return res.fail('Each detail item must have `itemId`', 400);
+                    }
+                    if (!item.itemName) {
+                        await transaction.rollback();
+                        return res.fail('Each detail item must have `itemName`', 400);
+                    }
+                    if (item.quantity === undefined || item.quantity === null || item.quantity < 1) {
+                        await transaction.rollback();
+                        return res.fail('Each detail item must have `quantity` (minimum 1)', 400);
+                    }
+                    if (item.unitPrice === undefined || item.unitPrice === null || item.unitPrice < 0) {
+                        await transaction.rollback();
+                        return res.fail('Each detail item must have `unitPrice` (minimum 0)', 400);
+                    }
+
+                    itemsTotalAmount += parseFloat(item.quantity) * parseFloat(item.unitPrice);
+                }
+
+                // Verify detail amount matches sum of items
+                if (Math.abs(parseFloat(detail.amountSubmitted) - itemsTotalAmount) > 0.01) {
+                    await transaction.rollback();
+                    return res.fail(
+                        `Detail amount (${detail.amountSubmitted}) does not match sum of items (${itemsTotalAmount})`,
+                        400
+                    );
+                }
+            }
+
+            const claimDetail = await ClaimDetail.create({
+                claimId: claim.id,
+                enrolleeId: detail.enrolleeId || null,
+                retailEnrolleeId: detail.retailEnrolleeId || null,
+                companyId: detail.companyId || null,
+                providerId,
+                diagnosisId: detail.diagnosisId || null,
+                serviceDate: detail.serviceDate,
+                dischargeDate: detail.dischargeDate || null,
+                serviceType: detail.serviceType,
+                description: detail.description || null,
+                amountSubmitted: detail.amountSubmitted,
+                amountApproved: 0,
+                amountRejected: 0,
+                quantity: detail.quantity || 1,
+                unitPrice: detail.unitPrice || null,
+                procedureCode: detail.procedureCode || null,
+                procedureName: detail.procedureName || null,
+                medicationCode: detail.medicationCode || null,
+                medicationName: detail.medicationName || null,
+                authorizationCode: detail.authorizationCode || null,
+                referralCode: detail.referralCode || null,
+                status: 'draft',
+                rejectionReason: null,
+                vetterNotes: null,
+                attachmentUrl: detail.attachmentUrl || null,
+                inpatientDays: detail.inpatientDays || null
+            }, { transaction });
+
+            // Create detail items if provided
+            const createdItems = [];
+            if (detailItems.length > 0) {
+                for (const item of detailItems) {
+                    const totalAmount = parseFloat(item.quantity) * parseFloat(item.unitPrice);
+
+                    const detailItem = await ClaimDetailItem.create({
+                        claimDetailId: claimDetail.id,
+                        itemType: item.itemType,
+                        itemId: item.itemId,
+                        itemName: item.itemName,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        totalAmount,
+                        unit: item.unit || null,
+                        description: item.description || null
+                    }, { transaction });
+
+                    createdItems.push(detailItem);
+                }
+            }
+
+            createdDetails.push({
+                ...claimDetail.toJSON(),
+                items: createdItems
+            });
+
+            totalDetailAmount += parseFloat(detail.amountSubmitted);
+        }
+
+        // Verify total claim amount matches sum of details
+        if (Math.abs(parseFloat(amountSubmitted) - totalDetailAmount) > 0.01) {
+            await transaction.rollback();
+            return res.fail(
+                `Total claim amount (${amountSubmitted}) does not match sum of claim details (${totalDetailAmount})`,
+                400
+            );
+        }
+
+        await addAuditLog(req.models, {
+            action: 'claim.create_with_details',
+            message: `Claim ${claimReference} created with ${claimDetails.length} details for provider ${provider.name}`,
+            userId: req.user?.id || null,
+            userType: req.user?.type || 'Admin',
+            meta: {
+                claimId: claim.id,
+                providerId,
+                claimReference,
+                detailsCount: claimDetails.length
+            }
+        });
+
+        await transaction.commit();
+
+        return res.success(
+            {
+                claim,
+                claimDetails: createdDetails
+            },
+            'Claim with details and items created successfully',
+            201
+        );
+    } catch (err) {
+        await transaction.rollback();
+        return next(err);
+    }
+}
+
+/**
  * Helper function to generate unique claim reference
  */
 function generateClaimReference() {
@@ -1212,6 +1436,7 @@ function generateClaimReference() {
 
 module.exports = {
     createClaim,
+    createClaimWithDetails,
     listClaims,
     getClaimById,
     updateClaim,

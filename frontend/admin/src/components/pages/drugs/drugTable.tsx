@@ -96,6 +96,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
       if (limit) params.append("limit", String(limit));
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
+      if (id) params.append("providerId", id);
 
       const url = `/admin/drugs/list?${params.toString()}`;
 
@@ -121,7 +122,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setDrugs]);
+  }, [limit, currentPage, search, id, setDrugs]);
 
   useEffect(() => {
     fetch();

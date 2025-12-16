@@ -100,6 +100,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
       if (limit) params.append("limit", String(limit));
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
+      if (id) params.append("providerId", id);
 
       const url = `/admin/services/list?${params.toString()}`;
 
