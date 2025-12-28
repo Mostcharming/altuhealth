@@ -1,4 +1,5 @@
 "use client";
+import type { MonthlySalesData } from "@/hooks/useDashboardData";
 import { MoreDotIcon } from "@/icons";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
@@ -11,7 +12,15 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function MonthlySalesChart() {
+interface MonthlySalesChartProps {
+  data?: MonthlySalesData;
+  isLoading?: boolean;
+}
+
+export default function MonthlySalesChart({
+  data,
+  isLoading = false,
+}: MonthlySalesChartProps) {
   const options: ApexOptions = {
     colors: ["#465fff", "#10b981"],
     chart: {
@@ -94,7 +103,7 @@ export default function MonthlySalesChart() {
   const series = [
     {
       name: "Dependents Added",
-      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      data: data?.data ?? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
   ];
   const [isOpen, setIsOpen] = useState(false);
@@ -106,6 +115,16 @@ export default function MonthlySalesChart() {
   function closeDropdown() {
     setIsOpen(false);
   }
+
+  if (isLoading) {
+    return (
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6 animate-pulse">
+        <div className="h-7 bg-gray-200 rounded dark:bg-gray-700 w-48" />
+        <div className="h-40 bg-gray-200 rounded dark:bg-gray-700 mt-4" />
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
       <div className="flex items-center justify-between">

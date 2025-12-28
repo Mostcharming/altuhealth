@@ -156,6 +156,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true,
             field: 'password'
+        },
+        picture: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'picture'
         }
     }, {
         tableName: 'providers',

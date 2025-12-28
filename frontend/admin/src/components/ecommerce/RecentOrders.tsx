@@ -1,3 +1,4 @@
+import type { RecentProvidersData } from "@/hooks/useDashboardData";
 import Image from "next/image";
 import Badge from "../ui/badge/Badge";
 import {
@@ -8,20 +9,16 @@ import {
   TableRow,
 } from "../ui/table";
 
-// Define the TypeScript interface for the table rows
-interface Provider {
-  id: number; // Unique identifier for each provider
-  name: string; // Provider name
-  specialty: string; // Medical specialty
-  location: string; // Location
-  status: "Active" | "Inactive" | "Pending"; // Status of the provider
-  image: string; // URL or path to the provider image
+// Define the table data using the interface
+interface RecentOrdersProps {
+  data?: RecentProvidersData[];
+  isLoading?: boolean;
 }
 
-// Define the table data using the interface
-const tableData: Provider[] = [];
-
-export default function RecentOrders() {
+export default function RecentOrders({
+  data = [],
+  isLoading = false,
+}: RecentOrdersProps) {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -110,48 +107,60 @@ export default function RecentOrders() {
           {/* Table Body */}
 
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {tableData.map((provider) => (
-              <TableRow key={provider.id} className="">
-                <TableCell className="py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-[50px] w-[50px] overflow-hidden rounded-md">
-                      <Image
-                        width={50}
-                        height={50}
-                        src={provider.image}
-                        className="h-[50px] w-[50px]"
-                        alt={provider.name}
-                      />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {provider.name}
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {provider.specialty}
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {provider.location}
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  <Badge
-                    size="sm"
-                    color={
-                      provider.status === "Active"
-                        ? "success"
-                        : provider.status === "Pending"
-                        ? "warning"
-                        : "error"
-                    }
-                  >
-                    {provider.status}
-                  </Badge>
+            {isLoading ? (
+              <TableRow>
+                <TableCell className="py-3 text-center">Loading...</TableCell>
+              </TableRow>
+            ) : data.length === 0 ? (
+              <TableRow>
+                <TableCell className="py-3 text-center text-gray-500">
+                  No providers available
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              data.map((provider) => (
+                <TableRow key={provider.id} className="">
+                  <TableCell className="py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-[50px] w-[50px] overflow-hidden rounded-md">
+                        <Image
+                          width={50}
+                          height={50}
+                          src={provider.image}
+                          className="h-[50px] w-[50px]"
+                          alt={provider.name}
+                        />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
+                          {provider.name}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    {provider.services}
+                  </TableCell>
+                  <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    {provider.drugs}
+                  </TableCell>
+                  <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                    <Badge
+                      size="sm"
+                      color={
+                        provider.status === "Active"
+                          ? "success"
+                          : provider.status === "Pending"
+                          ? "warning"
+                          : "error"
+                      }
+                    >
+                      {provider.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

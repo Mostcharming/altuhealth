@@ -1,5 +1,5 @@
 "use client";
-// import Chart from "react-apexcharts";
+import type { StatisticsData } from "@/hooks/useDashboardData";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import ChartTab from "../common/ChartTab";
@@ -9,7 +9,15 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function StatisticsChart() {
+interface StatisticsChartProps {
+  data?: StatisticsData;
+  isLoading?: boolean;
+}
+
+export default function StatisticsChart({
+  data,
+  isLoading = false,
+}: StatisticsChartProps = {}) {
   const options: ApexOptions = {
     legend: {
       show: false, // Hide legend
@@ -111,13 +119,25 @@ export default function StatisticsChart() {
   const series = [
     {
       name: "Retail Enrollees",
-      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      data: data?.retailEnrollees ?? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
       name: "Active Dependent Enrollees",
-      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      data: data?.activeDependentEnrollees ?? [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      ],
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6 animate-pulse">
+        <div className="h-8 bg-gray-200 rounded dark:bg-gray-700 w-48" />
+        <div className="h-80 bg-gray-200 rounded dark:bg-gray-700 mt-4" />
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
       <div className="flex flex-col gap-5 mb-6 sm:flex-row sm:justify-between">

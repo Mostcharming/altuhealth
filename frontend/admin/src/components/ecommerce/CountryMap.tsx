@@ -1,5 +1,6 @@
 import React from "react";
 // import { VectorMap } from "@react-jvectormap/core";
+import type { DemographicData } from "@/hooks/useDashboardData";
 import { worldMill } from "@react-jvectormap/world";
 import dynamic from "next/dynamic";
 
@@ -8,9 +9,17 @@ const VectorMap = dynamic(
   { ssr: false }
 );
 
+// Country coordinates mapping
+const COUNTRY_COORDINATES: Record<string, [number, number]> = {
+  Nigeria: [9.0765, 7.3986],
+  Ghana: [5.6037, -0.187],
+  Kenya: [-0.0236, 37.9062],
+};
+
 // Define the component props
 interface CountryMapProps {
   mapColor?: string;
+  demographicData?: DemographicData[];
 }
 
 type MarkerStyle = {
@@ -32,7 +41,24 @@ type Marker = {
   };
 };
 
-const CountryMap: React.FC<CountryMapProps> = ({ mapColor }) => {
+const CountryMap: React.FC<CountryMapProps> = ({
+  mapColor,
+  demographicData,
+}) => {
+  // Create markers from demographic data
+  const markers: Marker[] = demographicData
+    ? demographicData.map((item) => ({
+        latLng: COUNTRY_COORDINATES[item.country] || [0, 0],
+        name: item.country,
+        style: {
+          fill: "#465FFF",
+          borderWidth: 1,
+          borderColor: "white",
+          strokeOpacity: 0,
+        },
+      }))
+    : [];
+
   return (
     <VectorMap
       map={worldMill}
@@ -46,20 +72,7 @@ const CountryMap: React.FC<CountryMapProps> = ({ mapColor }) => {
         } as MarkerStyle
       }
       markersSelectable={true}
-      markers={
-        [
-          {
-            latLng: [9.0765, 7.3986],
-            name: "Nigeria",
-            style: {
-              fill: "#465FFF",
-              borderWidth: 1,
-              borderColor: "white",
-              strokeOpacity: 0,
-            },
-          },
-        ] as Marker[]
-      }
+      markers={markers as Marker[]}
       zoomOnScroll={false}
       zoomMax={12}
       zoomMin={1}

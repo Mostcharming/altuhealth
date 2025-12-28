@@ -1,16 +1,26 @@
 "use client";
+import type { StaffEnrollmentData } from "@/hooks/useDashboardData";
 import { MoreDotIcon } from "@/icons";
 import { ApexOptions } from "apexcharts";
-
 import dynamic from "next/dynamic";
 import { useState } from "react";
+
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function MonthlyTarget() {
-  const series = [0.01];
+interface MonthlyTargetProps {
+  data?: StaffEnrollmentData;
+  isLoading?: boolean;
+}
+
+export default function MonthlyTarget({
+  data,
+  isLoading = false,
+}: MonthlyTargetProps) {
+  const enrollmentPercentage = data?.enrollmentPercentage ?? 0.01;
+  const series = [enrollmentPercentage];
   const options: ApexOptions = {
     colors: ["#465FFF"],
     chart: {
@@ -31,7 +41,7 @@ export default function MonthlyTarget() {
         track: {
           background: "#E4E7EC",
           strokeWidth: "100%",
-          margin: 5, // margin is in pixels
+          margin: 5,
         },
         dataLabels: {
           name: {
@@ -43,7 +53,7 @@ export default function MonthlyTarget() {
             offsetY: -40,
             color: "#1D2939",
             formatter: function (val) {
-              return val + "%";
+              return val.toFixed(2) + "%";
             },
           },
         },
@@ -64,9 +74,16 @@ export default function MonthlyTarget() {
     setIsOpen(!isOpen);
   }
 
-  // function closeDropdown() {
-  //   setIsOpen(false);
-  // }
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-white/[0.03] animate-pulse">
+        <div className="px-5 pt-5 bg-white shadow-default rounded-2xl pb-11 dark:bg-gray-900 sm:px-6 sm:pt-6">
+          <div className="h-48 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="px-5 pt-5 bg-white shadow-default rounded-2xl pb-11 dark:bg-gray-900 sm:px-6 sm:pt-6">
@@ -83,24 +100,6 @@ export default function MonthlyTarget() {
             <button onClick={toggleDropdown} className="dropdown-toggle">
               <MoreDotIcon className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" />
             </button>
-            {/* <Dropdown
-              isOpen={isOpen}
-              onClose={closeDropdown}
-              className="w-40 p-2"
-            >
-              <DropdownItem
-                onItemClick={closeDropdown}
-                className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-              >
-                View More
-              </DropdownItem>
-              <DropdownItem
-                onItemClick={closeDropdown}
-                className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-              >
-                Delete
-              </DropdownItem>
-            </Dropdown> */}
           </div>
         </div>
         <div className="relative ">
@@ -114,7 +113,7 @@ export default function MonthlyTarget() {
           </div>
 
           <span className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-[95%] rounded-full bg-success-50 px-3 py-1 text-xs font-medium text-success-600 dark:bg-success-500/15 dark:text-success-500">
-            +0%
+            +{enrollmentPercentage.toFixed(2)}%
           </span>
         </div>
         <p className="mx-auto mt-10 w-full max-w-[380px] text-center text-sm text-gray-500 sm:text-base">
@@ -129,7 +128,7 @@ export default function MonthlyTarget() {
             Total Staffs
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            0
+            {data?.totalStaff ?? 0}
             <svg
               width="16"
               height="16"
@@ -154,7 +153,7 @@ export default function MonthlyTarget() {
             Activated
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            0
+            {data?.activated ?? 0}
             <svg
               width="16"
               height="16"
@@ -179,21 +178,7 @@ export default function MonthlyTarget() {
             Pending
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            0
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M7.60141 2.33683C7.73885 2.18084 7.9401 2.08243 8.16435 2.08243C8.16475 2.08243 8.16516 2.08243 8.16556 2.08243C8.35773 2.08219 8.54998 2.15535 8.69664 2.30191L12.6968 6.29924C12.9898 6.59203 12.9899 7.0669 12.6971 7.3599C12.4044 7.6529 11.9295 7.65306 11.6365 7.36027L8.91435 4.64004L8.91435 13.5C8.91435 13.9142 8.57856 14.25 8.16435 14.25C7.75013 14.25 7.41435 13.9142 7.41435 13.5L7.41435 4.64442L4.69679 7.36025C4.4038 7.65305 3.92893 7.6529 3.63613 7.35992C3.34333 7.06693 3.34348 6.59206 3.63646 6.29926L7.60141 2.33683Z"
-                fill="#039855"
-              />
-            </svg>
+            {data?.pending ?? 0}
           </p>
         </div>
       </div>
