@@ -3,7 +3,7 @@ const { Sequelize } = require('sequelize');
 // Get companies and enrollees metrics
 const getMetrics = async (req, res, next) => {
     try {
-        const { Company, Enrollee, EnrolleeDependent } = req.models;
+        const { Company, Enrollee, EnrolleeDependent, Staff, RetailEnrollee, RetailEnrolleeDependent, Provider, Service, Drug } = req.models;
         // Get current month companies count
         const currentMonthCompanies = await Company.count({
             where: Sequelize.where(
@@ -87,6 +87,99 @@ const getMetrics = async (req, res, next) => {
             monthlySalesData[Math.floor(month) - 1] = parseInt(count);
         });
 
+        // Get staff enrollment metrics
+        const totalStaff = await Staff.count();
+        const activatedStaff = await Staff.count({
+            where: {
+                enrollmentStatus: 'enrolled'
+            }
+        });
+        const pendingStaff = totalStaff - activatedStaff;
+        const enrollmentPercentage = totalStaff === 0
+            ? 0
+            : parseFloat((activatedStaff / totalStaff * 100).toFixed(2));
+
+        // Get monthly retail enrollees for the current year
+        const monthlyRetailEnrollees = await RetailEnrollee.sequelize.query(
+            `SELECT EXTRACT(MONTH FROM created_at) as month, COUNT(*) as count
+             FROM retail_enrollees
+             WHERE EXTRACT(YEAR FROM created_at) = :year
+             GROUP BY EXTRACT(MONTH FROM created_at)
+             ORDER BY EXTRACT(MONTH FROM created_at)`,
+            {
+                replacements: { year: currentYear },
+                type: Sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        // Get monthly active dependent enrollees for the current year
+        const monthlyActiveDependents = await RetailEnrolleeDependent.sequelize.query(
+            `SELECT EXTRACT(MONTH FROM created_at) as month, COUNT(*) as count
+             FROM retail_enrollee_dependents
+             WHERE EXTRACT(YEAR FROM created_at) = :year AND is_active = true
+             GROUP BY EXTRACT(MONTH FROM created_at)
+             ORDER BY EXTRACT(MONTH FROM created_at)`,
+            {
+                replacements: { year: currentYear },
+                type: Sequelize.QueryTypes.SELECT,
+            }
+        );
+
+        // Create arrays with 12 months initialized to 0
+        const monthlyRetailEnrolleesData = Array(12).fill(0);
+        const monthlyActiveDependentsData = Array(12).fill(0);
+
+        // Populate the arrays with actual counts
+        monthlyRetailEnrollees.forEach(({ month, count }) => {
+            monthlyRetailEnrolleesData[Math.floor(month) - 1] = parseInt(count);
+        });
+
+        monthlyActiveDependents.forEach(({ month, count }) => {
+            monthlyActiveDependentsData[Math.floor(month) - 1] = parseInt(count);
+        });
+
+        // Get recent providers with services and drugs count
+        const recentProviders = await Provider.findAll({
+            attributes: ['id', 'name', 'status', 'picture'],
+            where: {
+                isDeleted: false,
+                status: 'active'
+            },
+            order: [['created_at', 'DESC']],
+            limit: 5,
+            raw: false
+        });
+
+        // Enhance recent providers with services and drugs count
+        const recentProvidersData = await Promise.all(
+            recentProviders.map(async (provider) => {
+                const servicesCount = await Service.count({
+                    where: {
+                        providerId: provider.id,
+                        isDeleted: false,
+                        status: 'active'
+                    }
+                });
+
+                const drugsCount = await Drug.count({
+                    where: {
+                        providerId: provider.id,
+                        isDeleted: false,
+                        status: 'active'
+                    }
+                });
+
+                return {
+                    id: provider.id,
+                    name: provider.name,
+                    services: servicesCount,
+                    drugs: drugsCount,
+                    status: provider.status.charAt(0).toUpperCase() + provider.status.slice(1),
+                    image: provider.picture || '/images/provider/default-provider.jpg'
+                };
+            })
+        );
+
         const data = {
             metrics: {
                 companies: {
@@ -103,6 +196,24 @@ const getMetrics = async (req, res, next) => {
             monthlySales: {
                 data: monthlySalesData,
             },
+            staffEnrollment: {
+                totalStaff,
+                activated: activatedStaff,
+                pending: pendingStaff,
+                enrollmentPercentage,
+            },
+            statistics: {
+                retailEnrollees: monthlyRetailEnrolleesData,
+                activeDependentEnrollees: monthlyActiveDependentsData,
+            },
+            recentProviders: recentProvidersData,
+            demographics: [
+                {
+                    country: "Nigeria",
+                    enrollees: totalEnrollees,
+                    flag: "/images/country/country-ng.svg",
+                },
+            ],
         };
 
         return res.status(200).json({

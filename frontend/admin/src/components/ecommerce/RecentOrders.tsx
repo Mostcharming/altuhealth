@@ -1,4 +1,5 @@
 import type { RecentProvidersData } from "@/hooks/useDashboardData";
+import capitalizeWords from "@/lib/capitalize";
 import Image from "next/image";
 import Badge from "../ui/badge/Badge";
 import {
@@ -133,7 +134,7 @@ export default function RecentOrders({
                       </div>
                       <div>
                         <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                          {provider.name}
+                          {capitalizeWords(provider.name)}
                         </p>
                       </div>
                     </div>

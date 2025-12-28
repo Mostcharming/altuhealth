@@ -59,20 +59,20 @@ export interface DashboardData {
 const fetchDashboardData = async (): Promise<DashboardData> => {
   let metrics: MetricsData;
   let monthlySales: MonthlySalesData;
-  // let staffEnrollment: StaffEnrollmentData;
-  // let statistics: StatisticsData;
-  // let demographics: DemographicData[];
-  // let recentProviders: RecentProvidersData[];
+  let staffEnrollment: StaffEnrollmentData;
+  let statistics: StatisticsData;
+  let demographics: DemographicData[];
+  let recentProviders: RecentProvidersData[];
 
   try {
     // Make actual API call for metrics
     const response = await apiClient("/admin/dashboard/overview");
     metrics = response.data.metrics;
     monthlySales = response.data.monthlySales;
-    // staffEnrollment = response.data.staffEnrollment;
-    // statistics = response.data.statistics;
-    // demographics = response.data.demographics;
-    // recentProviders = response.data.recentProviders;
+    staffEnrollment = response.data.staffEnrollment;
+    statistics = response.data.statistics;
+    demographics = response.data.demographics;
+    recentProviders = response.data.recentProviders;
   } catch (error) {
     console.warn(
       "Failed to fetch metrics from API, using default data:",
@@ -92,84 +92,27 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
       },
     };
     monthlySales = { data: Array(12).fill(0) };
+    staffEnrollment = {
+      totalStaff: 0,
+      activated: 0,
+      pending: 0,
+      enrollmentPercentage: 0,
+    };
+    statistics = {
+      retailEnrollees: Array(12).fill(0),
+      activeDependentEnrollees: Array(12).fill(0),
+    };
+    demographics = [];
+    recentProviders = [];
   }
 
   return {
     metrics,
     monthlySales,
-    staffEnrollment: {
-      totalStaff: 450,
-      activated: 385,
-      pending: 65,
-      enrollmentPercentage: 85.56,
-    },
-    statistics: {
-      retailEnrollees: [
-        125, 234, 345, 456, 567, 678, 789, 890, 901, 812, 723, 634,
-      ],
-      activeDependentEnrollees: [
-        89, 156, 213, 298, 387, 476, 523, 612, 698, 745, 812, 889,
-      ],
-    },
-    demographics: [
-      {
-        country: "Nigeria",
-        enrollees: 1245,
-        flag: "/images/country/country-ng.svg",
-      },
-      {
-        country: "Ghana",
-        enrollees: 892,
-        flag: "/images/country/country-gh.svg",
-      },
-      {
-        country: "Kenya",
-        enrollees: 703,
-        flag: "/images/country/country-ke.svg",
-      },
-    ],
-    recentProviders: [
-      {
-        id: 1,
-        name: "Dr. Sarah Johnson",
-        services: 15,
-        drugs: 42,
-        status: "Active",
-        image: "/images/provider/provider-01.jpg",
-      },
-      {
-        id: 2,
-        name: "Dr. Kwame Mensah",
-        services: 12,
-        drugs: 38,
-        status: "Active",
-        image: "/images/provider/provider-02.jpg",
-      },
-      {
-        id: 3,
-        name: "Dr. James Kipchoge",
-        services: 8,
-        drugs: 25,
-        status: "Pending",
-        image: "/images/provider/provider-03.jpg",
-      },
-      {
-        id: 4,
-        name: "Dr. Amara Okafor",
-        services: 10,
-        drugs: 31,
-        status: "Active",
-        image: "/images/provider/provider-04.jpg",
-      },
-      {
-        id: 5,
-        name: "Dr. Grace Asiimwe",
-        services: 14,
-        drugs: 45,
-        status: "Inactive",
-        image: "/images/provider/provider-05.jpg",
-      },
-    ],
+    staffEnrollment,
+    statistics,
+    demographics,
+    recentProviders,
   };
 };
 
