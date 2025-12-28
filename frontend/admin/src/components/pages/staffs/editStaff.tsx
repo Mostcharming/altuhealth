@@ -355,7 +355,7 @@ export default function EditStaff({
                   selectPosition="start"
                   countries={countries}
                   placeholder="+1 (555) 000-0000"
-                  defaultValue={phoneNumber}
+                  //defaultValue={phoneNumber}
                   onChange={handlePhoneChange}
                 />
               </div>

@@ -386,7 +386,7 @@ export default function EditProvider({
                   countries={phoneCountries}
                   placeholder="+1 (555) 000-0000"
                   onChange={handlePhoneChange}
-                  defaultValue={phoneNumber}
+                  //defaultValue={phoneNumber}
                 />
               </div>
 
