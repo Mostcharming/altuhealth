@@ -415,7 +415,7 @@ export default function EditCompanySubsidiary({
                     selectPosition="start"
                     countries={countryList}
                     placeholder="+1 (555) 000-0000"
-                    defaultValue={secondaryPhoneNumber}
+                    //defaultValue={phoneNumber}
                     onChange={setSecondaryPhoneNumber}
                   />
                 </div>

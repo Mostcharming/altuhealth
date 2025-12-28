@@ -457,7 +457,7 @@ export default function PageMetricsProviders({
                   countries={phoneCountries}
                   placeholder="+1 (555) 000-0000"
                   onChange={handleSecondaryPhoneChange}
-                  defaultValue={secondaryPhoneNumber}
+                  //defaultValue={phoneNumber}
                 />
               </div>
 
