@@ -1,4 +1,5 @@
 "use client";
+import { apiClient } from "@/lib/apiClient";
 import { useEffect, useState } from "react";
 
 export interface MetricsData {
@@ -54,27 +55,48 @@ export interface DashboardData {
   recentProviders: RecentProvidersData[];
 }
 
-// Simulated API call
+// Fetch metrics from API, sample data for the rest
 const fetchDashboardData = async (): Promise<DashboardData> => {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  let metrics: MetricsData;
+  let monthlySales: MonthlySalesData;
+  // let staffEnrollment: StaffEnrollmentData;
+  // let statistics: StatisticsData;
+  // let demographics: DemographicData[];
+  // let recentProviders: RecentProvidersData[];
 
-  return {
-    metrics: {
+  try {
+    // Make actual API call for metrics
+    const response = await apiClient("/admin/dashboard/overview");
+    metrics = response.data.metrics;
+    monthlySales = response.data.monthlySales;
+    // staffEnrollment = response.data.staffEnrollment;
+    // statistics = response.data.statistics;
+    // demographics = response.data.demographics;
+    // recentProviders = response.data.recentProviders;
+  } catch (error) {
+    console.warn(
+      "Failed to fetch metrics from API, using default data:",
+      error
+    );
+    // Fallback to zero values if API call fails
+    metrics = {
       companies: {
-        count: 145,
-        percentage: 12.5,
+        count: 0,
+        percentage: 0,
         trend: "up",
       },
       enrollees: {
-        count: 2840,
-        percentage: 8.3,
-        trend: "down",
+        count: 0,
+        percentage: 0,
+        trend: "up",
       },
-    },
-    monthlySales: {
-      data: [45, 78, 123, 98, 156, 189, 201, 167, 195, 234, 212, 267],
-    },
+    };
+    monthlySales = { data: Array(12).fill(0) };
+  }
+
+  return {
+    metrics,
+    monthlySales,
     staffEnrollment: {
       totalStaff: 450,
       activated: 385,

@@ -8,7 +8,7 @@ router.use(responseFormatter);
 router.use('/auth', require('./auth/route'));
 
 router.use(securityMiddleware);
-router.use('/dashboard', require('./dashboard/route'));
+router.use('/dashboard', require('./dashboard/overview/route'));
 router.use('/account', require('./account/route'));
 router.use('/notifications', require('./notifications/route'));
 router.use('/roles', require('./roles/route'));

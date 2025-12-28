@@ -1,6 +1,5 @@
 const router = require('express').Router();
-const { getMetrics } = require('./controller');
 
-router.get('/metrics', getMetrics);
+router.get('/overview', require('./controller').getMetrics);
 
 module.exports = router;
