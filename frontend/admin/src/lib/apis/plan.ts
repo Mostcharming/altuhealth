@@ -10,6 +10,24 @@ export interface Plan {
   isApproved: boolean;
   createdAt?: string;
   updatedAt?: string;
+  benefitCategories?: BenefitCategory[];
+  exclusions?: Exclusion[];
+  providers?: Provider[];
+}
+
+export interface BenefitCategory {
+  id: string;
+  name: string;
+}
+
+export interface Exclusion {
+  id: string;
+  description: string;
+}
+
+export interface Provider {
+  id: string;
+  name: string;
 }
 
 export async function fetchPlans(
@@ -65,6 +83,66 @@ export async function updatePlan(
 
 export async function deletePlan(id: string) {
   return apiClient(`/admin/plans/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// Benefit categories
+export async function addBenefitCategory(
+  planId: string,
+  benefitCategoryId: string
+) {
+  return apiClient("/admin/plans/benefit-categories/add", {
+    method: "POST",
+    body: { planId, benefitCategoryId },
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function removeBenefitCategory(
+  planId: string,
+  benefitCategoryId: string
+) {
+  return apiClient(
+    `/admin/plans/benefit-categories/${planId}/${benefitCategoryId}`,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
+// Exclusions
+export async function addExclusion(planId: string, exclusionId: string) {
+  return apiClient("/admin/plans/exclusions/add", {
+    method: "POST",
+    body: { planId, exclusionId },
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function removeExclusion(planId: string, exclusionId: string) {
+  return apiClient(`/admin/plans/exclusions/${planId}/${exclusionId}`, {
+    method: "DELETE",
+  });
+}
+
+// Providers
+export async function addProvider(planId: string, providerId: string) {
+  return apiClient("/admin/plans/providers/add", {
+    method: "POST",
+    body: { planId, providerId },
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function removeProvider(planId: string, providerId: string) {
+  return apiClient(`/admin/plans/providers/${planId}/${providerId}`, {
     method: "DELETE",
   });
 }

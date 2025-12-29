@@ -172,8 +172,33 @@ async function getPlan(req, res, next) {
     try {
         const { Plan } = req.models;
         const { id } = req.params;
+        const { include } = req.query;
 
-        const plan = await Plan.findByPk(id);
+        const findOptions = {
+            where: { id }
+        };
+
+        // Handle include parameter for relationships
+        if (include) {
+            const includes = String(include).split(',').map(s => s.trim());
+            const association = [];
+
+            if (includes.includes('benefitCategories')) {
+                association.push({ association: 'benefitCategories' });
+            }
+            if (includes.includes('exclusions')) {
+                association.push({ association: 'exclusions' });
+            }
+            if (includes.includes('providers')) {
+                association.push({ association: 'providers' });
+            }
+
+            if (association.length > 0) {
+                findOptions.include = association;
+            }
+        }
+
+        const plan = await Plan.findByPk(id, findOptions);
         if (!plan) return res.fail('Plan not found', 404);
 
         return res.success(plan.toJSON());
@@ -296,6 +321,63 @@ async function removeExclusion(req, res, next) {
     }
 }
 
+// Add provider to plan
+async function addProvider(req, res, next) {
+    try {
+        const { Plan, ProviderPlan } = req.models;
+        const { planId, providerId } = req.body || {};
+
+        if (!planId) return res.fail('`planId` is required', 400);
+        if (!providerId) return res.fail('`providerId` is required', 400);
+
+        const plan = await Plan.findByPk(planId);
+        if (!plan) return res.fail('Plan not found', 404);
+
+        // Check if already exists
+        const existing = await ProviderPlan.findOne({ where: { planId, providerId } });
+        if (existing) return res.fail('Provider already added to this plan', 400);
+
+        const providerPlan = await ProviderPlan.create({ planId, providerId });
+
+        await addAuditLog(req.models, {
+            action: 'plan.provider.add',
+            message: `Provider added to Plan ${plan.name}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { planId, providerId }
+        });
+
+        return res.success({ providerPlan: providerPlan.toJSON() }, 'Provider added to plan', 201);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+// Remove provider from plan
+async function removeProvider(req, res, next) {
+    try {
+        const { ProviderPlan } = req.models;
+        const { planId, providerId } = req.params;
+
+        const providerPlan = await ProviderPlan.findOne({ where: { planId, providerId } });
+        if (!providerPlan) return res.fail('Provider not found for this plan', 404);
+
+        await providerPlan.destroy();
+
+        await addAuditLog(req.models, {
+            action: 'plan.provider.remove',
+            message: `Provider removed from plan`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { planId, providerId }
+        });
+
+        return res.success(null, 'Provider removed from plan');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createPlan,
     updatePlan,
@@ -305,5 +387,7 @@ module.exports = {
     addBenefitCategory,
     removeBenefitCategory,
     addExclusion,
-    removeExclusion
+    removeExclusion,
+    addProvider,
+    removeProvider
 };

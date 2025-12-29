@@ -19,4 +19,8 @@ router.delete('/benefit-categories/:planId/:benefitCategoryId', Plans.removeBene
 router.post('/exclusions/add', Plans.addExclusion);
 router.delete('/exclusions/:planId/:exclusionId', Plans.removeExclusion);
 
+// Providers
+router.post('/providers/add', Plans.addProvider);
+router.delete('/providers/:planId/:providerId', Plans.removeProvider);
+
 module.exports = router;

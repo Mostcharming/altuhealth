@@ -1,5 +1,20 @@
 import { create } from "zustand";
 
+export interface BenefitCategory {
+  id: string;
+  name: string;
+}
+
+export interface Exclusion {
+  id: string;
+  description: string;
+}
+
+export interface Provider {
+  id: string;
+  name: string;
+}
+
 export interface Plan {
   id: string;
   name: string;
@@ -10,6 +25,9 @@ export interface Plan {
   isApproved?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  benefitCategories?: BenefitCategory[];
+  exclusions?: Exclusion[];
+  providers?: Provider[];
 }
 
 type PlanState = {

@@ -5,16 +5,18 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { PencilIcon, TrashBinIcon } from "@/icons";
+import { EyeIcon, PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import { Plan, usePlanStore } from "@/lib/store/planStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditUnit from "./editUnit";
+import ViewPlanModal from "./viewPlanModal";
 
 const AdminTable: React.FC = () => {
   const { isOpen, openModal, closeModal } = useModal();
+  const viewModal = useModal();
   const errorModal = useModal();
   const successModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -30,6 +32,7 @@ const AdminTable: React.FC = () => {
   const confirmModal = useModal();
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<Plan | null>(null);
+  const [viewingPlan, setViewingPlan] = useState<Plan | null>(null);
   const removeUser = usePlanStore((s) => s.removePlan);
   const [errorMessage, setErrorMessage] = useState(
     "Failed to delete plan. Please try again."
@@ -139,6 +142,16 @@ const AdminTable: React.FC = () => {
     openModal();
   };
 
+  const handleViewResources = (plan: Plan) => {
+    setViewingPlan(plan);
+    viewModal.openModal();
+  };
+
+  const handleCloseView = () => {
+    viewModal.closeModal();
+    setViewingPlan(null);
+  };
+
   const deleteRole = async () => {
     if (!selectedRoleId) return;
     try {
@@ -168,6 +181,7 @@ const AdminTable: React.FC = () => {
     setEditingRole(null);
     closeModal();
   };
+
   const handleSuccessClose = () => {
     successModal.closeModal();
     closeModal();
@@ -270,6 +284,12 @@ const AdminTable: React.FC = () => {
 
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
+                      <button
+                        onClick={() => handleViewResources(invoice)}
+                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                      >
+                        <EyeIcon />
+                      </button>
                       <button
                         onClick={() => handleView(invoice)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
@@ -409,6 +429,11 @@ const AdminTable: React.FC = () => {
         isOpen={isOpen}
         closeModal={handleCloseEdit}
         unit={editingRole}
+      />
+      <ViewPlanModal
+        isOpen={viewModal.isOpen}
+        closeModal={handleCloseView}
+        plan={viewingPlan}
       />
       <SuccessModal
         successModal={successModal}
