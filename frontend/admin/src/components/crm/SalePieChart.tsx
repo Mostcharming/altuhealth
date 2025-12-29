@@ -126,9 +126,25 @@ export default function SalePieChart({
     setIsOpen(!isOpen);
   }
 
-  // function closeDropdown() {
-  //   setIsOpen(false);
-  // }
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 animate-pulse">
+        <div className="flex items-center justify-between mb-5">
+          <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-40" />
+          <div className="w-8 h-8 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+        <div className="flex flex-col items-center gap-8 xl:flex-row">
+          <div className="w-64 h-64 bg-gray-200 rounded-full dark:bg-gray-700" />
+          <div className="space-y-4 flex-1">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-40" />
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-36" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
       <div className="flex items-center justify-between mb-5">

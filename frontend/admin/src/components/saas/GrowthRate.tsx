@@ -82,6 +82,28 @@ export default function GrowthChart({
   function closeDropdown() {
     setIsOpen(false);
   }
+
+  if (isLoading) {
+    return (
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] animate-pulse">
+        <div className="mb-6 flex justify-between">
+          <div>
+            <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-32 mb-2" />
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-48" />
+          </div>
+          <div className="w-8 h-8 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+        <div className="flex justify-between items-end">
+          <div>
+            <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-16 mb-2" />
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+          </div>
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700 w-24" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="mb-6 flex justify-between">

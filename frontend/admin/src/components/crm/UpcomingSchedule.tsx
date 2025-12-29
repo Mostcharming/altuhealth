@@ -34,6 +34,29 @@ export default function UpcomingSchedule({
     setIsOpen(!isOpen);
   }
 
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 animate-pulse">
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-52" />
+          <div className="w-8 h-8 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+        <div className="space-y-3">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/50">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32 mb-2" />
+            <div className="h-3 bg-gray-200 rounded dark:bg-gray-700 w-24 mb-2" />
+            <div className="h-3 bg-gray-200 rounded dark:bg-gray-700 w-40" />
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/50">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32 mb-2" />
+            <div className="h-3 bg-gray-200 rounded dark:bg-gray-700 w-24 mb-2" />
+            <div className="h-3 bg-gray-200 rounded dark:bg-gray-700 w-40" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ...existing code...
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
@@ -70,11 +93,7 @@ export default function UpcomingSchedule({
       <div className="max-w-full overflow-x-auto custom-scrollbar">
         <div className="min-w-[500px] xl:min-w-full">
           <div className="flex flex-col gap-2">
-            {isLoading ? (
-              <p className="text-center text-gray-500 py-4">
-                Loading sessions...
-              </p>
-            ) : data.length > 0 ? (
+            {data.length > 0 ? (
               data.map((session) => (
                 <div
                   key={session.id}

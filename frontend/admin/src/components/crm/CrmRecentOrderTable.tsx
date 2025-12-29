@@ -41,6 +41,25 @@ export default function CrmRecentOrderTable({
         : [...prevSelected, id]
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-gray-800 dark:bg-white/[0.03] animate-pulse">
+        <div className="flex flex-col gap-4 px-6 mb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-40" />
+          </div>
+        </div>
+        <div className="space-y-2 px-6 pb-4">
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700" />
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700" />
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700" />
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="flex flex-col gap-4 px-6 mb-4 sm:flex-row sm:items-center sm:justify-between">

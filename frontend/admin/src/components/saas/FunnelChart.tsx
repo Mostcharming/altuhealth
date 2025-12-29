@@ -108,9 +108,18 @@ export default function FunnelChart({
     setIsOpen(!isOpen);
   }
 
-  // function closeDropdown() {
-  //   setIsOpen(false);
-  // }
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] animate-pulse">
+        <div className="mb-6 flex justify-between">
+          <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-56" />
+          <div className="w-8 h-8 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+        <div className="h-80 bg-gray-200 rounded dark:bg-gray-700" />
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="mb-6 flex justify-between">
@@ -152,11 +161,6 @@ export default function FunnelChart({
             type="bar"
             height={315}
           />
-        )}
-        {isLoading && (
-          <div className="flex items-center justify-center h-80">
-            <p className="text-gray-500">Loading chart...</p>
-          </div>
         )}
       </div>
     </div>

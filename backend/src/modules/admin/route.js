@@ -9,6 +9,8 @@ router.use('/auth', require('./auth/route'));
 
 router.use(securityMiddleware);
 router.use('/dashboard', require('./dashboard/overview/route'));
+router.use('/dashboard', require('./dashboard/analytics/route'));
+router.use('/dashboard', require('./dashboard/finance/route'));
 router.use('/account', require('./account/route'));
 router.use('/notifications', require('./notifications/route'));
 router.use('/roles', require('./roles/route'));

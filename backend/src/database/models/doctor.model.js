@@ -196,6 +196,25 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: false,
             field: 'is_deleted'
+        },
+        isOnline: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            comment: 'Indicates if the doctor is currently online',
+            field: 'is_online'
+        },
+        lastSeenAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            comment: 'Timestamp of when the doctor was last seen online',
+            field: 'last_seen_at'
+        },
+        goesOnlineAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            comment: 'Timestamp of when the doctor came online',
+            field: 'goes_online_at'
         }
     }, {
         tableName: 'doctors',

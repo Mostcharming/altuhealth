@@ -396,11 +396,11 @@ function defineModels(sequelize) {
 
   // Invoice <-> Provider one-to-many
   Provider.hasMany(Invoice, { foreignKey: "providerId", as: 'invoices' });
-  Invoice.belongsTo(Provider, { foreignKey: "providerId" });
+  Invoice.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
 
   // Invoice <-> Enrollee one-to-many
   Enrollee.hasMany(Invoice, { foreignKey: "enrolleeId", as: 'invoices' });
-  Invoice.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
+  Invoice.belongsTo(Enrollee, { foreignKey: "enrolleeId", as: 'enrollee' });
 
   // Invoice <-> RetailEnrollee one-to-many
   RetailEnrollee.hasMany(Invoice, { foreignKey: "retailEnrolleeId", as: 'invoices' });

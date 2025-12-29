@@ -21,6 +21,22 @@ export default function ProductPerformanceTab({
     setIsOpen(!isOpen);
   }
 
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] animate-pulse">
+        <div className="mb-6 flex justify-between">
+          <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-48" />
+          <div className="w-8 h-8 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+        <div className="h-10 bg-gray-200 rounded dark:bg-gray-700 w-full mb-4" />
+        <div className="space-y-4">
+          <div className="h-32 bg-gray-200 rounded dark:bg-gray-700" />
+          <div className="h-64 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+      </div>
+    );
+  }
+
   // ...existing code...
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">

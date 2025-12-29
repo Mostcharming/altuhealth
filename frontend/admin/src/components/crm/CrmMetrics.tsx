@@ -10,11 +10,39 @@ export default function CrmMetrics({
   data,
   isLoading = false,
 }: CrmMetricsProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 xl:grid-cols-3">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24" />
+          <div className="mt-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-28" />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24" />
+          <div className="mt-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-28" />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded dark:bg-gray-700 w-24" />
+          <div className="mt-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-28" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const mockData = [
     {
       id: 1,
       title: "Active Subscriptions",
-      value: isLoading ? "Loading..." : data?.activeSubscriptions?.count ?? 0,
+      value: data?.activeSubscriptions?.count ?? 0,
       change: `${data?.activeSubscriptions?.trend === "up" ? "+" : "-"}${
         data?.activeSubscriptions?.percentage ?? 0
       }%`,
@@ -24,7 +52,7 @@ export default function CrmMetrics({
     {
       id: 2,
       title: "Expired Subscriptions",
-      value: isLoading ? "Loading..." : data?.expiredSubscriptions?.count ?? 0,
+      value: data?.expiredSubscriptions?.count ?? 0,
       change: `${data?.expiredSubscriptions?.trend === "up" ? "+" : "-"}${
         data?.expiredSubscriptions?.percentage ?? 0
       }%`,
@@ -34,7 +62,7 @@ export default function CrmMetrics({
     {
       id: 3,
       title: "About to Expire",
-      value: isLoading ? "Loading..." : data?.aboutToExpire?.count ?? 0,
+      value: data?.aboutToExpire?.count ?? 0,
       change: `${data?.aboutToExpire?.trend === "up" ? "+" : "-"}${
         data?.aboutToExpire?.percentage ?? 0
       }%`,

@@ -23,6 +23,22 @@ export default function SaasInvoiceTable({
   data = [],
   isLoading = false,
 }: SaasInvoiceTableProps) {
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] animate-pulse">
+        <div className="px-6 py-4">
+          <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-40" />
+        </div>
+        <div className="space-y-2 px-6 pb-4">
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700" />
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700" />
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700" />
+          <div className="h-12 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="px-6 py-4">
@@ -52,13 +68,7 @@ export default function SaasInvoiceTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-            {isLoading ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                  Loading invoices...
-                </td>
-              </tr>
-            ) : data.length > 0 ? (
+            {data.length > 0 ? (
               data.map((invoice) => (
                 <tr key={invoice.id}>
                   <td className="px-6 py-4 text-left text-sm whitespace-nowrap text-gray-700 dark:text-gray-400">

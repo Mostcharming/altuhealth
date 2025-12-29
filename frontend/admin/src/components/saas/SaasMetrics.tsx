@@ -27,6 +27,36 @@ export default function SaasMetrics({
     return trend === "down" ? "-" : "+";
   };
 
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] animate-pulse">
+        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-24" />
+          </div>
+        </div>
+        <div className="grid rounded-2xl border border-gray-200 bg-white sm:grid-cols-2 xl:grid-cols-4 dark:border-gray-800 dark:bg-gray-900">
+          <div className="border-b border-gray-200 px-6 py-5 sm:border-r xl:border-b-0 dark:border-gray-800">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-28" />
+            <div className="mt-4 h-6 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+          </div>
+          <div className="border-b border-gray-200 px-6 py-5 xl:border-r xl:border-b-0 dark:border-gray-800">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+            <div className="mt-4 h-6 bg-gray-200 rounded dark:bg-gray-700 w-24" />
+          </div>
+          <div className="border-b border-gray-200 px-6 py-5 sm:border-r sm:border-b-0 dark:border-gray-800">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-36" />
+            <div className="mt-4 h-6 bg-gray-200 rounded dark:bg-gray-700 w-28" />
+          </div>
+          <div className="px-6 py-5">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+            <div className="mt-4 h-6 bg-gray-200 rounded dark:bg-gray-700 w-32" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">

@@ -34,6 +34,31 @@ export default function ActivitiesCard({
     setIsOpen(!isOpen);
   }
 
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03] animate-pulse">
+        <div className="mb-6 flex justify-between">
+          <div className="h-6 bg-gray-200 rounded dark:bg-gray-700 w-28" />
+          <div className="w-8 h-8 bg-gray-200 rounded dark:bg-gray-700" />
+        </div>
+        <div className="space-y-3">
+          <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-full mb-2" />
+            <div className="h-3 bg-gray-200 rounded dark:bg-gray-700 w-20" />
+          </div>
+          <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-full mb-2" />
+            <div className="h-3 bg-gray-200 rounded dark:bg-gray-700 w-20" />
+          </div>
+          <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50">
+            <div className="h-4 bg-gray-200 rounded dark:bg-gray-700 w-full mb-2" />
+            <div className="h-3 bg-gray-200 rounded dark:bg-gray-700 w-20" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ...existing code...
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -68,11 +93,7 @@ export default function ActivitiesCard({
         </div>
       </div>
       <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
-        {isLoading ? (
-          <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-            Loading activities...
-          </p>
-        ) : data.length > 0 ? (
+        {data.length > 0 ? (
           data.map((activity) => (
             <div
               key={activity.id}
