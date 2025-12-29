@@ -1,5 +1,6 @@
 "use client";
 
+import { FunnelChartData } from "@/hooks/useFinanceDashboardData";
 import { MoreDotIcon } from "@/icons";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
@@ -10,11 +11,19 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function FunnelChart() {
+interface FunnelChartProps {
+  data?: FunnelChartData;
+  isLoading?: boolean;
+}
+
+export default function FunnelChart({
+  data,
+  isLoading = false,
+}: FunnelChartProps) {
   const series = [
     {
       name: "Payment Amount",
-      data: [0, 0, 0, 0, 0, 0, 0, 0],
+      data: data?.data ?? [0, 0, 0, 0, 0, 0, 0, 0],
     },
   ];
   const options: ApexOptions = {
@@ -135,13 +144,20 @@ export default function FunnelChart() {
         </div>
       </div>
       <div className="overflow-x-auto custom-scrollbar pl-2">
-        <ReactApexChart
-          className="-ml-5 min-w-[700px] xl:min-w-full"
-          options={options}
-          series={series}
-          type="bar"
-          height={315}
-        />
+        {!isLoading && (
+          <ReactApexChart
+            className="-ml-5 min-w-[700px] xl:min-w-full"
+            options={options}
+            series={series}
+            type="bar"
+            height={315}
+          />
+        )}
+        {isLoading && (
+          <div className="flex items-center justify-center h-80">
+            <p className="text-gray-500">Loading chart...</p>
+          </div>
+        )}
       </div>
     </div>
   );

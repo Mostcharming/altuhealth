@@ -1,4 +1,5 @@
 "use client";
+import { SalePieChartData } from "@/hooks/useAnalyticsDashboardData";
 import { MoreDotIcon } from "@/icons";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
@@ -9,7 +10,21 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function SalePieChart() {
+interface SalePieChartProps {
+  data?: SalePieChartData;
+  isLoading?: boolean;
+}
+
+export default function SalePieChart({
+  data,
+  isLoading = false,
+}: SalePieChartProps) {
+  const series = [
+    data?.highestPlans ?? 0,
+    data?.mostServices ?? 0,
+    data?.highestEnrollees ?? 0,
+  ];
+
   // ApexCharts configuration
   const options: ApexOptions = {
     colors: ["#3641f5", "#7592ff", "#dde9ff"],
@@ -38,14 +53,14 @@ export default function SalePieChart() {
               fontSize: "12px",
               fontWeight: "normal",
               // text: "",
-              formatter: () => "Total 0",
+              formatter: () => "Total " + (series[0] + series[1] + series[2]),
             },
             value: {
               show: true,
               offsetY: 10,
               color: "#667085",
               fontSize: "14px",
-              formatter: () => "Used of 0",
+              formatter: () => "Used of " + (series[0] + series[1] + series[2]),
             },
             total: {
               show: true,
@@ -105,8 +120,6 @@ export default function SalePieChart() {
     ],
   };
 
-  const series = [0, 0, 0];
-
   const [isOpen, setIsOpen] = useState(false);
 
   function toggleDropdown() {
@@ -148,12 +161,19 @@ export default function SalePieChart() {
       </div>
       <div className="flex flex-col items-center gap-8 xl:flex-row">
         <div id="chartDarkStyle">
-          <ReactApexChart
-            options={options}
-            series={series}
-            type="donut"
-            height={280}
-          />
+          {!isLoading && (
+            <ReactApexChart
+              options={options}
+              series={series}
+              type="donut"
+              height={280}
+            />
+          )}
+          {isLoading && (
+            <div className="flex items-center justify-center h-80">
+              <p className="text-gray-500">Loading chart...</p>
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-start gap-6 sm:flex-row xl:flex-col">
           <div className="flex items-start gap-2.5">
@@ -164,11 +184,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {isLoading ? "Loading..." : data?.highestPlans ?? 0}
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  0 Providers
+                  Providers
                 </p>
               </div>
             </div>
@@ -182,11 +202,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {isLoading ? "Loading..." : data?.mostServices ?? 0}
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-400 text-theme-sm dark:text-gray-400">
-                  0 Providers
+                  Providers
                 </p>
               </div>
             </div>
@@ -200,11 +220,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {isLoading ? "Loading..." : data?.highestEnrollees ?? 0}
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  0 Providers
+                  Providers
                 </p>
               </div>
             </div>

@@ -1,4 +1,5 @@
 "use client";
+import { ChurnRateData } from "@/hooks/useFinanceDashboardData";
 import { MoreDotIcon } from "@/icons";
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
@@ -11,11 +12,19 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function ChurnRateChart() {
+interface ChurnRateChartProps {
+  data?: ChurnRateData;
+  isLoading?: boolean;
+}
+
+export default function ChurnRateChart({
+  data,
+  isLoading = false,
+}: ChurnRateChartProps) {
   const claimsRateSeries = [
     {
       name: "Claims Rate",
-      data: [0, 0, 0, 0, 0, 0, 0],
+      data: data?.data ?? [0, 0, 0, 0, 0, 0, 0],
     },
   ];
 
@@ -110,21 +119,27 @@ export default function ChurnRateChart() {
       <div className="flex justify-between">
         <div>
           <h3 className="text-title-xs font-semibold text-gray-800 dark:text-white/90">
-            0%
+            {isLoading
+              ? "Loading..."
+              : (data?.data?.[data.data.length - 1] ?? 0) + "%"}
           </h3>
           <p className="text-theme-xs mt-1 text-gray-500 dark:text-gray-400">
-            <span className="text-success-500 mr-1 inline-block">0%</span>
+            <span className="text-success-500 mr-1 inline-block">
+              {isLoading ? "Loading..." : data?.data?.[0] ?? 0}%
+            </span>
             than last Week
           </p>
         </div>
         <div className="max-w-full">
           <div id="chartTwentyOne">
-            <ReactApexChart
-              className="h-12 w-24"
-              options={claimsRateOptions}
-              series={claimsRateSeries}
-              type="area"
-            />
+            {!isLoading && (
+              <ReactApexChart
+                className="h-12 w-24"
+                options={claimsRateOptions}
+                series={claimsRateSeries}
+                type="area"
+              />
+            )}
           </div>
         </div>
       </div>

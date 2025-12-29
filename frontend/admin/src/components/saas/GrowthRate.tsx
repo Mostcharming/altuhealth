@@ -1,4 +1,5 @@
 "use client";
+import { GrowthRateData } from "@/hooks/useFinanceDashboardData";
 import { MoreDotIcon } from "@/icons";
 import { ApexOptions } from "apexcharts";
 
@@ -12,11 +13,19 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function GrowthChart() {
+interface GrowthChartProps {
+  data?: GrowthRateData;
+  isLoading?: boolean;
+}
+
+export default function GrowthChart({
+  data,
+  isLoading = false,
+}: GrowthChartProps) {
   const growthSeries = [
     {
       name: "Claims with Issues",
-      data: [0, 0, 0, 0, 0, 0, 0],
+      data: data?.data ?? [0, 0, 0, 0, 0, 0, 0],
     },
   ];
 
@@ -111,21 +120,25 @@ export default function GrowthChart() {
       <div className="flex justify-between">
         <div>
           <h3 className="text-title-xs font-semibold text-gray-800 dark:text-white/90">
-            0
+            {isLoading ? "Loading..." : data?.data?.[data.data.length - 1] ?? 0}
           </h3>
           <p className="text-theme-xs mt-1 text-gray-500 dark:text-gray-400">
-            <span className="text-success-600 mr-1 inline-block">0%</span>
+            <span className="text-success-600 mr-1 inline-block">
+              {isLoading ? "Loading..." : data?.data?.[0] ?? 0}%
+            </span>
             than last Week
           </p>
         </div>
         <div className="max-w-full">
           <div id="chartTwentyTwo">
-            <ReactApexChart
-              className="h-12 w-24"
-              options={growthOptions}
-              series={growthSeries}
-              type="area"
-            />
+            {!isLoading && (
+              <ReactApexChart
+                className="h-12 w-24"
+                options={growthOptions}
+                series={growthSeries}
+                type="area"
+              />
+            )}
           </div>
         </div>
       </div>

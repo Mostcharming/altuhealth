@@ -1,18 +1,40 @@
 "use client";
 
+import { ActivityData } from "@/hooks/useFinanceDashboardData";
 import { useState } from "react";
 import { MoreDotIcon } from "../../icons";
 
-export default function ActivitiesCard() {
+interface ActivitiesCardProps {
+  data?: ActivityData[];
+  isLoading?: boolean;
+}
+
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case "claim":
+      return "📋";
+    case "invoice":
+      return "🧾";
+    case "payment":
+      return "💳";
+    case "system":
+      return "⚙️";
+    default:
+      return "📌";
+  }
+};
+
+export default function ActivitiesCard({
+  data = [],
+  isLoading = false,
+}: ActivitiesCardProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
   }
 
-  // function closeDropdown() {
-  //   setIsOpen(false);
-  // }
+  // ...existing code...
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="mb-6 flex justify-between">
@@ -45,8 +67,35 @@ export default function ActivitiesCard() {
           </Dropdown> */}
         </div>
       </div>
-      <div className="relative py-12 text-center">
-        <p className="text-gray-500 dark:text-gray-400">No activities yet</p>
+      <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+        {isLoading ? (
+          <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+            Loading activities...
+          </p>
+        ) : data.length > 0 ? (
+          data.map((activity) => (
+            <div
+              key={activity.id}
+              className="flex items-start gap-3 rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50"
+            >
+              <span className="text-lg">{getActivityIcon(activity.type)}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
+                  {activity.description}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {activity.timestamp}
+                </p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="relative py-12 text-center">
+            <p className="text-gray-500 dark:text-gray-400">
+              No activities yet
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -60,6 +60,8 @@ function defineModels(sequelize) {
   const Payment = require("./payment.model")(sequelize, DataTypes);
   const Conversation = require("./conversation.model")(sequelize, DataTypes);
   const Message = require("./message.model")(sequelize, DataTypes);
+  const Doctor = require("./doctor.model")(sequelize, DataTypes);
+  const Session = require("./session.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -436,7 +438,23 @@ function defineModels(sequelize) {
   Conversation.hasMany(Message, { foreignKey: "conversationId", as: 'messages' });
   Message.belongsTo(Conversation, { foreignKey: "conversationId" });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message };
+  // Doctor <-> Provider one-to-many
+  Provider.hasMany(Doctor, { foreignKey: "providerId", as: 'doctors' });
+  Doctor.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
+
+  // Session <-> Doctor one-to-many
+  Doctor.hasMany(Session, { foreignKey: "doctorId", as: 'sessions' });
+  Session.belongsTo(Doctor, { foreignKey: "doctorId", as: 'doctor' });
+
+  // Session <-> Enrollee one-to-many
+  Enrollee.hasMany(Session, { foreignKey: "enrolleeId", as: 'sessions' });
+  Session.belongsTo(Enrollee, { foreignKey: "enrolleeId", as: 'enrollee' });
+
+  // Session <-> Provider one-to-many
+  Provider.hasMany(Session, { foreignKey: "providerId", as: 'sessions' });
+  Session.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session };
 }
 
 module.exports = defineModels;

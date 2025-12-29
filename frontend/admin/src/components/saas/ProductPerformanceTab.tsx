@@ -1,10 +1,19 @@
 "use client";
+import { ProductPerformanceData } from "@/hooks/useFinanceDashboardData";
 import { useState } from "react";
 import { MoreDotIcon } from "../../icons";
 import DailySaleChart from "./DailySaleChart";
 import OnlineSaleChart from "./OnlineSaleChart";
 
-export default function ProductPerformanceTab() {
+interface ProductPerformanceTabProps {
+  data?: ProductPerformanceData;
+  isLoading?: boolean;
+}
+
+export default function ProductPerformanceTab({
+  data,
+  isLoading = false,
+}: ProductPerformanceTabProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState("drugs");
 
@@ -12,9 +21,7 @@ export default function ProductPerformanceTab() {
     setIsOpen(!isOpen);
   }
 
-  // function closeDropdown() {
-  //   setIsOpen(false);
-  // }
+  // ...existing code...
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="mb-6 flex justify-between">
@@ -99,7 +106,7 @@ export default function ProductPerformanceTab() {
                       </svg>
                     </span>
                     <h4 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-                      0
+                      {isLoading ? "Loading..." : data?.drugs?.[0] ?? 0}
                     </h4>
                   </div>
                 </div>
@@ -125,7 +132,9 @@ export default function ProductPerformanceTab() {
                       </svg>
                     </span>
                     <h4 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-                      0
+                      {isLoading
+                        ? "Loading..."
+                        : data?.drugs?.[data.drugs.length - 1] ?? 0}
                     </h4>
                   </div>
                 </div>
@@ -137,7 +146,7 @@ export default function ProductPerformanceTab() {
                       Average Daily Sales
                     </span>
                     <h3 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
-                      ₦0
+                      {isLoading ? "Loading..." : "₦0"}
                     </h3>
                   </div>
                   <div>
@@ -162,7 +171,7 @@ export default function ProductPerformanceTab() {
                 </div>
                 {/* Chart placeholder */}
                 <div className="overflow-x-auto">
-                  <DailySaleChart />
+                  {!isLoading && <DailySaleChart />}
                 </div>
               </div>
             </div>
@@ -194,7 +203,7 @@ export default function ProductPerformanceTab() {
                       </svg>
                     </span>
                     <h4 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-                      0
+                      {isLoading ? "Loading..." : data?.services?.[0] ?? 0}
                     </h4>
                   </div>
                 </div>
@@ -220,7 +229,9 @@ export default function ProductPerformanceTab() {
                       </svg>
                     </span>
                     <h4 className="text-xl font-semibold text-gray-800 dark:text-white/90">
-                      0
+                      {isLoading
+                        ? "Loading..."
+                        : data?.services?.[data.services.length - 1] ?? 0}
                     </h4>
                   </div>
                 </div>
@@ -232,7 +243,7 @@ export default function ProductPerformanceTab() {
                       Total Online Sales
                     </span>
                     <h3 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
-                      ₦0
+                      {isLoading ? "Loading..." : "₦0"}
                     </h3>
                   </div>
                   <div>
@@ -257,7 +268,7 @@ export default function ProductPerformanceTab() {
                 </div>
                 {/* Chart placeholder */}
                 <div className="custom-scrollbar max-w-full overflow-x-auto">
-                  <OnlineSaleChart />
+                  {!isLoading && <OnlineSaleChart />}
                 </div>
               </div>
             </div>

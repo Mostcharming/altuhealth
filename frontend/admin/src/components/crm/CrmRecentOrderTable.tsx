@@ -1,4 +1,5 @@
 "use client";
+import { DoctorAnalyticsData } from "@/hooks/useAnalyticsDashboardData";
 import { useState } from "react";
 import { TrashBinIcon } from "../../icons";
 import Checkbox from "../form/input/Checkbox";
@@ -12,34 +13,22 @@ import {
   TableRow,
 } from "../ui/table";
 
-// Interface for the table row data
-interface DoctorRowData {
-  id: string; // Unique identifier for the doctor
-  user: {
-    initials: string; // Initials for the avatar
-    name: string; // Doctor's full name
-    email: string; // Doctor's email address
-  };
-  avatarColor: "brand" | "blue" | "green" | "red" | "yellow" | "gray"; // Color variant for the avatar
-  isOnline: boolean; // Whether the doctor is online
-  availableTime: string; // Doctor's available time slots
-  bookingsCount: number; // Number of times booked
-  specialty: string; // Medical specialty
-  actions: {
-    delete: boolean; // Indicates a delete action is available
-  };
+interface CrmRecentOrderTableProps {
+  data?: DoctorAnalyticsData[];
+  isLoading?: boolean;
 }
 
-const tableRowData: DoctorRowData[] = [];
-
-export default function CrmRecentOrderTable() {
+export default function CrmRecentOrderTable({
+  data = [],
+  isLoading = false,
+}: CrmRecentOrderTableProps) {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState<boolean>(false);
 
   const handleSelectAll = () => {
     setSelectAll(!selectAll);
     if (!selectAll) {
-      setSelectedRows(tableRowData.map((row) => row.id));
+      setSelectedRows(data.map((row) => row.id));
     } else {
       setSelectedRows([]);
     }
@@ -146,69 +135,83 @@ export default function CrmRecentOrderTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tableRowData.map((row: DoctorRowData) => (
-                <TableRow key={row.id}>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <Checkbox
-                          checked={selectedRows.includes(row.id)}
-                          onChange={() => handleRowSelect(row.id)}
-                        />
-                      </div>
-                      <div>
-                        <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                          {row.id}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <AvatarText name={row.user.name} className="w-10 h-10" />
-                      <div>
-                        <span className="mb-0.5 block text-theme-sm font-medium text-gray-700 dark:text-gray-400">
-                          {row.user.name}
-                        </span>
-                        <span className="text-gray-500 text-theme-sm dark:text-gray-400">
-                          {row.user.email}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    <p className="text-gray-700 text-theme-sm dark:text-gray-400">
-                      {row.specialty}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    <Badge
-                      variant="light"
-                      color={row.isOnline ? "success" : "error"}
-                      size="sm"
-                    >
-                      {row.isOnline ? "Online" : "Offline"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    <p className="text-gray-700 text-theme-sm dark:text-gray-400">
-                      {row.availableTime}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    <p className="text-gray-700 text-theme-sm font-medium dark:text-gray-400">
-                      {row.bookingsCount}
-                    </p>
-                  </TableCell>
-                  <TableCell className="px-4 sm:px-6 py-3.5">
-                    {row.actions.delete && (
-                      <button>
-                        <TrashBinIcon className="text-gray-700 cursor-pointer hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500" />
-                      </button>
-                    )}
+              {isLoading ? (
+                <TableRow>
+                  <TableCell className="px-6 py-4 text-center text-gray-500">
+                    Loading doctors...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : data.length > 0 ? (
+                data.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="px-4 sm:px-6 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <Checkbox
+                            checked={selectedRows.includes(row.id)}
+                            onChange={() => handleRowSelect(row.id)}
+                          />
+                        </div>
+                        <div>
+                          <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
+                            {row.id}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-3.5 text-start">
+                      <div className="flex items-center gap-3">
+                        <AvatarText
+                          name={row.user.name}
+                          className="w-10 h-10"
+                        />
+                        <div>
+                          <span className="mb-0.5 block text-theme-sm font-medium text-gray-700 dark:text-gray-400">
+                            {row.user.name}
+                          </span>
+                          <span className="text-gray-500 text-theme-sm dark:text-gray-400">
+                            {row.user.email}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-3.5 text-start">
+                      <span className="text-theme-sm text-gray-700 dark:text-gray-400">
+                        {row.specialty}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-3.5 text-start">
+                      <Badge
+                        color={row.isOnline ? "success" : "error"}
+                        size="sm"
+                      >
+                        {row.isOnline ? "Online" : "Offline"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-3.5 text-start">
+                      <span className="text-theme-sm text-gray-700 dark:text-gray-400">
+                        {row.availableTime}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-3.5 text-start">
+                      <span className="text-theme-sm font-medium text-gray-700 dark:text-gray-400">
+                        {row.bookingsCount}
+                      </span>
+                    </TableCell>
+                    <TableCell className="px-6 py-3.5 text-start">
+                      <button className="text-gray-700 cursor-pointer hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500">
+                        <TrashBinIcon />
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell className="px-6 py-4 text-center text-gray-500">
+                    No doctors found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

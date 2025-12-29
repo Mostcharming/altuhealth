@@ -1,33 +1,48 @@
+import { AnalyticsMetricsData } from "@/hooks/useAnalyticsDashboardData";
 import Badge from "../ui/badge/Badge";
 
-const mockData = [
-  {
-    id: 1,
-    title: "Active Subscriptions",
-    value: "0",
-    change: "+12%",
-    direction: "up",
-    comparisonText: "last month",
-  },
-  {
-    id: 2,
-    title: "Expired Subscriptions",
-    value: "0",
-    change: "-8.5%",
-    direction: "down",
-    comparisonText: "last month",
-  },
-  {
-    id: 3,
-    title: "About to Expire",
-    value: "0",
-    change: "+5.3%",
-    direction: "up",
-    comparisonText: "next 30 days",
-  },
-];
+interface CrmMetricsProps {
+  data?: AnalyticsMetricsData;
+  isLoading?: boolean;
+}
 
-export default function CrmMetrics() {
+export default function CrmMetrics({
+  data,
+  isLoading = false,
+}: CrmMetricsProps) {
+  const mockData = [
+    {
+      id: 1,
+      title: "Active Subscriptions",
+      value: isLoading ? "Loading..." : data?.activeSubscriptions?.count ?? 0,
+      change: `${data?.activeSubscriptions?.trend === "up" ? "+" : "-"}${
+        data?.activeSubscriptions?.percentage ?? 0
+      }%`,
+      direction: data?.activeSubscriptions?.trend ?? "up",
+      comparisonText: "last month",
+    },
+    {
+      id: 2,
+      title: "Expired Subscriptions",
+      value: isLoading ? "Loading..." : data?.expiredSubscriptions?.count ?? 0,
+      change: `${data?.expiredSubscriptions?.trend === "up" ? "+" : "-"}${
+        data?.expiredSubscriptions?.percentage ?? 0
+      }%`,
+      direction: data?.expiredSubscriptions?.trend ?? "down",
+      comparisonText: "last month",
+    },
+    {
+      id: 3,
+      title: "About to Expire",
+      value: isLoading ? "Loading..." : data?.aboutToExpire?.count ?? 0,
+      change: `${data?.aboutToExpire?.trend === "up" ? "+" : "-"}${
+        data?.aboutToExpire?.percentage ?? 0
+      }%`,
+      direction: data?.aboutToExpire?.trend ?? "up",
+      comparisonText: "next 30 days",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 xl:grid-cols-3">
       {/* <!-- Metric Item Start --> */}
