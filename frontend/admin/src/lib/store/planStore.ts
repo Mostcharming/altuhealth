@@ -23,6 +23,13 @@ export interface Plan {
   status?: string;
   isActive?: boolean;
   isApproved?: boolean;
+  ageLimit?: number;
+  dependentAgeLimit?: number;
+  maxNumberOfDependents?: number;
+  discountPerEnrolee?: number;
+  planCycle?: string;
+  annualPremiumPrice?: number;
+  allowDependentEnrolee?: boolean;
   createdAt?: string;
   updatedAt?: string;
   benefitCategories?: BenefitCategory[];

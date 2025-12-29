@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
-import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
@@ -22,15 +23,38 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   const [loading, setLoading] = useState(false);
   const errorModal = useModal();
   const successModal = useModal();
+
   const [id, setId] = useState<string>("");
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
+  const [planCycle, setPlanCycle] = useState("");
+  const [annualPremiumPrice, setAnnualPremiumPrice] = useState<
+    number | undefined
+  >();
+  const [ageLimit, setAgeLimit] = useState<number | undefined>();
+  const [dependentAgeLimit, setDependentAgeLimit] = useState<
+    number | undefined
+  >();
+  const [maxNumberOfDependents, setMaxNumberOfDependents] = useState<
+    number | undefined
+  >();
+  const [discountPerEnrolee, setDiscountPerEnrolee] = useState<
+    number | undefined
+  >();
+  const [allowDependentEnrolee, setAllowDependentEnrolee] = useState(true);
+  const [isActive, setIsActive] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
     "Failed to update plan. Please try again."
   );
 
   const updateUser = usePlanStore((s) => s.updatePlan);
+
+  const planCycleOptions = [
+    { value: "monthly", label: "Monthly" },
+    { value: "quarterly", label: "Quarterly" },
+    { value: "annual", label: "Annual" },
+  ];
 
   const handleSuccessClose = () => {
     successModal.closeModal();
@@ -42,53 +66,86 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
     closeModal();
   };
 
-  // When the modal opens with a role, populate the form with its data.
+  // When the modal opens with a plan, populate the form with its data.
   useEffect(() => {
     if (isOpen && unit) {
       setId(unit.id ?? "");
-
       setName(unit.name ?? "");
       setCode(unit.code ?? "");
       setDescription(unit.description ?? "");
+      setPlanCycle(unit.planCycle ?? "");
+      setAnnualPremiumPrice(unit.annualPremiumPrice);
+      setAgeLimit(unit.ageLimit);
+      setDependentAgeLimit(unit.dependentAgeLimit);
+      setMaxNumberOfDependents(unit.maxNumberOfDependents);
+      setDiscountPerEnrolee(unit.discountPerEnrolee);
+      setAllowDependentEnrolee(unit.allowDependentEnrolee ?? true);
+      setIsActive(unit.isActive ?? false);
     }
 
     if (!isOpen) {
       setId("");
-
       setName("");
       setCode("");
       setDescription("");
+      setPlanCycle("");
+      setAnnualPremiumPrice(undefined);
+      setAgeLimit(undefined);
+      setDependentAgeLimit(undefined);
+      setMaxNumberOfDependents(undefined);
+      setDiscountPerEnrolee(undefined);
+      setAllowDependentEnrolee(true);
+      setIsActive(false);
     }
   }, [isOpen, unit]);
 
   const handlesubmit = async () => {
     try {
+      if (!name.trim()) {
+        setErrorMessage("Plan name is required.");
+        errorModal.openModal();
+        return;
+      }
+
+      if (!code.trim()) {
+        setErrorMessage("Plan code is required.");
+        errorModal.openModal();
+        return;
+      }
+
+      if (!description.trim()) {
+        setErrorMessage("Plan description is required.");
+        errorModal.openModal();
+        return;
+      }
+
       setLoading(true);
 
-      const payload: {
-        name: string;
-        code: string;
-        description: string;
-      } = {
+      const payload = {
         name: name.trim(),
         code: code.trim(),
         description: description.trim(),
+        planCycle,
+        annualPremiumPrice: annualPremiumPrice
+          ? Number(annualPremiumPrice)
+          : undefined,
+        ageLimit,
+        dependentAgeLimit,
+        maxNumberOfDependents,
+        discountPerEnrolee,
+        allowDependentEnrolee,
+        isActive,
       };
 
       const url = `/admin/plans/${id}`;
-      const method = "PUT";
 
       await apiClient(url, {
-        method,
+        method: "PUT",
         body: payload,
         onLoading: (l: boolean) => setLoading(l),
       });
 
-      updateUser(id, {
-        name: name,
-        code: code,
-        description: description,
-      });
+      updateUser(id, payload);
 
       successModal.openModal();
     } catch (err) {
@@ -99,9 +156,6 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
     } finally {
       setLoading(false);
     }
-  };
-  const handleMessageChange = (value: string) => {
-    setDescription(value);
   };
 
   return (
@@ -116,41 +170,150 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
             Edit Plan
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Update the plan details.
+            Update the plan details below.
           </p>
         </div>
 
         <form className="flex flex-col">
-          <div className="custom-scrollbar h-auto sm:h-auto overflow-y-auto px-2">
+          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div className="col-span-2 lg:col-span-1">
-                <Label>Name</Label>
+                <Label>Name *</Label>
                 <Input
                   type="text"
                   value={name}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     setName(e.target.value)
                   }
+                  placeholder="Enter plan name"
                 />
               </div>
+
               <div className="col-span-2 lg:col-span-1">
-                <Label>Code</Label>
+                <Label>Code *</Label>
                 <Input
                   type="text"
                   value={code}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     setCode(e.target.value)
                   }
+                  placeholder="Enter plan code"
                 />
               </div>
 
-              <div className="col-span-2 ">
-                <Label>Description</Label>
-                <TextArea
-                  placeholder="Type the description here..."
-                  rows={6}
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Plan Cycle</Label>
+                <Select
+                  options={planCycleOptions}
+                  placeholder="Select plan cycle"
+                  onChange={(val) => setPlanCycle(val)}
+                  defaultValue={planCycle}
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Annual Premium Price</Label>
+                <Input
+                  type="number"
+                  value={annualPremiumPrice || ""}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setAnnualPremiumPrice(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
+                  placeholder="Enter annual premium price"
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Age Limit</Label>
+                <Input
+                  type="number"
+                  value={ageLimit || ""}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setAgeLimit(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
+                  placeholder="Enter age limit"
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Dependent Age Limit</Label>
+                <Input
+                  type="number"
+                  value={dependentAgeLimit || ""}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setDependentAgeLimit(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
+                  placeholder="Enter dependent age limit"
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Max Number of Dependents</Label>
+                <Input
+                  type="number"
+                  value={maxNumberOfDependents || ""}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setMaxNumberOfDependents(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
+                  placeholder="Enter max number of dependents"
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Discount Per Enrollee</Label>
+                <Input
+                  type="number"
+                  value={discountPerEnrolee || ""}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                    setDiscountPerEnrolee(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
+                  placeholder="Enter discount per enrollee"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <Label>Description *</Label>
+                <textarea
                   value={description}
-                  onChange={handleMessageChange}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                    setDescription(e.target.value)
+                  }
+                  placeholder="Enter plan description"
+                  className="w-full rounded-lg border border-gray-300 bg-transparent py-2.5 px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                  rows={3}
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    label="Allow Dependent Enrollee"
+                    checked={allowDependentEnrolee}
+                    onChange={(checked) => setAllowDependentEnrolee(checked)}
+                  />
+                </div>
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Status</Label>
+                <Select
+                  options={[
+                    { value: "true", label: "Active" },
+                    { value: "false", label: "Inactive" },
+                  ]}
+                  placeholder="Select status"
+                  onChange={(val) => setIsActive(val === "true")}
+                  defaultValue={isActive ? "true" : "false"}
                 />
               </div>
             </div>
@@ -174,7 +337,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                   type="button"
                   className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
                 >
-                  Update Plan
+                  {loading ? "Saving..." : "Update Plan"}
                 </button>
               </div>
             </div>

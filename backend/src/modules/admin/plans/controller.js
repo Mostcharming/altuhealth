@@ -8,7 +8,18 @@ const notify = require('../../../utils/notify');
 async function createPlan(req, res, next) {
     try {
         const { Plan } = req.models;
-        const { name, code, description } = req.body || {};
+        const {
+            name,
+            code,
+            description,
+            ageLimit,
+            dependentAgeLimit,
+            maxNumberOfDependents,
+            discountPerEnrolee,
+            planCycle,
+            annualPremiumPrice,
+            allowDependentEnrolee
+        } = req.body || {};
         // normalize plan code to upper case for storage and uniqueness checks
         const codeUpper = (code !== undefined && code !== null) ? String(code).toUpperCase() : code;
 
@@ -20,7 +31,18 @@ async function createPlan(req, res, next) {
         if (existing) return res.fail('`code` must be unique', 400);
 
         // status defaults to 'pending' per model
-        const plan = await Plan.create({ name, code: codeUpper, description });
+        const plan = await Plan.create({
+            name,
+            code: codeUpper,
+            description,
+            ageLimit,
+            dependentAgeLimit,
+            maxNumberOfDependents,
+            discountPerEnrolee,
+            planCycle,
+            annualPremiumPrice,
+            allowDependentEnrolee: allowDependentEnrolee !== undefined ? allowDependentEnrolee : true
+        });
 
         await addAuditLog(req.models, {
             action: 'plan.create',
@@ -64,7 +86,21 @@ async function updatePlan(req, res, next) {
     try {
         const { Plan } = req.models;
         const { id } = req.params;
-        const { name, code, description, status, isActive, isApproved } = req.body || {};
+        const {
+            name,
+            code,
+            description,
+            status,
+            isActive,
+            isApproved,
+            ageLimit,
+            dependentAgeLimit,
+            maxNumberOfDependents,
+            discountPerEnrolee,
+            planCycle,
+            annualPremiumPrice,
+            allowDependentEnrolee
+        } = req.body || {};
         // normalize plan code to upper case for updates
         const codeUpper = (code !== undefined && code !== null) ? String(code).toUpperCase() : code;
 
@@ -77,6 +113,13 @@ async function updatePlan(req, res, next) {
         if (status !== undefined) updates.status = status;
         if (isActive !== undefined) updates.isActive = isActive;
         if (isApproved !== undefined) updates.isApproved = isApproved;
+        if (ageLimit !== undefined) updates.ageLimit = ageLimit;
+        if (dependentAgeLimit !== undefined) updates.dependentAgeLimit = dependentAgeLimit;
+        if (maxNumberOfDependents !== undefined) updates.maxNumberOfDependents = maxNumberOfDependents;
+        if (discountPerEnrolee !== undefined) updates.discountPerEnrolee = discountPerEnrolee;
+        if (planCycle !== undefined) updates.planCycle = planCycle;
+        if (annualPremiumPrice !== undefined) updates.annualPremiumPrice = annualPremiumPrice;
+        if (allowDependentEnrolee !== undefined) updates.allowDependentEnrolee = allowDependentEnrolee;
 
         if (code !== undefined) {
             // ensure unique code (exclude current record)

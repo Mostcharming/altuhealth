@@ -42,6 +42,43 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: false,
             field: 'is_approved'
+        },
+        ageLimit: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'age_limit'
+        },
+        dependentAgeLimit: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'dependent_age_limit'
+        },
+        maxNumberOfDependents: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            field: 'max_number_of_dependents'
+        },
+        discountPerEnrolee: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true,
+            field: 'discount_per_enrolee'
+        },
+        planCycle: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'plan_cycle',
+            comment: 'e.g., monthly, quarterly, annual'
+        },
+        annualPremiumPrice: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true,
+            field: 'annual_premium_price'
+        },
+        allowDependentEnrolee: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+            field: 'allow_dependent_enrolee'
         }
     }, {
         tableName: 'plans',
