@@ -104,7 +104,8 @@ function defineModels(sequelize) {
 
   // Provider <-> Plan many-to-many through ProviderPlan
   Provider.belongsToMany(Plan, { through: ProviderPlan, foreignKey: 'providerId', otherKey: 'planId' });
-  Plan.belongsToMany(Provider, { through: ProviderPlan, foreignKey: 'planId', otherKey: 'providerId' });
+
+  Plan.belongsToMany(Provider, { through: ProviderPlan, foreignKey: 'planId', otherKey: 'providerId', as: 'providers' });
 
   // Plan <-> BenefitCategory many-to-many through PlanBenefitCategory
   Plan.belongsToMany(BenefitCategory, { through: PlanBenefitCategory, foreignKey: 'planId', otherKey: 'benefitCategoryId', as: 'benefitCategories' });
