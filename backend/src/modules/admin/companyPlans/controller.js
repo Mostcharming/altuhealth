@@ -5,10 +5,11 @@ const { addAuditLog } = require('../../../utils/addAdminNotification');
 
 async function createCompanyPlan(req, res, next) {
     try {
-        const { CompanyPlan } = req.models;
+        const { CompanyPlan, Plan } = req.models;
         const {
             companyId,
             planId,
+            planType = 'custom',
             name,
             ageLimit,
             dependentAgeLimit,
@@ -20,17 +21,26 @@ async function createCompanyPlan(req, res, next) {
             allowDependentEnrolee
         } = req.body || {};
 
+        // Validation
         if (!companyId) return res.fail('`companyId` is required', 400);
-        if (!planId) return res.fail('`planId` is required', 400);
         if (!name) return res.fail('`name` is required', 400);
         if (!planCycle) return res.fail('`planCycle` is required', 400);
         if (annualPremiumPrice === undefined || annualPremiumPrice === null) {
             return res.fail('`annualPremiumPrice` is required', 400);
         }
 
+        // If standard type, planId is required
+        if (planType === 'standard') {
+            if (!planId) return res.fail('`planId` is required for standard plan type', 400);
+            // Verify plan exists
+            const plan = await Plan.findByPk(planId);
+            if (!plan) return res.fail('Plan not found', 404);
+        }
+
         const companyPlan = await CompanyPlan.create({
             companyId,
-            planId,
+            planId: planType === 'standard' ? planId : null,
+            planType,
             name,
             ageLimit,
             dependentAgeLimit,
@@ -45,7 +55,7 @@ async function createCompanyPlan(req, res, next) {
 
         await addAuditLog(req.models, {
             action: 'companyPlan.create',
-            message: `Company Plan ${companyPlan.name} created`,
+            message: `Company Plan ${companyPlan.name} created (${planType})`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
             meta: { companyPlanId: companyPlan.id, companyId }
@@ -59,10 +69,11 @@ async function createCompanyPlan(req, res, next) {
 
 async function updateCompanyPlan(req, res, next) {
     try {
-        const { CompanyPlan } = req.models;
+        const { CompanyPlan, Plan } = req.models;
         const { id } = req.params;
         const {
             planId,
+            planType,
             name,
             ageLimit,
             dependentAgeLimit,
@@ -79,7 +90,27 @@ async function updateCompanyPlan(req, res, next) {
         if (!companyPlan) return res.fail('Company Plan not found', 404);
 
         const updates = {};
-        if (planId !== undefined) updates.planId = planId;
+
+        // If planType is being changed to standard, require planId
+        if (planType === 'standard' && !planId) {
+            return res.fail('`planId` is required when changing to standard plan type', 400);
+        }
+
+        if (planType !== undefined) {
+            updates.planType = planType;
+            // If changing to standard, set planId; if custom, clear it
+            if (planType === 'standard') {
+                if (!planId) return res.fail('`planId` is required for standard plan type', 400);
+                updates.planId = planId;
+            } else if (planType === 'custom') {
+                updates.planId = null;
+            }
+        }
+
+        if (planId !== undefined && planType !== 'custom') {
+            updates.planId = planId;
+        }
+
         if (name !== undefined) updates.name = name;
         if (ageLimit !== undefined) updates.ageLimit = ageLimit;
         if (dependentAgeLimit !== undefined) updates.dependentAgeLimit = dependentAgeLimit;
@@ -134,7 +165,7 @@ async function deleteCompanyPlan(req, res, next) {
 async function listCompanyPlans(req, res, next) {
     try {
         const { CompanyPlan, Plan } = req.models;
-        const { limit = 10, page = 1, q, companyId, isActive, planId } = req.query;
+        const { limit = 10, page = 1, q, companyId, isActive, planId, planType } = req.query;
 
         const isAll = String(limit).toLowerCase() === 'all';
         const limitNum = isAll ? 0 : Number(limit);
@@ -162,11 +193,15 @@ async function listCompanyPlans(req, res, next) {
             where.planId = planId;
         }
 
+        if (planType) {
+            where.planType = planType;
+        }
+
         const total = await CompanyPlan.count({ where });
 
         const findOptions = {
             where,
-            order: [['created_at', 'DESC']],
+            order: [['createdAt', 'DESC']],
             include: [
                 {
                     model: Plan,

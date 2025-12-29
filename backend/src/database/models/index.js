@@ -19,6 +19,8 @@ function defineModels(sequelize) {
   const PasswordReset = require("./passwordReset.model")(sequelize, DataTypes);
   const AuditLog = require("./auditLog.model")(sequelize, DataTypes);
   const Plan = require("./plan.model")(sequelize, DataTypes);
+  const PlanBenefitCategory = require("./planBenefitCategory.model")(sequelize, DataTypes);
+  const PlanExclusion = require("./planExclusion.model")(sequelize, DataTypes);
   const AdminApproval = require("./adminApproval.model")(sequelize, DataTypes);
   const Exclusion = require("./exclusion.model")(sequelize, DataTypes);
   const BenefitCategory = require("./benefitCategory.model")(sequelize, DataTypes);
@@ -103,6 +105,28 @@ function defineModels(sequelize) {
   // Provider <-> Plan many-to-many through ProviderPlan
   Provider.belongsToMany(Plan, { through: ProviderPlan, foreignKey: 'providerId', otherKey: 'planId' });
   Plan.belongsToMany(Provider, { through: ProviderPlan, foreignKey: 'planId', otherKey: 'providerId' });
+
+  // Plan <-> BenefitCategory many-to-many through PlanBenefitCategory
+  Plan.belongsToMany(BenefitCategory, { through: PlanBenefitCategory, foreignKey: 'planId', otherKey: 'benefitCategoryId', as: 'benefitCategories' });
+  BenefitCategory.belongsToMany(Plan, { through: PlanBenefitCategory, foreignKey: 'benefitCategoryId', otherKey: 'planId' });
+
+  // PlanBenefitCategory direct relationships
+  PlanBenefitCategory.belongsTo(Plan, { foreignKey: 'planId' });
+  Plan.hasMany(PlanBenefitCategory, { foreignKey: 'planId' });
+
+  PlanBenefitCategory.belongsTo(BenefitCategory, { foreignKey: 'benefitCategoryId' });
+  BenefitCategory.hasMany(PlanBenefitCategory, { foreignKey: 'benefitCategoryId' });
+
+  // Plan <-> Exclusion many-to-many through PlanExclusion
+  Plan.belongsToMany(Exclusion, { through: PlanExclusion, foreignKey: 'planId', otherKey: 'exclusionId', as: 'exclusions' });
+  Exclusion.belongsToMany(Plan, { through: PlanExclusion, foreignKey: 'exclusionId', otherKey: 'planId' });
+
+  // PlanExclusion direct relationships
+  PlanExclusion.belongsTo(Plan, { foreignKey: 'planId' });
+  Plan.hasMany(PlanExclusion, { foreignKey: 'planId' });
+
+  PlanExclusion.belongsTo(Exclusion, { foreignKey: 'exclusionId' });
+  Exclusion.hasMany(PlanExclusion, { foreignKey: 'exclusionId' });
 
   // Provider <-> Service one-to-many
   Provider.hasMany(Service, { foreignKey: "providerId" });
@@ -454,7 +478,7 @@ function defineModels(sequelize) {
   Provider.hasMany(Session, { foreignKey: "providerId", as: 'sessions' });
   Session.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session };
 }
 
 module.exports = defineModels;

@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         planId: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
             references: {
                 model: 'plans',
                 key: 'id'
@@ -28,6 +28,12 @@ module.exports = (sequelize, DataTypes) => {
             onUpdate: 'CASCADE',
             onDelete: 'RESTRICT',
             field: 'plan_id'
+        },
+        planType: {
+            type: DataTypes.ENUM('standard', 'custom'),
+            allowNull: false,
+            defaultValue: 'custom',
+            field: 'plan_type'
         },
         name: {
             type: DataTypes.STRING,

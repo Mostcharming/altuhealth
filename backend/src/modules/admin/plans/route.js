@@ -11,4 +11,12 @@ router.get('/:id', Plans.getPlan);
 router.put('/:id', Plans.updatePlan);
 router.delete('/:id', Plans.deletePlan);
 
+// Benefit categories
+router.post('/benefit-categories/add', Plans.addBenefitCategory);
+router.delete('/benefit-categories/:planId/:benefitCategoryId', Plans.removeBenefitCategory);
+
+// Exclusions
+router.post('/exclusions/add', Plans.addExclusion);
+router.delete('/exclusions/:planId/:exclusionId', Plans.removeExclusion);
+
 module.exports = router;

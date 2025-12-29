@@ -182,10 +182,128 @@ async function getPlan(req, res, next) {
     }
 }
 
+// Add benefit category to plan
+async function addBenefitCategory(req, res, next) {
+    try {
+        const { Plan, PlanBenefitCategory } = req.models;
+        const { planId, benefitCategoryId } = req.body || {};
+
+        if (!planId) return res.fail('`planId` is required', 400);
+        if (!benefitCategoryId) return res.fail('`benefitCategoryId` is required', 400);
+
+        const plan = await Plan.findByPk(planId);
+        if (!plan) return res.fail('Plan not found', 404);
+
+        // Check if already exists
+        const existing = await PlanBenefitCategory.findOne({ where: { planId, benefitCategoryId } });
+        if (existing) return res.fail('Benefit category already added to this plan', 400);
+
+        const planBenefitCategory = await PlanBenefitCategory.create({ planId, benefitCategoryId });
+
+        await addAuditLog(req.models, {
+            action: 'plan.benefitCategory.add',
+            message: `Benefit category added to Plan ${plan.name}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { planId, benefitCategoryId }
+        });
+
+        return res.success({ planBenefitCategory: planBenefitCategory.toJSON() }, 'Benefit category added to plan', 201);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+// Remove benefit category from plan
+async function removeBenefitCategory(req, res, next) {
+    try {
+        const { PlanBenefitCategory } = req.models;
+        const { planId, benefitCategoryId } = req.params;
+
+        const planBenefitCategory = await PlanBenefitCategory.findOne({ where: { planId, benefitCategoryId } });
+        if (!planBenefitCategory) return res.fail('Benefit category not found for this plan', 404);
+
+        await planBenefitCategory.destroy();
+
+        await addAuditLog(req.models, {
+            action: 'plan.benefitCategory.remove',
+            message: `Benefit category removed from plan`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { planId, benefitCategoryId }
+        });
+
+        return res.success(null, 'Benefit category removed from plan');
+    } catch (err) {
+        return next(err);
+    }
+}
+
+// Add exclusion to plan
+async function addExclusion(req, res, next) {
+    try {
+        const { Plan, PlanExclusion } = req.models;
+        const { planId, exclusionId } = req.body || {};
+
+        if (!planId) return res.fail('`planId` is required', 400);
+        if (!exclusionId) return res.fail('`exclusionId` is required', 400);
+
+        const plan = await Plan.findByPk(planId);
+        if (!plan) return res.fail('Plan not found', 404);
+
+        // Check if already exists
+        const existing = await PlanExclusion.findOne({ where: { planId, exclusionId } });
+        if (existing) return res.fail('Exclusion already added to this plan', 400);
+
+        const planExclusion = await PlanExclusion.create({ planId, exclusionId });
+
+        await addAuditLog(req.models, {
+            action: 'plan.exclusion.add',
+            message: `Exclusion added to Plan ${plan.name}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { planId, exclusionId }
+        });
+
+        return res.success({ planExclusion: planExclusion.toJSON() }, 'Exclusion added to plan', 201);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+// Remove exclusion from plan
+async function removeExclusion(req, res, next) {
+    try {
+        const { PlanExclusion } = req.models;
+        const { planId, exclusionId } = req.params;
+
+        const planExclusion = await PlanExclusion.findOne({ where: { planId, exclusionId } });
+        if (!planExclusion) return res.fail('Exclusion not found for this plan', 404);
+
+        await planExclusion.destroy();
+
+        await addAuditLog(req.models, {
+            action: 'plan.exclusion.remove',
+            message: `Exclusion removed from plan`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { planId, exclusionId }
+        });
+
+        return res.success(null, 'Exclusion removed from plan');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createPlan,
     updatePlan,
     deletePlan,
     listPlans,
-    getPlan
+    getPlan,
+    addBenefitCategory,
+    removeBenefitCategory,
+    addExclusion,
+    removeExclusion
 };
