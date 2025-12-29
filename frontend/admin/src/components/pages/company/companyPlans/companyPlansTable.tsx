@@ -57,7 +57,7 @@ const CompanyPlansTable: React.FC<CompanyPlansTableProps> = ({ companyId }) => {
 
   const headers: Header[] = [
     { key: "name", label: "Plan Name" },
-    { key: "planId", label: "Plan Type" },
+    { key: "planType", label: "Plan Type" },
     { key: "planCycle", label: "Plan Cycle" },
     { key: "annualPremiumPrice", label: "Annual Premium" },
     { key: "isActive", label: "Status" },
@@ -268,11 +268,15 @@ const CompanyPlansTable: React.FC<CompanyPlansTableProps> = ({ companyId }) => {
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {plan.Plan?.name
-                          ? capitalizeWords(plan.Plan.name)
-                          : "-"}
-                      </p>
+                      <span
+                        className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                          plan.planType === "standard"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                        }`}
+                      >
+                        {capitalizeWords(plan.planType || "custom")}
+                      </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <p className="text-sm text-gray-700 dark:text-gray-400">
@@ -303,15 +307,19 @@ const CompanyPlansTable: React.FC<CompanyPlansTableProps> = ({ companyId }) => {
 
                     <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center w-full gap-2">
-                        <button
-                          onClick={() => handleViewResources(plan)}
-                          className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                        >
-                          <EyeIcon />
-                        </button>
+                        {plan.planType === "custom" && (
+                          <button
+                            onClick={() => handleViewResources(plan)}
+                            className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                            title="View plan resources"
+                          >
+                            <EyeIcon />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleView(plan)}
                           className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                          title="Edit plan"
                         >
                           <PencilIcon />
                         </button>
@@ -319,6 +327,7 @@ const CompanyPlansTable: React.FC<CompanyPlansTableProps> = ({ companyId }) => {
                         <button
                           onClick={() => handleDeleModal(plan.id)}
                           className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
+                          title="Delete plan"
                         >
                           <TrashBinIcon />
                         </button>

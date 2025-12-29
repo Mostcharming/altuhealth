@@ -11,6 +11,7 @@ export interface CompanyPlan {
   companyId: string;
   planId: string;
   name: string;
+  planType:string;
   ageLimit?: number;
   dependentAgeLimit?: number;
   maxNumberOfDependents?: number;

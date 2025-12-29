@@ -90,7 +90,7 @@ export default function PageMetricsUnits({
       if (data?.data) {
         addPlan({
           id: data.data.id,
-          name: description,
+          name: name,
           description: description,
           limit: limit,
           amount: parseFloat(amount),

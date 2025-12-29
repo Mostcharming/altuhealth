@@ -56,7 +56,7 @@ const AdminTable: React.FC = () => {
     { key: "code", label: "Code" },
     { key: "description", label: "Description" },
     { key: "createdAt", label: "Date Created" },
-
+    { key: "status", label: "Status" },
     { key: "actions", label: "Actions" },
   ];
 
@@ -279,6 +279,17 @@ const AdminTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
                       {invoice.createdAt ? formatDate(invoice.createdAt) : "-"}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap text-center">
+                    <p
+                      className={`text-xs rounded-full px-2 py-0.5 font-medium ${
+                        invoice.status === "active"
+                          ? "bg-green-50 dark:bg-green-500/15 text-green-700 dark:text-green-500"
+                          : "bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-500"
+                      }`}
+                    >
+                      {capitalizeWords(invoice.status || "inactive")}
                     </p>
                   </td>
 

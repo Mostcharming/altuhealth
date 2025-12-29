@@ -58,6 +58,7 @@ const StaffsTable: React.FC = () => {
     { key: "firstName", label: "First Name" },
     { key: "lastName", label: "Last Name" },
     { key: "email", label: "Email" },
+    { key: "phoneNumber", label: "Phone Number" },
     { key: "staffId", label: "Staff ID" },
     { key: "enrollmentStatus", label: "Enrollment Status" },
     { key: "isNotified", label: "Notified" },
@@ -311,6 +312,11 @@ const StaffsTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
                       {staff.email}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {staff.phoneNumber}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">

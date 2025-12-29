@@ -1,11 +1,12 @@
-name,description,benefitCategoryId,amount,limit
-General Consultation,Basic medical consultation with healthcare provider,cat-001,50.00,10
-Dental Checkup,Routine dental examination and cleaning,cat-002,75.00,2
-Eye Exam,Annual optical examination,cat-003,100.00,1
-Physical Therapy,Physiotherapy sessions for rehabilitation,cat-004,80.00,20
-Prescription Medications,Coverage for prescription drugs,cat-001,0.00,100
-Laboratory Tests,Blood work and diagnostic tests,cat-005,120.00,5
-Vaccination,Immunization services,cat-001,45.00,
-Mental Health Counseling,Psychiatric and counseling sessions,cat-006,90.00,12
-Hospitalization,Inpatient hospital care,cat-007,5000.00,
-Emergency Care,24/7 emergency medical services,cat-001,,0
+name,description,benefitCategoryId,amount,limit,isCovered,coverageType,coverageValue
+General Consultation,Basic medical consultation with healthcare provider,cat-001,50.00,10,false,,
+Dental Checkup,Routine dental examination and cleaning,cat-002,75.00,2,false,,
+Eye Exam,Annual optical examination,cat-003,100.00,1,false,,
+Physical Therapy,Physiotherapy sessions for rehabilitation,cat-004,80.00,20,false,,
+Prescription Medications,Coverage for prescription drugs,cat-001,0.00,100,false,,
+Laboratory Tests,Blood work and diagnostic tests,cat-005,120.00,5,false,,
+Vaccination,Immunization services,cat-001,45.00,,false,,
+Mental Health Counseling,Psychiatric and counseling sessions,cat-006,,12,true,times_per_year,12
+Hospitalization,Inpatient hospital care,cat-007,5000.00,,false,,
+Emergency Care,24/7 emergency medical services,cat-001,,,true,unlimited,
+Physiotherapy Sessions,Covered physiotherapy services,cat-004,,5,true,times_per_year,5

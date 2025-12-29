@@ -23,35 +23,59 @@ async function createCompanyPlan(req, res, next) {
 
         // Validation
         if (!companyId) return res.fail('`companyId` is required', 400);
-        if (!name) return res.fail('`name` is required', 400);
-        if (!planCycle) return res.fail('`planCycle` is required', 400);
-        if (annualPremiumPrice === undefined || annualPremiumPrice === null) {
-            return res.fail('`annualPremiumPrice` is required', 400);
-        }
+        if (!planType) return res.fail('`planType` is required', 400);
 
-        // If standard type, planId is required
-        if (planType === 'standard') {
-            if (!planId) return res.fail('`planId` is required for standard plan type', 400);
-            // Verify plan exists
-            const plan = await Plan.findByPk(planId);
-            if (!plan) return res.fail('Plan not found', 404);
-        }
-
-        const companyPlan = await CompanyPlan.create({
+        let planData = {
             companyId,
-            planId: planType === 'standard' ? planId : null,
             planType,
-            name,
-            ageLimit,
-            dependentAgeLimit,
-            maxNumberOfDependents,
-            discountPerEnrolee,
-            planCycle,
-            annualPremiumPrice,
-            description,
             allowDependentEnrolee: allowDependentEnrolee !== undefined ? allowDependentEnrolee : true,
             isActive: true
-        });
+        };
+
+        // If standard type, planId is required and we copy plan details
+        if (planType === 'standard') {
+            if (!planId) return res.fail('`planId` is required for standard plan type', 400);
+            // Verify plan exists and fetch its details
+            const plan = await Plan.findByPk(planId);
+            if (!plan) return res.fail('Plan not found', 404);
+
+            // Copy plan details to company plan
+            planData = {
+                ...planData,
+                planId,
+                name: plan.name,
+                ageLimit: plan.ageLimit,
+                dependentAgeLimit: plan.dependentAgeLimit,
+                maxNumberOfDependents: plan.maxNumberOfDependents,
+                discountPerEnrolee: plan.discountPerEnrolee,
+                planCycle: plan.planCycle,
+                annualPremiumPrice: plan.annualPremiumPrice,
+                description: plan.description,
+                allowDependentEnrolee: plan.allowDependentEnrolee !== undefined ? plan.allowDependentEnrolee : true
+            };
+        } else if (planType === 'custom') {
+            // For custom plans, use provided values
+            if (!name) return res.fail('`name` is required', 400);
+            if (!planCycle) return res.fail('`planCycle` is required', 400);
+            if (annualPremiumPrice === undefined || annualPremiumPrice === null) {
+                return res.fail('`annualPremiumPrice` is required', 400);
+            }
+
+            planData = {
+                ...planData,
+                planId: null,
+                name,
+                ageLimit,
+                dependentAgeLimit,
+                maxNumberOfDependents,
+                discountPerEnrolee,
+                planCycle,
+                annualPremiumPrice,
+                description
+            };
+        }
+
+        const companyPlan = await CompanyPlan.create(planData);
 
         await addAuditLog(req.models, {
             action: 'companyPlan.create',

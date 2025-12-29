@@ -135,6 +135,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
         discountPerEnrolee,
         allowDependentEnrolee,
         isActive,
+        status: isActive ? "active" : "inactive",
       };
 
       const url = `/admin/plans/${id}`;

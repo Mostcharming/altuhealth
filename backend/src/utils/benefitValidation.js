@@ -19,7 +19,7 @@ function validateBenefitCategory(data) {
 
 function validateBenefit(data) {
     const errors = [];
-    const { name, description, limit, amount, benefitCategoryId } = data || {};
+    const { name, description, limit, amount, benefitCategoryId, isCovered, coverageType, coverageValue } = data || {};
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
         errors.push('`name` is required and must be a non-empty string');
@@ -29,8 +29,16 @@ function validateBenefit(data) {
         errors.push('`name` must be 255 characters or less');
     }
 
-    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-        errors.push('`amount` is required and must be a positive number');
+    // Amount is only required if not marked as covered
+    if (!isCovered) {
+        if (!amount || isNaN(Number(amount)) || Number(amount) < 0) {
+            errors.push('`amount` is required and must be a non-negative number when benefit is not covered');
+        }
+    } else {
+        // If covered, amount can be optional but if provided must be valid
+        if (amount !== undefined && amount !== null && (isNaN(Number(amount)) || Number(amount) < 0)) {
+            errors.push('`amount` must be a non-negative number if provided');
+        }
     }
 
     if (!benefitCategoryId || typeof benefitCategoryId !== 'string' || benefitCategoryId.trim().length === 0) {
@@ -45,12 +53,15 @@ function validateBenefit(data) {
         errors.push('`description` must be 1000 characters or less');
     }
 
-    // if (limit && typeof limit !== 'string') {
-    //     errors.push('`limit` must be a string if provided');
-    // }
+    // Validate coverage type and value when benefit is covered
+    if (isCovered) {
+        if (!coverageType || !['times_per_year', 'times_per_month', 'quarterly', 'unlimited', 'amount_based', 'limit_based'].includes(coverageType)) {
+            errors.push('`coverageType` must be one of: times_per_year, times_per_month, quarterly, unlimited, amount_based, limit_based when isCovered is true');
+        }
 
-    if (limit && limit.length > 255) {
-        errors.push('`limit` must be 255 characters or less');
+        if (coverageType && coverageType !== 'unlimited' && (!coverageValue || String(coverageValue).trim().length === 0)) {
+            errors.push('`coverageValue` is required when coverageType is not unlimited');
+        }
     }
 
     return errors;
@@ -58,7 +69,7 @@ function validateBenefit(data) {
 
 function validateBenefitUpdate(data) {
     const errors = [];
-    const { name, description, limit, amount, benefitCategoryId } = data || {};
+    const { name, description, limit, amount, benefitCategoryId, isCovered, coverageType, coverageValue } = data || {};
 
     if (name !== undefined) {
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -69,9 +80,9 @@ function validateBenefitUpdate(data) {
         }
     }
 
-    if (amount !== undefined) {
-        if (isNaN(Number(amount)) || Number(amount) <= 0) {
-            errors.push('`amount` must be a positive number if provided');
+    if (amount !== undefined && amount !== null) {
+        if (isNaN(Number(amount)) || Number(amount) < 0) {
+            errors.push('`amount` must be a non-negative number if provided');
         }
     }
 
@@ -96,6 +107,19 @@ function validateBenefitUpdate(data) {
         }
         if (limit && limit.length > 255) {
             errors.push('`limit` must be 255 characters or less');
+        }
+    }
+
+    // Validate coverage type and value when isCovered is being updated
+    if (isCovered !== undefined && isCovered === true) {
+        if (coverageType !== undefined) {
+            if (!['times_per_year', 'times_per_month', 'quarterly', 'unlimited', 'amount_based', 'limit_based'].includes(coverageType)) {
+                errors.push('`coverageType` must be one of: times_per_year, times_per_month, quarterly, unlimited, amount_based, limit_based');
+            }
+
+            if (coverageType && coverageType !== 'unlimited' && (!coverageValue || String(coverageValue).trim().length === 0)) {
+                errors.push('`coverageValue` is required when coverageType is not unlimited');
+            }
         }
     }
 

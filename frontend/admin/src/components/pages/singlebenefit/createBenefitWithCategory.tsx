@@ -39,6 +39,9 @@ export default function CreateBenefitWithCategory({
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [categories, setCategories] = useState<BenefitCategory[]>([]);
+  const [isCovered, setIsCovered] = useState(false);
+  const [coverageType, setCoverageType] = useState("");
+  const [coverageValue, setCoverageValue] = useState("");
   const [errorMessage, setErrorMessage] = useState<string>(
     "Failed to create benefit."
   );
@@ -75,6 +78,9 @@ export default function CreateBenefitWithCategory({
     setLimit("");
     setName("");
     setSelectedCategoryId("");
+    setIsCovered(false);
+    setCoverageType("");
+    setCoverageValue("");
   };
 
   const handleSuccessClose = () => {
@@ -106,19 +112,30 @@ export default function CreateBenefitWithCategory({
 
       setLoading(true);
 
-      const payload: {
-        name: string;
-        description: string;
-        limit: number;
-        amount: number;
-        benefitCategoryId: string;
-      } = {
+      const payload: any = {
         name: name.trim(),
         description: description.trim(),
-        limit: parseInt(limit) || 0,
-        amount: parseFloat(amount) || 0,
         benefitCategoryId: selectedCategoryId,
+        isCovered: isCovered,
       };
+
+      // Only include amount and limit if not covered
+      if (!isCovered) {
+        payload.amount = parseFloat(amount) || 0;
+        payload.limit = parseInt(limit) || 0;
+      } else {
+        // If covered, include coverage type and value
+        if (coverageType) {
+          payload.coverageType = coverageType;
+          if (coverageType !== "unlimited") {
+            payload.coverageValue = coverageValue;
+          }
+        }
+        // Amount is optional for covered benefits
+        if (amount) {
+          payload.amount = parseFloat(amount);
+        }
+      }
 
       const data = await apiClient("/admin/benefits", {
         method: "POST",
@@ -127,9 +144,6 @@ export default function CreateBenefitWithCategory({
       });
 
       if (data) {
-        // const selectedCategory = categories.find(
-        //   (cat) => cat.value === selectedCategoryId
-        // );
         addBenefit({
           id: data.data.id,
           name: name,
@@ -137,6 +151,9 @@ export default function CreateBenefitWithCategory({
           limit: limit,
           amount: parseFloat(amount),
           benefitCategoryId: selectedCategoryId,
+          isCovered: isCovered,
+          coverageType: coverageType,
+          coverageValue: coverageValue,
           createdAt: data.data.createdAt,
           BenefitCategory: {
             id: selectedCategoryId,
@@ -220,7 +237,6 @@ export default function CreateBenefitWithCategory({
                   placeholder="Select a benefit category"
                   onChange={(value) => setSelectedCategoryId(value as string)}
                   defaultValue={selectedCategoryId}
-                  //   disabled={categoriesLoading}
                 />
               </div>
               <div className="col-span-2 lg:col-span-1">
@@ -233,26 +249,114 @@ export default function CreateBenefitWithCategory({
                   }
                 />
               </div>
+
+              {/* Coverage Type Section */}
               <div className="col-span-2 lg:col-span-1">
-                <Label>Limit</Label>
-                <Input
-                  type="number"
-                  value={limit}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setLimit(e.target.value)
-                  }
-                />
+                <Label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isCovered}
+                    onChange={(e) => {
+                      setIsCovered(e.target.checked);
+                      if (!e.target.checked) {
+                        setCoverageType("");
+                        setCoverageValue("");
+                      }
+                    }}
+                    className="w-4 h-4"
+                  />
+                  Mark as Covered
+                </Label>
               </div>
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Amount</Label>
-                <Input
-                  type="number"
-                  value={amount}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setAmount(e.target.value)
-                  }
-                />
-              </div>
+
+              {/* Conditional Fields */}
+              {isCovered ? (
+                <>
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Coverage Type</Label>
+                    <Select
+                      options={[
+                        { value: "times_per_year", label: "Times Per Year" },
+                        { value: "times_per_month", label: "Times Per Month" },
+                        { value: "quarterly", label: "Quarterly" },
+                        { value: "unlimited", label: "Unlimited" },
+                        { value: "amount_based", label: "Amount Based" },
+                        { value: "limit_based", label: "Limit Based" },
+                      ]}
+                      placeholder="Select coverage type"
+                      onChange={(value) => {
+                        setCoverageType(value as string);
+                        if (value === "unlimited") {
+                          setCoverageValue("");
+                        }
+                      }}
+                      defaultValue={coverageType}
+                    />
+                  </div>
+
+                  {coverageType && coverageType !== "unlimited" && (
+                    <div className="col-span-2 lg:col-span-1">
+                      <Label>
+                        Coverage Value{" "}
+                        {coverageType === "amount_based" && "(Amount)"}
+                        {coverageType === "times_per_year" &&
+                          "(Number of times)"}
+                        {coverageType === "times_per_month" &&
+                          "(Number of times)"}
+                        {coverageType === "quarterly" &&
+                          "(e.g., Q1, Q2, Q3, Q4)"}
+                        {coverageType === "limit_based" && "(Limit)"}
+                      </Label>
+                      <Input
+                        type={
+                          coverageType === "amount_based" ? "number" : "text"
+                        }
+                        placeholder="Enter coverage value"
+                        value={coverageValue}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setCoverageValue(e.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Amount (Optional)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Optional amount"
+                      value={amount}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setAmount(e.target.value)
+                      }
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      value={amount}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setAmount(e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Limit</Label>
+                    <Input
+                      type="number"
+                      value={limit}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setLimit(e.target.value)
+                      }
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="col-span-2">
                 <Label>Description</Label>
                 <TextArea

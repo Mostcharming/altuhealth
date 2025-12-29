@@ -26,8 +26,24 @@ module.exports = (sequelize, DataTypes) => {
         },
         amount: {
             type: DataTypes.DECIMAL(10, 2),
-            allowNull: false,
+            allowNull: true,
             field: 'amount'
+        },
+        isCovered: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+            field: 'is_covered'
+        },
+        coverageType: {
+            type: DataTypes.ENUM('times_per_year', 'times_per_month', 'quarterly', 'unlimited', 'amount_based', 'limit_based'),
+            allowNull: true,
+            field: 'coverage_type'
+        },
+        coverageValue: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'coverage_value'
         },
         benefitCategoryId: {
             type: DataTypes.UUID,

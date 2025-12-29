@@ -6,7 +6,7 @@ const { validateBenefit, validateBenefitUpdate } = require('../../../utils/benef
 async function createBenefit(req, res, next) {
     try {
         const { Benefit, BenefitCategory } = req.models;
-        const { name, description, limit, amount, benefitCategoryId } = req.body || {};
+        const { name, description, limit, amount, benefitCategoryId, isCovered, coverageType, coverageValue } = req.body || {};
 
         // Validate input
         const validationErrors = validateBenefit(req.body);
@@ -40,7 +40,10 @@ async function createBenefit(req, res, next) {
                 description,
                 limit,
                 amount,
-                benefitCategoryId
+                benefitCategoryId,
+                isCovered: isCovered || false,
+                coverageType: isCovered ? coverageType : null,
+                coverageValue: isCovered ? coverageValue : null
             }, { transaction: t });
 
             // Update benefit category count
@@ -68,7 +71,7 @@ async function updateBenefit(req, res, next) {
     try {
         const { Benefit, BenefitCategory } = req.models;
         const { id } = req.params;
-        const { name, description, limit, amount, benefitCategoryId } = req.body || {};
+        const { name, description, limit, amount, benefitCategoryId, isCovered, coverageType, coverageValue } = req.body || {};
 
         // Validate input
         const validationErrors = validateBenefitUpdate(req.body);
@@ -107,13 +110,24 @@ async function updateBenefit(req, res, next) {
         const sequelize = Benefit.sequelize;
 
         await sequelize.transaction(async (t) => {
-            await benefit.update({
-                name,
-                description,
-                limit,
-                amount,
-                benefitCategoryId
-            }, { transaction: t });
+            const updateData = {
+                ...(name !== undefined && { name }),
+                ...(description !== undefined && { description }),
+                ...(limit !== undefined && { limit }),
+                ...(amount !== undefined && { amount }),
+                ...(benefitCategoryId !== undefined && { benefitCategoryId }),
+                ...(isCovered !== undefined && { isCovered }),
+                ...(isCovered && coverageType !== undefined && { coverageType }),
+                ...(isCovered && coverageValue !== undefined && { coverageValue })
+            };
+
+            // Clear coverage fields if not marked as covered
+            if (isCovered === false) {
+                updateData.coverageType = null;
+                updateData.coverageValue = null;
+            }
+
+            await benefit.update(updateData, { transaction: t });
 
             // If category changed, update counts
             if (benefitCategoryId && benefitCategoryId !== oldCategoryId) {
