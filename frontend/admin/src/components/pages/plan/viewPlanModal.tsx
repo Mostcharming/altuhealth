@@ -3,6 +3,7 @@
 
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
+import PlanBenefitSelectionModal from "@/components/pages/plan/planBenefitSelectionModal";
 import { Modal } from "@/components/ui/modal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
@@ -100,6 +101,15 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
 
   const errorModal = useModal();
   const successModal = useModal();
+
+  // Benefit selection modal state
+  const [showBenefitSelectionModal, setShowBenefitSelectionModal] =
+    useState(false);
+  const [selectedCategoryForBenefits, setSelectedCategoryForBenefits] =
+    useState<{
+      id: string;
+      name: string;
+    } | null>(null);
 
   const [allBenefitCategories, setAllBenefitCategories] = useState<
     BenefitCategory[]
@@ -239,6 +249,13 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
   ]);
 
   const toggleBenefitCategory = (categoryId: string) => {
+    // Find the category name
+    const category = allBenefitCategories.find((bc) => bc.id === categoryId);
+    if (category) {
+      setSelectedCategoryForBenefits({ id: categoryId, name: category.name });
+      setShowBenefitSelectionModal(true);
+    }
+
     setSelectedBenefitCategories((prev) =>
       prev.includes(categoryId)
         ? prev.filter((id) => id !== categoryId)
@@ -602,6 +619,21 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
         errorModal={errorModal}
         handleErrorClose={() => {
           errorModal.closeModal();
+        }}
+      />
+
+      <PlanBenefitSelectionModal
+        isOpen={showBenefitSelectionModal}
+        closeModal={() => {
+          setShowBenefitSelectionModal(false);
+          setSelectedCategoryForBenefits(null);
+        }}
+        planId={plan?.id || null}
+        benefitCategoryId={selectedCategoryForBenefits?.id || null}
+        benefitCategoryName={selectedCategoryForBenefits?.name}
+        onSuccess={() => {
+          setShowBenefitSelectionModal(false);
+          setSelectedCategoryForBenefits(null);
         }}
       />
     </>

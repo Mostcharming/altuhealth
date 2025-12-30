@@ -4,6 +4,7 @@
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
@@ -27,6 +28,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   const [description, setDescription] = useState("");
   const [limit, setLimit] = useState("");
   const [amount, setAmount] = useState<number>(0);
+  const [isCovered, setIsCovered] = useState(false);
+  const [coverageType, setCoverageType] = useState("");
+  const [coverageValue, setCoverageValue] = useState("");
   const [errorMessage, setErrorMessage] = useState<string>(
     "Failed to update unit."
   );
@@ -51,6 +55,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       setAmount(unit.amount ?? 0);
       setLimit(unit.limit ?? "");
       setDescription(unit.description ?? "");
+      setIsCovered((unit as any).isCovered ?? false);
+      setCoverageType((unit as any).coverageType ?? "");
+      setCoverageValue((unit as any).coverageValue ?? "");
     }
 
     if (!isOpen) {
@@ -59,23 +66,38 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       setAmount(0);
       setLimit("");
       setDescription("");
+      setIsCovered(false);
+      setCoverageType("");
+      setCoverageValue("");
     }
   }, [isOpen, unit]);
   const handlesubmit = async () => {
     try {
       setLoading(true);
 
-      const payload: {
-        name: string;
-        description: string;
-        amount: number;
-        limit: string;
-      } = {
+      const payload: Record<string, string | number | boolean | undefined> = {
         name: name.trim(),
         description: description.trim(),
-        amount: amount,
-        limit: limit.trim(),
+        isCovered: isCovered,
       };
+
+      // Only include amount and limit if not covered
+      if (!isCovered) {
+        payload.amount = amount;
+        payload.limit = limit.trim();
+      } else {
+        // If covered, include coverage type and value
+        if (coverageType) {
+          payload.coverageType = coverageType;
+          if (coverageType !== "unlimited") {
+            payload.coverageValue = coverageValue;
+          }
+        }
+        // Amount is optional for covered benefits
+        if (amount) {
+          payload.amount = amount;
+        }
+      }
 
       const url = `/admin/benefits/${id}`;
       const method = "PUT";
@@ -91,6 +113,9 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
         description: description,
         amount: amount,
         limit: limit,
+        isCovered: isCovered,
+        coverageType: coverageType,
+        coverageValue: coverageValue,
       });
 
       successModal.openModal();
@@ -135,28 +160,118 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                   }
                 />
               </div>
+
+              {/* Coverage Type Section */}
               <div className="col-span-2 lg:col-span-1">
-                <Label>Limit</Label>
-                <Input
-                  type="number"
-                  value={limit}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setLimit(e.target.value)
-                  }
-                />
+                <Label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isCovered}
+                    onChange={(e) => {
+                      setIsCovered(e.target.checked);
+                      if (!e.target.checked) {
+                        setCoverageType("");
+                        setCoverageValue("");
+                      }
+                    }}
+                    className="w-4 h-4"
+                  />
+                  Mark as Covered
+                </Label>
               </div>
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Amount</Label>
-                <Input
-                  type="number"
-                  value={amount}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setAmount(
-                      e.target.value === "" ? 0 : Number(e.target.value)
-                    )
-                  }
-                />
-              </div>
+
+              {/* Conditional Fields */}
+              {isCovered ? (
+                <>
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Coverage Type</Label>
+                    <Select
+                      options={[
+                        { value: "times_per_year", label: "Times Per Year" },
+                        { value: "times_per_month", label: "Times Per Month" },
+                        { value: "quarterly", label: "Quarterly" },
+                        { value: "unlimited", label: "Unlimited" },
+                        { value: "amount_based", label: "Amount Based" },
+                        { value: "limit_based", label: "Limit Based" },
+                      ]}
+                      placeholder="Select coverage type"
+                      onChange={(value) => {
+                        setCoverageType(value as string);
+                        if (value === "unlimited") {
+                          setCoverageValue("");
+                        }
+                      }}
+                      defaultValue={coverageType}
+                    />
+                  </div>
+
+                  {coverageType && coverageType !== "unlimited" && (
+                    <div className="col-span-2 lg:col-span-1">
+                      <Label>
+                        Coverage Value{" "}
+                        {coverageType === "amount_based" && "(Amount)"}
+                        {coverageType === "times_per_year" &&
+                          "(Number of times)"}
+                        {coverageType === "times_per_month" &&
+                          "(Number of times)"}
+                        {coverageType === "quarterly" &&
+                          "(e.g., Q1, Q2, Q3, Q4)"}
+                        {coverageType === "limit_based" && "(Limit)"}
+                      </Label>
+                      <Input
+                        type={
+                          coverageType === "amount_based" ? "number" : "text"
+                        }
+                        placeholder="Enter coverage value"
+                        value={coverageValue}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setCoverageValue(e.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Amount (Optional)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Optional amount"
+                      value={amount}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setAmount(
+                          e.target.value === "" ? 0 : Number(e.target.value)
+                        )
+                      }
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Amount</Label>
+                    <Input
+                      type="number"
+                      value={amount}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setAmount(
+                          e.target.value === "" ? 0 : Number(e.target.value)
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Limit</Label>
+                    <Input
+                      type="number"
+                      value={limit}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setLimit(e.target.value)
+                      }
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="col-span-2 ">
                 <Label>Description</Label>
                 <TextArea
@@ -187,7 +302,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                   type="button"
                   className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
                 >
-                  Update Category
+                  Update Benefit
                 </button>
               </div>
             </div>

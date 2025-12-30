@@ -53,10 +53,11 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
   ];
 
   const headers: Header[] = [
-    { key: "name", label: "Name" },
-    { key: "limit", label: "Limit" },
-    { key: "amount", label: "Amount" },
+    { key: "name", label: "Benefit Name" },
     { key: "description", label: "Description" },
+    { key: "amount", label: "Amount" },
+    { key: "limit", label: "Limit" },
+    { key: "isCovered", label: "Covered" },
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
@@ -95,7 +96,7 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setUsers]);
+  }, [limit, currentPage, search, setUsers, id]);
 
   useEffect(() => {
     fetch();
@@ -252,43 +253,58 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
                   className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
                   <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
                       {capitalizeWords(invoice.name)}
                     </p>
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.limit)}
+                  <td className="p-4">
+                    <p className="text-sm text-gray-700 dark:text-gray-400 line-clamp-2">
+                      {invoice.description
+                        ? capitalizeWords(invoice.description)
+                        : "—"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.amount)}
+                      {invoice.amount
+                        ? `₦${invoice.amount.toLocaleString()}`
+                        : "—"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.description)}
+                      {invoice.limit ?? "—"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                        invoice.isCovered
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                      }`}
+                    >
+                      {invoice.isCovered ? "Yes" : "No"}
+                    </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.createdAt ? formatDate(invoice.createdAt) : "-"}
+                      {invoice.createdAt ? formatDate(invoice.createdAt) : "—"}
                     </p>
                   </td>
-
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
                       <button
                         onClick={() => handleView(invoice)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                        title="Edit"
                       >
                         <PencilIcon />
                       </button>
-
                       <button
                         onClick={() => handleDeleModal(invoice.id)}
                         className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
+                        title="Delete"
                       >
                         <TrashBinIcon />
                       </button>

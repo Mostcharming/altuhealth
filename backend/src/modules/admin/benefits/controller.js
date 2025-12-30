@@ -20,17 +20,6 @@ async function createBenefit(req, res, next) {
             return res.fail('Benefit category not found', 400);
         }
 
-        // Check if benefit name already exists within the same category
-        const existingBenefit = await Benefit.findOne({
-            where: {
-                name,
-                benefitCategoryId
-            }
-        });
-        if (existingBenefit) {
-            return res.fail('Benefit with this name already exists in this category', 400);
-        }
-
         const sequelize = Benefit.sequelize;
 
         let benefit;
@@ -89,21 +78,6 @@ async function updateBenefit(req, res, next) {
             const newBenefitCategory = await BenefitCategory.findByPk(benefitCategoryId);
             if (!newBenefitCategory) {
                 return res.fail('New benefit category not found', 400);
-            }
-        }
-
-        // Check if benefit name already exists within the target category
-        if (name) {
-            const targetCategoryId = benefitCategoryId || oldCategoryId;
-            const existingBenefit = await Benefit.findOne({
-                where: {
-                    name,
-                    benefitCategoryId: targetCategoryId,
-                    id: { [Op.ne]: id }
-                }
-            });
-            if (existingBenefit) {
-                return res.fail('Benefit with this name already exists in this category', 400);
             }
         }
 
@@ -376,18 +350,6 @@ async function processBenefitRows(rows, file, req, res) {
                 const benefitCategory = await BenefitCategory.findByPk(row.benefitCategoryId.trim());
                 if (!benefitCategory) {
                     errors.push({ row: rowNumber, error: `Benefit category with ID ${row.benefitCategoryId} not found` });
-                    continue;
-                }
-
-                // Check if benefit name already exists within the same category
-                const existingBenefit = await Benefit.findOne({
-                    where: {
-                        name: row.name.trim(),
-                        benefitCategoryId: row.benefitCategoryId.trim()
-                    }
-                });
-                if (existingBenefit) {
-                    errors.push({ row: rowNumber, error: `Benefit with this name already exists in this category` });
                     continue;
                 }
 

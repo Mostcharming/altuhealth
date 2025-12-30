@@ -4,6 +4,8 @@ const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { createAdminApproval } = require('../../../utils/adminApproval');
 const { generateProviderCode, generateProviderUPN } = require('../../../utils/providerCodeGenerator');
+const generateCode = require('../../../utils/verificationCode');
+const notify = require('../../../utils/notify');
 
 async function createProvider(req, res, next) {
     try {
@@ -87,6 +89,9 @@ async function createProvider(req, res, next) {
             return res.fail('Failed to generate unique provider code or UPN', 500);
         }
 
+        // Generate temporary password
+        const temporaryPassword = generateCode(10, { letters: true, numbers: true });
+
         // Create provider
         const provider = await Provider.create({
             name,
@@ -127,6 +132,17 @@ async function createProvider(req, res, next) {
             userType: (req.user && req.user.type) ? req.user.type : null,
             meta: { providerId: provider.id }
         });
+
+        // Send credentials to provider email (don't block main flow on failure)
+        try {
+            await notify(provider, 'Provider', 'PROVIDER_CREATE', {
+                policyNumber: providerUPN,
+                email: provider.email,
+                password: temporaryPassword
+            }, ['email'], true);
+        } catch (e) {
+            console.error('Failed to notify new provider via email', e);
+        }
 
         // Create an admin approval record for this provider and notify admins
         // (async () => {

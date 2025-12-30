@@ -60,7 +60,7 @@ class NotifyProcess {
                 return false;
             }
             message = this.replaceShortCode(
-                user.firstName,
+                this.receiverName,
                 this.setting[globalTemplate] || '',
                 template[this.body]
             );
@@ -71,7 +71,6 @@ class NotifyProcess {
             this.toAddress = user.email;
             message = this.replaceShortCode(
                 this.receiverName,
-                this.toAddress,
                 this.setting[globalTemplate] || '',
                 this.message
             );

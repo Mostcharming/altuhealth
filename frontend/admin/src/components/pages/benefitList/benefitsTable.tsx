@@ -128,7 +128,7 @@ const BenefitsTable: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, selectedCategoryId]);
+  }, [limit, currentPage, search, selectedCategoryId, setUsers]);
 
   useEffect(() => {
     fetch();

@@ -15,6 +15,10 @@ router.delete('/:id', CompanyPlans.deleteCompanyPlan);
 router.post('/benefit-categories/add', CompanyPlans.addBenefitCategory);
 router.delete('/benefit-categories/:companyPlanId/:benefitCategoryId', CompanyPlans.removeBenefitCategory);
 
+// Individual benefits
+router.post('/benefits/add', CompanyPlans.addBenefit);
+router.delete('/benefits/:companyPlanId/:benefitId', CompanyPlans.removeBenefit);
+
 // Exclusions
 router.post('/exclusions/add', CompanyPlans.addExclusion);
 router.delete('/exclusions/:companyPlanId/:exclusionId', CompanyPlans.removeExclusion);

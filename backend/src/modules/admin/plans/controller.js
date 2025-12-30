@@ -253,8 +253,8 @@ async function getPlan(req, res, next) {
 // Add benefit category to plan
 async function addBenefitCategory(req, res, next) {
     try {
-        const { Plan, PlanBenefitCategory } = req.models;
-        const { planId, benefitCategoryId } = req.body || {};
+        const { Plan, PlanBenefitCategory, PlanBenefit, Benefit } = req.models;
+        const { planId, benefitCategoryId, benefitIds = [] } = req.body || {};
 
         if (!planId) return res.fail('`planId` is required', 400);
         if (!benefitCategoryId) return res.fail('`benefitCategoryId` is required', 400);
@@ -268,15 +268,47 @@ async function addBenefitCategory(req, res, next) {
 
         const planBenefitCategory = await PlanBenefitCategory.create({ planId, benefitCategoryId });
 
+        // If specific benefits are provided, add them
+        let benefitRecords = [];
+        if (Array.isArray(benefitIds) && benefitIds.length > 0) {
+            // Validate that all provided benefit IDs exist and belong to this category
+            const benefits = await Benefit.findAll({
+                where: {
+                    id: benefitIds,
+                    benefitCategoryId
+                }
+            });
+
+            if (benefits.length !== benefitIds.length) {
+                // Some benefits don't exist or don't belong to this category
+                await planBenefitCategory.destroy(); // Rollback the category addition
+                return res.fail('Some benefits do not exist in this benefit category', 400);
+            }
+
+            // Add each benefit to the plan
+            benefitRecords = await Promise.all(
+                benefitIds.map(benefitId =>
+                    PlanBenefit.create({
+                        planId,
+                        benefitId
+                    })
+                )
+            );
+        }
+
         await addAuditLog(req.models, {
             action: 'plan.benefitCategory.add',
-            message: `Benefit category added to Plan ${plan.name}`,
+            message: `Benefit category added to Plan ${plan.name} with ${benefitRecords.length} benefits`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { planId, benefitCategoryId }
+            meta: { planId, benefitCategoryId, benefitsAdded: benefitRecords.length }
         });
 
-        return res.success({ planBenefitCategory: planBenefitCategory.toJSON() }, 'Benefit category added to plan', 201);
+        return res.success({
+            category: planBenefitCategory.toJSON(),
+            benefits: benefitRecords.map(b => b.toJSON()),
+            totalBenefitsAdded: benefitRecords.length
+        }, 'Benefit category added to plan with selected benefits', 201);
     } catch (err) {
         return next(err);
     }
@@ -421,6 +453,74 @@ async function removeProvider(req, res, next) {
     }
 }
 
+// Add specific benefit to plan
+async function addBenefit(req, res, next) {
+    try {
+        const { Plan, PlanBenefit, Benefit } = req.models;
+        const { planId, benefitId } = req.body || {};
+
+        if (!planId) return res.fail('`planId` is required', 400);
+        if (!benefitId) return res.fail('`benefitId` is required', 400);
+
+        const plan = await Plan.findByPk(planId);
+        if (!plan) return res.fail('Plan not found', 404);
+
+        // Verify benefit exists
+        const benefit = await Benefit.findByPk(benefitId);
+        if (!benefit) return res.fail('Benefit not found', 404);
+
+        // Check if already exists
+        const existing = await PlanBenefit.findOne({
+            where: { planId, benefitId }
+        });
+        if (existing) return res.fail('Benefit already added to this plan', 400);
+
+        const record = await PlanBenefit.create({
+            planId,
+            benefitId
+        });
+
+        await addAuditLog(req.models, {
+            action: 'plan.addBenefit',
+            message: `Benefit ${benefit.name} added to plan ${plan.name}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { planId, benefitId }
+        });
+
+        return res.success({ record: record.toJSON() }, 'Benefit added', 201);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+// Remove specific benefit from plan
+async function removeBenefit(req, res, next) {
+    try {
+        const { PlanBenefit } = req.models;
+        const { planId, benefitId } = req.params;
+
+        const record = await PlanBenefit.findOne({
+            where: { planId, benefitId }
+        });
+        if (!record) return res.fail('Benefit not found in this plan', 404);
+
+        await record.destroy();
+
+        await addAuditLog(req.models, {
+            action: 'plan.removeBenefit',
+            message: `Benefit removed from plan`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { planId, benefitId }
+        });
+
+        return res.success(null, 'Benefit removed');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createPlan,
     updatePlan,
@@ -429,6 +529,8 @@ module.exports = {
     getPlan,
     addBenefitCategory,
     removeBenefitCategory,
+    addBenefit,
+    removeBenefit,
     addExclusion,
     removeExclusion,
     addProvider,

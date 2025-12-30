@@ -20,7 +20,7 @@ class Email extends NotifyProcess {
 
     prevConfiguration() {
         this.email = this.user.email;
-        this.receiverName = this.user.firstName;
+        this.receiverName = this.user.firstName || this.user.name || '';
     }
 
     async send() {

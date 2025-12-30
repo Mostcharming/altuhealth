@@ -49,7 +49,7 @@ class Sms extends NotifyProcess {
     prevConfiguration() {
         if (this.user) {
             this.mobile = this.user.phoneNumber;
-            this.receiverName = this.user.firstName;
+            this.receiverName = this.user.firstName || this.user.name || '';
             this.toAddress = this.mobile;
         }
     }

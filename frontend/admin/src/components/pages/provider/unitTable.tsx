@@ -67,7 +67,7 @@ const ProviderTable: React.FC = () => {
     { key: "name", label: "Name" },
     { key: "code", label: "Provider Code" },
     { key: "upn", label: "Provider UPN" },
-    { key: "category", label: "Category" },
+    { key: "phoneNumber", label: "Phone Number" },
     { key: "email", label: "Email" },
     { key: "Plans", label: "Number of Plans" },
     { key: "createdAt", label: "Date Created" },
@@ -293,7 +293,7 @@ const ProviderTable: React.FC = () => {
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(provider.category)}
+                      {provider.phoneNumber || "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
