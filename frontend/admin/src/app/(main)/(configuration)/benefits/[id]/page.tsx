@@ -24,7 +24,7 @@ export default function Units() {
       try {
         setLoading(true);
         const response = await apiClient(`/admin/benefit-categories/${id}`);
-        if (response.success && response.data) {
+        if (response && response.data) {
           setBenefitCategory(response.data);
         }
       } catch (error) {
