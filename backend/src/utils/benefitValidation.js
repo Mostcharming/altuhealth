@@ -19,7 +19,7 @@ function validateBenefitCategory(data) {
 
 function validateBenefit(data) {
     const errors = [];
-    const { name, description, limit, amount, benefitCategoryId, isCovered, coverageType, coverageValue } = data || {};
+    const { name, description, benefitCategoryId, isCovered, coverageType, coverageValue } = data || {};
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
         errors.push('`name` is required and must be a non-empty string');
@@ -27,18 +27,6 @@ function validateBenefit(data) {
 
     if (name && name.length > 255) {
         errors.push('`name` must be 255 characters or less');
-    }
-
-    // Amount is only required if not marked as covered
-    if (!isCovered) {
-        if (!amount || isNaN(Number(amount)) || Number(amount) < 0) {
-            errors.push('`amount` is required and must be a non-negative number when benefit is not covered');
-        }
-    } else {
-        // If covered, amount can be optional but if provided must be valid
-        if (amount !== undefined && amount !== null && (isNaN(Number(amount)) || Number(amount) < 0)) {
-            errors.push('`amount` must be a non-negative number if provided');
-        }
     }
 
     if (!benefitCategoryId || typeof benefitCategoryId !== 'string' || benefitCategoryId.trim().length === 0) {
@@ -69,7 +57,7 @@ function validateBenefit(data) {
 
 function validateBenefitUpdate(data) {
     const errors = [];
-    const { name, description, limit, amount, benefitCategoryId, isCovered, coverageType, coverageValue } = data || {};
+    const { name, description, benefitCategoryId, isCovered, coverageType, coverageValue } = data || {};
 
     if (name !== undefined) {
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -77,12 +65,6 @@ function validateBenefitUpdate(data) {
         }
         if (name && name.length > 255) {
             errors.push('`name` must be 255 characters or less');
-        }
-    }
-
-    if (amount !== undefined && amount !== null) {
-        if (isNaN(Number(amount)) || Number(amount) < 0) {
-            errors.push('`amount` must be a non-negative number if provided');
         }
     }
 
@@ -98,15 +80,6 @@ function validateBenefitUpdate(data) {
         }
         if (description && description.length > 1000) {
             errors.push('`description` must be 1000 characters or less');
-        }
-    }
-
-    if (limit !== undefined && limit !== null) {
-        if (typeof limit !== 'string') {
-            errors.push('`limit` must be a string if provided');
-        }
-        if (limit && limit.length > 255) {
-            errors.push('`limit` must be 255 characters or less');
         }
     }
 

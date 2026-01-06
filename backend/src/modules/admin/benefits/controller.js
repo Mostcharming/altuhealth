@@ -6,7 +6,7 @@ const { validateBenefit, validateBenefitUpdate } = require('../../../utils/benef
 async function createBenefit(req, res, next) {
     try {
         const { Benefit, BenefitCategory } = req.models;
-        const { name, description, limit, amount, benefitCategoryId, isCovered, coverageType, coverageValue } = req.body || {};
+        const { name, description, benefitCategoryId, isCovered, coverageType, coverageValue } = req.body || {};
 
         // Validate input
         const validationErrors = validateBenefit(req.body);
@@ -27,8 +27,6 @@ async function createBenefit(req, res, next) {
             benefit = await Benefit.create({
                 name,
                 description,
-                limit,
-                amount,
                 benefitCategoryId,
                 isCovered: isCovered || false,
                 coverageType: isCovered ? coverageType : null,
@@ -60,7 +58,7 @@ async function updateBenefit(req, res, next) {
     try {
         const { Benefit, BenefitCategory } = req.models;
         const { id } = req.params;
-        const { name, description, limit, amount, benefitCategoryId, isCovered, coverageType, coverageValue } = req.body || {};
+        const { name, description, benefitCategoryId, isCovered, coverageType, coverageValue } = req.body || {};
 
         // Validate input
         const validationErrors = validateBenefitUpdate(req.body);
@@ -87,8 +85,6 @@ async function updateBenefit(req, res, next) {
             const updateData = {
                 ...(name !== undefined && { name }),
                 ...(description !== undefined && { description }),
-                ...(limit !== undefined && { limit }),
-                ...(amount !== undefined && { amount }),
                 ...(benefitCategoryId !== undefined && { benefitCategoryId }),
                 ...(isCovered !== undefined && { isCovered }),
                 ...(isCovered && coverageType !== undefined && { coverageType }),
@@ -340,33 +336,6 @@ async function processBenefitRows(rows, file, req, res) {
                     continue;
                 }
 
-                // Validate that amount or limit is provided
-                if ((row.amount === undefined || row.amount === '') && (row.limit === undefined || row.limit === '')) {
-                    errors.push({ row: rowNumber, error: 'At least one of amount or limit is required' });
-                    continue;
-                }
-
-                // Validate that benefitCategoryId exists
-                const benefitCategory = await BenefitCategory.findByPk(row.benefitCategoryId.trim());
-                if (!benefitCategory) {
-                    errors.push({ row: rowNumber, error: `Benefit category with ID ${row.benefitCategoryId} not found` });
-                    continue;
-                }
-
-                // Validate amount if provided
-                const amount = row.amount !== undefined && row.amount !== '' ? parseFloat(row.amount) : null;
-                if (amount !== null && isNaN(amount)) {
-                    errors.push({ row: rowNumber, error: `Invalid amount value: ${row.amount}` });
-                    continue;
-                }
-
-                // Validate limit if provided
-                const limit = row.limit !== undefined && row.limit !== '' ? parseInt(row.limit) : null;
-                if (limit !== null && isNaN(limit)) {
-                    errors.push({ row: rowNumber, error: `Invalid limit value: ${row.limit}` });
-                    continue;
-                }
-
                 const sequelize = Benefit.sequelize;
 
                 let benefit;
@@ -374,8 +343,6 @@ async function processBenefitRows(rows, file, req, res) {
                     benefit = await Benefit.create({
                         name: row.name.trim(),
                         description: row.description ? row.description.trim() : null,
-                        amount: amount,
-                        limit: limit,
                         benefitCategoryId: row.benefitCategoryId.trim()
                     }, { transaction: t });
 

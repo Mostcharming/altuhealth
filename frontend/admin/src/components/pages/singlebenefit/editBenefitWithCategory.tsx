@@ -37,11 +37,9 @@ export default function EditBenefitWithCategory({
   const [id, setId] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [limit, setLimit] = useState("");
-  const [amount, setAmount] = useState<number>(0);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [categories, setCategories] = useState<BenefitCategory[]>([]);
-  const [isCovered, setIsCovered] = useState(false);
+  const [isCovered, setIsCovered] = useState(true);
   const [coverageType, setCoverageType] = useState("");
   const [coverageValue, setCoverageValue] = useState("");
   const [errorMessage, setErrorMessage] = useState<string>(
@@ -93,8 +91,6 @@ export default function EditBenefitWithCategory({
     if (isOpen && benefit) {
       setId(benefit.id ?? "");
       setName(benefit.name ?? "");
-      setAmount(benefit.amount ?? 0);
-      setLimit(benefit.limit ?? "");
       setDescription(benefit.description ?? "");
       setSelectedCategoryId(benefit.benefitCategoryId ?? "");
       setIsCovered((benefit as any).isCovered ?? false);
@@ -105,11 +101,9 @@ export default function EditBenefitWithCategory({
     if (!isOpen) {
       setId("");
       setName("");
-      setAmount(0);
-      setLimit("");
       setDescription("");
       setSelectedCategoryId("");
-      setIsCovered(false);
+      setIsCovered(true);
       setCoverageType("");
       setCoverageValue("");
     }
@@ -133,22 +127,18 @@ export default function EditBenefitWithCategory({
         isCovered: isCovered,
       };
 
-      // Only include amount and limit if not covered
-      if (!isCovered) {
-        payload.amount = amount;
-        payload.limit = limit.trim();
-      } else {
-        // If covered, include coverage type and value
+      // If covered, include coverage type and value
+      if (isCovered) {
         if (coverageType) {
           payload.coverageType = coverageType;
           if (coverageType !== "unlimited") {
             payload.coverageValue = coverageValue;
           }
         }
-        // Amount is optional for covered benefits
-        if (amount) {
-          payload.amount = amount;
-        }
+      } else {
+        // If not covered, clear coverage fields
+        payload.coverageType = null;
+        payload.coverageValue = null;
       }
 
       const url = `/admin/benefits/${id}`;
@@ -163,8 +153,6 @@ export default function EditBenefitWithCategory({
       updateBenefit(id, {
         name: name,
         description: description,
-        amount: amount,
-        limit: limit,
         benefitCategoryId: selectedCategoryId,
         isCovered: isCovered,
         coverageType: coverageType,
@@ -294,47 +282,8 @@ export default function EditBenefitWithCategory({
                       />
                     </div>
                   )}
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Amount (Optional)</Label>
-                    <Input
-                      type="number"
-                      placeholder="Optional amount"
-                      value={amount}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setAmount(
-                          e.target.value === "" ? 0 : Number(e.target.value)
-                        )
-                      }
-                    />
-                  </div>
                 </>
-              ) : (
-                <>
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Amount</Label>
-                    <Input
-                      type="number"
-                      value={amount}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setAmount(
-                          e.target.value === "" ? 0 : Number(e.target.value)
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Limit</Label>
-                    <Input
-                      type="number"
-                      value={limit}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setLimit(e.target.value)
-                      }
-                    />
-                  </div>
-                </>
-              )}
+              ) : null}
 
               <div className="col-span-2">
                 <Label>Description</Label>

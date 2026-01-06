@@ -19,16 +19,6 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
             field: 'description'
         },
-        limit: {
-            type: DataTypes.STRING,
-            allowNull: true,
-            field: 'limit'
-        },
-        amount: {
-            type: DataTypes.DECIMAL(10, 2),
-            allowNull: true,
-            field: 'amount'
-        },
         isCovered: {
             type: DataTypes.BOOLEAN,
             allowNull: false,

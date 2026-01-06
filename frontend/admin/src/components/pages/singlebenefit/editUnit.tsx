@@ -26,9 +26,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   const [id, setId] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [limit, setLimit] = useState("");
-  const [amount, setAmount] = useState<number>(0);
-  const [isCovered, setIsCovered] = useState(false);
+  const [isCovered, setIsCovered] = useState(true);
   const [coverageType, setCoverageType] = useState("");
   const [coverageValue, setCoverageValue] = useState("");
   const [errorMessage, setErrorMessage] = useState<string>(
@@ -52,10 +50,8 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
     if (isOpen && unit) {
       setId(unit.id ?? "");
       setName(unit.name ?? "");
-      setAmount(unit.amount ?? 0);
-      setLimit(unit.limit ?? "");
       setDescription(unit.description ?? "");
-      setIsCovered((unit as any).isCovered ?? false);
+      setIsCovered((unit as any).isCovered ?? true);
       setCoverageType((unit as any).coverageType ?? "");
       setCoverageValue((unit as any).coverageValue ?? "");
     }
@@ -63,10 +59,8 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
     if (!isOpen) {
       setId("");
       setName("");
-      setAmount(0);
-      setLimit("");
       setDescription("");
-      setIsCovered(false);
+      setIsCovered(true);
       setCoverageType("");
       setCoverageValue("");
     }
@@ -75,28 +69,27 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
     try {
       setLoading(true);
 
-      const payload: Record<string, string | number | boolean | undefined> = {
+      const payload: Record<
+        string,
+        string | number | boolean | undefined | null
+      > = {
         name: name.trim(),
         description: description.trim(),
         isCovered: isCovered,
       };
 
-      // Only include amount and limit if not covered
-      if (!isCovered) {
-        payload.amount = amount;
-        payload.limit = limit.trim();
-      } else {
-        // If covered, include coverage type and value
+      // If covered, include coverage type and value
+      if (isCovered) {
         if (coverageType) {
           payload.coverageType = coverageType;
           if (coverageType !== "unlimited") {
             payload.coverageValue = coverageValue;
           }
         }
-        // Amount is optional for covered benefits
-        if (amount) {
-          payload.amount = amount;
-        }
+      } else {
+        // If not covered, clear coverage fields
+        payload.coverageType = null;
+        payload.coverageValue = null;
       }
 
       const url = `/admin/benefits/${id}`;
@@ -111,8 +104,6 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       updateUser(id, {
         name: name,
         description: description,
-        amount: amount,
-        limit: limit,
         isCovered: isCovered,
         coverageType: coverageType,
         coverageValue: coverageValue,
@@ -230,47 +221,8 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                       />
                     </div>
                   )}
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Amount (Optional)</Label>
-                    <Input
-                      type="number"
-                      placeholder="Optional amount"
-                      value={amount}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setAmount(
-                          e.target.value === "" ? 0 : Number(e.target.value)
-                        )
-                      }
-                    />
-                  </div>
                 </>
-              ) : (
-                <>
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Amount</Label>
-                    <Input
-                      type="number"
-                      value={amount}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setAmount(
-                          e.target.value === "" ? 0 : Number(e.target.value)
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Limit</Label>
-                    <Input
-                      type="number"
-                      value={limit}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setLimit(e.target.value)
-                      }
-                    />
-                  </div>
-                </>
-              )}
+              ) : null}
 
               <div className="col-span-2 ">
                 <Label>Description</Label>

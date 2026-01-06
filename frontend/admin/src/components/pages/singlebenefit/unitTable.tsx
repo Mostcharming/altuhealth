@@ -13,6 +13,13 @@ import { Benefit, useBenefitStore } from "@/lib/store/benefitStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditUnit from "./editUnit";
 
+const truncateText = (text: string, maxLength: number): string => {
+  if (text.length > maxLength) {
+    return text.substring(0, maxLength) + "...";
+  }
+  return text;
+};
+
 interface AdminTableProps {
   id: string;
 }
@@ -55,9 +62,9 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
   const headers: Header[] = [
     { key: "name", label: "Benefit Name" },
     { key: "description", label: "Description" },
-    { key: "amount", label: "Amount" },
-    { key: "limit", label: "Limit" },
     { key: "isCovered", label: "Covered" },
+    { key: "coverageType", label: "Coverage Type" },
+    { key: "coverageValue", label: "Coverage Value" },
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
@@ -252,28 +259,22 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
                   key={invoice.id}
                   className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {capitalizeWords(invoice.name)}
+                  <td className="p-4 whitespace-nowrap max-w-xs">
+                    <p
+                      className="text-sm font-semibold text-gray-800 dark:text-white/90 truncate"
+                      title={invoice.name}
+                    >
+                      {capitalizeWords(truncateText(invoice.name, 30))}
                     </p>
                   </td>
-                  <td className="p-4">
-                    <p className="text-sm text-gray-700 dark:text-gray-400 line-clamp-2">
+                  <td className="p-4 max-w-sm">
+                    <p
+                      className="text-sm text-gray-700 dark:text-gray-400 line-clamp-2"
+                      title={invoice.description || ""}
+                    >
                       {invoice.description
-                        ? capitalizeWords(invoice.description)
+                        ? capitalizeWords(truncateText(invoice.description, 80))
                         : "—"}
-                    </p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.amount
-                        ? `₦${invoice.amount.toLocaleString()}`
-                        : "—"}
-                    </p>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {invoice.limit ?? "—"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
@@ -286,6 +287,22 @@ const AdminTable: React.FC<AdminTableProps> = ({ id }) => {
                     >
                       {invoice.isCovered ? "Yes" : "No"}
                     </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {invoice.coverageType
+                        ? invoice.coverageType
+                            .replace(/_/g, " ")
+                            .charAt(0)
+                            .toUpperCase() +
+                          invoice.coverageType.replace(/_/g, " ").slice(1)
+                        : "—"}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {invoice.coverageValue ?? "—"}
+                    </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">

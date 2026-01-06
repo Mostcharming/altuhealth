@@ -13,6 +13,13 @@ import { Benefit, useBenefitStore } from "@/lib/store/benefitStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditBenefit from "../singlebenefit/editBenefitWithCategory";
 
+const truncateText = (text: string, maxLength: number): string => {
+  if (text.length > maxLength) {
+    return text.substring(0, maxLength) + "...";
+  }
+  return text;
+};
+
 interface BenefitCategory {
   value: string;
   label: string;
@@ -61,8 +68,9 @@ const BenefitsTable: React.FC = () => {
   const headers: Header[] = [
     { key: "name", label: "Benefit Name" },
     { key: "description", label: "Description" },
-    { key: "amount", label: "Amount" },
-    { key: "limit", label: "Limit" },
+    { key: "isCovered", label: "Covered" },
+    { key: "coverageType", label: "Coverage Type" },
+    { key: "coverageValue", label: "Coverage Value" },
     { key: "BenefitCategory", label: "Category" },
     { key: "actions", label: "Actions" },
   ];
@@ -310,26 +318,49 @@ const BenefitsTable: React.FC = () => {
                   key={benefit.id}
                   className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
                 >
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {benefit.name}
+                  <td className="p-4 whitespace-nowrap max-w-xs">
+                    <p
+                      className="text-sm font-semibold text-gray-800 dark:text-white/90 truncate"
+                      title={benefit.name}
+                    >
+                      {truncateText(benefit.name, 30)}
+                    </p>
+                  </td>
+                  <td className="p-4 max-w-sm">
+                    <p
+                      className="text-sm text-gray-700 dark:text-gray-400 line-clamp-2"
+                      title={benefit.description || ""}
+                    >
+                      {benefit.description
+                        ? truncateText(benefit.description, 80)
+                        : "—"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {benefit.description || "—"}
-                    </p>
+                    <span
+                      className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
+                        benefit.isCovered
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                          : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400"
+                      }`}
+                    >
+                      {benefit.isCovered ? "Yes" : "No"}
+                    </span>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {benefit.amount
-                        ? `₦${benefit.amount.toLocaleString()}`
+                      {benefit.coverageType
+                        ? benefit.coverageType
+                            .replace(/_/g, " ")
+                            .charAt(0)
+                            .toUpperCase() +
+                          benefit.coverageType.replace(/_/g, " ").slice(1)
                         : "—"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {benefit.limit ?? "—"}
+                      {benefit.coverageValue ?? "—"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">

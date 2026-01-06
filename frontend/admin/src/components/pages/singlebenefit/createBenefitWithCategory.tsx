@@ -35,11 +35,9 @@ export default function CreateBenefitWithCategory({
   // form state
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [limit, setLimit] = useState("");
-  const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [categories, setCategories] = useState<BenefitCategory[]>([]);
-  const [isCovered, setIsCovered] = useState(false);
+  const [isCovered, setIsCovered] = useState(true);
   const [coverageType, setCoverageType] = useState("");
   const [coverageValue, setCoverageValue] = useState("");
   const [errorMessage, setErrorMessage] = useState<string>(
@@ -74,11 +72,9 @@ export default function CreateBenefitWithCategory({
 
   const resetForm = () => {
     setDescription("");
-    setAmount("");
-    setLimit("");
     setName("");
     setSelectedCategoryId("");
-    setIsCovered(false);
+    setIsCovered(true);
     setCoverageType("");
     setCoverageValue("");
   };
@@ -119,21 +115,13 @@ export default function CreateBenefitWithCategory({
         isCovered: isCovered,
       };
 
-      // Only include amount and limit if not covered
-      if (!isCovered) {
-        payload.amount = parseFloat(amount) || 0;
-        payload.limit = parseInt(limit) || 0;
-      } else {
-        // If covered, include coverage type and value
+      // If covered, include coverage type and value
+      if (isCovered) {
         if (coverageType) {
           payload.coverageType = coverageType;
           if (coverageType !== "unlimited") {
             payload.coverageValue = coverageValue;
           }
-        }
-        // Amount is optional for covered benefits
-        if (amount) {
-          payload.amount = parseFloat(amount);
         }
       }
 
@@ -148,8 +136,6 @@ export default function CreateBenefitWithCategory({
           id: data.data.id,
           name: name,
           description: description,
-          limit: limit,
-          amount: parseFloat(amount),
           benefitCategoryId: selectedCategoryId,
           isCovered: isCovered,
           coverageType: coverageType,
@@ -319,43 +305,8 @@ export default function CreateBenefitWithCategory({
                       />
                     </div>
                   )}
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Amount (Optional)</Label>
-                    <Input
-                      type="number"
-                      placeholder="Optional amount"
-                      value={amount}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setAmount(e.target.value)
-                      }
-                    />
-                  </div>
                 </>
-              ) : (
-                <>
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Amount</Label>
-                    <Input
-                      type="number"
-                      value={amount}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setAmount(e.target.value)
-                      }
-                    />
-                  </div>
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Limit</Label>
-                    <Input
-                      type="number"
-                      value={limit}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setLimit(e.target.value)
-                      }
-                    />
-                  </div>
-                </>
-              )}
+              ) : null}
 
               <div className="col-span-2">
                 <Label>Description</Label>

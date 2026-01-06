@@ -6,8 +6,6 @@ export interface Benefit {
   id: string;
   name: string;
   description?: string | null;
-  limit?: string | null;
-  amount?: number | null;
   benefitCategoryId: string;
   isCovered?: boolean;
   coverageType?: string | null;
