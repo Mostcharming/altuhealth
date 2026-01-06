@@ -128,7 +128,7 @@ const BenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
     if (isOpen && benefitCategoryId) {
       fetchBenefits();
     }
-  }, []);
+  }, [benefitCategoryId]);
 
   const toggleBenefit = (benefitId: string) => {
     setSelectedBenefits((prev) =>
