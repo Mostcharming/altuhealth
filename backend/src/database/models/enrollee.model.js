@@ -176,6 +176,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: true,
             field: 'is_active'
+        },
+        password: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'password'
         }
     }, {
         tableName: 'enrollees',

@@ -104,16 +104,16 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
             field: 'preexisting_medical_records'
         },
-        companyPlanId: {
+        subscriptionId: {
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: 'company_plans',
+                model: 'subscriptions',
                 key: 'id'
             },
             onUpdate: 'CASCADE',
             onDelete: 'SET NULL',
-            field: 'company_plan_id'
+            field: 'subscription_id'
         }
     }, {
         tableName: 'staffs',

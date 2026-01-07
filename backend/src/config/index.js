@@ -32,7 +32,7 @@ const config = {
         feUrl: "https://api.altuhealth.com",
         db: {
             master: {
-                host: "127.0.0.1",
+                host: "159.198.68.96",
                 port: 5432,
                 username: "altuhealth",
                 password: "altuhealth2025Tayo",
@@ -40,7 +40,7 @@ const config = {
                 dialect: "postgres",
             },
             slave: {
-                host: "127.0.0.1",
+                host: "159.198.68.96",
                 port: 5432,
                 username: "altuhealth",
                 password: "altuhealth2025Tayo",

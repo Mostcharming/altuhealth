@@ -45,7 +45,7 @@ export default function EditStaff({
   const [maxDependents, setMaxDependents] = useState("");
   const [preexistingMedicalRecords, setPreexistingMedicalRecords] =
     useState("");
-  const [companyPlanId, setCompanyPlanId] = useState("");
+  const [subscriptionId, setSubscriptionId] = useState("");
   const [enrollmentStatus, setEnrollmentStatus] = useState<
     "enrolled" | "not_enrolled"
   >("not_enrolled");
@@ -53,7 +53,7 @@ export default function EditStaff({
   const [isActive, setIsActive] = useState(true);
   const [companies, setCompanies] = useState<any[]>([]);
   const [subsidiaries, setSubsidiaries] = useState<any[]>([]);
-  const [companyPlans, setCompanyPlans] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [errorMessage, setErrorMessage] = useState(
     "Failed to save staff. Please try again."
   );
@@ -90,10 +90,10 @@ export default function EditStaff({
   useEffect(() => {
     if (companyId) {
       fetchSubsidiaries(companyId);
-      fetchCompanyPlans(companyId);
+      fetchSubscriptions(companyId);
     } else {
       setSubsidiaries([]);
-      setCompanyPlans([]);
+      setSubscriptions([]);
     }
   }, [companyId]);
 
@@ -124,18 +124,18 @@ export default function EditStaff({
     }
   };
 
-  const fetchCompanyPlans = async (cId: string) => {
+  const fetchSubscriptions = async (cId: string) => {
     try {
       const data = await apiClient(
-        `/admin/company-plans/list?companyId=${cId}&limit=all`,
+        `/admin/subscriptions/list?companyId=${cId}&limit=all`,
         {
           method: "GET",
         }
       );
-      const plansList = data?.data?.list || [];
-      setCompanyPlans(plansList);
+      const subscriptionsList = data?.data?.list || [];
+      setSubscriptions(subscriptionsList);
     } catch (err) {
-      console.warn("Failed to fetch company plans", err);
+      console.warn("Failed to fetch subscriptions", err);
     }
   };
 
@@ -154,7 +154,7 @@ export default function EditStaff({
       setDateOfBirth(staff.dateOfBirth ? staff.dateOfBirth.split("T")[0] : "");
       setMaxDependents(staff.maxDependents?.toString() ?? "");
       setPreexistingMedicalRecords(staff.preexistingMedicalRecords ?? "");
-      setCompanyPlanId(staff.companyPlanId ?? "");
+      setSubscriptionId(staff.subscriptionId ?? "");
       setEnrollmentStatus(staff.enrollmentStatus ?? "not_enrolled");
       setIsNotified(staff.isNotified ?? false);
       setIsActive(staff.isActive ?? true);
@@ -173,7 +173,7 @@ export default function EditStaff({
       setDateOfBirth("");
       setMaxDependents("");
       setPreexistingMedicalRecords("");
-      setCompanyPlanId("");
+      setSubscriptionId("");
       setEnrollmentStatus("not_enrolled");
       setIsNotified(false);
       setIsActive(true);
@@ -197,7 +197,7 @@ export default function EditStaff({
         maxDependents: maxDependents ? parseInt(maxDependents) : undefined,
         preexistingMedicalRecords:
           preexistingMedicalRecords.trim() || undefined,
-        companyPlanId: companyPlanId || undefined,
+        subscriptionId: subscriptionId || undefined,
         enrollmentStatus,
         isNotified,
         isActive,
@@ -224,7 +224,7 @@ export default function EditStaff({
         dateOfBirth: dateOfBirth || null,
         maxDependents: maxDependents ? parseInt(maxDependents) : null,
         preexistingMedicalRecords: preexistingMedicalRecords || null,
-        companyPlanId: companyPlanId || null,
+        subscriptionId: subscriptionId || null,
         enrollmentStatus,
         isNotified,
         isActive,
@@ -388,15 +388,15 @@ export default function EditStaff({
               </div>
 
               <div>
-                <Label>Company Plan</Label>
+                <Label>Subscription</Label>
                 <Select
-                  options={companyPlans.map((p) => ({
-                    value: p.id,
-                    label: p.name,
+                  options={subscriptions.map((s) => ({
+                    value: s.id,
+                    label: s.code,
                   }))}
-                  placeholder="Select company plan"
-                  onChange={(value) => setCompanyPlanId(value as string)}
-                  defaultValue={companyPlanId}
+                  placeholder="Select subscription"
+                  onChange={(value) => setSubscriptionId(value as string)}
+                  defaultValue={subscriptionId}
                   //   disabled={!companyId}
                 />
               </div>

@@ -1,5 +1,5 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PageMetricsStaffs from "@/components/pages/staffs/pageMetrics";
+import PageMetricsStaffs from "@/components/pages/staffs/pageMetrics_new";
 import StaffsTable from "@/components/pages/staffs/staffTable";
 import { Metadata } from "next";
 

@@ -1,12 +1,13 @@
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
+const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
 
 async function createStaff(req, res, next) {
     try {
-        const { Staff, Company, CompanySubsidiary, CompanyPlan } = req.models;
-        const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, dateOfBirth, maxDependents, preexistingMedicalRecords, companyPlanId } = req.body || {};
+        const { Staff, Company, CompanySubsidiary, Subscription, Enrollee, CompanyPlan } = req.models;
+        const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, dateOfBirth, maxDependents, preexistingMedicalRecords, subscriptionId, gender, companyPlanId } = req.body || {};
 
         if (!firstName) return res.fail('`firstName` is required', 400);
         if (!lastName) return res.fail('`lastName` is required', 400);
@@ -28,12 +29,12 @@ async function createStaff(req, res, next) {
             }
         }
 
-        // Verify company plan exists if provided
-        if (companyPlanId) {
-            const plan = await CompanyPlan.findByPk(companyPlanId);
-            if (!plan) return res.fail('Company plan not found', 404);
-            if (plan.companyId !== companyId) {
-                return res.fail('Company plan does not belong to the specified company', 400);
+        // Verify subscription exists if provided
+        if (subscriptionId) {
+            const subscription = await Subscription.findByPk(subscriptionId);
+            if (!subscription) return res.fail('Subscription not found', 404);
+            if (subscription.companyId !== companyId) {
+                return res.fail('Subscription does not belong to the specified company', 400);
             }
         }
 
@@ -57,43 +58,99 @@ async function createStaff(req, res, next) {
             dateOfBirth: dateOfBirth || null,
             maxDependents: maxDependents || null,
             preexistingMedicalRecords: preexistingMedicalRecords || null,
-            companyPlanId: companyPlanId || null
+            subscriptionId: subscriptionId || null
+        });
+
+        // Get company plan - use provided companyPlanId or get the first plan for the company
+        let planId = companyPlanId;
+        if (!planId) {
+            const defaultPlan = await CompanyPlan.findOne({
+                where: { companyId },
+                order: [['createdAt', 'ASC']],
+                raw: true
+            });
+            if (!defaultPlan) {
+                // If no plan exists, don't create enrollee
+                await addAuditLog(req.models, {
+                    action: 'staff.create',
+                    message: `Staff ${staff.firstName} ${staff.lastName} created (no company plan found for automatic enrollee creation)`,
+                    userId: (req.user && req.user.id) ? req.user.id : null,
+                    userType: (req.user && req.user.type) ? req.user.type : null,
+                    meta: { staffId: staff.id }
+                });
+
+                return res.success({ staff: staff.toJSON() }, 'Staff created (note: no company plan available for automatic enrollee creation)', 201);
+            }
+            planId = defaultPlan.id;
+        }
+
+        // Verify company plan exists
+        const companyPlan = await CompanyPlan.findByPk(planId);
+        if (!companyPlan) return res.fail('Company plan not found', 404);
+        if (companyPlan.companyId !== companyId) {
+            return res.fail('Company plan does not belong to the specified company', 400);
+        }
+
+        // Generate unique policy number
+        const policyNumber = await getUniquePolicyNumber(Enrollee);
+
+        // Create enrollee with staff's basic details
+        const enrollee = await Enrollee.create({
+            firstName,
+            middleName: middleName || null,
+            lastName,
+            policyNumber,
+            staffId: staff.id,
+            companyId,
+            companyPlanId: planId,
+            dateOfBirth: dateOfBirth || new Date(),
+            gender: gender || 'other',
+            phoneNumber,
+            email,
+            maxDependents: maxDependents || null,
+            preexistingMedicalRecords: preexistingMedicalRecords || null,
+            isActive: true
+        });
+
+        // Update staff enrollment status
+        await staff.update({
+            enrollmentStatus: 'enrolled'
         });
 
         await addAuditLog(req.models, {
             action: 'staff.create',
-            message: `Staff ${staff.firstName} ${staff.lastName} created`,
+            message: `Staff ${staff.firstName} ${staff.lastName} created and enrollee created with policy ${policyNumber}`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { staffId: staff.id }
+            meta: { staffId: staff.id, enrolleeId: enrollee.id, policyNumber }
         });
 
         // Send enrollment email to staff
         const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
 
         try {
-            await notify(
-                { id: staff.id, email: staff.email, firstName: staff.firstName, },
-                'staff',
-                'STAFF_ENROLLMENT_REQUIRED',
-                {
-                    firstName: staff.firstName,
-                    companyName: company.name,
-                    enrollmentLink
-                }
-            );
+            // await notify(
+            //     { id: staff.id, email: staff.email, firstName: staff.firstName, },
+            //     'staff',
+            //     'STAFF_ENROLLMENT_REQUIRED',
+            //     {
+            //         firstName: staff.firstName,
+            //         companyName: company.name,
+            //         enrollmentLink
+            //     }
+            // );
 
             // Mark as notified after successful email
             await staff.update({
-                isNotified: true,
-                notifiedAt: new Date()
+                // isNotified: true,
+                // notifiedAt: new Date()
             });
         } catch (notifyErr) {
             console.error('Error sending enrollment email:', notifyErr);
             // Continue execution even if email fails
         }
 
-        return res.success({ staff: staff.toJSON() }, 'Staff created', 201);
+        return res.success({ staff: staff.toJSON(), enrollee: enrollee.toJSON() }, 'Staff and enrollee created', 201);
     } catch (err) {
         return next(err);
     }
@@ -101,9 +158,9 @@ async function createStaff(req, res, next) {
 
 async function updateStaff(req, res, next) {
     try {
-        const { Staff, Company, CompanySubsidiary, CompanyPlan } = req.models;
+        const { Staff, Company, CompanySubsidiary, Subscription } = req.models;
         const { id } = req.params;
-        const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, enrollmentStatus, isNotified, notifiedAt, isActive, dateOfBirth, maxDependents, preexistingMedicalRecords, companyPlanId } = req.body || {};
+        const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, enrollmentStatus, isNotified, notifiedAt, isActive, dateOfBirth, maxDependents, preexistingMedicalRecords, subscriptionId } = req.body || {};
 
         const staff = await Staff.findByPk(id);
         if (!staff) return res.fail('Staff not found', 404);
@@ -167,16 +224,16 @@ async function updateStaff(req, res, next) {
 
         if (preexistingMedicalRecords !== undefined) updates.preexistingMedicalRecords = preexistingMedicalRecords || null;
 
-        if (companyPlanId !== undefined) {
-            if (companyPlanId) {
-                const plan = await CompanyPlan.findByPk(companyPlanId);
-                if (!plan) return res.fail('Company plan not found', 404);
+        if (subscriptionId !== undefined) {
+            if (subscriptionId) {
+                const subscription = await Subscription.findByPk(subscriptionId);
+                if (!subscription) return res.fail('Subscription not found', 404);
                 const targetCompanyId = companyId || staff.companyId;
-                if (plan.companyId !== targetCompanyId) {
-                    return res.fail('Company plan does not belong to the specified company', 400);
+                if (subscription.companyId !== targetCompanyId) {
+                    return res.fail('Subscription does not belong to the specified company', 400);
                 }
             }
-            updates.companyPlanId = companyPlanId || null;
+            updates.subscriptionId = subscriptionId || null;
         }
 
         await staff.update(updates);

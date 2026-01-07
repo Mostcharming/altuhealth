@@ -143,6 +143,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.TEXT,
             allowNull: true,
             field: 'notes'
+        },
+        password: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'password'
         }
     }, {
         tableName: 'enrollee_dependents',

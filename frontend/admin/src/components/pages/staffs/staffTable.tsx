@@ -8,6 +8,7 @@ import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
+import capitalizeWords from "@/lib/capitalize";
 import { Staff, useStaffStore } from "@/lib/store/staffStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditStaff from "./editStaff";
@@ -301,12 +302,12 @@ const StaffsTable: React.FC = () => {
                 >
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {staff.firstName}
+                      {capitalizeWords(staff.firstName)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {staff.lastName}
+                      {capitalizeWords(staff.lastName)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">

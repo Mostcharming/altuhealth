@@ -13,14 +13,14 @@ export interface Staff {
   dateOfBirth?: string | null;
   maxDependents?: number | null;
   preexistingMedicalRecords?: string | null;
-  companyPlanId?: string | null;
+  subscriptionId?: string | null;
   enrollmentStatus: "enrolled" | "not_enrolled";
   isNotified: boolean;
   notifiedAt?: string | null;
   isActive: boolean;
   Company?: { id: string; name: string };
   CompanySubsidiary?: { id: string; name: string };
-  CompanyPlan?: { id: string; name: string; planId: string };
+  Subscription?: { id: string; code: string };
   createdAt?: string;
   updatedAt?: string;
 }

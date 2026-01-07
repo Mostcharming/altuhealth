@@ -227,9 +227,9 @@ function defineModels(sequelize) {
   CompanySubsidiary.hasMany(Staff, { foreignKey: "subsidiaryId" });
   Staff.belongsTo(CompanySubsidiary, { foreignKey: "subsidiaryId" });
 
-  // Staff <-> CompanyPlan one-to-many
-  CompanyPlan.hasMany(Staff, { foreignKey: "companyPlanId" });
-  Staff.belongsTo(CompanyPlan, { foreignKey: "companyPlanId" });
+  // Staff <-> Subscription one-to-many
+  Subscription.hasMany(Staff, { foreignKey: "subscriptionId" });
+  Staff.belongsTo(Subscription, { foreignKey: "subscriptionId" });
 
   // Enrollee <-> Staff one-to-one
   Staff.hasOne(Enrollee, { foreignKey: "staffId", as: 'enrollee' });
