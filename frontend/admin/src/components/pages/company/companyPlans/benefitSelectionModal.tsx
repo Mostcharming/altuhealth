@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import ErrorModal from "@/components/modals/error";
@@ -9,6 +10,7 @@ import {
   addBenefitToCompanyPlan,
   Benefit,
   fetchBenefitsByCategory,
+  fetchCompanyPlanBenefitsByCategory,
   removeBenefitFromCompanyPlan,
 } from "@/lib/apis/benefit";
 import React, { useCallback, useEffect, useState } from "react";
@@ -124,9 +126,31 @@ const BenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
     }
   }, [benefitCategoryId, errorModal]);
 
+  const fetchSelectedBenefits = useCallback(async () => {
+    if (!companyPlanId || !benefitCategoryId) return;
+
+    try {
+      const response = await fetchCompanyPlanBenefitsByCategory(
+        companyPlanId,
+        benefitCategoryId
+      );
+
+      const planData = response?.data;
+
+      if (planData?.benefits && Array.isArray(planData.benefits)) {
+        const benefitIds = planData.benefits.map((b: any) => String(b.id));
+        setSelectedBenefits(benefitIds);
+        setInitialBenefits(benefitIds);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch selected benefits", err);
+    }
+  }, [companyPlanId, benefitCategoryId]);
+
   useEffect(() => {
     if (isOpen && benefitCategoryId) {
       fetchBenefits();
+      fetchSelectedBenefits();
     }
   }, [benefitCategoryId]);
 
@@ -143,6 +167,8 @@ const BenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
 
     try {
       setUpdating(true);
+      let hasError = false;
+      const errors: string[] = [];
 
       // Remove benefits that were deselected
       for (const benefitId of initialBenefits) {
@@ -150,7 +176,13 @@ const BenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
           try {
             await removeBenefitFromCompanyPlan(companyPlanId, benefitId);
           } catch (err) {
-            console.warn(`Failed to remove benefit ${benefitId}`, err);
+            hasError = true;
+            const errorMsg =
+              err instanceof Error
+                ? err.message
+                : `Failed to remove benefit ${benefitId}`;
+            console.warn(errorMsg, err);
+            errors.push(errorMsg);
           }
         }
       }
@@ -161,15 +193,30 @@ const BenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
           try {
             await addBenefitToCompanyPlan(companyPlanId, benefitId);
           } catch (err) {
-            console.warn(`Failed to add benefit ${benefitId}`, err);
+            hasError = true;
+            const errorMsg =
+              err instanceof Error
+                ? err.message
+                : `Failed to add benefit ${benefitId}`;
+            console.warn(errorMsg, err);
+            errors.push(errorMsg);
           }
         }
       }
 
-      setInitialBenefits(selectedBenefits);
-      successModal.openModal();
-      if (onSuccess) {
-        onSuccess();
+      if (hasError) {
+        setErrorMessage(
+          errors.length > 0
+            ? `Some operations failed: ${errors.join(", ")}`
+            : "An error occurred while updating benefits"
+        );
+        errorModal.openModal();
+      } else {
+        setInitialBenefits(selectedBenefits);
+        successModal.openModal();
+        if (onSuccess) {
+          onSuccess();
+        }
       }
     } catch (err) {
       setErrorMessage(

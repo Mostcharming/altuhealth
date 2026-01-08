@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { fetchBenefitsByCategory } from "@/lib/apis/benefit";
 import {
   addBenefitCategory,
   addExclusion,
@@ -129,6 +130,11 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [initialProviders, setInitialProviders] = useState<string[]>([]);
 
+  // Track benefits for each benefit category in the plan
+  const [planBenefitsByCategory, setPlanBenefitsByCategory] = useState<
+    Record<string, string[]>
+  >({});
+
   const tabs = [
     { key: "benefitCategories", title: "Benefit Categories" },
     { key: "exclusions", title: "Exclusions" },
@@ -213,6 +219,31 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
         );
         setSelectedBenefitCategories(benefitCategoryIds);
         setInitialBenefitCategories(benefitCategoryIds);
+
+        // Fetch benefits for each benefit category
+        const benefitsByCategory: Record<string, string[]> = {};
+        for (const categoryId of benefitCategoryIds) {
+          try {
+            const benefitsResponse = await fetchBenefitsByCategory(categoryId);
+            const benefitsList =
+              benefitsResponse?.data?.list &&
+              Array.isArray(benefitsResponse.data.list)
+                ? benefitsResponse.data.list
+                : Array.isArray(benefitsResponse)
+                ? benefitsResponse
+                : [];
+            benefitsByCategory[categoryId] = benefitsList.map((b: any) =>
+              String(b.id)
+            );
+          } catch (err) {
+            console.warn(
+              `Failed to fetch benefits for category ${categoryId}`,
+              err
+            );
+            benefitsByCategory[categoryId] = [];
+          }
+        }
+        setPlanBenefitsByCategory(benefitsByCategory);
       }
 
       if (planData?.exclusions && Array.isArray(planData.exclusions)) {
@@ -631,6 +662,11 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
         planId={plan?.id || null}
         benefitCategoryId={selectedCategoryForBenefits?.id || null}
         benefitCategoryName={selectedCategoryForBenefits?.name}
+        initialBenefitIds={
+          selectedCategoryForBenefits?.id
+            ? planBenefitsByCategory[selectedCategoryForBenefits.id] || []
+            : []
+        }
         onSuccess={() => {
           setShowBenefitSelectionModal(false);
           setSelectedCategoryForBenefits(null);

@@ -6,8 +6,8 @@ const config = require('../../../config');
 
 async function createStaff(req, res, next) {
     try {
-        const { Staff, Company, CompanySubsidiary, Subscription, Enrollee, CompanyPlan } = req.models;
-        const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, dateOfBirth, maxDependents, preexistingMedicalRecords, subscriptionId, gender, companyPlanId } = req.body || {};
+        const { Staff, Company, CompanySubsidiary, Subscription, Enrollee, CompanyPlan, SubscriptionPlan } = req.models;
+        const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, dateOfBirth, maxDependents, preexistingMedicalRecords, subscriptionId, gender } = req.body || {};
 
         if (!firstName) return res.fail('`firstName` is required', 400);
         if (!lastName) return res.fail('`lastName` is required', 400);
@@ -61,28 +61,21 @@ async function createStaff(req, res, next) {
             subscriptionId: subscriptionId || null
         });
 
-        // Get company plan - use provided companyPlanId or get the first plan for the company
-        let planId = companyPlanId;
-        if (!planId) {
-            const defaultPlan = await CompanyPlan.findOne({
-                where: { companyId },
-                order: [['createdAt', 'ASC']],
-                raw: true
-            });
-            if (!defaultPlan) {
-                // If no plan exists, don't create enrollee
-                await addAuditLog(req.models, {
-                    action: 'staff.create',
-                    message: `Staff ${staff.firstName} ${staff.lastName} created (no company plan found for automatic enrollee creation)`,
-                    userId: (req.user && req.user.id) ? req.user.id : null,
-                    userType: (req.user && req.user.type) ? req.user.type : null,
-                    meta: { staffId: staff.id }
-                });
-
-                return res.success({ staff: staff.toJSON() }, 'Staff created (note: no company plan available for automatic enrollee creation)', 201);
-            }
-            planId = defaultPlan.id;
+        // Get company plan from subscription plan using subscriptionId
+        if (!subscriptionId) {
+            return res.fail('`subscriptionId` is required', 400);
         }
+
+        const subscriptionPlan = await SubscriptionPlan.findOne({
+            where: { subscriptionId },
+            raw: true
+        });
+
+        if (!subscriptionPlan) {
+            return res.fail('No company plan found for the specified subscription', 404);
+        }
+
+        const planId = subscriptionPlan.companyPlanId;
 
         // Verify company plan exists
         const companyPlan = await CompanyPlan.findByPk(planId);
@@ -279,7 +272,7 @@ async function deleteStaff(req, res, next) {
 async function listStaffs(req, res, next) {
     try {
         const { Staff, Company, CompanySubsidiary, CompanyPlan } = req.models;
-        const { limit = 10, page = 1, q, companyId, subsidiaryId, enrollmentStatus, isNotified, isActive, companyPlanId } = req.query;
+        const { limit = 10, page = 1, q, companyId, subsidiaryId, enrollmentStatus, isNotified, isActive } = req.query;
 
         const isAll = String(limit).toLowerCase() === 'all';
         const limitNum = isAll ? 0 : Number(limit);
@@ -324,9 +317,9 @@ async function listStaffs(req, res, next) {
         }
 
         // Filter by company plan
-        if (companyPlanId) {
-            where.companyPlanId = companyPlanId;
-        }
+        // if (companyPlanId) {
+        //     where.companyPlanId = companyPlanId;
+        // }
 
         const total = await Staff.count({ where });
 
@@ -342,11 +335,6 @@ async function listStaffs(req, res, next) {
                 {
                     model: CompanySubsidiary,
                     attributes: ['id', 'name'],
-                    required: false
-                },
-                {
-                    model: CompanyPlan,
-                    attributes: ['id', 'name', 'planId'],
                     required: false
                 }
             ]

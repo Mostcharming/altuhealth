@@ -373,7 +373,7 @@ export default function PageMetricsSubscriptions({
                     selected: selectedPlans.includes(p.id),
                   }))}
                   defaultSelected={selectedPlans}
-                  onChange={(selected) => setSelectedPlans(selected)}
+                  onChange={(selected) => setSelectedPlans(selected.slice(-1))}
                 />
               </div>
 

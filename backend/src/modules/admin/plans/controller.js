@@ -456,7 +456,7 @@ async function removeProvider(req, res, next) {
 // Add specific benefit to plan
 async function addBenefit(req, res, next) {
     try {
-        const { Plan, PlanBenefit, Benefit } = req.models;
+        const { Plan, PlanBenefit, PlanBenefitCategory, Benefit } = req.models;
         const { planId, benefitId } = req.body || {};
 
         if (!planId) return res.fail('`planId` is required', 400);
@@ -474,6 +474,21 @@ async function addBenefit(req, res, next) {
             where: { planId, benefitId }
         });
         if (existing) return res.fail('Benefit already added to this plan', 400);
+
+        // Ensure the benefit's category is added to the plan
+        if (benefit.benefitCategoryId) {
+            const existingCategory = await PlanBenefitCategory.findOne({
+                where: { planId, benefitCategoryId: benefit.benefitCategoryId }
+            });
+
+            // If category doesn't exist, add it
+            if (!existingCategory) {
+                await PlanBenefitCategory.create({
+                    planId,
+                    benefitCategoryId: benefit.benefitCategoryId
+                });
+            }
+        }
 
         const record = await PlanBenefit.create({
             planId,

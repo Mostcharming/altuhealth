@@ -21,6 +21,18 @@ export async function fetchBenefitsByCategory(benefitCategoryId: string) {
   );
 }
 
+export async function fetchCompanyPlanBenefitsByCategory(
+  companyPlanId: string,
+  benefitCategoryId: string
+) {
+  return apiClient(
+    `/admin/company-plans/${companyPlanId}?include=benefits&benefitCategoryId=${benefitCategoryId}`,
+    {
+      method: "GET",
+    }
+  );
+}
+
 export async function addBenefitToCompanyPlan(
   companyPlanId: string,
   benefitId: string
