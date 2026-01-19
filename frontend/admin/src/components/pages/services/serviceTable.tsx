@@ -15,8 +15,14 @@ import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
-import { formatDate, formatPrice } from "@/lib/formatDate";
 import { Service, useServiceStore } from "@/lib/store/serviceStore";
+import {
+  formatPriceDisplay,
+  getRateTypeLabel,
+  PRICE_TYPES,
+  RATE_TYPES,
+  validatePricing,
+} from "@/utils/pricingHelpers";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import EditService from "./editService";
 
@@ -60,7 +66,12 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
   const [createDescription, setCreateDescription] = useState("");
   const [createRequiresPreauthorization, setCreateRequiresPreauthorization] =
     useState(false);
-  const [createPrice, setCreatePrice] = useState("");
+  const [createPriceType, setCreatePriceType] = useState<"fixed" | "rate">(
+    "fixed"
+  );
+  const [createFixedPrice, setCreateFixedPrice] = useState("");
+  const [createRateType, setCreateRateType] = useState<string>("");
+  const [createRateAmount, setCreateRateAmount] = useState("");
   const [createStatus, setCreateStatus] = useState<
     "active" | "inactive" | "pending"
   >("pending");
@@ -85,10 +96,9 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
   const headers: Header[] = [
     { key: "name", label: "Name" },
     { key: "code", label: "Code" },
-    { key: "price", label: "Price" },
-    { key: "requiresPreauthorization", label: "Preauth Required" },
+    { key: "priceType", label: "Type" },
+    { key: "fixedPrice", label: "Price/Rate" },
     { key: "status", label: "Status" },
-    { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
 
@@ -126,7 +136,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, setServices]);
+  }, [limit, currentPage, search, setServices, id]);
 
   useEffect(() => {
     fetch();
@@ -222,12 +232,21 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     }
   };
 
+  const getPriceTypeColor = (priceType?: string) => {
+    return priceType === "rate"
+      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+      : "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400";
+  };
+
   const resetCreateForm = () => {
     setCreateName("");
     setCreateCode("");
     setCreateDescription("");
     setCreateRequiresPreauthorization(false);
-    setCreatePrice("");
+    setCreatePriceType("fixed");
+    setCreateFixedPrice("");
+    setCreateRateType("");
+    setCreateRateAmount("");
     setCreateStatus("pending");
   };
 
@@ -235,6 +254,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     successModal.closeModal();
     resetCreateForm();
     createModal.closeModal();
+    fetch();
   };
 
   const handleCreateErrorClose = () => {
@@ -248,36 +268,44 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         errorModal.openModal();
         return;
       }
-      if (!createPrice) {
-        setErrorMessage("Price is required.");
-        errorModal.openModal();
-        return;
-      }
       if (!id) {
         setErrorMessage("Provider is required.");
         errorModal.openModal();
         return;
       }
 
+      // Validate pricing
+      const validation = validatePricing(
+        createPriceType,
+        createPriceType === "fixed" ? parseFloat(createFixedPrice) : undefined,
+        createPriceType === "rate" ? createRateType : undefined,
+        createPriceType === "rate" ? parseFloat(createRateAmount) : undefined
+      );
+
+      if (!validation.isValid) {
+        setErrorMessage(validation.errors.join(", "));
+        errorModal.openModal();
+        return;
+      }
+
       setLoading(true);
 
-      const payload: {
-        name: string;
-        code?: string;
-        description?: string;
-        requiresPreauthorization: boolean;
-        price: number;
-        status: string;
-        providerId: string;
-      } = {
+      const payload: Record<string, unknown> = {
         name: createName.trim(),
         code: createCode.trim() || undefined,
         description: createDescription.trim() || undefined,
         requiresPreauthorization: createRequiresPreauthorization,
-        price: parseFloat(createPrice),
+        priceType: createPriceType,
         status: createStatus,
         providerId: id,
       };
+
+      if (createPriceType === "fixed") {
+        payload.fixedPrice = parseFloat(createFixedPrice);
+      } else {
+        payload.rateType = createRateType;
+        payload.rateAmount = parseFloat(createRateAmount);
+      }
 
       const data = await apiClient("/admin/services", {
         method: "POST",
@@ -286,17 +314,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
       });
 
       if (data?.data?.service) {
-        addService({
-          id: data.data.service.id,
-          name: createName,
-          code: createCode,
-          description: createDescription || null,
-          requiresPreauthorization: createRequiresPreauthorization,
-          price: parseFloat(createPrice),
-          status: createStatus,
-          providerId: id,
-          createdAt: data.data.service.createdAt,
-        });
+        addService(data.data.service);
       }
 
       successModal.openModal();
@@ -317,15 +335,21 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         code: "CONS-001",
         description: "General consultation service",
         requiresPreauthorization: "false",
-        price: "5000",
+        priceType: "fixed",
+        fixedPrice: "5000",
+        rateType: "",
+        rateAmount: "",
         status: "active",
       },
       {
-        name: "Laboratory Test",
-        code: "LAB-001",
-        description: "Basic laboratory test",
-        requiresPreauthorization: "true",
-        price: "3000",
+        name: "Therapy Session",
+        code: "THERAPY-001",
+        description: "Hourly therapy service",
+        requiresPreauthorization: "false",
+        priceType: "rate",
+        fixedPrice: "",
+        rateType: "per_hour",
+        rateAmount: "5000",
         status: "active",
       },
     ];
@@ -503,20 +527,29 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {formatPrice(service.price)}
-                    </p>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getPriceTypeColor(
+                        service.priceType
+                      )}`}
+                    >
+                      {service.priceType === "rate" ? "Rate" : "Fixed"}
+                    </span>
                   </td>
                   <td className="p-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${
-                        service.requiresPreauthorization
-                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
-                      }`}
-                    >
-                      {service.requiresPreauthorization ? "Yes" : "No"}
-                    </span>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                      {formatPriceDisplay(
+                        service.priceType,
+                        service.fixedPrice,
+                        service.rateType,
+                        service.rateAmount,
+                        service.price
+                      )}
+                    </p>
+                    {service.priceType === "rate" && service.rateType && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {getRateTypeLabel(service.rateType)}
+                      </p>
+                    )}
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <span
@@ -526,11 +559,6 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                     >
                       {service.status}
                     </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {service.createdAt ? formatDate(service.createdAt) : "-"}
-                    </p>
                   </td>
 
                   <td className="p-4 whitespace-nowrap">
@@ -769,10 +797,10 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
               handleCreateSubmit();
             }}
           >
-            <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
+            <div className="custom-scrollbar h-[400px] sm:h-[550px] overflow-y-auto px-2">
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div className="col-span-2 lg:col-span-1">
-                  <Label>Name</Label>
+                  <Label>Name *</Label>
                   <Input
                     type="text"
                     value={createName}
@@ -796,14 +824,14 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 </div>
 
                 <div className="col-span-2 lg:col-span-1">
-                  <Label>Price</Label>
-                  <Input
-                    type="number"
-                    value={createPrice}
-                    placeholder="Enter price..."
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      setCreatePrice(e.target.value)
+                  <Label>Pricing Type *</Label>
+                  <Select
+                    options={PRICE_TYPES}
+                    placeholder="Select pricing type"
+                    onChange={(value) =>
+                      setCreatePriceType(value as "fixed" | "rate")
                     }
+                    defaultValue={createPriceType}
                   />
                 </div>
 
@@ -824,6 +852,46 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                     defaultValue={createStatus}
                   />
                 </div>
+
+                {createPriceType === "fixed" && (
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Fixed Price *</Label>
+                    <Input
+                      type="number"
+                      value={createFixedPrice}
+                      placeholder="Enter fixed price..."
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setCreateFixedPrice(e.target.value)
+                      }
+                    />
+                  </div>
+                )}
+
+                {createPriceType === "rate" && (
+                  <>
+                    <div className="col-span-2 lg:col-span-1">
+                      <Label>Rate Type *</Label>
+                      <Select
+                        options={RATE_TYPES}
+                        placeholder="Select rate type"
+                        onChange={(value) => setCreateRateType(value)}
+                        defaultValue={createRateType}
+                      />
+                    </div>
+
+                    <div className="col-span-2 lg:col-span-1">
+                      <Label>Rate Amount *</Label>
+                      <Input
+                        type="number"
+                        value={createRateAmount}
+                        placeholder="Enter rate amount..."
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setCreateRateAmount(e.target.value)
+                        }
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="col-span-2">
                   <Label>Description</Label>
@@ -849,14 +917,14 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                   <button
                     type="button"
                     onClick={createModal.closeModal}
-                    className="px-4 py-2 rounded border"
+                    className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-4 py-2 rounded bg-brand-500 text-white"
+                    className="px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
                   >
                     {loading ? "Creating..." : "Create Service"}
                   </button>

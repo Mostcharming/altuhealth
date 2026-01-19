@@ -33,8 +33,40 @@ module.exports = (sequelize, DataTypes) => {
         },
         price: {
             type: DataTypes.DECIMAL(12, 2),
-            allowNull: false,
+            allowNull: true,
             field: 'price'
+        },
+        priceType: {
+            type: DataTypes.ENUM('fixed', 'rate'),
+            allowNull: false,
+            defaultValue: 'fixed',
+            field: 'price_type'
+        },
+        fixedPrice: {
+            type: DataTypes.DECIMAL(12, 2),
+            allowNull: true,
+            field: 'fixed_price'
+        },
+        rateType: {
+            type: DataTypes.ENUM(
+                'per_session',
+                'per_visit',
+                'per_hour',
+                'per_day',
+                'per_week',
+                'per_month',
+                'per_consultation',
+                'per_procedure',
+                'per_unit',
+                'per_mile'
+            ),
+            allowNull: true,
+            field: 'rate_type'
+        },
+        rateAmount: {
+            type: DataTypes.DECIMAL(12, 2),
+            allowNull: true,
+            field: 'rate_amount'
         },
         status: {
             type: DataTypes.ENUM('active', 'inactive', 'pending'),

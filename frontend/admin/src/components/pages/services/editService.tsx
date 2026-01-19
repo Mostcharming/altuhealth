@@ -11,6 +11,11 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { Service, useServiceStore } from "@/lib/store/serviceStore";
+import {
+  PRICE_TYPES,
+  RATE_TYPES,
+  validatePricing,
+} from "@/utils/pricingHelpers";
 import { ChangeEvent, useEffect, useState } from "react";
 
 interface EditServiceProps {
@@ -33,7 +38,10 @@ export default function EditService({
   const [description, setDescription] = useState("");
   const [requiresPreauthorization, setRequiresPreauthorization] =
     useState(false);
-  const [price, setPrice] = useState("");
+  const [priceType, setPriceType] = useState<"fixed" | "rate">("fixed");
+  const [fixedPrice, setFixedPrice] = useState("");
+  const [rateType, setRateType] = useState<string>("");
+  const [rateAmount, setRateAmount] = useState("");
   const [status, setStatus] = useState<"active" | "inactive" | "pending">(
     "pending"
   );
@@ -60,7 +68,10 @@ export default function EditService({
       setCode(service.code ?? "");
       setDescription(service.description ?? "");
       setRequiresPreauthorization(service.requiresPreauthorization ?? false);
-      setPrice(service.price?.toString() ?? "");
+      setPriceType(service.priceType ?? "fixed");
+      setFixedPrice(service.fixedPrice?.toString() ?? "");
+      setRateType(service.rateType ?? "");
+      setRateAmount(service.rateAmount?.toString() ?? "");
       setStatus(service.status ?? "pending");
     }
 
@@ -70,7 +81,10 @@ export default function EditService({
       setCode("");
       setDescription("");
       setRequiresPreauthorization(false);
-      setPrice("");
+      setPriceType("fixed");
+      setFixedPrice("");
+      setRateType("");
+      setRateAmount("");
       setStatus("pending");
     }
   }, [isOpen, service]);
@@ -82,29 +96,38 @@ export default function EditService({
         errorModal.openModal();
         return;
       }
-      if (!price) {
-        setErrorMessage("Price is required.");
+
+      // Validate pricing
+      const validation = validatePricing(
+        priceType,
+        priceType === "fixed" ? parseFloat(fixedPrice) : undefined,
+        priceType === "rate" ? rateType : undefined,
+        priceType === "rate" ? parseFloat(rateAmount) : undefined
+      );
+
+      if (!validation.isValid) {
+        setErrorMessage(validation.errors.join(", "));
         errorModal.openModal();
         return;
       }
 
       setLoading(true);
 
-      const payload: {
-        name: string;
-        code?: string;
-        description?: string;
-        requiresPreauthorization: boolean;
-        price: number;
-        status: string;
-      } = {
+      const payload: Record<string, unknown> = {
         name: name.trim(),
         code: code.trim() || undefined,
         description: description.trim() || undefined,
         requiresPreauthorization: requiresPreauthorization,
-        price: parseFloat(price),
+        priceType,
         status,
       };
+
+      if (priceType === "fixed") {
+        payload.fixedPrice = parseFloat(fixedPrice);
+      } else {
+        payload.rateType = rateType;
+        payload.rateAmount = parseFloat(rateAmount);
+      }
 
       const url = `/admin/services/${id}`;
       const method = "PUT";
@@ -120,7 +143,23 @@ export default function EditService({
         code: code,
         description: description || null,
         requiresPreauthorization: requiresPreauthorization,
-        price: parseFloat(price),
+        priceType: priceType,
+        fixedPrice: priceType === "fixed" ? parseFloat(fixedPrice) : null,
+        rateType:
+          priceType === "rate"
+            ? (rateType as
+                | "per_session"
+                | "per_visit"
+                | "per_hour"
+                | "per_day"
+                | "per_week"
+                | "per_month"
+                | "per_consultation"
+                | "per_procedure"
+                | "per_unit"
+                | "per_mile")
+            : null,
+        rateAmount: priceType === "rate" ? parseFloat(rateAmount) : null,
         status: status,
       });
 
@@ -177,13 +216,12 @@ export default function EditService({
               </div>
 
               <div className="col-span-2 lg:col-span-1">
-                <Label>Price</Label>
-                <Input
-                  type="number"
-                  value={price}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setPrice(e.target.value)
-                  }
+                <Label>Pricing Type *</Label>
+                <Select
+                  options={PRICE_TYPES}
+                  placeholder="Select pricing type"
+                  onChange={(value) => setPriceType(value as "fixed" | "rate")}
+                  defaultValue={priceType}
                 />
               </div>
 
@@ -202,6 +240,44 @@ export default function EditService({
                   defaultValue={status}
                 />
               </div>
+
+              {priceType === "fixed" && (
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Fixed Price *</Label>
+                  <Input
+                    type="number"
+                    value={fixedPrice}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setFixedPrice(e.target.value)
+                    }
+                  />
+                </div>
+              )}
+
+              {priceType === "rate" && (
+                <>
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Rate Type *</Label>
+                    <Select
+                      options={RATE_TYPES}
+                      placeholder="Select rate type"
+                      onChange={(value) => setRateType(value)}
+                      defaultValue={rateType}
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Rate Amount *</Label>
+                    <Input
+                      type="number"
+                      value={rateAmount}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setRateAmount(e.target.value)
+                      }
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="col-span-2">
                 <Label>Description</Label>
@@ -225,7 +301,7 @@ export default function EditService({
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 rounded border"
+                  className="px-4 py-2 rounded border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/[0.03]"
                 >
                   Cancel
                 </button>
@@ -233,7 +309,7 @@ export default function EditService({
                   type="button"
                   onClick={handlesubmit}
                   disabled={loading}
-                  className="px-4 py-2 rounded bg-brand-500 text-white"
+                  className="px-4 py-2 rounded bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
                 >
                   {loading ? "Saving..." : "Save Changes"}
                 </button>

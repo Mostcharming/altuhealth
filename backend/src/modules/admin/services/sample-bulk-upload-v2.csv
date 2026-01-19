@@ -1,0 +1,11 @@
+name,code,description,requiresPreauthorization,priceType,fixedPrice,rateType,rateAmount,status
+Consultation,CONS-001,General medical consultation,false,fixed,5000,,active
+Laboratory Test,LAB-001,Basic laboratory test package,false,rate,,per_visit,3000,active
+X-Ray Imaging,IMG-001,Chest X-ray imaging service,true,rate,,per_procedure,8000,active
+Blood Test,BLT-001,Complete blood count and analysis,false,fixed,2500,,pending
+Ultrasound Scan,USG-001,Abdominal ultrasound imaging,true,rate,,per_session,4500,active
+ECG Test,ECG-001,Electrocardiogram heart examination,false,fixed,1500,,active
+Home Visit,VISIT-001,Doctor home visit consultation,false,rate,,per_visit,10000,active
+Therapy Session,THERAPY-001,Physical therapy or counselling,false,rate,,per_hour,5000,active
+Dental Cleaning,DENTAL-001,Professional dental cleaning,false,fixed,6000,,active
+Vaccination,VAC-001,Preventive vaccination service,false,rate,,per_unit,2000,active

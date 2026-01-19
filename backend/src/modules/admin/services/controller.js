@@ -12,15 +12,30 @@ async function createService(req, res, next) {
             code,
             description,
             requiresPreauthorization,
-            price,
+            priceType,
+            fixedPrice,
+            rateType,
+            rateAmount,
+            price, // for backwards compatibility
             providerId,
             status
         } = req.body || {};
 
         // Validate required fields
         if (!name) return res.fail('`name` is required', 400);
-        if (!price) return res.fail('`price` is required', 400);
         if (!providerId) return res.fail('`providerId` is required', 400);
+
+        // Validate pricing (either fixed or rate)
+        const finalPriceType = priceType || 'fixed';
+        if (finalPriceType === 'fixed') {
+            const finalFixedPrice = fixedPrice || price;
+            if (!finalFixedPrice) return res.fail('`fixedPrice` is required when `priceType` is "fixed"', 400);
+        } else if (finalPriceType === 'rate') {
+            if (!rateType) return res.fail('`rateType` is required when `priceType` is "rate"', 400);
+            if (!rateAmount) return res.fail('`rateAmount` is required when `priceType` is "rate"', 400);
+        } else {
+            return res.fail('`priceType` must be either "fixed" or "rate"', 400);
+        }
 
         // Verify provider exists
         const provider = await Provider.findByPk(providerId);
@@ -45,7 +60,11 @@ async function createService(req, res, next) {
             code: serviceCode,
             description,
             requiresPreauthorization: requiresPreauthorization || false,
-            price,
+            priceType: finalPriceType,
+            fixedPrice: finalPriceType === 'fixed' ? (fixedPrice || price) : null,
+            rateType: finalPriceType === 'rate' ? rateType : null,
+            rateAmount: finalPriceType === 'rate' ? rateAmount : null,
+            price: fixedPrice || price, // keep for backwards compatibility
             providerId,
             status: status || 'pending'
         });
@@ -94,7 +113,11 @@ async function updateService(req, res, next) {
             code,
             description,
             requiresPreauthorization,
-            price,
+            priceType,
+            fixedPrice,
+            rateType,
+            rateAmount,
+            price, // for backwards compatibility
             status
         } = req.body || {};
 
@@ -106,8 +129,62 @@ async function updateService(req, res, next) {
         if (name !== undefined) updates.name = name;
         if (description !== undefined) updates.description = description;
         if (requiresPreauthorization !== undefined) updates.requiresPreauthorization = requiresPreauthorization;
-        if (price !== undefined) updates.price = price;
         if (status !== undefined) updates.status = status;
+
+        // Handle pricing updates
+        if (priceType !== undefined) {
+            const finalPriceType = priceType;
+
+            if (finalPriceType === 'fixed') {
+                const finalFixedPrice = fixedPrice !== undefined ? fixedPrice : (price !== undefined ? price : service.fixedPrice);
+                if (!finalFixedPrice) return res.fail('`fixedPrice` is required when `priceType` is "fixed"', 400);
+                updates.priceType = 'fixed';
+                updates.fixedPrice = finalFixedPrice;
+                updates.price = finalFixedPrice; // maintain backwards compatibility
+                updates.rateType = null;
+                updates.rateAmount = null;
+            } else if (finalPriceType === 'rate') {
+                const finalRateType = rateType !== undefined ? rateType : service.rateType;
+                const finalRateAmount = rateAmount !== undefined ? rateAmount : service.rateAmount;
+                if (!finalRateType) return res.fail('`rateType` is required when `priceType` is "rate"', 400);
+                if (!finalRateAmount) return res.fail('`rateAmount` is required when `priceType` is "rate"', 400);
+                updates.priceType = 'rate';
+                updates.rateType = finalRateType;
+                updates.rateAmount = finalRateAmount;
+                updates.fixedPrice = null;
+                updates.price = null; // clear price when using rate
+            } else {
+                return res.fail('`priceType` must be either "fixed" or "rate"', 400);
+            }
+        } else {
+            // If priceType not being changed, handle individual price field updates
+            if (fixedPrice !== undefined) {
+                if (service.priceType === 'fixed') {
+                    updates.fixedPrice = fixedPrice;
+                    updates.price = fixedPrice;
+                } else {
+                    return res.fail('Cannot update `fixedPrice` when `priceType` is not "fixed"', 400);
+                }
+            }
+            if (rateAmount !== undefined) {
+                if (service.priceType === 'rate') {
+                    updates.rateAmount = rateAmount;
+                } else {
+                    return res.fail('Cannot update `rateAmount` when `priceType` is not "rate"', 400);
+                }
+            }
+            if (rateType !== undefined) {
+                if (service.priceType === 'rate') {
+                    updates.rateType = rateType;
+                } else {
+                    return res.fail('Cannot update `rateType` when `priceType` is not "rate"', 400);
+                }
+            }
+            if (price !== undefined && !fixedPrice) {
+                updates.fixedPrice = price;
+                updates.price = price;
+            }
+        }
 
         // Handle code update with uniqueness check
         if (code !== undefined && code !== service.code) {
@@ -333,8 +410,26 @@ async function bulkCreateServices(req, res, next) {
                     errors.push({ row: rowNumber, error: 'name is required' });
                     continue;
                 }
-                if (!row.price) {
-                    errors.push({ row: rowNumber, error: 'price is required' });
+
+                // Validate pricing
+                const priceType = row.priceType ? row.priceType.toLowerCase() : 'fixed';
+                if (priceType === 'fixed') {
+                    const fixedPrice = row.fixedPrice || row.price;
+                    if (!fixedPrice) {
+                        errors.push({ row: rowNumber, error: 'fixedPrice or price is required for fixed price type' });
+                        continue;
+                    }
+                } else if (priceType === 'rate') {
+                    if (!row.rateType) {
+                        errors.push({ row: rowNumber, error: 'rateType is required for rate price type' });
+                        continue;
+                    }
+                    if (!row.rateAmount) {
+                        errors.push({ row: rowNumber, error: 'rateAmount is required for rate price type' });
+                        continue;
+                    }
+                } else {
+                    errors.push({ row: rowNumber, error: 'priceType must be either "fixed" or "rate"' });
                     continue;
                 }
 
@@ -353,17 +448,29 @@ async function bulkCreateServices(req, res, next) {
                     continue;
                 }
 
-                // Create the service
-                const service = await Service.create({
+                // Prepare service data
+                const serviceData = {
                     name: row.name.trim(),
                     code: serviceCode,
                     description: row.description ? row.description.trim() : null,
                     requiresPreauthorization: row.requiresPreauthorization === 'true' || row.requiresPreauthorization === true ? true : false,
-                    price: parseFloat(row.price),
+                    priceType,
                     providerId,
                     status: row.status ? row.status.toLowerCase() : 'pending'
-                });
+                };
 
+                // Add pricing fields based on type
+                if (priceType === 'fixed') {
+                    const fixedPrice = row.fixedPrice || row.price;
+                    serviceData.fixedPrice = parseFloat(fixedPrice);
+                    serviceData.price = parseFloat(fixedPrice); // maintain backwards compatibility
+                } else {
+                    serviceData.rateType = row.rateType.toLowerCase();
+                    serviceData.rateAmount = parseFloat(row.rateAmount);
+                }
+
+                // Create the service
+                const service = await Service.create(serviceData);
                 createdServices.push(service.toJSON());
             } catch (err) {
                 const rowNumber = i + 2;

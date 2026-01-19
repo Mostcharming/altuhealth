@@ -13,7 +13,22 @@ export interface Service {
   code: string;
   description?: string | null;
   requiresPreauthorization: boolean;
-  price: number;
+  priceType: "fixed" | "rate";
+  fixedPrice?: number | null;
+  rateType?:
+    | "per_session"
+    | "per_visit"
+    | "per_hour"
+    | "per_day"
+    | "per_week"
+    | "per_month"
+    | "per_consultation"
+    | "per_procedure"
+    | "per_unit"
+    | "per_mile"
+    | null;
+  rateAmount?: number | null;
+  price?: number | null; // kept for backwards compatibility
   status: "active" | "inactive" | "pending";
   isDeleted?: boolean;
   providerId: string;
