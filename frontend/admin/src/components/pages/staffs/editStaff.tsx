@@ -3,11 +3,11 @@
 
 import DatePicker from "@/components/form/date-picker";
 import PhoneInput from "@/components/form/group-input/PhoneInput";
-import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
+import Switch from "@/components/form/switch/Switch";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
@@ -283,12 +283,26 @@ export default function EditStaff({
         className="max-w-[900px] p-5 lg:p-10 m-4"
       >
         <div className="px-2">
-          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Edit Staff Member
-          </h4>
-          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Update the staff member details.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                Edit Staff Member
+              </h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Update the staff member details.
+              </p>
+            </div>
+            <button
+              onClick={handleResendNotification}
+              type="button"
+              disabled={resendingNotification}
+              className="flex justify-center rounded-lg border border-blue-300 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 whitespace-nowrap ml-4"
+            >
+              {resendingNotification
+                ? "Sending..."
+                : "📧 Resend Enrollment Notification"}
+            </button>
+          </div>
         </div>
 
         <form className="flex flex-col">
@@ -441,46 +455,30 @@ export default function EditStaff({
 
               <div>
                 <Label>Enrollment Status</Label>
-                <Select
-                  options={[
-                    { value: "enrolled", label: "Enrolled" },
-                    { value: "not_enrolled", label: "Not Enrolled" },
-                  ]}
-                  placeholder="Select status"
-                  onChange={(value) =>
-                    setEnrollmentStatus(value as "enrolled" | "not_enrolled")
-                  }
-                  defaultValue={enrollmentStatus}
-                />
+                <div className="px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 text-gray-700 dark:text-gray-400">
+                  {enrollmentStatus === "enrolled"
+                    ? "Enrolled"
+                    : "Not Enrolled"}
+                </div>
               </div>
 
-              <div className="flex items-end">
-                <Checkbox
-                  label="Is Notified"
-                  checked={isNotified}
+              <div>
+                <Label>Is Notified</Label>
+                <Switch
+                  defaultChecked={isNotified}
                   onChange={(checked) => setIsNotified(checked)}
                 />
               </div>
 
-              <div className="flex items-end">
-                <Checkbox
-                  label="Is Active"
-                  checked={isActive}
+              <div>
+                <Label>Is Active</Label>
+                <Switch
+                  defaultChecked={isActive}
                   onChange={(checked) => setIsActive(checked)}
                 />
               </div>
 
-              <div className="col-span-2 flex items-center justify-between gap-3 mt-4">
-                <button
-                  onClick={handleResendNotification}
-                  type="button"
-                  disabled={resendingNotification}
-                  className="flex justify-center rounded-lg border border-blue-300 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
-                >
-                  {resendingNotification
-                    ? "Sending..."
-                    : "📧 Resend Enrollment Notification"}
-                </button>
+              <div className="col-span-2 flex items-center justify-end gap-3 mt-4">
                 <div className="flex gap-3">
                   <button
                     onClick={closeModal}

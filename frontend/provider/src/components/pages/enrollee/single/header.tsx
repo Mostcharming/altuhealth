@@ -92,7 +92,7 @@ export default function SinglePHeader({ data }: { data: any }) {
               <Image
                 width={80}
                 height={80}
-                src={data?.pictureUrl || "/images/user/owner.jpg"}
+                src={data?.pictureUrl || "/images/main/small.svg"}
                 alt="user"
               />
             </div>

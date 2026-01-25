@@ -21,7 +21,6 @@ async function createCompanyPlan(req, res, next) {
             allowDependentEnrolee
         } = req.body || {};
 
-        // Validation
         if (!companyId) return res.fail('`companyId` is required', 400);
         if (!planType) return res.fail('`planType` is required', 400);
 
@@ -32,14 +31,11 @@ async function createCompanyPlan(req, res, next) {
             isActive: true
         };
 
-        // If standard type, planId is required and we copy plan details
         if (planType === 'standard') {
             if (!planId) return res.fail('`planId` is required for standard plan type', 400);
-            // Verify plan exists and fetch its details
             const plan = await Plan.findByPk(planId);
             if (!plan) return res.fail('Plan not found', 404);
 
-            // Copy plan details to company plan
             planData = {
                 ...planData,
                 planId,
@@ -54,7 +50,6 @@ async function createCompanyPlan(req, res, next) {
                 allowDependentEnrolee: plan.allowDependentEnrolee !== undefined ? plan.allowDependentEnrolee : true
             };
         } else if (planType === 'custom') {
-            // For custom plans, use provided values
             if (!name) return res.fail('`name` is required', 400);
             if (!planCycle) return res.fail('`planCycle` is required', 400);
             if (annualPremiumPrice === undefined || annualPremiumPrice === null) {
@@ -115,14 +110,12 @@ async function updateCompanyPlan(req, res, next) {
 
         const updates = {};
 
-        // If planType is being changed to standard, require planId
         if (planType === 'standard' && !planId) {
             return res.fail('`planId` is required when changing to standard plan type', 400);
         }
 
         if (planType !== undefined) {
             updates.planType = planType;
-            // If changing to standard, set planId; if custom, clear it
             if (planType === 'standard') {
                 if (!planId) return res.fail('`planId` is required for standard plan type', 400);
                 updates.planId = planId;
@@ -269,14 +262,12 @@ async function getCompanyPlan(req, res, next) {
 
         const includes = [];
 
-        // Always include Plan
         includes.push({
             model: Plan,
             attributes: ['id', 'name', 'code'],
             required: false
         });
 
-        // Optionally include other models based on query parameter
         if (include) {
             const requestedIncludes = String(include).split(',').map(i => i.trim());
 
@@ -319,7 +310,6 @@ async function getCompanyPlan(req, res, next) {
                     through: { attributes: [] }
                 };
 
-                // If benefitCategoryId is provided, filter benefits by category
                 if (benefitCategoryId) {
                     benefitInclude.where = { benefitCategoryId };
                 }
@@ -351,22 +341,18 @@ async function addBenefitCategory(req, res, next) {
         const companyPlan = await CompanyPlan.findByPk(companyPlanId);
         if (!companyPlan) return res.fail('Company Plan not found', 404);
 
-        // Check if benefit category already exists
         const existing = await CompanyPlanBenefitCategory.findOne({
             where: { companyPlanId, benefitCategoryId }
         });
         if (existing) return res.fail('Benefit category already added to this plan', 400);
 
-        // Create the benefit category association
         const categoryRecord = await CompanyPlanBenefitCategory.create({
             companyPlanId,
             benefitCategoryId
         });
 
-        // If specific benefits are provided, add them
         let benefitRecords = [];
         if (Array.isArray(benefitIds) && benefitIds.length > 0) {
-            // Validate that all provided benefit IDs exist and belong to this category
             const benefits = await Benefit.findAll({
                 where: {
                     id: benefitIds,
@@ -375,12 +361,10 @@ async function addBenefitCategory(req, res, next) {
             });
 
             if (benefits.length !== benefitIds.length) {
-                // Some benefits don't exist or don't belong to this category
-                await categoryRecord.destroy(); // Rollback the category addition
+                await categoryRecord.destroy();
                 return res.fail('Some benefits do not exist in this benefit category', 400);
             }
 
-            // Add each benefit to the company plan
             benefitRecords = await Promise.all(
                 benefitIds.map(benefitId =>
                     CompanyPlanBenefit.create({
@@ -448,7 +432,6 @@ async function addExclusion(req, res, next) {
         const companyPlan = await CompanyPlan.findByPk(companyPlanId);
         if (!companyPlan) return res.fail('Company Plan not found', 404);
 
-        // Check if already exists
         const existing = await CompanyPlanExclusion.findOne({
             where: { companyPlanId, exclusionId }
         });
@@ -512,7 +495,6 @@ async function addProvider(req, res, next) {
         const companyPlan = await CompanyPlan.findByPk(companyPlanId);
         if (!companyPlan) return res.fail('Company Plan not found', 404);
 
-        // Check if already exists
         const existing = await CompanyPlanProvider.findOne({
             where: { companyPlanId, providerId }
         });
@@ -576,17 +558,14 @@ async function addBenefit(req, res, next) {
         const companyPlan = await CompanyPlan.findByPk(companyPlanId);
         if (!companyPlan) return res.fail('Company Plan not found', 404);
 
-        // Verify benefit exists
         const benefit = await Benefit.findByPk(benefitId);
         if (!benefit) return res.fail('Benefit not found', 404);
 
-        // Check if already exists
         const existing = await CompanyPlanBenefit.findOne({
             where: { companyPlanId, benefitId }
         });
         if (existing) return res.fail('Benefit already added to this plan', 400);
 
-        // Check if benefit category exists in company plan, if not add it
         const benefitCategoryId = benefit.benefitCategoryId;
         const existingCategory = await CompanyPlanBenefitCategory.findOne({
             where: { companyPlanId, benefitCategoryId }

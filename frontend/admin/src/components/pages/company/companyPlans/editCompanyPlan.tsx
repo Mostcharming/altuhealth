@@ -180,7 +180,12 @@ export default function EditCompanyPlan({
       const payload = {
         planType,
         ...(planType === "standard"
-          ? { planId: selectedPlanId }
+          ? {
+              planId: selectedPlanId,
+              ...(annualPremiumPrice !== undefined && {
+                annualPremiumPrice: Number(annualPremiumPrice),
+              }),
+            }
           : {
               name: name.trim(),
               planCycle,
@@ -256,15 +261,31 @@ export default function EditCompanyPlan({
 
               {/* Plan Selection - Only show for Standard Plans */}
               {planType === "standard" && (
-                <div className="lg:col-span-2">
-                  <Label>Select Plan *</Label>
-                  <Select
-                    options={planOptions}
-                    placeholder="Select a plan"
-                    onChange={(val) => setSelectedPlanId(val)}
-                    defaultValue={selectedPlanId}
-                  />
-                </div>
+                <>
+                  <div className="lg:col-span-2">
+                    <Label>Select Plan *</Label>
+                    <Select
+                      options={planOptions}
+                      placeholder="Select a plan"
+                      onChange={(val) => setSelectedPlanId(val)}
+                      defaultValue={selectedPlanId}
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Annual Premium Price</Label>
+                    <Input
+                      type="number"
+                      value={annualPremiumPrice || ""}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setAnnualPremiumPrice(
+                          e.target.value ? Number(e.target.value) : undefined
+                        )
+                      }
+                      placeholder="Enter annual premium price"
+                    />
+                  </div>
+                </>
               )}
 
               {/* Custom Plan Fields - Only show for Custom Plans */}

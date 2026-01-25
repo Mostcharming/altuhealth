@@ -16,11 +16,9 @@ async function createStaff(req, res, next) {
         if (!staffId) return res.fail('`staffId` is required', 400);
         if (!companyId) return res.fail('`companyId` is required', 400);
 
-        // Verify company exists
         const company = await Company.findByPk(companyId);
         if (!company) return res.fail('Company not found', 404);
 
-        // Verify subsidiary exists if provided
         if (subsidiaryId) {
             const subsidiary = await CompanySubsidiary.findByPk(subsidiaryId);
             if (!subsidiary) return res.fail('Subsidiary not found', 404);
@@ -29,7 +27,6 @@ async function createStaff(req, res, next) {
             }
         }
 
-        // Verify subscription exists if provided
         if (subscriptionId) {
             const subscription = await Subscription.findByPk(subscriptionId);
             if (!subscription) return res.fail('Subscription not found', 404);
@@ -38,11 +35,9 @@ async function createStaff(req, res, next) {
             }
         }
 
-        // Check if email already exists
         const existingEmail = await Staff.findOne({ where: { email } });
         if (existingEmail) return res.fail('Email already exists', 400);
 
-        // Check if staffId already exists
         const existingStaffId = await Staff.findOne({ where: { staffId } });
         if (existingStaffId) return res.fail('Staff ID already exists', 400);
 
@@ -61,7 +56,6 @@ async function createStaff(req, res, next) {
             subscriptionId: subscriptionId || null
         });
 
-        // Get company plan from subscription plan using subscriptionId
         if (!subscriptionId) {
             return res.fail('`subscriptionId` is required', 400);
         }
@@ -77,17 +71,14 @@ async function createStaff(req, res, next) {
 
         const planId = subscriptionPlan.companyPlanId;
 
-        // Verify company plan exists
         const companyPlan = await CompanyPlan.findByPk(planId);
         if (!companyPlan) return res.fail('Company plan not found', 404);
         if (companyPlan.companyId !== companyId) {
             return res.fail('Company plan does not belong to the specified company', 400);
         }
 
-        // Generate unique policy number
         const policyNumber = await getUniquePolicyNumber(Enrollee);
 
-        // Create enrollee with staff's basic details
         const enrollee = await Enrollee.create({
             firstName,
             middleName: middleName || null,
@@ -105,7 +96,6 @@ async function createStaff(req, res, next) {
             isActive: true
         });
 
-        // Update staff enrollment status
         await staff.update({
             enrollmentStatus: 'enrolled'
         });
@@ -118,29 +108,26 @@ async function createStaff(req, res, next) {
             meta: { staffId: staff.id, enrolleeId: enrollee.id, policyNumber }
         });
 
-        // Send enrollment email to staff
         const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
 
         try {
-            // await notify(
-            //     { id: staff.id, email: staff.email, firstName: staff.firstName, },
-            //     'staff',
-            //     'STAFF_ENROLLMENT_REQUIRED',
-            //     {
-            //         firstName: staff.firstName,
-            //         companyName: company.name,
-            //         enrollmentLink
-            //     }
-            // );
+            await notify(
+                { id: staff.id, email: staff.email, firstName: staff.firstName, },
+                'staff',
+                'STAFF_ENROLLMENT_REQUIRED',
+                {
+                    firstName: staff.firstName,
+                    companyName: company.name,
+                    enrollmentLink
+                }
+            );
 
-            // Mark as notified after successful email
             await staff.update({
-                // isNotified: true,
-                // notifiedAt: new Date()
+                isNotified: true,
+                notifiedAt: new Date()
             });
         } catch (notifyErr) {
             console.error('Error sending enrollment email:', notifyErr);
-            // Continue execution even if email fails
         }
 
         return res.success({ staff: staff.toJSON(), enrollee: enrollee.toJSON() }, 'Staff and enrollee created', 201);
@@ -165,7 +152,6 @@ async function updateStaff(req, res, next) {
         if (lastName !== undefined) updates.lastName = lastName;
 
         if (email !== undefined) {
-            // Check if new email is already taken by another staff
             const existingEmail = await Staff.findOne({ where: { email, id: { [Op.ne]: id } } });
             if (existingEmail) return res.fail('Email already exists', 400);
             updates.email = email;
@@ -174,7 +160,6 @@ async function updateStaff(req, res, next) {
         if (phoneNumber !== undefined) updates.phoneNumber = phoneNumber;
 
         if (staffId !== undefined) {
-            // Check if new staffId is already taken by another staff
             const existingStaffId = await Staff.findOne({ where: { staffId, id: { [Op.ne]: id } } });
             if (existingStaffId) return res.fail('Staff ID already exists', 400);
             updates.staffId = staffId;
@@ -281,7 +266,6 @@ async function listStaffs(req, res, next) {
 
         const where = {};
 
-        // Search by name, email, or staff ID
         if (q) {
             where[Op.or] = [
                 { firstName: { [Op.iLike || Op.like]: `%${q}%` } },
@@ -291,35 +275,25 @@ async function listStaffs(req, res, next) {
             ];
         }
 
-        // Filter by company
         if (companyId) {
             where.companyId = companyId;
         }
 
-        // Filter by subsidiary
         if (subsidiaryId) {
             where.subsidiaryId = subsidiaryId;
         }
 
-        // Filter by enrollment status
         if (enrollmentStatus) {
             where.enrollmentStatus = enrollmentStatus;
         }
 
-        // Filter by notified status
         if (isNotified !== undefined) {
             where.isNotified = isNotified === 'true';
         }
 
-        // Filter by active status
         if (isActive !== undefined) {
             where.isActive = isActive === 'true';
         }
-
-        // Filter by company plan
-        // if (companyPlanId) {
-        //     where.companyPlanId = companyPlanId;
-        // }
 
         const total = await Staff.count({ where });
 
@@ -478,13 +452,11 @@ async function bulkCreateStaffs(req, res, next) {
             return res.fail('`companyId` is required', 400);
         }
 
-        // Verify company exists
         const company = await Company.findByPk(companyId);
         if (!company) {
             return res.fail('Company not found', 404);
         }
 
-        // Verify subsidiary exists if provided
         if (subsidiaryId) {
             const subsidiary = await CompanySubsidiary.findByPk(subsidiaryId);
             if (!subsidiary) {
@@ -495,7 +467,6 @@ async function bulkCreateStaffs(req, res, next) {
             }
         }
 
-        // Verify company plan exists if provided
         if (companyPlanId) {
             const plan = await CompanyPlan.findByPk(companyPlanId);
             if (!plan) {
@@ -506,13 +477,11 @@ async function bulkCreateStaffs(req, res, next) {
             }
         }
 
-        // Parse the file
         let rows = [];
         const fs = require('fs');
         const path = require('path');
 
         if (file.mimetype === 'text/csv') {
-            // Parse CSV
             const csv = require('csv-parser');
             rows = await new Promise((resolve, reject) => {
                 const data = [];
@@ -526,7 +495,6 @@ async function bulkCreateStaffs(req, res, next) {
             file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
             file.mimetype === 'application/vnd.ms-excel'
         ) {
-            // Parse Excel
             const XLSX = require('xlsx');
             const workbook = XLSX.readFile(file.path);
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -539,7 +507,6 @@ async function bulkCreateStaffs(req, res, next) {
             return res.fail('File is empty or has no valid data', 400);
         }
 
-        // Validate and create staff records
         const createdStaffs = [];
         const errors = [];
 
@@ -559,7 +526,6 @@ async function bulkCreateStaffs(req, res, next) {
                     companyPlanId
                 } = row;
 
-                // Validate required fields
                 if (!firstName) {
                     errors.push(`Row ${i + 2}: firstName is required`);
                     continue;
@@ -581,24 +547,20 @@ async function bulkCreateStaffs(req, res, next) {
                     continue;
                 }
 
-                // Check if email already exists
                 const existingEmail = await Staff.findOne({ where: { email } });
                 if (existingEmail) {
                     errors.push(`Row ${i + 2}: Email already exists`);
                     continue;
                 }
 
-                // Check if staffId already exists
                 const existingStaffId = await Staff.findOne({ where: { staffId } });
                 if (existingStaffId) {
                     errors.push(`Row ${i + 2}: Staff ID already exists`);
                     continue;
                 }
 
-                // Determine which company plan ID to use (from row or from request body)
                 const planIdToUse = companyPlanId || row.companyPlanId;
 
-                // Verify company plan if provided
                 if (planIdToUse) {
                     const plan = await CompanyPlan.findByPk(planIdToUse);
                     if (!plan) {
@@ -611,7 +573,6 @@ async function bulkCreateStaffs(req, res, next) {
                     }
                 }
 
-                // Create staff record
                 const staff = await Staff.create({
                     firstName: firstName.trim(),
                     middleName: middleName ? middleName.trim() : null,
@@ -629,7 +590,6 @@ async function bulkCreateStaffs(req, res, next) {
 
                 createdStaffs.push(staff.toJSON());
 
-                // Send enrollment email to staff
                 const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
                 try {
                     await notify(
@@ -643,14 +603,12 @@ async function bulkCreateStaffs(req, res, next) {
                         }
                     );
 
-                    // Mark as notified after successful email
                     await staff.update({
                         isNotified: true,
                         notifiedAt: new Date()
                     });
                 } catch (notifyErr) {
                     console.error('Error sending enrollment email:', notifyErr);
-                    // Continue execution even if email fails
                 }
             } catch (err) {
                 errors.push(`Row ${i + 2}: ${err.message}`);
@@ -664,7 +622,6 @@ async function bulkCreateStaffs(req, res, next) {
             console.error('Error deleting uploaded file:', err);
         }
 
-        // Log the bulk creation
         await addAuditLog(req.models, {
             action: 'staff.bulk_create',
             message: `${createdStaffs.length} staff(s) created via bulk upload`,
@@ -673,7 +630,6 @@ async function bulkCreateStaffs(req, res, next) {
             meta: { createdCount: createdStaffs.length, errorCount: errors.length }
         });
 
-        // Return response
         const message =
             errors.length > 0
                 ? `${createdStaffs.length} staff(s) created with ${errors.length} error(s)`
@@ -685,7 +641,6 @@ async function bulkCreateStaffs(req, res, next) {
             201
         );
     } catch (err) {
-        // Clean up uploaded file
         if (req.file) {
             try {
                 const fs = require('fs');
@@ -721,7 +676,6 @@ async function resendEnrollmentNotification(req, res, next) {
             return res.fail('Staff email is not available', 400);
         }
 
-        // Send enrollment email to staff
         const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
         const company = staff.Company;
         const companyName = company ? company.name : 'Your Company';
