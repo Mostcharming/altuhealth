@@ -13,21 +13,17 @@ const providerLogin = async (req, res, next) => {
 
         let provider = null;
 
-        // policyNumber from frontend is checked against both email and upn
         const lookupValue = (typeof policyNumber === 'string') ? policyNumber.toLowerCase() : policyNumber;
         const lookupValueUPN = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
 
         try {
-            // Try to find by email first
             provider = await ProviderModel.findOne({
                 where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupValue)
             });
         } catch (e) {
-            // fallback: if the DB or dialect doesn't support lower() in this context, try a plain lookup
             provider = await ProviderModel.findOne({ where: { email: lookupValue } });
         }
 
-        // If not found by email, try to find by upn
         if (!provider) {
             provider = await ProviderModel.findOne({ where: { upn: lookupValueUPN } });
         }
@@ -46,7 +42,6 @@ const providerLogin = async (req, res, next) => {
 
         if (!passwordMatches) return res.fail('Invalid credentials', 401);
 
-        // require explicit 'active' status — any other value (including null/undefined) is not allowed
         if (provider.status !== 'active') return res.fail('Account is not active', 403);
 
         if (location && (location.lat !== undefined || location.lon !== undefined || location.currentLocation !== undefined)) {

@@ -17,7 +17,6 @@ const { responseFormatter } = require('./middlewares/common/responseFormatter');
 
 const app = express();
 
-// Security: Helmet helps secure Express apps by setting various HTTP headers
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -28,7 +27,7 @@ app.use(helmet({
     },
   },
   hsts: {
-    maxAge: 31536000, // 1 year in seconds
+    maxAge: 31536000,
     includeSubDomains: true,
     preload: true,
   },
@@ -41,74 +40,58 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-  maxAge: 86400, // 24 hours
+  maxAge: 86400,
 }));
 
-// Rate limiting to prevent DoS attacks
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
   message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
   skip: (req) => {
-    // Skip rate limiting for health check
     return req.path === '/' && req.method === 'GET';
   },
 });
 
-// Stricter rate limiting for authentication endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit login attempts
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: 'Too many login attempts, please try again later.',
-  skipSuccessfulRequests: true, // Don't count successful requests
+  skipSuccessfulRequests: true,
 });
 
 app.use(limiter);
 app.use(compression());
 app.use(morgan('dev'));
-app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-
-
-// Security: Prevent HTTP Parameter Pollution attacks
 app.use(hpp({
-  whitelist: ['sort', 'fields', 'filter', 'limit', 'page', 'skip'], // Allow query string duplication for these params
+  whitelist: ['sort', 'fields', 'filter', 'limit', 'page', 'skip'],
 }));
 
 app.use(responseFormatter);
 
 app.use(dbSelector);
 
-// Security: Disable powered by header to prevent information disclosure
 app.disable('x-powered-by');
 
-// Security: Add security headers middleware
 app.use((req, res, next) => {
-  // Prevent MIME type sniffing
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  // Enable XSS Protection
   res.setHeader('X-XSS-Protection', '1; mode=block');
-  // Disable iframe embedding
   res.setHeader('X-Frame-Options', 'DENY');
-  // Referrer Policy
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  // Permissions Policy
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   next();
 });
 
-// Security: Serve uploaded files at /upload with strict options
-// serve uploaded files at /upload so stored URLs like /upload/<filename> are accessible
 if (config && config.uploads && config.uploads.profileDir) {
   app.use('/upload', express.static(config.uploads.profileDir, {
     maxAge: '1d',
-    etag: false, // Disable ETags to prevent cache validation timing attacks
-    lastModified: false, // Don't expose last modified time
+    etag: false,
+    lastModified: false,
     setHeaders: (res, path) => {
-      // Prevent execution of scripts in uploads
       res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'");
       res.setHeader('X-Content-Type-Options', 'nosniff');
     }
@@ -130,29 +113,25 @@ app.get('/', (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
 
-  // Security: Don't expose internal error details in production
   const isDevelopment = process.env.NODE_ENV === 'development';
   const errorMessage = isDevelopment ? err.message : 'Internal Server Error';
   const errorStatus = err.status || err.statusCode || 500;
 
-  // Sanitize error responses to prevent information disclosure
   res.status(errorStatus).json({
     error: 'Something went wrong!',
     message: errorMessage,
-    ...(isDevelopment && { stack: err.stack }), // Only expose stack trace in development
+    ...(isDevelopment && { stack: err.stack }),
   });
 });
 
 const PORT = process.env.PORT || 5022;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Security: Graceful shutdown handling
 const server = app.listen(PORT, HOST, () => {
   console.log(`🚀 Server running on ${HOST}:${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV}`);
 });
 
-// Handle graceful shutdown
 process.on('SIGTERM', () => {
   console.log('📛 SIGTERM signal received: closing HTTP server');
   server.close(() => {
@@ -169,7 +148,6 @@ process.on('SIGINT', () => {
   });
 });
 
-// Set server timeout to prevent long-running requests
-server.setTimeout(30000); // 30 seconds
+server.setTimeout(30000);
 
 module.exports = app;

@@ -1,19 +1,17 @@
-import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import EnrolleeTable from "@/components/pages/enrollee/enrolleeTable";
-import PageMetricsEnrollees from "@/components/pages/enrollee/pageMetrics";
+import AiLayout from "@/components/ai/AiLayout";
+import AiPageBreadcrumb from "@/components/ai/AiPageBreadcrumb";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Provider Enrollees",
-  description: "Manage enrollees within the AltuHealth provider panel.",
+  title: "AltuHealth Provider Enrollees/Dependents",
+  description: "View Enrollee/Dependents details",
 };
 
 export default function Enrollees() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Enrollees" />
-      <PageMetricsEnrollees />
-      <EnrolleeTable />
+      <AiPageBreadcrumb pageTitle="View Enrollee/Dependent" />
+      <AiLayout />
     </div>
   );
 }

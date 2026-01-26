@@ -37,11 +37,12 @@ const navItems: NavItem[] = [
   },
 
   {
-    name: "Enrollee management",
+    name: "Verify Enrolle",
     icon: <GroupIcon />,
     subItems: [
-      { name: "Enrollee List", path: "/enrollees" },
-      { name: "Dependents", path: "/enrollee-dependents" },
+      { name: "Search Enrollee/Dependents", path: "/enrollees" },
+      //       { name: "Enrollee List", path: "/enrollees" },
+      // { name: "Dependents", path: "/enrollee-dependents" },
     ],
   },
   {

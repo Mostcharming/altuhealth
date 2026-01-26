@@ -66,6 +66,7 @@ function defineModels(sequelize) {
   const Message = require("./message.model")(sequelize, DataTypes);
   const Doctor = require("./doctor.model")(sequelize, DataTypes);
   const Session = require("./session.model")(sequelize, DataTypes);
+  const SearchHistory = require("./searchHistory.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -503,7 +504,11 @@ function defineModels(sequelize) {
   Provider.hasMany(Session, { foreignKey: "providerId", as: 'sessions' });
   Session.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session };
+  // SearchHistory <-> Provider one-to-many
+  Provider.hasMany(SearchHistory, { foreignKey: "providerId", as: 'searchHistories' });
+  SearchHistory.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory };
 }
 
 module.exports = defineModels;
