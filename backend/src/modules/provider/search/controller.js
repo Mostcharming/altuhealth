@@ -1,4 +1,4 @@
-const { Op } = require('sequelize');
+const { Op, sequelize } = require('sequelize');
 
 async function searchEnrolleeOrDependent(req, res, next) {
     try {
@@ -29,14 +29,15 @@ async function searchEnrolleeOrDependent(req, res, next) {
             });
         }
 
-        const isEmail = searchTerm.includes('@');
+        const lowerSearchTerm = searchTerm.toLowerCase();
+        const isEmail = lowerSearchTerm.includes('@');
         const searchType = isEmail ? 'email' : 'policyNumber';
 
         let enrollee = null;
 
         if (isEmail) {
             enrollee = await Enrollee.findOne({
-                where: { email: searchTerm },
+                where: sequelize.where(sequelize.fn('LOWER', sequelize.col('email')), Op.eq, lowerSearchTerm),
                 include: [
                     { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId', 'email', 'phoneNumber'] },
                     { model: Company, attributes: ['id', 'name'] },
@@ -45,7 +46,7 @@ async function searchEnrolleeOrDependent(req, res, next) {
             });
         } else {
             enrollee = await Enrollee.findOne({
-                where: { policyNumber: searchTerm },
+                where: sequelize.where(sequelize.fn('LOWER', sequelize.col('policyNumber')), Op.eq, lowerSearchTerm),
                 include: [
                     { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId', 'email', 'phoneNumber'] },
                     { model: Company, attributes: ['id', 'name'] },
@@ -70,14 +71,14 @@ async function searchEnrolleeOrDependent(req, res, next) {
 
         if (isEmail) {
             dependent = await EnrolleeDependent.findOne({
-                where: { email: searchTerm },
+                where: sequelize.where(sequelize.fn('LOWER', sequelize.col('email')), Op.eq, lowerSearchTerm),
                 include: [
                     { model: Enrollee, attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber'] }
                 ]
             });
         } else {
             dependent = await EnrolleeDependent.findOne({
-                where: { policyNumber: searchTerm },
+                where: sequelize.where(sequelize.fn('LOWER', sequelize.col('policyNumber')), Op.eq, lowerSearchTerm),
                 include: [
                     { model: Enrollee, attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber'] }
                 ]
