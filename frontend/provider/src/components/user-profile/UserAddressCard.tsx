@@ -134,7 +134,11 @@ export default function UserAddressCard() {
         handleSuccessClose={handleSuccessClose}
       />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+      <ErrorModal
+        message=""
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+      />
     </>
   );
 }
