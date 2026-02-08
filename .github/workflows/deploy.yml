@@ -51,7 +51,7 @@ jobs:
               rm -rf node_modules package-lock.json
 
               # Install dependencies and build
-              npm ci --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
+              npm install --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
               npm run build
               cd ../../
             done
