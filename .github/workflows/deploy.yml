@@ -36,7 +36,7 @@ jobs:
             # --- Backend ---
             echo "🛠 Installing backend dependencies..."
             cd backend
-            npm ci --prefer-offline --no-audit
+            npm ci --prefer-offline --no-audit --unsafe-perm
             echo "🔄 Running migrations..."
             npm run migrate || echo "⚠️ No migrations to run"
             cd ..
@@ -46,7 +46,16 @@ jobs:
             for app in "${FRONTEND_APPS[@]}"; do
               echo "🚀 Building $app..."
               cd "frontend/$app"
-              npm ci --prefer-offline --no-audit --legacy-peer-deps
+              
+              # Clean old node_modules and lock file
+              rm -rf node_modules package-lock.json
+              
+              # Fix permissions just in case
+              sudo chown -R $USER:$USER .
+              chmod -R u+rwx .
+
+              # Install dependencies and build
+              npm ci --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
               npm run build
               cd ../../
             done
