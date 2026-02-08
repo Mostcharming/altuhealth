@@ -1,5 +1,6 @@
 'use strict';
 
+const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { createAdminApproval } = require('../../../utils/adminApproval');
@@ -92,6 +93,9 @@ async function createProvider(req, res, next) {
         // Generate temporary password
         const temporaryPassword = generateCode(10, { letters: true, numbers: true });
 
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
         // Create provider
         const provider = await Provider.create({
             name,
@@ -114,6 +118,7 @@ async function createProvider(req, res, next) {
             providerSpecializationId,
             code: providerCode,
             upn: providerUPN,
+            password: hashedPassword,
             status: 'active'
         });
 
@@ -573,6 +578,55 @@ async function updateProviderPlans(req, res, next) {
     }
 }
 
+async function resendProviderLoginDetails(req, res, next) {
+    try {
+        const { Provider } = req.models;
+        const { id } = req.params;
+        const { sendNewPassword = false } = req.body || {};
+
+        const provider = await Provider.findByPk(id);
+        if (!provider) return res.fail('Provider not found', 404);
+
+        let password = provider.email; // Default: use email as password hint or identifier
+        let temporaryPassword = null;
+
+        // If sendNewPassword is true, generate a new temporary password
+        if (sendNewPassword) {
+            temporaryPassword = generateCode(10, { letters: true, numbers: true });
+            const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+            await provider.update({ password: hashedPassword });
+            password = temporaryPassword;
+        }
+
+        // Send login details to provider email
+        try {
+            await notify(provider, 'Provider', 'PROVIDER_CREATE', {
+                policyNumber: provider.upn,
+                email: provider.email,
+                password: password
+            }, ['email'], true);
+        } catch (e) {
+            console.error('Failed to send login details to provider', e);
+            return res.fail('Failed to send email to provider', 500);
+        }
+
+        await addAuditLog(req.models, {
+            action: 'provider.resendLoginDetails',
+            message: `Login details resent to Provider ${provider.name}${sendNewPassword ? ' with new password' : ''}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { providerId: provider.id, newPasswordGenerated: sendNewPassword }
+        });
+
+        return res.success(
+            { message: 'Login details sent to provider email' },
+            'Login details resent successfully'
+        );
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createProvider,
     updateProvider,
@@ -581,5 +635,6 @@ module.exports = {
     getProvider,
     addPlanToProvider,
     removePlanFromProvider,
-    updateProviderPlans
+    updateProviderPlans,
+    resendProviderLoginDetails
 };

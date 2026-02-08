@@ -16,4 +16,7 @@ router.delete('/:id', Providers.deleteProvider);
 router.post('/:id/plans', Providers.updateProviderPlans);
 router.delete('/:id/plans', Providers.removePlanFromProvider);
 
+// Resend login details to provider
+router.post('/:id/resend-login-details', Providers.resendProviderLoginDetails);
+
 module.exports = router;

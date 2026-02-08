@@ -2,58 +2,59 @@ const path = require('path');
 
 const config = {
     development: {
-        feUrl: "http://localhost:3001",
+        feUrl: process.env.FE_URL,
         db: {
             master: {
-                host: "192.168.1.165",
-                port: 5432,
-                username: "postgres",
-                password: "Spartan920",
-                database: "altuhealth_master",
+                host: process.env.DB_MASTER_HOST,
+                port: parseInt(process.env.DB_MASTER_PORT),
+                username: process.env.DB_MASTER_USERNAME,
+                password: process.env.DB_MASTER_PASSWORD,
+                database: process.env.DB_MASTER_DATABASE,
                 dialect: "postgres",
             },
             slave: {
-                host: "192.168.1.165",
-                port: 5432,
-                username: "postgres",
-                password: "Spartan920",
-                database: "altuhealth_master",
+                host: process.env.DB_SLAVE_HOST,
+                port: parseInt(process.env.DB_SLAVE_PORT),
+                username: process.env.DB_SLAVE_USERNAME,
+                password: process.env.DB_SLAVE_PASSWORD,
+                database: process.env.DB_SLAVE_DATABASE,
                 dialect: "postgres",
             },
+
         },
         uploads: {
             profileDir: path.resolve(__dirname, '..', 'uploads', 'profiles')
         },
-        apiVersion: "v1",
-        jwtSecret: "altuHealth-jwt-secret",
-        jwtExpiresIn: "1d",
+        apiVersion: process.env.API_VERSION,
+        jwtSecret: process.env.JWT_SECRET,
+        jwtExpiresIn: process.env.JWT_EXPIRES_IN,
     },
     production: {
-        feUrl: "https://api.altuhealth.com",
+        feUrl: process.env.FE_URL,
         db: {
             master: {
-                host: "159.198.68.96",
-                port: 5432,
-                username: "altuhealth",
-                password: "altuhealth2025Tayo",
-                database: "altuhealth",
+                host: process.env.DB_PROD_MASTER_HOST,
+                port: parseInt(process.env.DB_PROD_MASTER_PORT),
+                username: process.env.DB_PROD_MASTER_USERNAME,
+                password: process.env.DB_PROD_MASTER_PASSWORD,
+                database: process.env.DB_PROD_MASTER_DATABASE,
                 dialect: "postgres",
             },
             slave: {
-                host: "159.198.68.96",
-                port: 5432,
-                username: "altuhealth",
-                password: "altuhealth2025Tayo",
-                database: "altuhealth",
+                host: process.env.DB_PROD_SLAVE_HOST,
+                port: parseInt(process.env.DB_PROD_SLAVE_PORT),
+                username: process.env.DB_PROD_SLAVE_USERNAME,
+                password: process.env.DB_PROD_SLAVE_PASSWORD,
+                database: process.env.DB_PROD_SLAVE_DATABASE,
                 dialect: "postgres",
             },
         },
         uploads: {
             profileDir: path.resolve(__dirname, '..', 'uploads', 'profiles')
         },
-        apiVersion: "v1",
-        jwtSecret: "altuHealth-jwt-secret",
-        jwtExpiresIn: "1d",
+        apiVersion: process.env.API_VERSION || "v1",
+        jwtSecret: process.env.JWT_SECRET,
+        jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1d",
 
 
     },

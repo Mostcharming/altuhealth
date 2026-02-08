@@ -16,6 +16,7 @@ export default function SinglePHeader({
   setdata: any;
 }) {
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const successModal = useModal();
   const errorModal = useModal();
@@ -75,6 +76,27 @@ export default function SinglePHeader({
     return status === "active" ? "Suspend" : "Activate";
   };
 
+  const handleResendPassword = async () => {
+    try {
+      setResendLoading(true);
+
+      await apiClient(`/admin/providers/${data?.id}/resend-login-details`, {
+        method: "POST",
+        body: { sendNewPassword: true },
+        onLoading: (l: boolean) => setResendLoading(l),
+      });
+
+      successModal.openModal();
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to resend password"
+      );
+      errorModal.openModal();
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="flex flex-col justify-between gap-6 rounded-2xl border border-gray-200 bg-white px-6 py-5 sm:flex-row sm:items-center dark:border-gray-800 dark:bg-white/3">
@@ -98,6 +120,13 @@ export default function SinglePHeader({
             className={getButtonClasses(data?.status)}
           >
             {loading ? "Processing..." : getButtonText()}
+          </button>
+          <button
+            onClick={handleResendPassword}
+            disabled={resendLoading}
+            className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-600 disabled:opacity-50"
+          >
+            {resendLoading ? "Sending..." : "Resend Password"}
           </button>
         </div>
       </div>
