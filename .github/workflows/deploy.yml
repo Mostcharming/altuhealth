@@ -9,19 +9,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Execute full deployment
+      # --- Initial Setup ---
+      - name: Checkout and pull latest code
         uses: appleboy/ssh-action@master
-        id: deploy
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.DEPLOY_PASSWORD }}
           port: ${{ secrets.SERVER_PORT }}
-          timeout: 900s
-          command_timeout: 900s
+          timeout: 300s
           script: |
             set -euo pipefail
-
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
             BRANCH="${{ github.ref_name }}"
 
@@ -33,30 +31,153 @@ jobs:
             git checkout "$BRANCH"
             git reset --hard "origin/$BRANCH"
 
-            # --- Backend ---
+      # --- Backend ---
+      - name: Build and deploy backend
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          timeout: 600s
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+
             echo "🛠 Installing backend dependencies..."
-            cd backend
+            cd "$DEPLOY_PATH/backend"
             npm ci --prefer-offline --no-audit --unsafe-perm
             echo "🔄 Running migrations..."
             npm run migrate || echo "⚠️ No migrations to run"
-            cd ..
 
-            # --- Frontend ---
-            FRONTEND_APPS=("landing" "admin" "provider" "enrollee" "doctors" "retail")
-            for app in "${FRONTEND_APPS[@]}"; do
-              echo "🚀 Building $app..."
-              cd "frontend/$app"
-              
-              # Clean old node_modules and lock file
-              rm -rf node_modules package-lock.json
+      # --- Frontend: Landing ---
+      - name: Build frontend - landing
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          timeout: 600s
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
 
-              # Install dependencies and build
-              npm install --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
-              npm run build
-              cd ../../
-            done
+            echo "🚀 Building landing..."
+            cd "$DEPLOY_PATH/frontend/landing"
+            rm -rf node_modules package-lock.json
+            npm install --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
+            npm run build
 
-            # --- PM2 Management ---
+      # --- Frontend: Admin ---
+      - name: Build frontend - admin
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          timeout: 600s
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+
+            echo "🚀 Building admin..."
+            cd "$DEPLOY_PATH/frontend/admin"
+            rm -rf node_modules package-lock.json
+            npm install --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
+            npm run build
+
+      # --- Frontend: Provider ---
+      - name: Build frontend - provider
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          timeout: 600s
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+
+            echo "🚀 Building provider..."
+            cd "$DEPLOY_PATH/frontend/provider"
+            rm -rf node_modules package-lock.json
+            npm install --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
+            npm run build
+
+      # --- Frontend: Enrollee ---
+      - name: Build frontend - enrollee
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          timeout: 600s
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+
+            echo "🚀 Building enrollee..."
+            cd "$DEPLOY_PATH/frontend/enrollee"
+            rm -rf node_modules package-lock.json
+            npm install --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
+            npm run build
+
+      # --- Frontend: Doctors ---
+      - name: Build frontend - doctors
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          timeout: 600s
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+
+            echo "🚀 Building doctors..."
+            cd "$DEPLOY_PATH/frontend/doctors"
+            rm -rf node_modules package-lock.json
+            npm install --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
+            npm run build
+
+      # --- Frontend: Retail ---
+      - name: Build frontend - retail
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          timeout: 600s
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+
+            echo "🚀 Building retail..."
+            cd "$DEPLOY_PATH/frontend/retail"
+            rm -rf node_modules package-lock.json
+            npm install --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
+            npm run build
+
+      # --- Final Deployment ---
+      - name: Restart services with PM2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
+          port: ${{ secrets.SERVER_PORT }}
+          timeout: 300s
+          script: |
+            set -euo pipefail
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+
+            cd "$DEPLOY_PATH"
             echo "⚡ Restarting services with PM2..."
             pm2 stop ecosystem.config.js 2>/dev/null || true
             pm2 delete ecosystem.config.js 2>/dev/null || true
