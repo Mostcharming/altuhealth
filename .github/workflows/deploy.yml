@@ -49,10 +49,6 @@ jobs:
               
               # Clean old node_modules and lock file
               rm -rf node_modules package-lock.json
-              
-              # Fix permissions just in case
-              sudo chown -R $USER:$USER .
-              chmod -R u+rwx .
 
               # Install dependencies and build
               npm ci --prefer-offline --no-audit --legacy-peer-deps --unsafe-perm
