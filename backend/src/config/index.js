@@ -3,6 +3,11 @@ const path = require('path');
 const config = {
     development: {
         feUrl: process.env.FE_URL,
+        adminUrl: "https://admin.altuhealth.com",
+        providerUrl: "https://provider.altuhealth.com",
+        enrolleeUrl: "https://enrollee.altuhealth.com",
+        doctorUrl: "https://doctors.altuhealth.com",
+        retailUrl: "https://retail.altuhealth.com",
         db: {
             master: {
                 host: process.env.DB_MASTER_HOST,
@@ -31,6 +36,11 @@ const config = {
     },
     production: {
         feUrl: process.env.FE_URL,
+        adminUrl: "https://admin.altuhealth.com",
+        providerUrl: "https://provider.altuhealth.com",
+        enrolleeUrl: "https://enrollee.altuhealth.com",
+        doctorUrl: "https://doctors.altuhealth.com",
+        retailUrl: "https://retail.altuhealth.com",
         db: {
             master: {
                 host: process.env.DB_PROD_MASTER_HOST,
@@ -60,10 +70,11 @@ const config = {
     },
 };
 
-const currentConfig =
-    process.env.NODE_ENV === "production"
-        ? config.production
-        : config.development;
+const
+    currentConfig =
+        process.env.NODE_ENV === "production"
+            ? config.production
+            : config.development;
 
 
 module.exports = currentConfig;

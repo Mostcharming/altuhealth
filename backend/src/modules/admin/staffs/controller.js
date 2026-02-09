@@ -1,8 +1,10 @@
+const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
+const generateCode = require('../../../utils/verificationCode');
 
 async function createStaff(req, res, next) {
     try {
@@ -79,6 +81,10 @@ async function createStaff(req, res, next) {
 
             const policyNumber = await getUniquePolicyNumber(Enrollee);
 
+            // Generate password for enrollee
+            const rawPassword = generateCode(10, { letters: true, numbers: true });
+            const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
             enrollee = await Enrollee.create({
                 firstName,
                 middleName: middleName || null,
@@ -93,7 +99,8 @@ async function createStaff(req, res, next) {
                 email,
                 maxDependents: maxDependents || null,
                 preexistingMedicalRecords: preexistingMedicalRecords || null,
-                isActive: true
+                isActive: true,
+                password: hashedPassword
             });
 
             await staff.update({
@@ -114,15 +121,23 @@ async function createStaff(req, res, next) {
             const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
 
             try {
+                const notificationData = {
+                    firstName: staff.firstName,
+                    companyName: company.name,
+                    enrollmentLink
+                };
+
+                // Include password in notification if enrollee was created
+                if (enrollee) {
+                    notificationData.password = rawPassword;
+                    notificationData.policyNumber = enrollee.policyNumber;
+                }
+
                 await notify(
                     { id: staff.id, email: staff.email, firstName: staff.firstName, },
                     'staff',
                     'STAFF_ENROLLMENT_REQUIRED',
-                    {
-                        firstName: staff.firstName,
-                        companyName: company.name,
-                        enrollmentLink
-                    }
+                    notificationData
                 );
 
                 await staff.update({
