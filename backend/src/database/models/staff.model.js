@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         email: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
             unique: true,
             validate: {
                 isEmail: true
@@ -40,12 +40,12 @@ module.exports = (sequelize, DataTypes) => {
         },
         phoneNumber: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
             field: 'phone_number'
         },
         staffId: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
             unique: true,
             field: 'staff_id'
         },

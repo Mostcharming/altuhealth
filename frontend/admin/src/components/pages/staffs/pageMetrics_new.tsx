@@ -353,21 +353,6 @@ export default function PageMetricsStaffs({
         errorModal.openModal();
         return;
       }
-      if (!email) {
-        setErrorMessage("Email is required.");
-        errorModal.openModal();
-        return;
-      }
-      if (!phoneNumber) {
-        setErrorMessage("Phone number is required.");
-        errorModal.openModal();
-        return;
-      }
-      if (!staffId) {
-        setErrorMessage("Staff ID is required.");
-        errorModal.openModal();
-        return;
-      }
       if (!companyId) {
         setErrorMessage("Company is required.");
         errorModal.openModal();
@@ -380,9 +365,9 @@ export default function PageMetricsStaffs({
         firstName: firstName.trim(),
         middleName: middleName.trim() || undefined,
         lastName: lastName.trim(),
-        email: email.trim(),
-        phoneNumber: phoneNumber.trim(),
-        staffId: staffId.trim(),
+        email: email.trim() || undefined,
+        phoneNumber: phoneNumber.trim() || undefined,
+        staffId: staffId.trim() || undefined,
         companyId,
         subsidiaryId: subsidiaryId || undefined,
         dateOfBirth: dateOfBirth || undefined,
@@ -526,7 +511,7 @@ export default function PageMetricsStaffs({
                 </div>
 
                 <div>
-                  <Label>Subscription (Optional)</Label>
+                  <Label>Subscription </Label>
                   <Select
                     options={bulkSubscriptions.map((s) => ({
                       value: s.id,

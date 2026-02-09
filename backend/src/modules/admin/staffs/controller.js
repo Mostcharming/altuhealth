@@ -11,9 +11,6 @@ async function createStaff(req, res, next) {
 
         if (!firstName) return res.fail('`firstName` is required', 400);
         if (!lastName) return res.fail('`lastName` is required', 400);
-        if (!email) return res.fail('`email` is required', 400);
-        if (!phoneNumber) return res.fail('`phoneNumber` is required', 400);
-        if (!staffId) return res.fail('`staffId` is required', 400);
         if (!companyId) return res.fail('`companyId` is required', 400);
 
         const company = await Company.findByPk(companyId);
@@ -35,11 +32,15 @@ async function createStaff(req, res, next) {
             }
         }
 
-        const existingEmail = await Staff.findOne({ where: { email } });
-        if (existingEmail) return res.fail('Email already exists', 400);
+        if (email) {
+            const existingEmail = await Staff.findOne({ where: { email } });
+            if (existingEmail) return res.fail('Email already exists', 400);
+        }
 
-        const existingStaffId = await Staff.findOne({ where: { staffId } });
-        if (existingStaffId) return res.fail('Staff ID already exists', 400);
+        if (staffId) {
+            const existingStaffId = await Staff.findOne({ where: { staffId } });
+            if (existingStaffId) return res.fail('Staff ID already exists', 400);
+        }
 
         const staff = await Staff.create({
             firstName,
@@ -56,81 +57,84 @@ async function createStaff(req, res, next) {
             subscriptionId: subscriptionId || null
         });
 
-        if (!subscriptionId) {
-            return res.fail('`subscriptionId` is required', 400);
+        // Only create enrollee if subscriptionId is provided
+        let enrollee = null;
+        if (subscriptionId) {
+            const subscriptionPlan = await SubscriptionPlan.findOne({
+                where: { subscriptionId },
+                raw: true
+            });
+
+            if (!subscriptionPlan) {
+                return res.fail('No company plan found for the specified subscription', 404);
+            }
+
+            const planId = subscriptionPlan.companyPlanId;
+
+            const companyPlan = await CompanyPlan.findByPk(planId);
+            if (!companyPlan) return res.fail('Company plan not found', 404);
+            if (companyPlan.companyId !== companyId) {
+                return res.fail('Company plan does not belong to the specified company', 400);
+            }
+
+            const policyNumber = await getUniquePolicyNumber(Enrollee);
+
+            enrollee = await Enrollee.create({
+                firstName,
+                middleName: middleName || null,
+                lastName,
+                policyNumber,
+                staffId: staff.id,
+                companyId,
+                companyPlanId: planId,
+                dateOfBirth: dateOfBirth || new Date(),
+                gender: gender || 'other',
+                phoneNumber,
+                email,
+                maxDependents: maxDependents || null,
+                preexistingMedicalRecords: preexistingMedicalRecords || null,
+                isActive: true
+            });
+
+            await staff.update({
+                enrollmentStatus: 'enrolled'
+            });
         }
-
-        const subscriptionPlan = await SubscriptionPlan.findOne({
-            where: { subscriptionId },
-            raw: true
-        });
-
-        if (!subscriptionPlan) {
-            return res.fail('No company plan found for the specified subscription', 404);
-        }
-
-        const planId = subscriptionPlan.companyPlanId;
-
-        const companyPlan = await CompanyPlan.findByPk(planId);
-        if (!companyPlan) return res.fail('Company plan not found', 404);
-        if (companyPlan.companyId !== companyId) {
-            return res.fail('Company plan does not belong to the specified company', 400);
-        }
-
-        const policyNumber = await getUniquePolicyNumber(Enrollee);
-
-        const enrollee = await Enrollee.create({
-            firstName,
-            middleName: middleName || null,
-            lastName,
-            policyNumber,
-            staffId: staff.id,
-            companyId,
-            companyPlanId: planId,
-            dateOfBirth: dateOfBirth || new Date(),
-            gender: gender || 'other',
-            phoneNumber,
-            email,
-            maxDependents: maxDependents || null,
-            preexistingMedicalRecords: preexistingMedicalRecords || null,
-            isActive: true
-        });
-
-        await staff.update({
-            enrollmentStatus: 'enrolled'
-        });
 
         await addAuditLog(req.models, {
             action: 'staff.create',
-            message: `Staff ${staff.firstName} ${staff.lastName} created and enrollee created with policy ${policyNumber}`,
+            message: `Staff ${staff.firstName} ${staff.lastName} created${enrollee ? ` and enrollee created with policy ${enrollee.policyNumber}` : ''}`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { staffId: staff.id, enrolleeId: enrollee.id, policyNumber }
+            meta: { staffId: staff.id, enrolleeId: enrollee?.id, policyNumber: enrollee?.policyNumber }
         });
 
-        const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
+        // Only send notification if email is provided
+        if (staff.email) {
+            const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
 
-        try {
-            await notify(
-                { id: staff.id, email: staff.email, firstName: staff.firstName, },
-                'staff',
-                'STAFF_ENROLLMENT_REQUIRED',
-                {
-                    firstName: staff.firstName,
-                    companyName: company.name,
-                    enrollmentLink
-                }
-            );
+            try {
+                await notify(
+                    { id: staff.id, email: staff.email, firstName: staff.firstName, },
+                    'staff',
+                    'STAFF_ENROLLMENT_REQUIRED',
+                    {
+                        firstName: staff.firstName,
+                        companyName: company.name,
+                        enrollmentLink
+                    }
+                );
 
-            await staff.update({
-                isNotified: true,
-                notifiedAt: new Date()
-            });
-        } catch (notifyErr) {
-            console.error('Error sending enrollment email:', notifyErr);
+                await staff.update({
+                    isNotified: true,
+                    notifiedAt: new Date()
+                });
+            } catch (notifyErr) {
+                console.error('Error sending enrollment email:', notifyErr);
+            }
         }
 
-        return res.success({ staff: staff.toJSON(), enrollee: enrollee.toJSON() }, 'Staff and enrollee created', 201);
+        return res.success({ staff: staff.toJSON(), enrollee: enrollee?.toJSON() }, 'Staff created', 201);
     } catch (err) {
         return next(err);
     }
@@ -152,17 +156,21 @@ async function updateStaff(req, res, next) {
         if (lastName !== undefined) updates.lastName = lastName;
 
         if (email !== undefined) {
-            const existingEmail = await Staff.findOne({ where: { email, id: { [Op.ne]: id } } });
-            if (existingEmail) return res.fail('Email already exists', 400);
-            updates.email = email;
+            if (email) {
+                const existingEmail = await Staff.findOne({ where: { email, id: { [Op.ne]: id } } });
+                if (existingEmail) return res.fail('Email already exists', 400);
+            }
+            updates.email = email || null;
         }
 
-        if (phoneNumber !== undefined) updates.phoneNumber = phoneNumber;
+        if (phoneNumber !== undefined) updates.phoneNumber = phoneNumber || null;
 
         if (staffId !== undefined) {
-            const existingStaffId = await Staff.findOne({ where: { staffId, id: { [Op.ne]: id } } });
-            if (existingStaffId) return res.fail('Staff ID already exists', 400);
-            updates.staffId = staffId;
+            if (staffId) {
+                const existingStaffId = await Staff.findOne({ where: { staffId, id: { [Op.ne]: id } } });
+                if (existingStaffId) return res.fail('Staff ID already exists', 400);
+            }
+            updates.staffId = staffId || null;
         }
 
         if (companyId !== undefined) {
