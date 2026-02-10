@@ -133,12 +133,12 @@ async function createStaff(req, res, next) {
                     notificationData.policyNumber = enrollee.policyNumber;
                 }
 
-                await notify(
-                    { id: staff.id, email: staff.email, firstName: staff.firstName, },
-                    'staff',
-                    'STAFF_ENROLLMENT_REQUIRED',
-                    notificationData
-                );
+                // await notify(
+                //     { id: staff.id, email: staff.email, firstName: staff.firstName, },
+                //     'staff',
+                //     'STAFF_ENROLLMENT_REQUIRED',
+                //     notificationData
+                // );
 
                 await staff.update({
                     isNotified: true,
