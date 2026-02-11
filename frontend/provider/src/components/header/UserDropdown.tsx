@@ -27,7 +27,7 @@ export default function UserDropdown() {
           <Image
             width={44}
             height={44}
-            src={user?.picture || "https://mayowa.net/may.jpg"}
+            src={user?.picture || "/images/main/small.jpg"}
             alt={user?.firstName || user?.email || "User"}
           />
         </span>
