@@ -50,7 +50,7 @@ export default function UserMetaCard() {
                 <Image
                   width={80}
                   height={80}
-                  src={account?.picture || "/images/main/small.jpg"}
+                  src={account?.picture || "/images/main/small.svg"}
                   alt="user"
                 />
               </div>
