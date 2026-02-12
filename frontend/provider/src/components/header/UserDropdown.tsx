@@ -27,7 +27,7 @@ export default function UserDropdown() {
           <Image
             width={44}
             height={44}
-            src={user?.picture || "/images/main/small.jpg"}
+            src={user?.picture || "/images/main/small.svg"}
             alt={user?.firstName || user?.email || "User"}
           />
         </span>
