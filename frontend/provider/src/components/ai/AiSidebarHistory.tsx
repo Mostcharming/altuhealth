@@ -28,6 +28,7 @@ export default function AiSidebarHistory({
   const [errorModal, setErrorModal] = useState({ isOpen: false });
   const [errorMessage, setErrorMessage] = useState("");
   const searchHistory = useSearchHistoryStore((s) => s.searchHistory);
+  const addSearchRecord = useSearchHistoryStore((s) => s.addSearchRecord);
   const { loading: historyLoading } = useFetchSearchHistory();
   const { user } = useAuthStore();
 
@@ -70,6 +71,19 @@ export default function AiSidebarHistory({
         const result = enrollee || dependent;
 
         if (result) {
+          // Auto-add to search history store
+          addSearchRecord({
+            id: crypto.randomUUID(),
+            providerId: providerId,
+            searchTerm: searchQuery,
+            searchType: searchQuery.includes("@") ? "email" : "policyNumber",
+            enrolleeType: enrollee ? "enrollee" : "dependent",
+            enrolleeId: enrollee?.id,
+            dependentId: dependent?.id,
+            resultFound: true,
+            createdAt: new Date().toISOString(),
+          });
+
           onEnrolleeSelect?.(result);
           setSearchQuery("");
         } else {
