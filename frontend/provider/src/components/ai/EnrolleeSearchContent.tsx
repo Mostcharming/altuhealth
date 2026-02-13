@@ -1,7 +1,6 @@
 "use client";
 
 import Loading from "@/app/loading";
-import { useRouter } from "next/navigation";
 
 interface EnrolleeData {
   id: string;
@@ -20,15 +19,8 @@ export default function EnrolleeSearchContent({
   selectedEnrollee,
   isLoading = false,
 }: EnrolleeSearchContentProps) {
-  const router = useRouter();
-
-  if (isLoading) {
+  if (isLoading || selectedEnrollee) {
     return <Loading />;
-  }
-
-  if (selectedEnrollee) {
-    router.push(`/enrollees/${selectedEnrollee.id}`);
-    return null;
   }
 
   return (

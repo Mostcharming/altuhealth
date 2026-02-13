@@ -64,25 +64,6 @@ export default function SinglePHeader({ data }: { data: any }) {
     }
   };
 
-  const handleResendVerification = async () => {
-    try {
-      setLoading(true);
-      await apiClient(`/admin/enrollees/${data?.id}/resend-verification-code`, {
-        method: "POST",
-        body: { via: "email" },
-        onLoading: (l: boolean) => setLoading(l),
-      });
-      successModal.openModal();
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to send verification code"
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <>
       <div className="flex flex-col justify-between gap-6 rounded-2xl border border-gray-200 bg-white px-6 py-5 sm:flex-row sm:items-center dark:border-gray-800 dark:bg-white/3">
@@ -116,16 +97,16 @@ export default function SinglePHeader({ data }: { data: any }) {
             disabled={loading}
             className={getButtonClasses("not")}
           >
-            {loading ? "Processing..." : "Download ID card"}
+            {loading ? "Processing..." : "View ID card"}
           </button>
 
-          <button
+          {/* <button
             onClick={handleResendVerification}
             disabled={loading}
             className={getButtonClasses("not")}
           >
             {loading ? "Processing..." : "Send Verification"}
-          </button>
+          </button> */}
         </div>
       </div>
 

@@ -5,13 +5,14 @@ import EnrolleeDetails from "@/components/pages/enrollee/single/details";
 import EnrolleePHeader from "@/components/pages/enrollee/single/header";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { apiClient } from "@/lib/apiClient";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import AiSidebarHistory from "./AiSidebarHistory";
 import EnrolleeSearchContent from "./EnrolleeSearchContent";
 
 export default function AiLayout({ children }: { children?: ReactNode }) {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id as string | undefined;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedEnrollee, setSelectedEnrollee] = useState<any | null>(null);
@@ -45,6 +46,7 @@ export default function AiLayout({ children }: { children?: ReactNode }) {
   const handleEnrolleeSelect = (enrollee: any) => {
     setSelectedEnrollee(enrollee);
     setIsLoading(true);
+    router.push(`/enrollees/${enrollee.id}`);
   };
 
   return (

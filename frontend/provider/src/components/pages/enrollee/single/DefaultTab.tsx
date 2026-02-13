@@ -21,7 +21,7 @@ const DefaultTab: React.FC<{ id: string }> = ({ id }) => {
       key: "medical",
       title: "Medical History",
     },
-    { key: "authorization", title: "Authorization Codes" },
+    // { key: "authorization", title: "Authorization Codes" },
   ];
 
   return (
