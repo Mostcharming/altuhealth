@@ -65,8 +65,8 @@ export default function AiSidebarHistory({
         },
       });
 
-      if (response.data && response.data.data) {
-        const { enrollee, dependent } = response.data.data;
+      if (response.data) {
+        const { enrollee, dependent } = response.data;
         const result = enrollee || dependent;
 
         if (result) {
