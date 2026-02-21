@@ -67,8 +67,8 @@ export default function PageMetricsCompanies({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const handleSubmit = async () => {

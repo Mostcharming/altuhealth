@@ -45,8 +45,8 @@ export default function PageMetrics({ buttonText }: { buttonText?: string }) {
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const togglePrivilege = (id: string) => {

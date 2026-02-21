@@ -58,8 +58,8 @@ export default function PageMetricsUnits({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const handlesubmit = async () => {

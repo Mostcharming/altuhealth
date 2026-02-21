@@ -42,8 +42,8 @@ export default function PageMetricsAdmins({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const options = [

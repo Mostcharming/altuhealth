@@ -103,8 +103,8 @@ export default function PageMetricsPaymentBatch({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const handleSubmit = async () => {

@@ -70,8 +70,8 @@ export default function PageMetricsCompanies({}: // buttonText,
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const handleSubmit = async () => {

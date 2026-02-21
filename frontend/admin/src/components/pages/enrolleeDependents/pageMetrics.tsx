@@ -154,8 +154,8 @@ export default function PageMetricsEnrolleeDependents({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const downloadSampleTemplate = () => {

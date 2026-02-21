@@ -121,8 +121,8 @@ export default function PageMetricsPaymentAdvice({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const handleSubmit = async () => {

@@ -228,8 +228,8 @@ export default function PageMetricsStaffs({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const downloadSampleTemplate = () => {

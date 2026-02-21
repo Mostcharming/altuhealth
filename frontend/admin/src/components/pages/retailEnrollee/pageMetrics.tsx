@@ -134,8 +134,8 @@ export default function PageMetricsRetailEnrollee({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   const handlesubmit = async () => {

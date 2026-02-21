@@ -83,8 +83,8 @@ export default function PageMetricsUtilizationReviews({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // resetForm();
+    // closeModal();
   };
 
   // Fetch companies on mount

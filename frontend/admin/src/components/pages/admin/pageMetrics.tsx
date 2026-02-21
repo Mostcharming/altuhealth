@@ -92,8 +92,7 @@ export default function PageMetricsUnits({
 
   const handleErrorClose = () => {
     errorModal.closeModal();
-    resetForm();
-    closeModal();
+    // Do NOT reset form or close main modal, so user can try again with same values
   };
 
   // fetch roles and units for dropdowns
