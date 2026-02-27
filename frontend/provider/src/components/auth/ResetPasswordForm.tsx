@@ -25,21 +25,15 @@ export default function ResetPasswordForm() {
       setToast({
         variant: "error",
         title: "Missing field",
-        description: "Please enter an email or policy number.",
+        description: "Please enter your policy number.",
       });
       return;
     }
 
     try {
-      const isEmail = /\S+@\S+\.\S+/.test(identifier);
-      const bodyPayload: Record<string, unknown> = {};
-
-      if (isEmail) {
-        (bodyPayload as Record<string, unknown>)["email"] = identifier.trim();
-      } else {
-        (bodyPayload as Record<string, unknown>)["policyNumber"] =
-          identifier.trim();
-      }
+      const bodyPayload: Record<string, unknown> = {
+        policyNumber: identifier.trim(),
+      };
 
       const data = await apiClient("/provider/auth/forgot", {
         method: "POST",
@@ -94,8 +88,7 @@ export default function ResetPasswordForm() {
             Forgot Your Password?
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Enter the email address linked to your account, and we’ll send you a
-            link to reset your password.
+            Enter your policy number and we’ll send you a link to reset your password.
           </p>
         </div>
         <div>
@@ -113,20 +106,18 @@ export default function ResetPasswordForm() {
             <div className="space-y-5">
               <div>
                 <Label>
-                  Email or Policy Number
-                  <span className="text-error-500">*</span>
+                  Policy Number <span className="text-error-500">*</span>
                 </Label>
                 <Input
                   type="text"
                   id="identifier"
                   name="identifier"
-                  placeholder="Enter your email or policy number"
+                  placeholder="Enter your policy number"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                 />
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  Provide the email associated with your account or your policy
-                  number.
+                  Provide your policy number associated with your account.
                 </p>
               </div>
 
