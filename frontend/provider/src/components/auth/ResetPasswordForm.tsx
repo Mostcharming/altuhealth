@@ -88,7 +88,8 @@ export default function ResetPasswordForm() {
             Forgot Your Password?
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Enter your policy number and we’ll send you a link to reset your password.
+            Enter your policy number and we’ll send you a link to reset your
+            password.
           </p>
         </div>
         <div>
