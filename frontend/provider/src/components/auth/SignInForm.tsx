@@ -92,24 +92,21 @@ export default function SignInForm() {
       setToast({
         variant: "error",
         title: "Missing Fields",
-        description: "Please fill in both email and password.",
+        description: "Please fill in both policy number and password.",
       });
       setIsLoading(false);
-
       return;
     }
 
     try {
       const coords = await getCoordinates();
       let currentLocation = null;
-
       if (coords) {
         currentLocation = await getLocationName(coords.lat, coords.lon);
       }
 
-      const isEmail = /\S+@\S+\.\S+/.test(identifier);
-
       const bodyPayload: any = {
+        policyNumber: identifier,
         password,
         remember: isChecked,
         location: {
@@ -118,12 +115,6 @@ export default function SignInForm() {
           currentLocation: currentLocation || null,
         },
       };
-
-      if (isEmail) {
-        bodyPayload.email = identifier;
-      } else {
-        bodyPayload.policyNumber = identifier;
-      }
 
       const data = await apiClient("/provider/auth/login", {
         method: "POST",
@@ -184,7 +175,7 @@ export default function SignInForm() {
               Provider Sign In
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your email and password to sign in!
+              Enter your policy number and password to sign in!
             </p>
           </div>
 
@@ -202,11 +193,10 @@ export default function SignInForm() {
             <div className="space-y-6">
               <div>
                 <Label>
-                  Email or Policy Number{" "}
-                  <span className="text-error-500">*</span>
+                  Policy Number <span className="text-error-500">*</span>
                 </Label>
                 <Input
-                  placeholder="Email or Policy Number"
+                  placeholder="Policy Number"
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
