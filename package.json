@@ -11,9 +11,15 @@
     "enrollee": "cd frontend/enrollee && npm run dev",
     "corporate": "cd frontend/corporate && npm run dev",
     "retail": "cd frontend/retail && npm run dev",
-    "install-all": "cd backend && npm install && cd ../frontend/landing && npm install && cd ../admin && npm install && cd ../provider && npm install && cd ../member && npm install && cd ../corporate && npm install && cd ../retail && npm install"
+    "mobile:enrollee": "cd frontend/mobile/enrollee && npm start",
+    "install-all": "cd backend && npm install && cd ../frontend/landing && npm install && cd ../admin && npm install && cd ../provider && npm install && cd ../member && npm install && cd ../corporate && npm install && cd ../retail && npm install && cd ../mobile/enrollee && npm install"
   },
-  "keywords": ["erp", "health", "hmo", "telemedicine"],
+  "keywords": [
+    "erp",
+    "health",
+    "hmo",
+    "telemedicine"
+  ],
   "author": "Altu Health",
   "license": "MIT"
 }
