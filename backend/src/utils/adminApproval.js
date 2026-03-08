@@ -55,7 +55,7 @@ async function createAdminApproval(models, opts = {}) {
     try {
         const title = `Approval requested: ${payload.model}`;
         // addAdminNotification will resolve relative clickUrl against the configured FE URL
-        await addAdminNotification(models, { title, clickUrl: 'approval' });
+        await addAdminNotification(models, { title, clickUrl: 'approvals' });
     } catch (err) {
         // Don't fail the main operation if notification creation fails, but surface a warning in logs if available
         if (console && console.warn) console.warn('Failed to create admin notification for approval:', err.message || err);

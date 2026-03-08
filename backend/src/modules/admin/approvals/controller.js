@@ -110,7 +110,7 @@ async function performAction(req, res, next) {
         // Notify via admin notification (best-effort)
         try {
             const title = `Approval ${newStatus}: ${approval.model}`;
-            await addAdminNotification(req.models, { title, clickUrl: `approval/${id}` });
+            await addAdminNotification(req.models, { title, clickUrl: `approvals/${id}` });
         } catch (err) {
             if (console && console.warn) console.warn('Failed to create admin notification after approval action:', err.message || err);
         }
