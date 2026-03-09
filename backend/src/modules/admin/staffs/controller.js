@@ -118,13 +118,15 @@ async function createStaff(req, res, next) {
 
         // Only send notification if email is provided
         if (staff.email) {
-            const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
+            const enrollmentLink = `https://enrollee.altuhealth.com`;
 
             try {
                 const notificationData = {
                     firstName: staff.firstName,
                     companyName: company.name,
-                    enrollmentLink
+                    loginLink: enrollmentLink,
+                    policyNumber: policyNumber,
+                    temporaryPassword: hashedPassword
                 };
 
                 // Include password in notification if enrollee was created
@@ -133,12 +135,12 @@ async function createStaff(req, res, next) {
                     notificationData.policyNumber = enrollee.policyNumber;
                 }
 
-                // await notify(
-                //     { id: staff.id, email: staff.email, firstName: staff.firstName, },
-                //     'staff',
-                //     'STAFF_ENROLLMENT_REQUIRED',
-                //     notificationData
-                // );
+                await notify(
+                    { id: staff.id, email: staff.email, firstName: staff.firstName, },
+                    'staff',
+                    'STAFF_ENROLLMENT_REQUIRED',
+                    notificationData
+                );
 
                 await staff.update({
                     isNotified: true,
@@ -615,16 +617,16 @@ async function bulkCreateStaffs(req, res, next) {
 
                 const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
                 try {
-                    await notify(
-                        { id: staff.id, email: staff.email, firstName: staff.firstName, },
-                        'staff',
-                        'STAFF_ENROLLMENT_REQUIRED',
-                        {
-                            firstName: staff.firstName,
-                            companyName: company.name,
-                            enrollmentLink
-                        }
-                    );
+                    // await notify(
+                    //     { id: staff.id, email: staff.email, firstName: staff.firstName, },
+                    //     'staff',
+                    //     'STAFF_ENROLLMENT_REQUIRED',
+                    //     {
+                    //         firstName: staff.firstName,
+                    //         companyName: company.name,
+                    //         enrollmentLink
+                    //     }
+                    // );
 
                     await staff.update({
                         isNotified: true,
