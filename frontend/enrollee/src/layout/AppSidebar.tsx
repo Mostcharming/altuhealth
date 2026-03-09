@@ -32,7 +32,7 @@ const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [{ name: "Overview", path: "/dashboard/overview" }],
+    subItems: [{ name: "Overview", path: "/overview" }],
   },
   {
     name: "Medical History",
