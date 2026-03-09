@@ -87,6 +87,14 @@ export default function SingleRetailEnrollee() {
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Policy Number
+                  </p>
+                  <p className="mt-1 text-gray-800 dark:text-white/90">
+                    {enrollee.policyNumber || "-"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Email
                   </p>
                   <p className="mt-1 text-gray-800 dark:text-white/90">

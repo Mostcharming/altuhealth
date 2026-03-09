@@ -46,6 +46,7 @@ const RetailEnrolleeTable: React.FC = () => {
   ];
 
   const headers: Header[] = [
+    { key: "policyNumber", label: "Policy Number" },
     { key: "firstName", label: "First Name" },
     { key: "lastName", label: "Last Name" },
     { key: "email", label: "Email" },

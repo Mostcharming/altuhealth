@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 export interface RetailEnrollee {
   id: string;
+  policyNumber: string;
   firstName: string;
   middleName?: string | null;
   lastName: string;
