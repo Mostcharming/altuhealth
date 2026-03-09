@@ -11,7 +11,6 @@ import {
   useState,
 } from "react";
 import PhoneInput from "../form/group-input/PhoneInput";
-import FileInput from "../form/input/FileInput";
 import Input from "../form/input/InputField";
 import TextArea from "../form/input/TextArea";
 import Label from "../form/Label";
@@ -34,7 +33,6 @@ export default function UserInfoCard() {
   const [lastName, setLastName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
   const [messageTwo, setMessageTwo] = useState<string>("");
   const user = useAuthStore((s) => s.user);
 
@@ -42,7 +40,7 @@ export default function UserInfoCard() {
     try {
       setLoading(true);
 
-      const url = `/admin/account/profile`;
+      const url = `/enrollee/account/profile`;
 
       const data = await apiClient(url, {
         method: "GET",
@@ -73,24 +71,6 @@ export default function UserInfoCard() {
     setMessageTwo(account.address ?? "");
   }, [account]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement> | null) => {
-    if (!e) {
-      setFile(null);
-      return;
-    }
-    const files = e.target.files;
-    const selected = files && files[0] ? files[0] : null;
-
-    // Only accept image files
-    if (selected && !selected.type.startsWith("image/")) {
-      console.warn("Only image files are allowed");
-      setFile(null);
-      return;
-    }
-
-    setFile(selected);
-  };
-
   const handlePhoneChange = (val: string) => {
     setPhone(val ?? "");
   };
@@ -111,15 +91,11 @@ export default function UserInfoCard() {
     formData.append("phoneNumber", phone ?? "");
     formData.append("address", messageTwo ?? "");
     if (selectedCountry) formData.append("country", selectedCountry);
-    // include existing address if available
-    if (file) {
-      formData.append("picture", file);
-    }
 
     try {
       setLoading(true);
 
-      const url = `/admin/account/profile`;
+      const url = `/enrollee/account/profile`;
 
       const data = await apiClient(url, {
         method: "PUT",
@@ -352,14 +328,6 @@ export default function UserInfoCard() {
                       value={messageTwo}
                       error
                       onChange={(value) => setMessageTwo(value)}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Upload file</Label>
-                    <FileInput
-                      onChange={handleFileChange}
-                      className="custom-class"
-                      accept="image/*"
                     />
                   </div>
                 </div>

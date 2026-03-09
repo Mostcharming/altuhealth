@@ -9,6 +9,7 @@ router.use('/auth', require('./auth/route'));
 
 router.use(securityMiddleware);
 // Add other provider routes here as needed
+router.use('/account', require('./account/route'));
 router.use('/search', require('./search/route'));
 
 router.use(errorHandler);

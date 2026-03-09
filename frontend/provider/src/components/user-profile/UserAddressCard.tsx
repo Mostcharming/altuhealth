@@ -30,7 +30,7 @@ export default function UserAddressCard() {
         oldPassword,
       };
 
-      const data = await apiClient("/admin/account/password", {
+      const data = await apiClient("/provider/account/password", {
         method: "POST",
         body: bodyPayload,
         onLoading: setIsLoading,

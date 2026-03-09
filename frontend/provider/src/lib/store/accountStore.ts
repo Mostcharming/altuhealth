@@ -4,9 +4,11 @@ export interface Account {
   id: string;
   firstName?: string | null;
   lastName?: string | null;
+  name?: string | null;
   email?: string | null;
   picture?: string | null;
   phoneNumber?: string | null;
+  secondaryPhoneNumber?: string | null;
   status?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -14,8 +16,11 @@ export interface Account {
   state?: string | null;
   country?: string | null;
   address?: string | null;
+  lga?: string | null;
   city?: string | null;
   postalCode?: string | null;
+  category?: string | null;
+  website?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
 }

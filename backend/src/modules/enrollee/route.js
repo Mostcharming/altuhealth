@@ -9,6 +9,7 @@ router.use('/auth', require('./auth/route'));
 
 router.use(securityMiddleware);
 // Add other enrollee routes here as needed
+router.use('/account', require('./account/route'));
 
 router.use(errorHandler);
 

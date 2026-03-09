@@ -30,8 +30,7 @@ export default function UserInfoCard() {
   const [loading, setLoading] = useState(true);
 
   // Local form state to make the form controlled
-  const [firstName, setFirstName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
+  const [name, setName] = useState<string>("");
   const [phone, setPhone] = useState<string>("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -42,7 +41,7 @@ export default function UserInfoCard() {
     try {
       setLoading(true);
 
-      const url = `/admin/account/profile`;
+      const url = `/provider/account/profile`;
 
       const data = await apiClient(url, {
         method: "GET",
@@ -66,8 +65,8 @@ export default function UserInfoCard() {
   // When account updates, initialize the form fields
   useEffect(() => {
     if (!account) return;
-    setFirstName(account.firstName ?? "");
-    setLastName(account.lastName ?? "");
+    // Provider uses 'name' field
+    setName(account.name ?? "");
     setPhone(account.phoneNumber ?? "");
     setSelectedCountry(account.country ?? null);
     setMessageTwo(account.address ?? "");
@@ -106,8 +105,7 @@ export default function UserInfoCard() {
 
     // assemble form data for multipart/form-data upload
     const formData = new FormData();
-    formData.append("firstName", firstName ?? "");
-    formData.append("lastName", lastName ?? "");
+    formData.append("firstName", name ?? "");
     formData.append("phoneNumber", phone ?? "");
     formData.append("address", messageTwo ?? "");
     if (selectedCountry) formData.append("country", selectedCountry);
@@ -119,7 +117,7 @@ export default function UserInfoCard() {
     try {
       setLoading(true);
 
-      const url = `/admin/account/profile`;
+      const url = `/provider/account/profile`;
 
       const data = await apiClient(url, {
         method: "PUT",
@@ -135,8 +133,7 @@ export default function UserInfoCard() {
         const authUser = {
           id: String(acc.id ?? ""),
           email: String(acc.email ?? ""),
-          firstName: acc.firstName ?? undefined,
-          lastName: acc.lastName ?? undefined,
+          name: acc.name ?? undefined,
           role: user?.role ?? undefined,
           picture: acc.picture ?? undefined,
           phoneNumber: acc.phoneNumber ?? undefined,
@@ -304,23 +301,12 @@ export default function UserInfoCard() {
 
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
-                    <Label>First Name</Label>
+                    <Label>Provider Name</Label>
                     <Input
                       type="text"
-                      value={firstName}
+                      value={name}
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setFirstName(e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Last Name</Label>
-                    <Input
-                      type="text"
-                      value={lastName}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setLastName(e.target.value)
+                        setName(e.target.value)
                       }
                     />
                   </div>

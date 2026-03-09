@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useAuthStore } from "../../lib/authStore";
 import { Dropdown } from "../ui/dropdown/Dropdown";
+import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -74,7 +75,7 @@ export default function UserDropdown() {
 
         <ul className="flex flex-col gap-1 pt-4 pb-3 border-b border-gray-200 dark:border-gray-800">
           <li>
-            {/* <DropdownItem
+            <DropdownItem
               onItemClick={closeDropdown}
               tag="a"
               href="/profile"
@@ -96,7 +97,7 @@ export default function UserDropdown() {
                 />
               </svg>
               Edit profile
-            </DropdownItem> */}
+            </DropdownItem>
           </li>
         </ul>
         <button

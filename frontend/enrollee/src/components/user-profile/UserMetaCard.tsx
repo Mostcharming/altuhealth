@@ -17,7 +17,7 @@ export default function UserMetaCard() {
     try {
       setLoading(true);
 
-      const url = `/admin/account/profile`;
+      const url = `/enrollee/account/profile`;
 
       const data = await apiClient(url, {
         method: "GET",
@@ -50,7 +50,7 @@ export default function UserMetaCard() {
                 <Image
                   width={80}
                   height={80}
-                  src={account?.picture || "/images/user/owner.jpg"}
+                  src={account?.picture || "/images/main/small.svg"}
                   alt="user"
                 />
               </div>
