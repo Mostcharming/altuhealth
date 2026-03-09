@@ -102,7 +102,7 @@ export default function NotificationDropdown() {
   }, [setLoading, setNotifications]);
 
   useEffect(() => {
-    fetchNotifications();
+    // fetchNotifications();
   }, [fetchNotifications]);
 
   return (

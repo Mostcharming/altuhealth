@@ -43,20 +43,16 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Dashboard",
     subItems: [
-      { name: "Overview", path: "/overview" }, //finance
+      { name: "Overview", path: "/overview" },
       { name: "Analytics", path: "/analytics" },
-      { name: "Finance", path: "/finance" }, //find something
+      { name: "Finance", path: "/finance" },
     ],
   },
 
   {
     name: "Admins",
     icon: <UserIcon />,
-    subItems: [
-      { name: "Admin Directory", path: "/admins" },
-      // { name: "Other Employees", path: "/others" },
-      // { name: "Access & Roles", path: "/userroles" },
-    ],
+    subItems: [{ name: "Admin Directory", path: "/admins" }],
   },
   {
     name: "Providers",
@@ -91,13 +87,10 @@ const navItems: NavItem[] = [
     icon: <EnvelopeIcon />,
     subItems: [
       { name: "Claims Management", path: "/claims" },
-      // { name: "Capture & Validation", path: "/capture" },
       { name: "Vetting & Adjudication", path: "/vet-claims" },
-      // { name: "Assigned Claims", path: "/assigned-claims" },
       { name: "Awaiting Payment", path: "/awaiting-payment" },
       { name: "Payment Batch", path: "/payment-batch" },
       { name: "Payment Advice", path: "/payment-advice" },
-      // { name: "Reconciliation", path: "/reconciliation" },
     ],
   },
   {
@@ -107,8 +100,6 @@ const navItems: NavItem[] = [
       { name: "Authorization codes", path: "/authorization-codes" },
       { name: "Appointments", path: "/appointments" },
       { name: "Admission Tracker", path: "/admission-tracker" },
-      // { name: "Verification Monitor", path: "/verification-monitor" },
-      // { name: "Pharmacy Monitor", path: "/pharmacy-monitor" },
     ],
   },
   {
@@ -117,10 +108,6 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Provider Utilization", path: "/provider-utilization" },
       { name: "Client Utilization ", path: "/client-utilization" },
-      // { name: "Service Catalog", path: "/service-catalog" }, //medical checkup
-      // { name: "Call Memos", path: "/call-memo" },
-      // { name: "Surveys", path: "/surveys" },
-      // { name: "Service Cycles", path: "/service-cycles" },
     ],
   },
   {
@@ -128,10 +115,7 @@ const navItems: NavItem[] = [
     icon: <TaskIcon />,
     subItems: [
       { name: "Invoices", path: "/invoices" },
-      // { name: "Create Invoice", path: "/generate-invoice" },
       { name: "Payments", path: "/payments" },
-      // { name: "Billing Settings", path: "/invoice-settings" },
-      // { name: "Payment Reconciliation", path: "/payment-reconciliation" },
     ],
   },
   {
@@ -167,18 +151,12 @@ const supportItems: NavItem[] = [
       { name: "Approvals", path: "/approvals" },
       { name: "Requests", path: "/requests" },
       { name: "Reports", path: "/reports" },
-      // { name: "System Status", path: "/system-status" },
     ],
   },
   {
     icon: <CallIcon />,
     name: "Support",
-    subItems: [
-      { name: "Support/Messages", path: "/messages" },
-      // { name: "Ticket Replies", path: "/support-ticket-reply" },
-      // { name: "Knowledge Base", path: "/knowledge-base" },
-      // { name: "SLA Management", path: "/sla-management" },
-    ],
+    subItems: [{ name: "Support/Messages", path: "/messages" }],
   },
 ];
 
@@ -224,7 +202,6 @@ const AppSidebar: React.FC = () => {
     "developer.manage": ["Developer"],
   };
 
-  // Memoize user's privilege names to avoid recreating the Set each render
   const userPrivNames = useMemo(() => {
     const rolePrivilegesArr = (user?.rolePrivileges || []) as Array<
       { name?: string } | undefined
@@ -408,12 +385,9 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => path === pathname;
-
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
-    // Find the submenu (type + index) that matches the current pathname, if any
     let matched: { type: "main" | "support" | "others"; index: number } | null =
       null;
     const menuItemsMap: Record<string, NavItem[]> = {
@@ -438,7 +412,6 @@ const AppSidebar: React.FC = () => {
       });
     });
 
-    // Only update state if the matched submenu is different from current state
     setOpenSubmenu((prev) => {
       if (!matched) {
         return null;
@@ -457,7 +430,6 @@ const AppSidebar: React.FC = () => {
   ]);
 
   useEffect(() => {
-    // Set the height of the submenu items when the submenu is opened
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {

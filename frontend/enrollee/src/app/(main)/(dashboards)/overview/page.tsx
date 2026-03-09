@@ -2,12 +2,13 @@ import CrmMetrics from "@/components/crm/CrmMetrics";
 import CrmStatisticsChart from "@/components/crm/CrmStatisticsChart";
 import EstimatedRevenue from "@/components/crm/EstimatedRevenue";
 import SalePieChart from "@/components/crm/SalePieChart";
+import UpcomingSchedule from "@/components/crm/UpcomingSchedule";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Finances Dashboard",
+  title: "AltuHealth Enrollee Finances Dashboard",
   description:
-    "This is Next.js CRM Dashboard page for TailAdmin - Next.js Tailwind CSS Admin Dashboard Template",
+    "Overview of financial metrics and statistics for AltuHealth enrollees.",
 };
 
 export default function Crm() {
@@ -30,12 +31,8 @@ export default function Crm() {
       </div>
 
       <div className="col-span-12 xl:col-span-6">
-        {/* <UpcomingSchedule /> */}
+        <UpcomingSchedule />
       </div>
-
-      {/* <div className="col-span-12">
-        <CrmRecentOrderTable />
-      </div> */}
     </div>
   );
 }

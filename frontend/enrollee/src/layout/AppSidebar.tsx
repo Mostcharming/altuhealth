@@ -1,23 +1,13 @@
 "use client";
 import { useSidebar } from "@/context/SidebarContext";
 import {
-  CallIcon,
-  CartIcon,
   ChevronDownIcon,
-  EnvelopeIcon,
   GridIcon,
   GroupIcon,
   HorizontaLDots,
-  InfoIcon,
-  ListIcon,
-  PaperPlaneIcon,
-  PencilIcon,
   PlugInIcon,
   TaskIcon,
-  UserCircleIcon,
-  UserIcon,
 } from "@/icons";
-import { useAuthStore } from "@/lib/authStore";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,214 +28,88 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  // Healthcare Management
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [
-      { name: "Overview", path: "/overview" }, //finance
-      { name: "Analytics", path: "/analytics" },
-      { name: "Finance", path: "/finance" }, //find something
-    ],
-  },
-
-  {
-    name: "Admins",
-    icon: <UserIcon />,
-    subItems: [
-      { name: "Admin Directory", path: "/admins" },
-      { name: "Other Employees", path: "/others" },
-      { name: "Access & Roles", path: "/userroles" },
-    ],
+    subItems: [{ name: "Overview", path: "/dashboard/overview" }],
   },
   {
-    name: "Providers",
-    icon: <UserCircleIcon />,
-    subItems: [
-      { name: "Provider Directory", path: "/providers" },
-      { name: "Credentialing", path: "/provider-credentialing" },
-      { name: "Tariff History", path: "/tariff" },
-      { name: "Specializations", path: "/provider-specializations" },
-    ],
-  },
-  {
-    name: "Organizations",
-    icon: <PaperPlaneIcon />,
-    subItems: [
-      { name: "Companies", path: "/companies" },
-      { name: "Subscriptions & Plans", path: "/subscriptions" },
-      { name: "Contracts & SLAs", path: "/contracts" },
-      { name: "Reviews", path: "/review" },
-    ],
-  },
-  {
-    name: "Enrollees",
-    icon: <GroupIcon />,
-    subItems: [
-      { name: "Enrollee List", path: "/enrollees" },
-      { name: "Dependents", path: "/dependents" },
-      { name: "Retail Enrollees", path: "/retail-enrollees" },
-      { name: "Form Setup", path: "/form-setup" },
-      { name: "Birthday Setup", path: "/birthday-setup" },
-      { name: "Bulk Upload", path: "/enrollees/bulk-upload" },
-    ],
-  },
-  {
-    name: "Claims",
-    icon: <EnvelopeIcon />,
-    subItems: [
-      { name: "Claims Management", path: "/claims" },
-      { name: "Capture & Validation", path: "/capture" },
-      { name: "Vetting & Adjudication", path: "/vetting" },
-      { name: "Payment Batch", path: "/payment-batch" },
-      { name: "Payment Advice", path: "/payment-advice" },
-      { name: "Reconciliation", path: "/reconciliation" },
-      { name: "Assigned Claims", path: "/assigned-claims" },
-    ],
-  },
-  {
-    name: "Authorizations",
-    icon: <PencilIcon />,
-    subItems: [
-      { name: "Requests", path: "/authorizations" },
-      { name: "Tracker", path: "/authorization-tracking" },
-      { name: "Create Authorization", path: "/new-authorization" },
-      { name: "Verification Monitor", path: "/verification-monitor" },
-    ],
-  },
-  {
-    name: "Services",
-    icon: <CartIcon />,
-    subItems: [
-      { name: "Service Catalog", path: "/service-catalog" }, //medical checkup
-      { name: "Appointments & Memos", path: "/call-memo" },
-      { name: "Surveys", path: "/surveys" },
-      { name: "Service Cycles", path: "/service-cycles" },
-    ],
-  },
-  {
-    name: "Billing",
-    icon: <TaskIcon />,
-    subItems: [
-      { name: "Invoices", path: "/invoices" },
-      { name: "Generate Invoice", path: "/generate-invoice" },
-      { name: "Billing Settings", path: "/invoice-settings" },
-      { name: "Payment Reconciliation", path: "/payment-reconciliation" },
-    ],
-  },
-  {
-    name: "Configuration",
+    name: "Medical History",
     icon: <PlugInIcon />,
-    subItems: [
-      { name: "Plans", path: "/plans" },
-      { name: "Units", path: "/units" },
-      { name: "Roles", path: "/roles" },
-      { name: "Diagnosis Codes", path: "/diagnosis" },
-      { name: "Exclusions", path: "/exclude" },
-      { name: "Benefits", path: "/benefits" },
-      { name: "Notification Settings", path: "/notification-settings" },
-      { name: "Integrations", path: "/integrations" },
-    ],
+    path: "/medical-history",
   },
-];
+  {
+    name: "Dependents",
+    icon: <GroupIcon />,
+    path: "/dependents",
+  },
+  {
+    name: "Appointments",
+    icon: <TaskIcon />,
+    path: "/appointments",
+  },
 
-const supportItems: NavItem[] = [
+  // Benefits & Coverage
   {
-    name: "Operations",
-    icon: <InfoIcon />,
-    subItems: [
-      { name: "Approvals", path: "/approvals" },
-      { name: "Requests", path: "/requests" },
-      { name: "Reports", path: "/reports" },
-      { name: "System Status", path: "/system-status" },
-    ],
+    name: "Enrollee Benefits",
+    icon: <GridIcon />,
+    path: "/benefits",
   },
   {
-    icon: <CallIcon />,
-    name: "Support",
-    subItems: [
-      { name: "Support Tickets", path: "/support-tickets" },
-      { name: "Ticket Replies", path: "/support-ticket-reply" },
-      { name: "Knowledge Base", path: "/knowledge-base" },
-      { name: "SLA Management", path: "/sla-management" },
-    ],
+    name: "Hospital List",
+    icon: <GroupIcon />,
+    path: "/hospital-list",
   },
-];
 
-const othersItems: NavItem[] = [
+  // Claims & Refunds
   {
-    name: "Logs",
-    icon: <ListIcon />,
-    subItems: [
-      { name: "Audit Logs", path: "/audit" },
-      { name: "Notification Logs", path: "/notification" },
-    ],
+    name: "Refunds",
+    icon: <TaskIcon />,
+    path: "/refunds",
+  },
+
+  // Requests & Approvals
+  {
+    name: "Medication Request History",
+    icon: <PlugInIcon />,
+    path: "/medication-requests",
+    new: true,
   },
   {
-    name: "Developer",
-    icon: <PaperPlaneIcon />,
-    subItems: [
-      { name: "API Keys", path: "/api-keys" },
-      { name: "Webhooks", path: "/webhooks" },
-    ],
+    name: "Consult a Doctor",
+    icon: <GridIcon />,
+    path: "/doctor-consultation",
+    new: true,
+  },
+
+  // Support
+  {
+    name: "Support Messages",
+    icon: <TaskIcon />,
+    path: "/support-messages",
+  },
+  {
+    name: "Annual Medical Check-up",
+    icon: <PlugInIcon />,
+    path: "/annual-checkup",
   },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
-  const user = useAuthStore((s) => s.user);
 
-  // Map privileges to the top-level menu names they should enable
-  const privilegeMap: Record<string, string[]> = {
-    "admins.manage": ["Admins"],
-    "providers.manage": ["Providers"],
-    "organizations.manage": ["Organizations"],
-    "enrollees.manage": ["Enrollees"],
-    "claims.manage": ["Claims"],
-    "authorizations.manage": ["Authorizations"],
-    "services.manage": ["Services"],
-    "billing.manage": ["Billing"],
-    "config.manage": ["Configuration"],
-    "operations.manage": ["Operations"],
-    "support.manage": ["Support"],
-    "logs.view": ["Logs"],
-    "developer.manage": ["Developer"],
-  };
-
-  // Memoize user's privilege names to avoid recreating the Set each render
-  const userPrivNames = useMemo(() => {
-    const rolePrivilegesArr = (user?.rolePrivileges || []) as Array<
-      { name?: string } | undefined
-    >;
-    return new Set<string>(
-      rolePrivilegesArr
-        .map((p) => p?.name)
-        .filter((n): n is string => Boolean(n))
-    );
-  }, [user?.rolePrivileges]);
-
-  // Always allow Dashboard and add menu names based on privileges (memoized)
+  // Allow all menu items (no privilege check needed for providers)
   const allowedMenuNames = useMemo(() => {
-    const set = new Set<string>(["Dashboard"]);
-    Object.entries(privilegeMap).forEach(([priv, names]) => {
-      if (userPrivNames.has(priv)) {
-        names.forEach((n) => set.add(n));
-      }
-    });
+    const set = new Set<string>();
+    navItems.forEach((item) => set.add(item.name));
     return set;
-  }, [userPrivNames]);
+  }, []);
 
   // Filter the top-level arrays so only allowed sections are rendered (memoized)
   const filteredNavItems = useMemo(
     () => navItems.filter((item) => allowedMenuNames.has(item.name)),
-    [allowedMenuNames]
-  );
-  const filteredSupportItems = useMemo(
-    () => supportItems.filter((item) => allowedMenuNames.has(item.name)),
-    [allowedMenuNames]
-  );
-  const filteredOthersItems = useMemo(
-    () => othersItems.filter((item) => allowedMenuNames.has(item.name)),
     [allowedMenuNames]
   );
 
@@ -396,37 +260,34 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => path === pathname;
-
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
-    // Find the submenu (type + index) that matches the current pathname, if any
     let matched: { type: "main" | "support" | "others"; index: number } | null =
       null;
     const menuItemsMap: Record<string, NavItem[]> = {
       main: filteredNavItems,
-      support: filteredSupportItems,
-      others: filteredOthersItems,
     };
 
-    (
-      ["main", "support", "others"] as Array<"main" | "support" | "others">
-    ).some((menuType) => {
-      const items = menuItemsMap[menuType];
-      return items.some((nav, index) => {
-        if (!nav.subItems) return false;
-        return nav.subItems.some((subItem) => {
-          if (isActive(subItem.path)) {
-            matched = { type: menuType, index };
-            return true;
-          }
-          return false;
-        });
-      });
-    });
+    (Object.keys(menuItemsMap) as Array<"main" | "support" | "others">).some(
+      (menuType) => {
+        const items = menuItemsMap[menuType];
+        return (
+          items &&
+          items.some((nav, index) => {
+            if (!nav.subItems) return false;
+            return nav.subItems.some((subItem) => {
+              if (isActive(subItem.path)) {
+                matched = { type: menuType, index };
+                return true;
+              }
+              return false;
+            });
+          })
+        );
+      }
+    );
 
-    // Only update state if the matched submenu is different from current state
     setOpenSubmenu((prev) => {
       if (!matched) {
         return null;
@@ -436,16 +297,9 @@ const AppSidebar: React.FC = () => {
       }
       return matched;
     });
-  }, [
-    pathname,
-    isActive,
-    filteredNavItems,
-    filteredSupportItems,
-    filteredOthersItems,
-  ]);
+  }, [pathname, isActive, filteredNavItems]);
 
   useEffect(() => {
-    // Set the height of the submenu items when the submenu is opened
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
@@ -494,6 +348,7 @@ const AppSidebar: React.FC = () => {
         }`}
       >
         <Link href="/">
+          {" "}
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <Image
@@ -512,7 +367,6 @@ const AppSidebar: React.FC = () => {
               />
             </>
           ) : (
-            //small
             <Image
               src="/images/main/small.svg"
               alt="Logo"
@@ -524,7 +378,8 @@ const AppSidebar: React.FC = () => {
       </div>
       <div className="flex flex-col overflow-y-auto  duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
+            {/* Healthcare Management */}
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
@@ -534,13 +389,69 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Main"
+                  "Healthcare"
                 ) : (
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems, "main")}
+              {renderMenuItems(filteredNavItems.slice(0, 4), "main")}
             </div>
+
+            {/* Benefits & Coverage */}
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "xl:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Coverage"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(filteredNavItems.slice(4, 6), "main")}
+            </div>
+
+            {/* Claims & Refunds */}
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "xl:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Claims"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(filteredNavItems.slice(6, 7), "main")}
+            </div>
+
+            {/* Requests & Services */}
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "xl:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Services"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(filteredNavItems.slice(7, 9), "main")}
+            </div>
+
+            {/* Support */}
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
@@ -555,27 +466,10 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredSupportItems, "support")}
-            </div>
-            <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "xl:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(filteredOthersItems, "others")}
+              {renderMenuItems(filteredNavItems.slice(9, 11), "main")}
             </div>
           </div>
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );

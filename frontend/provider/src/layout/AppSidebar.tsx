@@ -28,36 +28,49 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  // Clinical Management
   {
     icon: <GridIcon />,
     name: "Dashboard",
-    subItems: [
-      { name: "Overview", path: "/overview" }, //finance
-    ],
-  },
-
-  {
-    name: "Verify Enrolle",
-    icon: <GroupIcon />,
-    subItems: [
-      { name: "Search Enrollee/Dependents", path: "/enrollees" },
-      //       { name: "Enrollee List", path: "/enrollees" },
-      // { name: "Dependents", path: "/enrollee-dependents" },
-    ],
+    subItems: [{ name: "Overview", path: "/dashboard/overview" }],
   },
   {
-    name: "Appointments/Authorizations",
+    name: "Patient Management",
     icon: <GroupIcon />,
+    subItems: [{ name: "Search Enrollee/Dependents", path: "/enrollees" }],
+  },
+  {
+    name: "Appointments & Authorizations",
+    icon: <TaskIcon />,
     subItems: [
       { name: "Admissions", path: "/admission-tracker" },
-      { name: "Authorization codes", path: "/authorization-codes" },
+      { name: "Authorization Codes", path: "/authorization-codes" },
       { name: "Appointments", path: "/appointments" },
     ],
   },
+  {
+    name: "Medical Consultations",
+    icon: <PlugInIcon />,
+    path: "/consultations",
+    new: true,
+  },
 
+  // Clinical Records
+  {
+    name: "Patient Records",
+    icon: <TaskIcon />,
+    path: "/patient-records",
+  },
+  {
+    name: "Medical History",
+    icon: <PlugInIcon />,
+    path: "/medical-history",
+  },
+
+  // Billing & Finance
   {
     name: "Billing Management",
-    icon: <TaskIcon />,
+    icon: <GridIcon />,
     subItems: [
       { name: "Capture Bill", path: "/bills" },
       { name: "Saved Bills", path: "/saved-bills" },
@@ -65,9 +78,34 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    name: "Medical Checks",
+    name: "Claims & Refunds",
+    icon: <TaskIcon />,
+    path: "/claims-refunds",
+  },
+
+  // Services
+  {
+    name: "Annual Medical Check-up",
     icon: <PlugInIcon />,
-    subItems: [{ name: "Annual Medical Checkup", path: "/checkups" }],
+    subItems: [{ name: "Checkups", path: "/checkups" }],
+  },
+  {
+    name: "Referrals",
+    icon: <GroupIcon />,
+    path: "/referrals",
+    new: true,
+  },
+
+  // Support
+  {
+    name: "Support Messages",
+    icon: <TaskIcon />,
+    path: "/support-messages",
+  },
+  {
+    name: "Settings",
+    icon: <PlugInIcon />,
+    path: "/settings",
   },
 ];
 
@@ -376,7 +414,8 @@ const AppSidebar: React.FC = () => {
       </div>
       <div className="flex flex-col overflow-y-auto  duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
+            {/* Clinical Management */}
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
@@ -386,14 +425,70 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Main"
+                  "Clinical"
                 ) : (
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems, "main")}
+              {renderMenuItems(filteredNavItems.slice(0, 4), "main")}
             </div>
-            {/* <div>
+
+            {/* Clinical Records */}
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "xl:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Records"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(filteredNavItems.slice(4, 6), "main")}
+            </div>
+
+            {/* Billing & Finance */}
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "xl:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Billing"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(filteredNavItems.slice(6, 8), "main")}
+            </div>
+
+            {/* Services */}
+            <div>
+              <h2
+                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
+                  !isExpanded && !isHovered
+                    ? "xl:justify-center"
+                    : "justify-start"
+                }`}
+              >
+                {isExpanded || isHovered || isMobileOpen ? (
+                  "Services"
+                ) : (
+                  <HorizontaLDots />
+                )}
+              </h2>
+              {renderMenuItems(filteredNavItems.slice(8, 10), "main")}
+            </div>
+
+            {/* Support */}
+            <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
                   !isExpanded && !isHovered
@@ -407,27 +502,10 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredSupportItems, "support")}
-            </div> */}
-            {/* <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "xl:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(filteredOthersItems, "others")}
-            </div> */}
+              {renderMenuItems(filteredNavItems.slice(10, 12), "main")}
+            </div>
           </div>
         </nav>
-        {/* {isExpanded || isHovered || isMobileOpen ? <SidebarWidget /> : null} */}
       </div>
     </aside>
   );

@@ -8,6 +8,7 @@ const hpp = require('hpp');
 const dbSelector = require('./middlewares/common/dbSelector');
 const adminRouter = require('./modules/admin/route');
 const providerRouter = require('./modules/provider/route');
+const enrolleeRouter = require('./modules/enrollee/route');
 
 require('./database');
 require('dotenv').config();
@@ -36,7 +37,7 @@ app.use(helmet({
   xssFilter: true,
 }));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://provider.altuhealth.com', 'https://admin.altuhealth.com', 'http://localhost:3001', 'http://localhost:3002', 'http://192.168.1.191:3001', 'http://192.168.1.191:3002', 'http://192.168.43.84:3001', 'http://192.168.43.84:3002'],
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://provider.altuhealth.com', 'https://admin.altuhealth.com', 'https://enrollee.altuhealth.com', 'https://retail.altuhealth.com', 'https://doctors.altuhealth.com', 'http://localhost:3003', 'http://localhost:3001', 'http://localhost:3002', 'http://192.168.1.191:3001', 'http://192.168.1.191:3002', 'http://192.168.43.84:3001', 'http://192.168.43.84:3002'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -100,6 +101,7 @@ if (config && config.uploads && config.uploads.profileDir) {
 
 app.use(`/api/${config.apiVersion}/admin`, adminRouter);
 app.use(`/api/${config.apiVersion}/provider`, providerRouter);
+app.use(`/api/${config.apiVersion}/enrollee`, enrolleeRouter);
 
 app.get('/', (req, res) => {
   res.json({
