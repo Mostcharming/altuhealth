@@ -49,7 +49,10 @@ export default function UpcomingSchedule() {
       <div className="max-w-full overflow-x-auto custom-scrollbar">
         <div className="min-w-[500px] xl:min-w-full">
           <div className="flex flex-col gap-2">
-            {/* Appointments will go here */}
+            {/* Upcoming appointments placeholder */}
+            <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-theme-sm">
+              No upcoming appointments scheduled
+            </div>
           </div>
         </div>
       </div>

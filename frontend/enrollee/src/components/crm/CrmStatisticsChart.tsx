@@ -118,23 +118,24 @@ export default function CrmStatisticsChart() {
 
   const series = [
     {
-      name: "Drugs",
+      name: "Medications",
       data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     {
-      name: "Services",
+      name: "Medical Visits",
       data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
   ];
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white px-5 pb-5 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6 sm:pt-6">
       <div className="flex flex-col gap-5 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Statistics
+            Healthcare Usage
           </h3>
           <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
-            Target you’ve set for each month
+            Your medical activity throughout the year
           </p>
         </div>
         <ChartTab />
@@ -147,7 +148,7 @@ export default function CrmStatisticsChart() {
               0
             </h4>
             <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-              Drugs Used
+              Medications Claimed
             </span>
           </div>
           <span className="mt-1.5 flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-theme-xs font-medium text-success-600 dark:bg-success-500/15 dark:text-success-500">
@@ -160,7 +161,7 @@ export default function CrmStatisticsChart() {
               0
             </h4>
             <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-              Services Used
+              Medical Visits Completed
             </span>
           </div>
           <span className="mt-1.5 flex items-center gap-1 rounded-full bg-error-50 px-2 py-0.5 text-theme-xs font-medium text-error-600 dark:bg-error-500/15 dark:text-error-500">

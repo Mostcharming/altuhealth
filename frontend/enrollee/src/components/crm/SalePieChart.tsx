@@ -15,7 +15,7 @@ export default function SalePieChart() {
   // ApexCharts configuration
   const options: ApexOptions = {
     colors: ["#3641f5", "#7592ff", "#dde9ff"],
-    labels: ["Authorization Code Requested", "Authorization Code Used"],
+    labels: ["Benefits Available", "Benefits Used"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "donut",
@@ -47,7 +47,7 @@ export default function SalePieChart() {
               offsetY: 10,
               color: "#667085",
               fontSize: "14px",
-              formatter: () => "Used of 1.1K",
+              formatter: () => "Available Coverage",
             },
             total: {
               show: true,
@@ -122,7 +122,7 @@ export default function SalePieChart() {
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Authorization Code
+          My Benefits Coverage
         </h3>
         <div className="relative h-fit">
           <button onClick={toggleDropdown} className="dropdown-toggle">
@@ -162,7 +162,7 @@ export default function SalePieChart() {
             <div className="mt-1.5 h-2 w-2 rounded-full bg-brand-500"></div>
             <div>
               <h5 className="mb-1 font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                Requested
+                Available
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
@@ -198,7 +198,7 @@ export default function SalePieChart() {
             <div className="mt-1.5 h-2 w-2 rounded-full bg-brand-300"></div>
             <div>
               <h5 className="mb-1 font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                Cancelled
+                Remaining
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">

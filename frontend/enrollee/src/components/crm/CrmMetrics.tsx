@@ -3,7 +3,7 @@ import Badge from "../ui/badge/Badge";
 const mockData = [
   {
     id: 1,
-    title: "Enrollee Visits",
+    title: "Medical Visits",
     value: "0",
     change: "+0%",
     direction: "up",
@@ -11,7 +11,7 @@ const mockData = [
   },
   {
     id: 2,
-    title: "Total Drugs",
+    title: "Medications Used",
     value: "0",
     change: "+0%",
     direction: "up",
@@ -19,7 +19,7 @@ const mockData = [
   },
   {
     id: 3,
-    title: "Total Services",
+    title: "Healthcare Services",
     value: "0",
     change: "+0%",
     direction: "up",

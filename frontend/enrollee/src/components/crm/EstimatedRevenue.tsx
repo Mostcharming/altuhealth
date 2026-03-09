@@ -66,7 +66,7 @@ export default function EstimatedRevenue() {
     stroke: {
       lineCap: "round",
     },
-    labels: ["Bill Submitted"],
+    labels: ["Claim Submitted"],
   };
   const series = [0];
   return (
@@ -74,10 +74,10 @@ export default function EstimatedRevenue() {
       <div className="flex justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Bills
+            Healthcare Claims
           </h3>
           <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
-            Overview of your bills
+            Status of your healthcare claims
           </p>
         </div>
 
@@ -116,14 +116,14 @@ export default function EstimatedRevenue() {
           />
         </div>
         <span className="absolute left-1/2 top-[60%] -translate-x-1/2 -translate-y-[60%] text-xs font-normal text-gray-500 dark:text-gray-400">
-          Bill Submitted
+          Claim Submitted
         </span>
       </div>
 
       <div className="pt-6 mt-6 space-y-5 border-t border-gary-200 dark:border-gray-800">
         <div>
           <p className="mb-2 text-gray-500 text-theme-sm dark:text-gray-400">
-            Bill Paid
+            Claim Approved
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -147,7 +147,7 @@ export default function EstimatedRevenue() {
 
         <div>
           <p className="mb-2 text-gray-500 text-theme-sm dark:text-gray-400">
-            In Draft
+            Pending Review
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">

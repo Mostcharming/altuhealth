@@ -1,5 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import { useState } from "react";
+import { TrashBinIcon } from "../../icons";
+import Checkbox from "../form/input/Checkbox";
+import AvatarText from "../ui/avatar/AvatarText";
+import Badge from "../ui/badge/Badge";
 import {
   Table,
   TableBody,
@@ -7,28 +11,23 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
-import { TrashBinIcon } from "../../icons";
-import AvatarText from "../ui/avatar/AvatarText";
-import Checkbox from "../form/input/Checkbox";
-import Badge from "../ui/badge/Badge";
 
 // Interface for the table row data
 interface TableRowData {
   id: string; // Unique identifier for the row
-  user: {
+  provider: {
     initials: string; // Initials for the avatar
-    name: string; // User's full name
-    email: string; // User's email address
+    name: string; // Provider's name
+    type: string; // Type of provider (Hospital, Clinic, etc)
   };
   avatarColor: "brand" | "blue" | "green" | "red" | "yellow" | "gray"; // Color variant for the avatar
-  product: {
-    name: string; // Product name
-    price: string; // Product price
-    purchaseDate: string; // Date of purchase
+  service: {
+    name: string; // Service name
+    amount: string; // Amount claimed
+    visitDate: string; // Date of visit
   };
   status: {
-    // label: string; // Status text
-    type: "Complete" | "Warning" | "Cancel" | "Pending"; // Size of the badge
+    type: "Complete" | "Warning" | "Cancel" | "Pending"; // Status type
   };
   actions: {
     delete: boolean; // Indicates a delete action is available
@@ -37,17 +36,17 @@ interface TableRowData {
 
 const tableRowData: TableRowData[] = [
   {
-    id: "DE124321",
-    user: {
-      initials: "AB",
-      name: "John Doe",
-      email: "johndoe@gmail.com",
+    id: "CLM001",
+    provider: {
+      initials: "GH",
+      name: "General Hospital",
+      type: "Hospital",
     },
     avatarColor: "brand",
-    product: {
-      name: "Software License",
-      price: "$18,50.34",
-      purchaseDate: "2024-06-15",
+    service: {
+      name: "Consultation & Lab Work",
+      amount: "NGN 15,500.00",
+      visitDate: "2024-06-15",
     },
     status: {
       type: "Complete",
@@ -57,17 +56,17 @@ const tableRowData: TableRowData[] = [
     },
   },
   {
-    id: "DE124322",
-    user: {
-      initials: "CD",
-      name: "Jane Smith",
-      email: "janesmith@gmail.com",
+    id: "CLM002",
+    provider: {
+      initials: "MC",
+      name: "Medical Center",
+      type: "Clinic",
     },
     avatarColor: "brand",
-    product: {
-      name: "Cloud Hosting",
-      price: "$12,99.00",
-      purchaseDate: "2024-06-18",
+    service: {
+      name: "Follow-up Visit",
+      amount: "NGN 8,500.00",
+      visitDate: "2024-06-18",
     },
     status: {
       type: "Pending",
@@ -77,37 +76,37 @@ const tableRowData: TableRowData[] = [
     },
   },
   {
-    id: "DE124323",
-    user: {
-      initials: "EF",
-      name: "Michael Brown",
-      email: "michaelbrown@gmail.com",
+    id: "CLM003",
+    provider: {
+      initials: "PH",
+      name: "Premier Hospital",
+      type: "Hospital",
     },
     avatarColor: "brand",
-    product: {
-      name: "Web Domain",
-      price: "$9,50.00",
-      purchaseDate: "2024-06-20",
+    service: {
+      name: "Medication & Treatment",
+      amount: "NGN 22,000.00",
+      visitDate: "2024-06-20",
     },
     status: {
-      type: "Cancel",
+      type: "Complete",
     },
     actions: {
       delete: true,
     },
   },
   {
-    id: "DE124324",
-    user: {
-      initials: "GH",
-      name: "Alice Johnson",
-      email: "alicejohnson@gmail.com",
+    id: "CLM004",
+    provider: {
+      initials: "DC",
+      name: "Diagnostic Center",
+      type: "Diagnostic",
     },
     avatarColor: "brand",
-    product: {
-      name: "SSL Certificate",
-      price: "$2,30.45",
-      purchaseDate: "2024-06-25",
+    service: {
+      name: "Test & Imaging",
+      amount: "NGN 12,300.00",
+      visitDate: "2024-06-25",
     },
     status: {
       type: "Pending",
@@ -117,17 +116,17 @@ const tableRowData: TableRowData[] = [
     },
   },
   {
-    id: "DE124325",
-    user: {
-      initials: "IJ",
-      name: "Robert Lee",
-      email: "robertlee@gmail.com",
+    id: "CLM005",
+    provider: {
+      initials: "SP",
+      name: "Specialty Practice",
+      type: "Specialist",
     },
     avatarColor: "brand",
-    product: {
-      name: "Premium Support",
-      price: "$15,20.00",
-      purchaseDate: "2024-06-30",
+    service: {
+      name: "Specialist Consultation",
+      amount: "NGN 18,500.00",
+      visitDate: "2024-06-30",
     },
     status: {
       type: "Complete",
@@ -140,16 +139,6 @@ const tableRowData: TableRowData[] = [
 
 export default function CrmRecentOrderTable() {
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  const [selectAll, setSelectAll] = useState<boolean>(false);
-
-  const handleSelectAll = () => {
-    setSelectAll(!selectAll);
-    if (!selectAll) {
-      setSelectedRows(tableRowData.map((row) => row.id));
-    } else {
-      setSelectedRows([]);
-    }
-  };
 
   const handleRowSelect = (id: string) => {
     setSelectedRows((prevSelected) =>
@@ -163,7 +152,7 @@ export default function CrmRecentOrderTable() {
       <div className="flex flex-col gap-4 px-6 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Recent Orders
+            Recent Expenses
           </h3>
         </div>
         <div className="flex items-center gap-3">
@@ -219,29 +208,23 @@ export default function CrmRecentOrderTable() {
                 <TableCell className="px-4 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
                   <div className="flex items-center gap-3">
                     <div>
-                      <Checkbox
-                        checked={selectAll}
-                        onChange={handleSelectAll}
-                      />
-                    </div>
-                    <div>
                       <span className="font-medium text-gray-500 text-theme-xs dark:text-gray-400">
-                        Deal ID
+                        Claim ID
                       </span>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
-                  Customer
+                  Healthcare Provider
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
-                  Product/Service
+                  Service Received
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
-                  Deal Value
+                  Amount Claimed
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
-                  Close Date
+                  Visit Date
                 </TableCell>
                 <TableCell className="px-6 py-3 font-medium text-gray-500 sm:px-6 text-theme-xs dark:text-gray-400 text-start">
                   Status
@@ -271,30 +254,33 @@ export default function CrmRecentOrderTable() {
                   </TableCell>
                   <TableCell className="px-4 sm:px-6 py-3.5">
                     <div className="flex items-center gap-3">
-                      <AvatarText name={row.user.name} className="w-10 h-10" />
+                      <AvatarText
+                        name={row.provider.name}
+                        className="w-10 h-10"
+                      />
                       <div>
                         <span className="mb-0.5 block text-theme-sm font-medium text-gray-700 dark:text-gray-400">
-                          {row.user.name}
+                          {row.provider.name}
                         </span>
                         <span className="text-gray-500 text-theme-sm dark:text-gray-400">
-                          {row.user.email}
+                          {row.provider.type}
                         </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell className="px-4 sm:px-6 py-3.5">
                     <p className="text-gray-700 text-theme-sm dark:text-gray-400">
-                      {row.product.name}
+                      {row.service.name}
                     </p>
                   </TableCell>
                   <TableCell className="px-4 sm:px-6 py-3.5">
                     <p className="text-gray-700 text-theme-sm dark:text-gray-400">
-                      {row.product.price}
+                      {row.service.amount}
                     </p>
                   </TableCell>
                   <TableCell className="px-4 sm:px-6 py-3.5">
                     <p className="text-gray-700 text-theme-sm dark:text-gray-400">
-                      {row.product.purchaseDate}
+                      {row.service.visitDate}
                     </p>
                   </TableCell>
                   <TableCell className="px-4 sm:px-6 py-3.5">
