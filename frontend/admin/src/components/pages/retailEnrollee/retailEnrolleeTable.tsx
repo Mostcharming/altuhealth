@@ -218,6 +218,11 @@ const RetailEnrolleeTable: React.FC = () => {
                 >
                   <td className="p-4 whitespace-nowrap">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
+                      {capitalizeWords(enrollee.policyNumber)}
+                    </span>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
                       {capitalizeWords(enrollee.firstName)}
                     </span>
                   </td>
