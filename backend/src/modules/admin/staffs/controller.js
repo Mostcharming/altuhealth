@@ -680,7 +680,7 @@ async function bulkCreateStaffs(req, res, next) {
 
 async function resendEnrollmentNotification(req, res, next) {
     try {
-        const { Staff, Company } = req.models;
+        const { Staff, Company, Enrollee } = req.models;
         const { id } = req.params;
 
         const staff = await Staff.findByPk(id, {
@@ -701,9 +701,28 @@ async function resendEnrollmentNotification(req, res, next) {
             return res.fail('Staff email is not available', 400);
         }
 
-        const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
+        // Find enrollee record by staff.id
+        const enrollee = await Enrollee.findOne({
+            where: { staffId: staff.id }
+        });
+
+        if (!enrollee) {
+            return res.fail('Enrollee record not found for this staff', 404);
+        }
+
+        // Generate a new password and hash it
+        const rawPassword = generateCode(10, { letters: true, numbers: true });
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+        // Update enrollee with new password
+        await enrollee.update({
+            password: hashedPassword
+        });
+
+        const enrollmentLink = `https://enrollee.altuhealth.com`;
         const company = staff.Company;
         const companyName = company ? company.name : 'Your Company';
+        const policyNumber = enrollee.policyNumber;
 
         try {
             await notify(
@@ -713,7 +732,9 @@ async function resendEnrollmentNotification(req, res, next) {
                 {
                     firstName: staff.firstName,
                     companyName: companyName,
-                    enrollmentLink
+                    loginLink: enrollmentLink,
+                    policyNumber: policyNumber,
+                    temporaryPassword: rawPassword
                 }
             );
 
@@ -732,7 +753,7 @@ async function resendEnrollmentNotification(req, res, next) {
             });
 
             return res.success(
-                { staff: staff.toJSON() },
+                { staff: staff.toJSON(), enrollee: enrollee.toJSON() },
                 'Enrollment notification sent successfully'
             );
         } catch (notifyErr) {
