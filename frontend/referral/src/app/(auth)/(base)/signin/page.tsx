@@ -2,9 +2,9 @@ import SignInForm from "@/components/auth/SignInForm";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth doctors Signin",
+  title: "AltuHealth referral Signin",
   description:
-    "Sign in to your AltuHealth doctors account to manage your application.",
+    "Sign in to your AltuHealth referral account to manage your application.",
 };
 
 export default function SignIn() {
