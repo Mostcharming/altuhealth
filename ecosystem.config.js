@@ -69,6 +69,16 @@ module.exports = {
         NODE_ENV: "production",
         PORT: 3005
       }
+    },
+    {
+      name: "referral",
+      script: "npm",
+      args: "start",
+      cwd: "./frontend/referral",
+      env: {
+        NODE_ENV: "production",
+        PORT: 3006
+      }
     }
   ]
 };

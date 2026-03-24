@@ -8,6 +8,7 @@ const config = {
         enrolleeUrl: "https://enrollee.altuhealth.com",
         doctorUrl: "https://doctors.altuhealth.com",
         retailUrl: "https://retail.altuhealth.com",
+        referralUrl: "https://referral.altuhealth.com",
         db: {
             master: {
                 host: process.env.DB_MASTER_HOST,
@@ -41,6 +42,7 @@ const config = {
         enrolleeUrl: "https://enrollee.altuhealth.com",
         doctorUrl: "https://doctors.altuhealth.com",
         retailUrl: "https://retail.altuhealth.com",
+        referralUrl: "https://referral.altuhealth.com",
         db: {
             master: {
                 host: process.env.DB_PROD_MASTER_HOST,
