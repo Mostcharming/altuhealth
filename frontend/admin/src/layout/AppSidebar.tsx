@@ -13,6 +13,7 @@ import {
   MailIcon,
   PaperPlaneIcon,
   PencilIcon,
+  PieChartIcon,
   PlugInIcon,
   TaskIcon,
   UserCircleIcon,
@@ -141,6 +142,14 @@ const navItems: NavItem[] = [
       { name: "Notification Templates", path: "/notification-templates" },
     ],
   },
+  {
+    name: "Referral Management",
+    icon: <PieChartIcon />,
+    subItems: [
+      { name: "Referrers", path: "/referrals" },
+      { name: "Configuration", path: "/referral-configuration" },
+    ],
+  },
 ];
 
 const supportItems: NavItem[] = [
@@ -187,7 +196,7 @@ const AppSidebar: React.FC = () => {
   const user = useAuthStore((s) => s.user);
 
   const privilegeMap: Record<string, string[]> = {
-    "admins.manage": ["Admins"],
+    "admins.manage": ["Admins", "Referral Management"],
     "providers.manage": ["Providers"],
     "organizations.manage": ["Organizations"],
     "enrollees.manage": ["Enrollees"],
@@ -200,6 +209,7 @@ const AppSidebar: React.FC = () => {
     "support.manage": ["Support"],
     "logs.view": ["Logs"],
     "developer.manage": ["Developer"],
+    "referral.manage": ["Referral Management"],
   };
 
   const userPrivNames = useMemo(() => {
