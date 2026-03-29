@@ -13,6 +13,7 @@ async function createDrug(req, res, next) {
             description,
             strength,
             price,
+            currency,
             providerId,
             // status
         } = req.body || {};
@@ -34,6 +35,7 @@ async function createDrug(req, res, next) {
             description,
             strength,
             price,
+            currency: currency || 'NGN',
             providerId,
             // status: status || 'pending'
         });
@@ -83,6 +85,7 @@ async function updateDrug(req, res, next) {
             description,
             strength,
             price,
+            currency,
             status
         } = req.body || {};
 
@@ -96,6 +99,7 @@ async function updateDrug(req, res, next) {
         if (description !== undefined) updates.description = description;
         if (strength !== undefined) updates.strength = strength;
         if (price !== undefined) updates.price = price;
+        if (currency !== undefined) updates.currency = currency;
         if (status !== undefined) updates.status = status;
 
         await drug.update(updates);

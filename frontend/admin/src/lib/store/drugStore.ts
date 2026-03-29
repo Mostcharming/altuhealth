@@ -14,6 +14,7 @@ export interface Drug {
   description?: string | null;
   strength?: string | null;
   price: number;
+  currency: string;
   status: "active" | "inactive" | "pending";
   isDeleted?: boolean;
   providerId: string;

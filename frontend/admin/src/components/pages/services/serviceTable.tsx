@@ -15,6 +15,7 @@ import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
+import { getCurrencyOptions } from "@/lib/currencies";
 import { Service, useServiceStore } from "@/lib/store/serviceStore";
 import {
   formatPriceDisplay,
@@ -72,6 +73,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
   const [createFixedPrice, setCreateFixedPrice] = useState("");
   const [createRateType, setCreateRateType] = useState<string>("");
   const [createRateAmount, setCreateRateAmount] = useState("");
+  const [createCurrency, setCreateCurrency] = useState("NGN");
   const [createStatus, setCreateStatus] = useState<
     "active" | "inactive" | "pending"
   >("pending");
@@ -247,6 +249,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     setCreateFixedPrice("");
     setCreateRateType("");
     setCreateRateAmount("");
+    setCreateCurrency("NGN");
     setCreateStatus("pending");
   };
 
@@ -296,6 +299,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         description: createDescription.trim() || undefined,
         requiresPreauthorization: createRequiresPreauthorization,
         priceType: createPriceType,
+        currency: createCurrency,
         status: createStatus,
         providerId: id,
       };
@@ -832,6 +836,16 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                       setCreatePriceType(value as "fixed" | "rate")
                     }
                     defaultValue={createPriceType}
+                  />
+                </div>
+
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Currency</Label>
+                  <Select
+                    options={getCurrencyOptions()}
+                    placeholder="Select currency"
+                    onChange={(value) => setCreateCurrency(value)}
+                    defaultValue={createCurrency}
                   />
                 </div>
 

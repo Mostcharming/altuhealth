@@ -68,6 +68,12 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
             field: 'rate_amount'
         },
+        currency: {
+            type: DataTypes.STRING(3),
+            allowNull: false,
+            defaultValue: 'NGN',
+            field: 'currency'
+        },
         status: {
             type: DataTypes.ENUM('active', 'inactive', 'pending'),
             allowNull: false,

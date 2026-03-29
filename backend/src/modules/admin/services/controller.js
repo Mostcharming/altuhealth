@@ -17,6 +17,7 @@ async function createService(req, res, next) {
             rateType,
             rateAmount,
             price, // for backwards compatibility
+            currency,
             providerId,
             status
         } = req.body || {};
@@ -65,6 +66,7 @@ async function createService(req, res, next) {
             rateType: finalPriceType === 'rate' ? rateType : null,
             rateAmount: finalPriceType === 'rate' ? rateAmount : null,
             price: fixedPrice || price, // keep for backwards compatibility
+            currency: currency || 'NGN',
             providerId,
             status: status || 'pending'
         });
@@ -129,6 +131,7 @@ async function updateService(req, res, next) {
         if (name !== undefined) updates.name = name;
         if (description !== undefined) updates.description = description;
         if (requiresPreauthorization !== undefined) updates.requiresPreauthorization = requiresPreauthorization;
+        if (currency !== undefined) updates.currency = currency;
         if (status !== undefined) updates.status = status;
 
         // Handle pricing updates

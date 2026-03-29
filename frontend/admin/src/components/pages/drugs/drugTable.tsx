@@ -14,6 +14,7 @@ import { useModal } from "@/hooks/useModal";
 import { PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
+import { getCurrencyOptions } from "@/lib/currencies";
 import { formatDate, formatPrice } from "@/lib/formatDate";
 import { Drug, useDrugStore } from "@/lib/store/drugStore";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
@@ -57,6 +58,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
   const [createUnit, setCreateUnit] = useState("");
   const [createStrength, setCreateStrength] = useState("");
   const [createPrice, setCreatePrice] = useState("");
+  const [createCurrency, setCreateCurrency] = useState("NGN");
   const [createStatus, setCreateStatus] = useState<
     "active" | "inactive" | "pending"
   >("pending");
@@ -224,6 +226,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
     setCreateUnit("");
     setCreateStrength("");
     setCreatePrice("");
+    setCreateCurrency("NGN");
     setCreateStatus("pending");
   };
 
@@ -268,6 +271,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
         description?: string;
         strength?: string;
         price: number;
+        currency: string;
         status: string;
         providerId: string;
       } = {
@@ -276,6 +280,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
         description: createDescription.trim() || undefined,
         strength: createStrength.trim() || undefined,
         price: parseFloat(createPrice),
+        currency: createCurrency,
         status: createStatus,
         providerId: id,
       };
@@ -294,6 +299,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
           description: createDescription || null,
           strength: createStrength || null,
           price: parseFloat(createPrice),
+          currency: createCurrency,
           status: createStatus,
           providerId: id,
           createdAt: data.data.drug.createdAt,
@@ -315,7 +321,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
     const sampleData = [
       {
         name: "Paracetamol",
-        unit: "tablet",
+        unit: "10",
         strength: "500mg",
         description: "Pain reliever and fever reducer",
         price: "500",
@@ -323,7 +329,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
       },
       {
         name: "Amoxicillin",
-        unit: "capsule",
+        unit: "10",
         strength: "250mg",
         description: "Antibiotic medication",
         price: "1500",
@@ -810,6 +816,16 @@ const DrugTable: React.FC<DrugTableProps> = ({
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
                       setCreatePrice(e.target.value)
                     }
+                  />
+                </div>
+
+                <div className="col-span-2 lg:col-span-1">
+                  <Label>Currency</Label>
+                  <Select
+                    options={getCurrencyOptions()}
+                    placeholder="Select currency"
+                    onChange={(value) => setCreateCurrency(value)}
+                    defaultValue={createCurrency}
                   />
                 </div>
 

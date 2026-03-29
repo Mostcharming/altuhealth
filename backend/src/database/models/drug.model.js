@@ -34,6 +34,12 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             field: 'price'
         },
+        currency: {
+            type: DataTypes.STRING(3),
+            allowNull: false,
+            defaultValue: 'NGN',
+            field: 'currency'
+        },
         status: {
             type: DataTypes.ENUM('active', 'inactive', 'pending'),
             allowNull: false,

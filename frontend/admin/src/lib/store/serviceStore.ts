@@ -29,6 +29,7 @@ export interface Service {
     | null;
   rateAmount?: number | null;
   price?: number | null; // kept for backwards compatibility
+  currency: string;
   status: "active" | "inactive" | "pending";
   isDeleted?: boolean;
   providerId: string;

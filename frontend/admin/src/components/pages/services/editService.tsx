@@ -10,6 +10,7 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { getCurrencyOptions } from "@/lib/currencies";
 import { Service, useServiceStore } from "@/lib/store/serviceStore";
 import {
   PRICE_TYPES,
@@ -42,6 +43,7 @@ export default function EditService({
   const [fixedPrice, setFixedPrice] = useState("");
   const [rateType, setRateType] = useState<string>("");
   const [rateAmount, setRateAmount] = useState("");
+  const [currency, setCurrency] = useState("NGN");
   const [status, setStatus] = useState<"active" | "inactive" | "pending">(
     "pending"
   );
@@ -72,6 +74,7 @@ export default function EditService({
       setFixedPrice(service.fixedPrice?.toString() ?? "");
       setRateType(service.rateType ?? "");
       setRateAmount(service.rateAmount?.toString() ?? "");
+      setCurrency(service.currency ?? "NGN");
       setStatus(service.status ?? "pending");
     }
 
@@ -85,6 +88,7 @@ export default function EditService({
       setFixedPrice("");
       setRateType("");
       setRateAmount("");
+      setCurrency("NGN");
       setStatus("pending");
     }
   }, [isOpen, service]);
@@ -119,6 +123,7 @@ export default function EditService({
         description: description.trim() || undefined,
         requiresPreauthorization: requiresPreauthorization,
         priceType,
+        currency,
         status,
       };
 
@@ -160,6 +165,7 @@ export default function EditService({
                 | "per_mile")
             : null,
         rateAmount: priceType === "rate" ? parseFloat(rateAmount) : null,
+        currency: currency,
         status: status,
       });
 
@@ -222,6 +228,16 @@ export default function EditService({
                   placeholder="Select pricing type"
                   onChange={(value) => setPriceType(value as "fixed" | "rate")}
                   defaultValue={priceType}
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Currency</Label>
+                <Select
+                  options={getCurrencyOptions()}
+                  placeholder="Select currency"
+                  onChange={(value) => setCurrency(value)}
+                  defaultValue={currency}
                 />
               </div>
 

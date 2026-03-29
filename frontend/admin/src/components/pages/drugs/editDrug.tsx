@@ -9,6 +9,7 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { getCurrencyOptions } from "@/lib/currencies";
 import { Drug, useDrugStore } from "@/lib/store/drugStore";
 import { ChangeEvent, useEffect, useState } from "react";
 
@@ -28,6 +29,7 @@ export default function EditDrug({ isOpen, closeModal, drug }: EditDrugProps) {
   const [description, setDescription] = useState("");
   const [strength, setStrength] = useState("");
   const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("NGN");
   const [status, setStatus] = useState<"active" | "inactive" | "pending">(
     "pending"
   );
@@ -55,6 +57,7 @@ export default function EditDrug({ isOpen, closeModal, drug }: EditDrugProps) {
       setDescription(drug.description ?? "");
       setStrength(drug.strength ?? "");
       setPrice(drug.price?.toString() ?? "");
+      setCurrency(drug.currency ?? "NGN");
       setStatus(drug.status ?? "pending");
     }
 
@@ -65,6 +68,7 @@ export default function EditDrug({ isOpen, closeModal, drug }: EditDrugProps) {
       setDescription("");
       setStrength("");
       setPrice("");
+      setCurrency("NGN");
       setStatus("pending");
     }
   }, [isOpen, drug]);
@@ -95,6 +99,7 @@ export default function EditDrug({ isOpen, closeModal, drug }: EditDrugProps) {
         description?: string;
         strength?: string;
         price: number;
+        currency: string;
         status: string;
       } = {
         name: name.trim(),
@@ -102,6 +107,7 @@ export default function EditDrug({ isOpen, closeModal, drug }: EditDrugProps) {
         description: description.trim() || undefined,
         strength: strength.trim() || undefined,
         price: parseFloat(price),
+        currency: currency,
         status,
       };
 
@@ -120,6 +126,7 @@ export default function EditDrug({ isOpen, closeModal, drug }: EditDrugProps) {
         description: description || null,
         strength: strength || null,
         price: parseFloat(price),
+        currency: currency,
         status: status,
       });
 
@@ -195,6 +202,16 @@ export default function EditDrug({ isOpen, closeModal, drug }: EditDrugProps) {
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     setPrice(e.target.value)
                   }
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Currency</Label>
+                <Select
+                  options={getCurrencyOptions()}
+                  placeholder="Select currency"
+                  onChange={(value) => setCurrency(value)}
+                  defaultValue={currency}
                 />
               </div>
 
