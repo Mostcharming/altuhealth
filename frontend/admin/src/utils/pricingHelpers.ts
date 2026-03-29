@@ -2,6 +2,8 @@
  * Pricing Helper Utilities for Frontend
  */
 
+import { getCurrencyByCode } from "@/lib/currencies";
+
 export const RATE_TYPES = [
   { value: "per_session", label: "Per Session" },
   { value: "per_visit", label: "Per Visit" },
@@ -28,19 +30,24 @@ export function formatPriceDisplay(
   fixedPrice?: number | null,
   rateType?: string | null,
   rateAmount?: number | null,
-  price?: number | null
+  price?: number | null,
+  currency?: string | null
 ): string {
+  const currencyCode = currency || "NGN";
+  const currencyInfo = getCurrencyByCode(currencyCode);
+  const symbol = currencyInfo.symbol;
+
   if (!priceType || priceType === "fixed") {
     const amount = fixedPrice ?? price;
     if (amount === undefined || amount === null) return "N/A";
-    return `₦${amount.toLocaleString()}`;
+    return `${symbol}${amount.toLocaleString()}`;
   }
 
   if (priceType === "rate") {
     if (!rateAmount || !rateType) return "N/A";
     const rateLabel =
       RATE_TYPES.find((r) => r.value === rateType)?.label || rateType;
-    return `₦${rateAmount.toLocaleString()} ${rateLabel}`;
+    return `${symbol}${rateAmount.toLocaleString()} ${rateLabel}`;
   }
 
   return "N/A";

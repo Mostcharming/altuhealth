@@ -117,6 +117,7 @@ async function updateService(req, res, next) {
             requiresPreauthorization,
             priceType,
             fixedPrice,
+            currency,
             rateType,
             rateAmount,
             price, // for backwards compatibility

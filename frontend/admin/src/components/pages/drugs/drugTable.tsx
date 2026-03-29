@@ -516,7 +516,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {formatPrice(drug.price)}
+                      {formatPrice(drug.price, drug.currency)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">

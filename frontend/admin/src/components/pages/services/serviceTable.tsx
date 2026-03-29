@@ -546,7 +546,8 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                         service.fixedPrice,
                         service.rateType,
                         service.rateAmount,
-                        service.price
+                        service.price,
+                        service.currency
                       )}
                     </p>
                     {service.priceType === "rate" && service.rateType && (
