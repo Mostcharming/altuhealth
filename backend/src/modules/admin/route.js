@@ -14,6 +14,7 @@ router.use('/dashboard', require('./dashboard/finance/route'));
 router.use('/account', require('./account/route'));
 router.use('/notifications', require('./notifications/route'));
 router.use('/notification-templates', require('./notificationTemplates/route'));
+router.use('/general-settings', require('./generalSettings/route'));
 router.use('/roles', require('./roles/route'));
 router.use('/units', require('./units/route'));
 router.use('/admins', require('./admins/route'));

@@ -1,5 +1,6 @@
 "use client";
 
+import RichHtmlEditor from "@/components/form/input/RichHtmlEditor";
 import TextArea from "@/components/form/input/TextArea";
 import Switch from "@/components/form/switch/Switch";
 import ErrorModal from "@/components/modals/error";
@@ -277,15 +278,14 @@ const NotificationTemplateDetail: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Email Body (HTML)
               </label>
-              <TextArea
+              <RichHtmlEditor
                 value={emailBody}
                 onChange={setEmailBody}
-                rows={10}
-                placeholder="Enter your HTML email template here..."
+                // placeholder="Start typing your email content here..."
               />
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                You can use HTML tags and shortcodes like {"{{"} key {"}}"} for
-                dynamic content
+                Use the toolbar to format your content. You can also use
+                shortcodes like {"{{"} key {"}}"} for dynamic content.
               </p>
             </div>
           )}
