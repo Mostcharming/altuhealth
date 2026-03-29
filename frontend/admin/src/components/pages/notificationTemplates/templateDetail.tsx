@@ -1,5 +1,10 @@
 "use client";
 
+import TextArea from "@/components/form/input/TextArea";
+import Switch from "@/components/form/switch/Switch";
+import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
+import Button from "@/components/ui/button/Button";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { apiClient } from "@/lib/apiClient";
 import { useNotificationTemplateStore } from "@/lib/store/notificationTemplateStore";
@@ -27,6 +32,22 @@ const NotificationTemplateDetail: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [template, setTemplate] = useState<NotificationTemplate | null>(null);
   const [error, setError] = useState<string>("");
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string>("");
+
+  // Modal states
+  const [successModal, setSuccessModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+
+  // Form state for editable fields
+  const [emailBody, setEmailBody] = useState<string>("");
+  const [smsBody, setSmsBody] = useState<string>("");
+  const [emailStatus, setEmailStatus] = useState<boolean>(false);
+  const [smsStatus, setSmsStatus] = useState<boolean>(false);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const currentTemplate = useNotificationTemplateStore(
@@ -56,6 +77,12 @@ const NotificationTemplateDetail: React.FC = () => {
         const templateData = data?.data || data;
         setTemplate(templateData);
         setCurrentTemplate(templateData);
+
+        // Initialize form state
+        setEmailBody(templateData.emailBody || "");
+        setSmsBody(templateData.smsBody || "");
+        setEmailStatus(templateData.emailStatus || false);
+        setSmsStatus(templateData.smsStatus || false);
       } catch (err) {
         console.error("Failed to fetch template", err);
         setError(
@@ -70,6 +97,56 @@ const NotificationTemplateDetail: React.FC = () => {
       fetchTemplate();
     }
   }, [templateId, setCurrentTemplate]);
+
+  const handleSubmit = async () => {
+    if (!template) return;
+
+    try {
+      setSubmitError("");
+      setSubmitting(true);
+
+      await apiClient(`/admin/notification-templates/${templateId}`, {
+        method: "PUT",
+        body: {
+          emailBody,
+          smsBody,
+          emailStatus,
+          smsStatus,
+        },
+      });
+
+      // Refresh template data
+      const data = await apiClient(
+        `/admin/notification-templates/${templateId}`,
+        {
+          method: "GET",
+        }
+      );
+      const templateData = data?.data || data;
+      setTemplate(templateData);
+      setCurrentTemplate(templateData);
+
+      // Open success modal
+      setSuccessModal({ isOpen: true });
+    } catch (err) {
+      console.error("Failed to update template", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update template";
+      setSubmitError(errorMessage);
+      // Open error modal
+      setErrorModal({ isOpen: true });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setSuccessModal({ isOpen: false });
+  };
+
+  const handleErrorClose = () => {
+    setErrorModal({ isOpen: false });
+  };
 
   if (loading) {
     return <SpinnerThree />;
@@ -145,6 +222,7 @@ const NotificationTemplateDetail: React.FC = () => {
           </div>
         </div>
       </div>
+
       {/* Shortcodes */}
       {template.shortcodes && Object.keys(template.shortcodes).length > 0 && (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -172,41 +250,110 @@ const NotificationTemplateDetail: React.FC = () => {
           </div>
         </div>
       )}
-      {/* Email Body */}
-      {template.emailBody && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              Email Body
-            </h2>
-          </div>
-          <div className="px-6 py-5">
-            <div className="max-h-96 overflow-auto rounded bg-gray-50 p-4 dark:bg-gray-900/50">
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                {template.emailBody}
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* SMS Body */}
-      {template.smsBody && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-          <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              SMS Body
-            </h2>
-          </div>
-          <div className="px-6 py-5">
-            <div className="max-h-96 overflow-auto rounded bg-gray-50 p-4 dark:bg-gray-900/50">
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                {template.smsBody}
-              </pre>
-            </div>
-          </div>
+      {/* Email Template Section */}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Email Template
+          </h2>
         </div>
-      )}
+        <div className="px-6 py-5 space-y-4">
+          {/* Email Enable/Disable Switch */}
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Enable Email Notifications
+            </label>
+            <Switch
+              checked={emailStatus}
+              onChange={setEmailStatus}
+              color="blue"
+            />
+          </div>
+
+          {/* Email Body Editor */}
+          {emailBody !== null && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Email Body (HTML)
+              </label>
+              <TextArea
+                value={emailBody}
+                onChange={setEmailBody}
+                rows={10}
+                placeholder="Enter your HTML email template here..."
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                You can use HTML tags and shortcodes like {"{{"} key {"}}"} for
+                dynamic content
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* SMS Template Section */}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            SMS Template
+          </h2>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          {/* SMS Enable/Disable Switch */}
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Enable SMS Notifications
+            </label>
+            <Switch checked={smsStatus} onChange={setSmsStatus} color="blue" />
+          </div>
+
+          {/* SMS Body Editor */}
+          {smsBody !== null && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                SMS Body
+              </label>
+              <TextArea
+                value={smsBody}
+                onChange={setSmsBody}
+                rows={5}
+                placeholder="Enter your SMS template here..."
+              />
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                You can use shortcodes like {"{{"} key {"}}"} for dynamic
+                content
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Submit Button */}
+      <div className="pt-4">
+        <Button
+          onClick={handleSubmit}
+          loading={submitting}
+          disabled={submitting}
+          className="w-full"
+          size="md"
+        >
+          {submitting ? "Saving Changes..." : "Save Template Changes"}
+        </Button>
+      </div>
+
+      {/* Success Modal */}
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={handleSuccessClose}
+      />
+
+      {/* Error Modal */}
+      <ErrorModal
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+        message={submitError}
+      />
     </div>
   );
 };

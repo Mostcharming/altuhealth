@@ -137,8 +137,6 @@ const navItems: NavItem[] = [
     icon: <MailIcon />,
     subItems: [
       { name: "Global Template", path: "/global-template" },
-      { name: "Email Setting", path: "/email-setting" },
-      { name: "SMS Setting", path: "/sms-setting" },
       { name: "Notification Templates", path: "/notification-templates" },
     ],
   },
