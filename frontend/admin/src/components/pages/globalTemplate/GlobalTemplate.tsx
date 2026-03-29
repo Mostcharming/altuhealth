@@ -1,8 +1,8 @@
 "use client";
 
+import Input from "@/components/form/input/InputField";
 import RichHtmlEditor from "@/components/form/input/RichHtmlEditor";
 import TextArea from "@/components/form/input/TextArea";
-import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Switch from "@/components/form/switch/Switch";
 import ErrorModal from "@/components/modals/error";
@@ -13,21 +13,20 @@ import { apiClient } from "@/lib/apiClient";
 import { useGeneralSettingsStore } from "@/lib/store/generalSettingsStore";
 import React, { useEffect, useState } from "react";
 
-interface GeneralSettings {
-  id?: string;
-  emailFrom?: string;
-  smsFrom?: string;
-  emailTemplate?: string;
-  smsBody?: string;
-  emailNotification?: boolean;
-  smsNotification?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
+// interface GeneralSettings {
+//   id?: string;
+//   emailFrom?: string;
+//   smsFrom?: string;
+//   emailTemplate?: string;
+//   smsBody?: string;
+//   emailNotification?: boolean;
+//   smsNotification?: boolean;
+//   createdAt?: string;
+//   updatedAt?: string;
+// }
 
 const GlobalTemplate: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
-  const [settings, setSettings] = useState<GeneralSettings | null>(null);
   const [error, setError] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string>("");
@@ -48,9 +47,6 @@ const GlobalTemplate: React.FC = () => {
   const [emailNotification, setEmailNotification] = useState<boolean>(false);
   const [smsNotification, setSmsNotification] = useState<boolean>(false);
 
-  const currentSettings = useGeneralSettingsStore(
-    (state) => state.settings
-  );
   const setCurrentSettings = useGeneralSettingsStore(
     (state) => state.setSettings
   );
@@ -67,7 +63,6 @@ const GlobalTemplate: React.FC = () => {
         });
 
         const settingsData = data?.data || data;
-        setSettings(settingsData);
         setCurrentSettings(settingsData);
 
         // Initialize form state
@@ -112,7 +107,6 @@ const GlobalTemplate: React.FC = () => {
         method: "GET",
       });
       const settingsData = data?.data || data;
-      setSettings(settingsData);
       setCurrentSettings(settingsData);
 
       // Open success modal
@@ -186,10 +180,7 @@ const GlobalTemplate: React.FC = () => {
           {/* Email Body Editor */}
           <div>
             <Label htmlFor="emailTemplate">Email Template</Label>
-            <RichHtmlEditor
-              value={emailTemplate}
-              onChange={setEmailTemplate}
-            />
+            <RichHtmlEditor value={emailTemplate} onChange={setEmailTemplate} />
           </div>
         </div>
       </div>
@@ -230,68 +221,16 @@ const GlobalTemplate: React.FC = () => {
           <div>
             <Label htmlFor="smsBody">SMS Template</Label>
             <TextArea
-              id="smsBody"
+              // id="smsBody"
               placeholder="Enter SMS template (160 characters recommended for single message delivery)"
               value={smsBody}
-              onChange={(e) => setSmsBody(e.target.value)}
+              onChange={(value) => setSmsBody(value)}
               rows={4}
             />
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               Character count: {smsBody.length} / 160
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* Information Section */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Template Variables
-          </h2>
-        </div>
-        <div className="px-6 py-5">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            Available variables that can be used in your templates:
-          </p>
-          <ul className="space-y-2">
-            <li className="text-sm text-gray-700 dark:text-gray-300">
-              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                {"{{"} firstName {"}}"}
-              </code>
-              - User&apos;s first name
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300">
-              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                {"{{"} lastName {"}}"}
-              </code>
-              - User&apos;s last name
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300">
-              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                {"{{"} email {"}}"}
-              </code>
-              - User&apos;s email address
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300">
-              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                {"{{"} verificationCode {"}}"}
-              </code>
-              - Verification or OTP code
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300">
-              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                {"{{"} appName {"}}"}
-              </code>
-              - Application name
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300">
-              <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                {"{{"} supportEmail {"}}"}
-              </code>
-              - Support email address
-            </li>
-          </ul>
         </div>
       </div>
 
@@ -311,17 +250,11 @@ const GlobalTemplate: React.FC = () => {
               ✓ Use personalization variables to increase engagement
             </li>
             <li className="text-sm text-gray-700 dark:text-gray-300">
-              ✓ Ensure SMS templates are under 160 characters for single
-              message delivery
+              ✓ Ensure SMS templates are under 160 characters for single message
+              delivery
             </li>
             <li className="text-sm text-gray-700 dark:text-gray-300">
               ✓ Always include a call-to-action in your templates
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300">
-              ✓ Test templates before activating them
-            </li>
-            <li className="text-sm text-gray-700 dark:text-gray-300">
-              ✓ Maintain consistent branding across all templates
             </li>
           </ul>
         </div>

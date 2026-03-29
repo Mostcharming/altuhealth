@@ -66,7 +66,7 @@ const ProviderTable: React.FC = () => {
   const headers: Header[] = [
     { key: "name", label: "Name" },
     { key: "code", label: "Provider Code" },
-    { key: "upn", label: "Provider UPN" },
+    { key: "upn", label: "UPN(Policy Number)" },
     { key: "phoneNumber", label: "Phone Number" },
     { key: "email", label: "Email" },
     { key: "Plans", label: "Number of Plans" },

@@ -600,8 +600,8 @@ async function resendProviderLoginDetails(req, res, next) {
 
         // Send login details to provider email
         try {
-            await notify(provider, 'Provider', 'PROVIDER_CREATE', {
-                policyNumber: provider.upn,
+            await notify(provider, 'Provider', 'PROVIDER_PASSWORD_RESET', {
+                name: provider.name,
                 email: provider.email,
                 password: password
             }, ['email'], true);
