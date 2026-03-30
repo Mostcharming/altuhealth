@@ -18,6 +18,7 @@ export interface CompanyPlan {
   discountPerEnrolee?: number;
   planCycle: string;
   annualPremiumPrice: number;
+  currency?: string;
   description?: string;
   allowDependentEnrolee?: boolean;
   isActive?: boolean;

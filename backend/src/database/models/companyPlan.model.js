@@ -71,6 +71,12 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             field: 'annual_premium_price'
         },
+        currency: {
+            type: DataTypes.STRING(3),
+            allowNull: false,
+            defaultValue: 'NGN',
+            field: 'currency'
+        },
         description: {
             type: DataTypes.TEXT,
             allowNull: true,

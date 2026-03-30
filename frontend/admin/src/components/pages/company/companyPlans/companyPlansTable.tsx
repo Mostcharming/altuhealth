@@ -285,7 +285,7 @@ const CompanyPlansTable: React.FC<CompanyPlansTableProps> = ({ companyId }) => {
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {formatPrice(plan.annualPremiumPrice)}
+                        {formatPrice(plan.annualPremiumPrice, plan.currency)}
                       </p>
                     </td>
                     <td className="p-4 whitespace-nowrap">

@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { createCompanyPlan, updateCompanyPlan } from "@/lib/apis/companyPlan";
 import { fetchPlans, Plan } from "@/lib/apis/plan";
+import { getCurrencyOptions } from "@/lib/currencies";
 import { CompanyPlan, useCompanyPlanStore } from "@/lib/store/companyPlanStore";
 import { ChangeEvent, useEffect, useState } from "react";
 
@@ -50,6 +51,7 @@ export default function EditCompanyPlan({
     number | undefined
   >();
   const [description, setDescription] = useState("");
+  const [currency, setCurrency] = useState("NGN");
   const [allowDependentEnrolee, setAllowDependentEnrolee] = useState(true);
   const [isActive, setIsActive] = useState(true);
   const [errorMessage, setErrorMessage] = useState(
@@ -113,6 +115,7 @@ export default function EditCompanyPlan({
       setMaxNumberOfDependents(plan.maxNumberOfDependents);
       setDiscountPerEnrolee(plan.discountPerEnrolee);
       setDescription(plan.description ?? "");
+      setCurrency(plan.currency ?? "NGN");
       setAllowDependentEnrolee(plan.allowDependentEnrolee ?? true);
       setIsActive(plan.isActive ?? true);
     }
@@ -129,6 +132,7 @@ export default function EditCompanyPlan({
       setMaxNumberOfDependents(undefined);
       setDiscountPerEnrolee(undefined);
       setDescription("");
+      setCurrency("NGN");
       setAllowDependentEnrolee(true);
       setIsActive(true);
     }
@@ -179,6 +183,7 @@ export default function EditCompanyPlan({
 
       const payload = {
         planType,
+        currency,
         ...(planType === "standard"
           ? {
               planId: selectedPlanId,
@@ -285,6 +290,16 @@ export default function EditCompanyPlan({
                       placeholder="Enter annual premium price"
                     />
                   </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Currency</Label>
+                    <Select
+                      options={getCurrencyOptions()}
+                      placeholder="Select currency"
+                      onChange={(val) => setCurrency(val)}
+                      defaultValue={currency}
+                    />
+                  </div>
                 </>
               )}
 
@@ -378,6 +393,16 @@ export default function EditCompanyPlan({
                         )
                       }
                       placeholder="Enter discount per enrollee"
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Currency</Label>
+                    <Select
+                      options={getCurrencyOptions()}
+                      placeholder="Select currency"
+                      onChange={(val) => setCurrency(val)}
+                      defaultValue={currency}
                     />
                   </div>
 

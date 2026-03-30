@@ -17,6 +17,7 @@ async function createCompanyPlan(req, res, next) {
             discountPerEnrolee,
             planCycle,
             annualPremiumPrice,
+            currency = 'NGN',
             description,
             allowDependentEnrolee
         } = req.body || {};
@@ -46,6 +47,7 @@ async function createCompanyPlan(req, res, next) {
                 discountPerEnrolee: plan.discountPerEnrolee,
                 planCycle: plan.planCycle,
                 annualPremiumPrice: plan.annualPremiumPrice,
+                currency: currency || plan.currency || 'NGN',
                 description: plan.description,
                 allowDependentEnrolee: plan.allowDependentEnrolee !== undefined ? plan.allowDependentEnrolee : true
             };
@@ -66,6 +68,7 @@ async function createCompanyPlan(req, res, next) {
                 discountPerEnrolee,
                 planCycle,
                 annualPremiumPrice,
+                currency,
                 description
             };
         }
@@ -100,6 +103,7 @@ async function updateCompanyPlan(req, res, next) {
             discountPerEnrolee,
             planCycle,
             annualPremiumPrice,
+            currency,
             description,
             allowDependentEnrolee,
             isActive
@@ -135,6 +139,7 @@ async function updateCompanyPlan(req, res, next) {
         if (discountPerEnrolee !== undefined) updates.discountPerEnrolee = discountPerEnrolee;
         if (planCycle !== undefined) updates.planCycle = planCycle;
         if (annualPremiumPrice !== undefined) updates.annualPremiumPrice = annualPremiumPrice;
+        if (currency !== undefined) updates.currency = currency;
         if (description !== undefined) updates.description = description;
         if (allowDependentEnrolee !== undefined) updates.allowDependentEnrolee = allowDependentEnrolee;
         if (isActive !== undefined) updates.isActive = isActive;
