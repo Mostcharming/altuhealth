@@ -16,6 +16,8 @@ require('dotenv').config();
 
 const config = require('./config');
 const { responseFormatter } = require('./middlewares/common/responseFormatter');
+const defineModels = require('./database/models');
+const { masterSequelize, slaveSequelize } = require('./database');
 
 const app = express();
 
@@ -136,8 +138,14 @@ const server = app.listen(PORT, HOST, async () => {
 
   // Initialize scheduled jobs
   try {
-    const db = require('./database');
-    await initializeJobs(db.models);
+
+
+    const sequelizeInstance = slaveSequelize || masterSequelize;
+    if (!sequelizeInstance) {
+      throw new Error('Sequelize instance not available');
+    }
+    const models = defineModels(sequelizeInstance);
+    await initializeJobs(models);
     console.log('✅ Scheduled jobs initialized successfully');
   } catch (err) {
     console.error('❌ Failed to initialize scheduled jobs:', err);

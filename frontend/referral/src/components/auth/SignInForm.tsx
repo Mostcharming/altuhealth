@@ -162,7 +162,10 @@ export default function SignInForm() {
       setToast({
         variant: "error",
         title: "Sign in failed",
-        description: err.message || "An unexpected error occurred",
+        description:
+          "Network Error: Please check your connection and try again.",
+
+        // description: err.message || "An unexpected error occurred",
       });
       console.error("Sign in error:", err);
     }
