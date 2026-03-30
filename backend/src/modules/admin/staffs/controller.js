@@ -728,7 +728,7 @@ async function resendEnrollmentNotification(req, res, next) {
             await notify(
                 { id: staff.id, email: staff.email, firstName: staff.firstName, },
                 'staff',
-                'STAFF_ENROLLMENT_REQUIRED',
+                'STAFF_ENROLLMENT_REMINDER',
                 {
                     firstName: staff.firstName,
                     companyName: companyName,

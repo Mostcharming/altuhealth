@@ -7,7 +7,7 @@ module.exports = {
         try {
             // Check if column already exists
             const tableDescription = await queryInterface.describeTable('company_plans', { transaction });
-            
+
             if (!tableDescription.currency) {
                 await queryInterface.addColumn(
                     'company_plans',
@@ -33,7 +33,7 @@ module.exports = {
         const transaction = await queryInterface.sequelize.transaction();
         try {
             const tableDescription = await queryInterface.describeTable('company_plans', { transaction });
-            
+
             if (tableDescription.currency) {
                 await queryInterface.removeColumn('company_plans', 'currency', { transaction });
             }
