@@ -6,6 +6,7 @@ export interface EnrolleeAuthorizationCode {
   enrolleeId: string;
   providerId?: string;
   diagnosisId?: string;
+  currency: string;
   reason?: string;
   authorizationType:
     | "inpatient"

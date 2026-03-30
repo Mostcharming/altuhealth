@@ -3,7 +3,7 @@ import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { fetchEnrolleeMedicalHistories } from "@/lib/apis/enrolleeMedicalHistory";
 import capitalizeWords from "@/lib/capitalize";
-import { formatDate } from "@/lib/formatDate";
+import { formatDate, formatPrice } from "@/lib/formatDate";
 import {
   EnrolleeMedicalHistory,
   useEnrolleeMedicalHistoryStore,
@@ -128,14 +128,6 @@ const EnrolleeMedicalHistoryTable: React.FC<
     setCurrentPage(1);
   };
 
-  const formatCurrency = (amount: number | undefined): string => {
-    if (!amount) return "N/A";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
   const nextPage = (): void => {
     if (currentPage < totalPages) setCurrentPage((p) => p + 1);
   };
@@ -230,7 +222,7 @@ const EnrolleeMedicalHistoryTable: React.FC<
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {formatCurrency(history.amount)}
+                      {formatPrice(history.amount, history.currency)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">

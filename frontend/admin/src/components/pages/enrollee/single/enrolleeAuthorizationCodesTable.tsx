@@ -54,7 +54,7 @@ const EnrolleeAuthorizationCodesTable: React.FC<
     { key: "validFrom", label: "Valid From" },
     { key: "validTo", label: "Valid To" },
     { key: "status", label: "Status" },
-    { key: "actions", label: "Actions" },
+    // { key: "actions", label: "Actions" },
   ];
 
   const fetch = useCallback(async () => {
@@ -74,8 +74,9 @@ const EnrolleeAuthorizationCodesTable: React.FC<
       });
 
       const items: EnrolleeAuthorizationCode[] =
-        data?.data?.list && Array.isArray(data.data.list)
-          ? data.data.list
+        data?.data?.authorizationCodes &&
+        Array.isArray(data.data.authorizationCodes)
+          ? data.data.authorizationCodes
           : Array.isArray(data)
           ? data
           : [];
@@ -220,7 +221,7 @@ const EnrolleeAuthorizationCodesTable: React.FC<
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                       {code.amountAuthorized != null
-                        ? formatPrice(code.amountAuthorized)
+                        ? formatPrice(code.amountAuthorized, code.currency)
                         : "-"}
                     </p>
                   </td>

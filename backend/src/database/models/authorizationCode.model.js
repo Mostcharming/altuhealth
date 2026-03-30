@@ -144,6 +144,12 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 'active',
             field: 'status'
         },
+        currency: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            defaultValue: 'NGN',
+            field: 'currency'
+        },
         notes: {
             type: DataTypes.TEXT,
             allowNull: true,

@@ -72,6 +72,12 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 'pending',
             field: 'status'
+        },
+        currency: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            defaultValue: 'NGN',
+            field: 'currency'
         }
     }, {
         tableName: 'enrollee_medical_histories',
