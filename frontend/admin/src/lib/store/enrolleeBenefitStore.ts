@@ -12,6 +12,7 @@ export interface EnrolleeBenefit {
   description?: string;
   limit?: string;
   amount: number;
+  currency: string;
   benefitCategoryId: string;
   BenefitCategory?: BenefitCategory;
   createdAt?: string;

@@ -8,6 +8,7 @@ export interface EnrolleeMedicalHistory {
   evsCode?: string;
   amount?: number;
   serviceDate?: string;
+  currency?: string;
   notes?: string;
   attachmentUrl?: string;
   status: "pending" | "reviewed" | "approved" | "rejected";

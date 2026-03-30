@@ -222,7 +222,7 @@ const EnrolleeMedicalHistoryTable: React.FC<
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {formatPrice(history.amount, history.currency)}
+                      {formatPrice(history.amount ?? 0, history.currency)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">

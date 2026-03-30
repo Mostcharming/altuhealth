@@ -50,8 +50,6 @@ const EnrolleeBenefitsTable: React.FC<EnrolleeBenefitsTableProps> = ({
   const headers: Header[] = [
     { key: "name", label: "Benefit Name" },
     { key: "description", label: "Description" },
-    { key: "limit", label: "Limit" },
-    { key: "amount", label: "Amount" },
     { key: "BenefitCategory", label: "Category" },
     { key: "createdAt", label: "Date Created" },
   ];
@@ -132,14 +130,6 @@ const EnrolleeBenefitsTable: React.FC<EnrolleeBenefitsTableProps> = ({
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
     setCurrentPage(1);
-  };
-
-  const formatCurrency = (amount: number | undefined): string => {
-    if (!amount) return "N/A";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
   };
 
   const nextPage = (): void => {
@@ -225,16 +215,16 @@ const EnrolleeBenefitsTable: React.FC<EnrolleeBenefitsTableProps> = ({
                       {capitalizeWords(benefit.description || "-")}
                     </p>
                   </td>
-                  <td className="p-4 whitespace-nowrap">
+                  {/* <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
                       {benefit.limit || "Unlimited"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {formatCurrency(benefit.amount)}
+                      {formatPrice(benefit.amount, benefit.currency)}
                     </p>
-                  </td>
+                  </td> */}
                   <td className="p-4 whitespace-nowrap">
                     <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                       {benefit.BenefitCategory?.name || "-"}

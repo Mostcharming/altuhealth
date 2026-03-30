@@ -82,10 +82,10 @@ const EnrolleeAuthorizationCodesTable: React.FC<
           : [];
 
       setAuthorizationCodes(items);
-      setTotalItems(data?.data?.count ?? 0);
-      setHasNextPage(Boolean(data?.data?.hasNextPage));
-      setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
-      setTotalPages(data?.data?.totalPages ?? 1);
+      setTotalItems(data?.data?.pagination?.total ?? 0);
+      setHasNextPage(Boolean(data?.data?.pagination?.hasNextPage));
+      setHasPreviousPage(Boolean(data?.data?.pagination?.hasPreviousPage));
+      setTotalPages(data?.data?.pagination?.totalPages ?? 1);
     } catch (err) {
       console.warn("Authorization codes fetch failed", err);
     } finally {
