@@ -1,0 +1,38 @@
+[1] Patient visits Provider
+        ↓
+[2] Provider submits Authorization Request
+        ↓
+[3] HMO ERP validates:
+     - Enrollment status
+     - Plan coverage
+     - Benefit limits
+        ↓
+[4] Decision Point:
+    ├── Auto-Approve (if rules match) 
+    └── Manual Review (if complex case)
+              ↓
+        HMO Admin reviews
+              ↓
+        Approve / Reject / Query
+        ↓
+[5] Response sent to Provider
+        ↓
+[6] Provider delivers service
+        ↓
+[7] Claim submission (post-treatment)
+
+
+//utilizations
+Claim Amount → Aggregated by:
+   - Company
+   - Enrollee
+   - Provider
+   - Service Type
+
+Provider → Visits → Claims Cost
+enrollee, dependents, no if visits , cost racked up
+
+
+enrollee side 
+buy plans
+renew plans

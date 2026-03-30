@@ -49,6 +49,7 @@ function defineModels(sequelize) {
   const RetailEnrolleeNextOfKin = require("./retailEnrolleeNextOfKin.model")(sequelize, DataTypes);
   const RetailEnrolleeDependent = require("./retailEnrolleeDependent.model")(sequelize, DataTypes);
   const RetailEnrolleeMedicalHistory = require("./retailEnrolleeMedicalHistory.model")(sequelize, DataTypes);
+  const RetailEnrolleeSubscription = require("./retailEnrolleeSubscription.model")(sequelize, DataTypes);
   const PaymentBatch = require("./paymentBatch.model")(sequelize, DataTypes);
   const PaymentBatchDetail = require("./paymentBatchDetail.model")(sequelize, DataTypes);
   const PaymentAdvice = require("./paymentAdvice.model")(sequelize, DataTypes);
@@ -312,6 +313,18 @@ function defineModels(sequelize) {
   Diagnosis.hasMany(RetailEnrolleeMedicalHistory, { foreignKey: "diagnosisId" });
   RetailEnrolleeMedicalHistory.belongsTo(Diagnosis, { foreignKey: "diagnosisId" });
 
+  // RetailEnrolleeSubscription <-> RetailEnrollee one-to-many
+  RetailEnrollee.hasMany(RetailEnrolleeSubscription, { foreignKey: "retailEnrolleeId", as: 'subscriptions' });
+  RetailEnrolleeSubscription.belongsTo(RetailEnrollee, { foreignKey: "retailEnrolleeId" });
+
+  // RetailEnrolleeSubscription <-> Plan one-to-many
+  Plan.hasMany(RetailEnrolleeSubscription, { foreignKey: "planId", as: 'retailEnrolleeSubscriptions' });
+  RetailEnrolleeSubscription.belongsTo(Plan, { foreignKey: "planId", as: 'plan' });
+
+  // RetailEnrolleeSubscription <-> RetailEnrolleeSubscription (self-reference for renewals)
+  RetailEnrolleeSubscription.hasMany(RetailEnrolleeSubscription, { foreignKey: "previousSubscriptionId", as: 'renewals' });
+  RetailEnrolleeSubscription.belongsTo(RetailEnrolleeSubscription, { foreignKey: "previousSubscriptionId", as: 'previousSubscription' });
+
   // PaymentBatch <-> PaymentBatchDetail one-to-many
   PaymentBatch.hasMany(PaymentBatchDetail, { foreignKey: "paymentBatchId", as: 'details' });
   PaymentBatchDetail.belongsTo(PaymentBatch, { foreignKey: "paymentBatchId" });
@@ -508,7 +521,7 @@ function defineModels(sequelize) {
   Provider.hasMany(SearchHistory, { foreignKey: "providerId", as: 'searchHistories' });
   SearchHistory.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory };
 }
 
 module.exports = defineModels;

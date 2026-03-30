@@ -70,7 +70,6 @@ const navItems: NavItem[] = [
       { name: "Companies", path: "/companies" },
       { name: "Company Staffs", path: "/staffs" },
       { name: "Subscriptions", path: "/subscriptions" },
-      { name: "Utilization Reviews", path: "/utilization-reviews" },
     ],
   },
   {
@@ -107,8 +106,9 @@ const navItems: NavItem[] = [
     name: "Services",
     icon: <CartIcon />,
     subItems: [
-      { name: "Provider Utilization", path: "/provider-utilization" },
-      { name: "Client Utilization ", path: "/client-utilization" },
+      { name: "Org. Utilization Reviews", path: "/utilization-reviews" },
+      { name: "Provider Utilization Reviews", path: "/provider-utilization" },
+      { name: "Enrollee Utilization Reviews", path: "/client-utilization" },
     ],
   },
   {

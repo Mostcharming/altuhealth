@@ -9,6 +9,7 @@ const dbSelector = require('./middlewares/common/dbSelector');
 const adminRouter = require('./modules/admin/route');
 const providerRouter = require('./modules/provider/route');
 const enrolleeRouter = require('./modules/enrollee/route');
+const { initializeJobs } = require('./jobs');
 
 require('./database');
 require('dotenv').config();
@@ -129,13 +130,25 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5022;
 const HOST = process.env.HOST || '0.0.0.0';
 
-const server = app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, async () => {
   console.log(`🚀 Server running on ${HOST}:${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+
+  // Initialize scheduled jobs
+  try {
+    const db = require('./database');
+    await initializeJobs(db.models);
+    console.log('✅ Scheduled jobs initialized successfully');
+  } catch (err) {
+    console.error('❌ Failed to initialize scheduled jobs:', err);
+    // Don't exit, continue running even if jobs fail to initialize
+  }
 });
 
 process.on('SIGTERM', () => {
   console.log('📛 SIGTERM signal received: closing HTTP server');
+  const { stopAllJobs } = require('./jobs');
+  stopAllJobs();
   server.close(() => {
     console.log('✅ HTTP server closed');
     process.exit(0);
@@ -144,6 +157,8 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('📛 SIGINT signal received: closing HTTP server');
+  const { stopAllJobs } = require('./jobs');
+  stopAllJobs();
   server.close(() => {
     console.log('✅ HTTP server closed');
     process.exit(0);
