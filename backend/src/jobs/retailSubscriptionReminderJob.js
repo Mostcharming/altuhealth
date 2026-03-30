@@ -1,7 +1,7 @@
 'use strict';
 
 const { Op } = require('sequelize');
-const notify = require('../../utils/notify');
+const notify = require('../utils/notify');
 
 /**
  * Retail Subscription Expiry Reminder Job

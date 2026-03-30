@@ -66,7 +66,7 @@ const EnrolleeAuthorizationCodesTable: React.FC<
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
 
-      const url = `/admin/enrollee/${enrolleeId}/authorization-codes/list?${params.toString()}`;
+      const url = `/admin/enrollees/${enrolleeId}/authorization-codes?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",

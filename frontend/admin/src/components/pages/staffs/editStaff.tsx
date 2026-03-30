@@ -254,6 +254,13 @@ export default function EditStaff({
   const handleResendNotification = async () => {
     try {
       setResendingNotification(true);
+
+      if (enrollmentStatus === "enrolled") {
+        setErrorMessage("User is already enrolled.");
+        errorModal.openModal();
+        return;
+      }
+
       await apiClient(`/admin/staffs/${id}/resend-enrollment-notification`, {
         method: "POST",
       });
@@ -462,20 +469,22 @@ export default function EditStaff({
                 </div>
               </div>
 
-              <div>
-                <Label>Is Notified</Label>
-                <Switch
-                  defaultChecked={isNotified}
-                  onChange={(checked) => setIsNotified(checked)}
-                />
-              </div>
+              <div className="flex items-end gap-8">
+                <div className="flex-1">
+                  <Label>Is Notified</Label>
+                  <Switch
+                    defaultChecked={isNotified}
+                    onChange={(checked) => setIsNotified(checked)}
+                  />
+                </div>
 
-              <div>
-                <Label>Is Active</Label>
-                <Switch
-                  defaultChecked={isActive}
-                  onChange={(checked) => setIsActive(checked)}
-                />
+                <div className="flex-1">
+                  <Label>Is Active</Label>
+                  <Switch
+                    defaultChecked={isActive}
+                    onChange={(checked) => setIsActive(checked)}
+                  />
+                </div>
               </div>
 
               <div className="col-span-2 flex items-center justify-end gap-3 mt-4">
