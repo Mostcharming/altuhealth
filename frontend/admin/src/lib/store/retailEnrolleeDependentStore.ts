@@ -8,7 +8,7 @@ export interface RetailEnrolleeDependent {
   lastName: string;
   dateOfBirth: string;
   gender: "male" | "female" | "other";
-  relationshipToEnrollee: "spouse" | "child" | "parent" | "sibling" | "other";
+  relationship: "spouse" | "child" | "parent" | "sibling" | "other";
   phoneNumber?: string | null;
   email?: string | null;
   occupation?: string | null;
