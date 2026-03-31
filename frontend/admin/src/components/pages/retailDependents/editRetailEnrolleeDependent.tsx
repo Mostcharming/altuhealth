@@ -118,7 +118,7 @@ export default function EditRetailEnrolleeDependent({
         dependent.dateOfBirth ? dependent.dateOfBirth.split("T")[0] : ""
       );
       setGender(dependent.gender ?? "male");
-      setRelationshipToEnrollee(dependent.relationshipToEnrollee ?? "child");
+      setRelationshipToEnrollee(dependent.relationship ?? "child");
       setPhoneNumber(dependent.phoneNumber ?? "");
       setEmail(dependent.email ?? "");
       setOccupation(dependent.occupation ?? "");
@@ -180,7 +180,7 @@ export default function EditRetailEnrolleeDependent({
         lastName,
         dateOfBirth: dateOfBirth || undefined,
         gender,
-        relationshipToEnrollee,
+        relationship: relationshipToEnrollee,
         phoneNumber: phoneNumber || undefined,
         email: email || undefined,
         occupation: occupation || undefined,
