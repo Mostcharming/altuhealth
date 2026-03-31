@@ -1,9 +1,11 @@
 const { Op } = require('sequelize');
+const bcrypt = require('bcrypt');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
 const { getNextSubscriptionReferenceNumber } = require('../../../utils/subscriptionReferenceNumberGenerator');
 const { calculatePlanCycleFromDates, calculateAmountPaidFromPlan, generatePaymentReference, calculateEndDateFromCycle } = require('../../../utils/subscriptionCalculationHelper');
 const notify = require('../../../utils/notify');
+const generateCode = require('../../../utils/verificationCode');
 const config = require('../../../config');
 
 async function createRetailEnrollee(req, res, next) {
@@ -59,6 +61,10 @@ async function createRetailEnrollee(req, res, next) {
         // Generate unique policy number
         const policyNumber = await getUniquePolicyNumber(RetailEnrollee);
 
+        // Generate password and hash it
+        const rawPassword = generateCode(10, { letters: true, numbers: true });
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
         // Create retail enrollee
         const enrollee = await RetailEnrollee.create({
             firstName,
@@ -76,7 +82,8 @@ async function createRetailEnrollee(req, res, next) {
             subscriptionStartDate,
             subscriptionEndDate: subscriptionEndDate || null,
             soldByUserId: soldByUserId || null,
-            isActive: true
+            isActive: true,
+            password: hashedPassword
         });
 
         // Generate unique subscription reference number
@@ -130,6 +137,29 @@ async function createRetailEnrollee(req, res, next) {
             userType: (req.user && req.user.type) ? req.user.type : null,
             meta: { enrolleeId: enrollee.id, subscriptionId: subscription.id }
         });
+
+        // Send enrollment notification email (don't block main flow on failure)
+        try {
+            const enrollmentLink = `https://enrollee.altuhealth.com/login`;
+            await notify(
+                { id: enrollee.id, email: enrollee.email, firstName: enrollee.firstName },
+                'retail_enrollee',
+                'RETAIL_ENROLLEE_ENROLLMENT',
+                {
+                    firstName: enrollee.firstName,
+                    policyNumber: enrollee.policyNumber,
+                    temporaryPassword: rawPassword,
+                    loginLink: enrollmentLink,
+                    planName: plan.name,
+                    subscriptionStartDate: new Date(subscriptionStartDate).toLocaleDateString('en-NG')
+                },
+                ['email'],
+                true
+            );
+        } catch (notifyErr) {
+            console.error('Failed to send retail enrollee enrollment notification', notifyErr);
+            // Non-fatal error: don't block main flow
+        }
 
         return res.success(
             {

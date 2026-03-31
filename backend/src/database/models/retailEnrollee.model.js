@@ -115,6 +115,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true,
             field: 'id_card_url'
+        },
+        password: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'password'
         }
     }, {
         tableName: 'retail_enrollees',
