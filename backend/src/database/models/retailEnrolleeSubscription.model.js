@@ -73,12 +73,12 @@ module.exports = (sequelize, DataTypes) => {
         },
         subscriptionEndDate: {
             type: DataTypes.DATE,
-            allowNull: false,
+            allowNull: true,
             field: 'subscription_end_date',
             comment: 'End date of the subscription coverage'
         },
         paymentMethod: {
-            type: DataTypes.ENUM('bank_transfer', 'cash', 'cheque', 'card', 'mobile_money', 'wallet', 'other'),
+            type: DataTypes.ENUM('bank_transfer', 'cash', 'cheque', 'card', 'mobile_money', 'wallet', 'admin_funded', 'other'),
             allowNull: false,
             field: 'payment_method',
             comment: 'Method used for payment'

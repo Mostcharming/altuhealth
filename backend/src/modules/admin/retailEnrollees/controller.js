@@ -1,12 +1,14 @@
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
+const { getNextSubscriptionReferenceNumber } = require('../../../utils/subscriptionReferenceNumberGenerator');
+const { calculatePlanCycleFromDates, calculateAmountPaidFromPlan, generatePaymentReference, calculateEndDateFromCycle } = require('../../../utils/subscriptionCalculationHelper');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
 
 async function createRetailEnrollee(req, res, next) {
     try {
-        const { RetailEnrollee, Plan, Admin } = req.models;
+        const { RetailEnrollee, Plan, Admin, RetailEnrolleeSubscription } = req.models;
         const {
             firstName,
             middleName,
@@ -21,10 +23,13 @@ async function createRetailEnrollee(req, res, next) {
             planId,
             subscriptionStartDate,
             subscriptionEndDate,
-            soldByUserId
+            soldByUserId,
+            // Optional subscription fields (will be auto-calculated)
+            datePaid,
+            notes
         } = req.body || {};
 
-        // Validate required fields
+        // Validate required fields for enrollee
         if (!firstName) return res.fail('`firstName` is required', 400);
         if (!lastName) return res.fail('`lastName` is required', 400);
         if (!phoneNumber) return res.fail('`phoneNumber` is required', 400);
@@ -74,16 +79,66 @@ async function createRetailEnrollee(req, res, next) {
             isActive: true
         });
 
+        // Generate unique subscription reference number
+        const referenceNumber = await getNextSubscriptionReferenceNumber(RetailEnrolleeSubscription);
+
+        // Calculate plan cycle from dates if end date is provided
+        let planCycle = 'monthly'; // default
+        let calculatedEndDate = subscriptionEndDate;
+        if (subscriptionEndDate) {
+            planCycle = calculatePlanCycleFromDates(subscriptionStartDate, subscriptionEndDate);
+        } else {
+            // If no end date provided, use start date + 1 month
+            const tempDate = new Date(subscriptionStartDate);
+            tempDate.setMonth(tempDate.getMonth() + 1);
+            tempDate.setDate(tempDate.getDate() - 1);
+            calculatedEndDate = tempDate;
+        }
+
+        // Calculate amount paid from plan's annual premium
+        const amountPaid = calculateAmountPaidFromPlan(plan.annualPremiumPrice, planCycle);
+
+        // Generate payment reference
+        const paymentReference = generatePaymentReference();
+
+        // Create retail enrollee subscription
+        const subscription = await RetailEnrolleeSubscription.create({
+            referenceNumber,
+            retailEnrolleeId: enrollee.id,
+            planId,
+            planCycle,
+            amountPaid,
+            currency: 'NGN',
+            datePaid: datePaid ? new Date(datePaid) : new Date(),
+            subscriptionStartDate: new Date(subscriptionStartDate),
+            subscriptionEndDate: calculatedEndDate ? new Date(calculatedEndDate) : null,
+            paymentMethod: 'admin_funded',
+            transactionReference: paymentReference,
+            paymentGatewayProvider: 'manual',
+            paymentGatewayTransactionId: paymentReference,
+            status: 'active',
+            isRenewal: false,
+            previousSubscriptionId: null,
+            notes: notes || null
+        });
+
         // Add audit log
         await addAuditLog(req.models, {
             action: 'retail_enrollee.create',
-            message: `Retail enrollee ${enrollee.firstName} ${enrollee.lastName} created`,
+            message: `Retail enrollee ${enrollee.firstName} ${enrollee.lastName} created with subscription ${subscription.referenceNumber}`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { enrolleeId: enrollee.id }
+            meta: { enrolleeId: enrollee.id, subscriptionId: subscription.id }
         });
 
-        return res.success({ enrollee: enrollee.toJSON() }, 'Retail enrollee created successfully', 201);
+        return res.success(
+            {
+                enrollee: enrollee.toJSON(),
+                subscription: subscription.toJSON()
+            },
+            'Retail enrollee and subscription created successfully',
+            201
+        );
     } catch (err) {
         return next(err);
     }
@@ -113,7 +168,8 @@ async function getRetailEnrollees(req, res, next) {
             where,
             include: [
                 { model: Plan, as: 'plan', attributes: ['id', 'name', 'description'] },
-                { model: Admin, as: 'soldByUser', attributes: ['id', 'firstName', 'lastName', 'email'] }
+                { model: Admin, as: 'soldByUser', attributes: ['id', 'firstName', 'lastName', 'email'] },
+                { association: 'subscriptions', attributes: ['id', 'referenceNumber', 'planCycle', 'amountPaid', 'currency', 'status', 'subscriptionStartDate', 'subscriptionEndDate'] }
             ],
             limit: parseInt(limit),
             offset,
@@ -146,7 +202,8 @@ async function getRetailEnrolleeById(req, res, next) {
         const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId, {
             include: [
                 { model: Plan, as: 'plan', attributes: ['id', 'name', 'description'] },
-                { model: Admin, as: 'soldByUser', attributes: ['id', 'firstName', 'lastName', 'email'] }
+                { model: Admin, as: 'soldByUser', attributes: ['id', 'firstName', 'lastName', 'email'] },
+                { association: 'subscriptions', attributes: ['id', 'referenceNumber', 'planCycle', 'amountPaid', 'currency', 'status', 'subscriptionStartDate', 'subscriptionEndDate'] }
             ]
         });
 
@@ -266,10 +323,196 @@ async function deleteRetailEnrollee(req, res, next) {
     }
 }
 
+async function createRetailEnrolleeSubscription(req, res, next) {
+    try {
+        const { RetailEnrollee, Plan, RetailEnrolleeSubscription } = req.models;
+        const { retailEnrolleeId } = req.params;
+        const {
+            planId,
+            subscriptionStartDate,
+            subscriptionEndDate,
+            datePaid,
+            isRenewal,
+            previousSubscriptionId,
+            notes
+        } = req.body || {};
+
+        // Validate required subscription fields
+        if (!planId) return res.fail('`planId` is required', 400);
+        if (!subscriptionStartDate) return res.fail('`subscriptionStartDate` is required', 400);
+
+        // Verify enrollee exists
+        const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
+        if (!enrollee) return res.fail('Retail enrollee not found', 404);
+
+        // Verify plan exists
+        const plan = await Plan.findByPk(planId);
+        if (!plan) return res.fail('Plan not found', 404);
+
+        // If this is a renewal, verify previous subscription exists
+        if (isRenewal && previousSubscriptionId) {
+            const previousSub = await RetailEnrolleeSubscription.findByPk(previousSubscriptionId);
+            if (!previousSub) return res.fail('Previous subscription not found', 404);
+        }
+
+        // Generate unique subscription reference number
+        const referenceNumber = await getNextSubscriptionReferenceNumber(RetailEnrolleeSubscription);
+
+        // Calculate plan cycle from dates if end date is provided
+        let planCycle = 'monthly'; // default
+        let calculatedEndDate = subscriptionEndDate;
+        if (subscriptionEndDate) {
+            planCycle = calculatePlanCycleFromDates(subscriptionStartDate, subscriptionEndDate);
+        } else {
+            // If no end date provided, use start date + cycle period
+            calculatedEndDate = calculateEndDateFromCycle(subscriptionStartDate, planCycle);
+        }
+
+        // Calculate amount paid from plan's annual premium
+        const amountPaid = calculateAmountPaidFromPlan(plan.annualPremiumPrice, planCycle);
+
+        // Generate payment reference
+        const paymentReference = generatePaymentReference();
+
+        // Create subscription
+        const subscription = await RetailEnrolleeSubscription.create({
+            referenceNumber,
+            retailEnrolleeId,
+            planId,
+            planCycle,
+            amountPaid,
+            currency: 'NGN',
+            datePaid: datePaid ? new Date(datePaid) : new Date(),
+            subscriptionStartDate: new Date(subscriptionStartDate),
+            subscriptionEndDate: calculatedEndDate ? new Date(calculatedEndDate) : null,
+            paymentMethod: 'admin_funded',
+            transactionReference: paymentReference,
+            paymentGatewayProvider: 'manual',
+            paymentGatewayTransactionId: paymentReference,
+            status: 'active',
+            isRenewal: isRenewal || false,
+            previousSubscriptionId: previousSubscriptionId || null,
+            notes: notes || null
+        });
+
+        // Add audit log
+        await addAuditLog(req.models, {
+            action: 'retail_enrollee_subscription.create',
+            message: `Subscription ${subscription.referenceNumber} created for enrollee ${enrollee.firstName} ${enrollee.lastName}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { enrolleeId: enrollee.id, subscriptionId: subscription.id }
+        });
+
+        return res.success({ subscription: subscription.toJSON() }, 'Subscription created successfully', 201);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+async function updateRetailEnrolleeSubscription(req, res, next) {
+    try {
+        const { RetailEnrolleeSubscription, Plan } = req.models;
+        const { subscriptionId } = req.params;
+        const {
+            planCycle,
+            amountPaid,
+            currency,
+            datePaid,
+            subscriptionStartDate,
+            subscriptionEndDate,
+            paymentMethod,
+            transactionReference,
+            paymentGatewayProvider,
+            paymentGatewayTransactionId,
+            status,
+            notes
+        } = req.body || {};
+
+        const subscription = await RetailEnrolleeSubscription.findByPk(subscriptionId);
+        if (!subscription) return res.fail('Subscription not found', 404);
+
+        const updates = {};
+        if (planCycle !== undefined) updates.planCycle = planCycle;
+        if (amountPaid !== undefined) updates.amountPaid = amountPaid;
+        if (currency !== undefined) updates.currency = currency;
+        if (datePaid !== undefined) updates.datePaid = new Date(datePaid);
+        if (subscriptionStartDate !== undefined) updates.subscriptionStartDate = new Date(subscriptionStartDate);
+        if (subscriptionEndDate !== undefined) updates.subscriptionEndDate = subscriptionEndDate ? new Date(subscriptionEndDate) : null;
+        if (paymentMethod !== undefined) updates.paymentMethod = paymentMethod;
+        if (transactionReference !== undefined) updates.transactionReference = transactionReference || null;
+        if (paymentGatewayProvider !== undefined) updates.paymentGatewayProvider = paymentGatewayProvider || null;
+        if (paymentGatewayTransactionId !== undefined) updates.paymentGatewayTransactionId = paymentGatewayTransactionId || null;
+        if (status !== undefined) updates.status = status;
+        if (notes !== undefined) updates.notes = notes || null;
+
+        await subscription.update(updates);
+
+        // Add audit log
+        await addAuditLog(req.models, {
+            action: 'retail_enrollee_subscription.update',
+            message: `Subscription ${subscription.referenceNumber} updated`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { subscriptionId: subscription.id }
+        });
+
+        return res.success({ subscription: subscription.toJSON() }, 'Subscription updated successfully');
+    } catch (err) {
+        return next(err);
+    }
+}
+
+async function getRetailEnrolleeSubscriptions(req, res, next) {
+    try {
+        const { RetailEnrolleeSubscription, Plan, RetailEnrollee } = req.models;
+        const { retailEnrolleeId } = req.params;
+        const { page = 1, limit = 20, status, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+
+        // Verify enrollee exists
+        const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
+        if (!enrollee) return res.fail('Retail enrollee not found', 404);
+
+        const offset = (page - 1) * limit;
+        const where = { retailEnrolleeId };
+
+        if (status) where.status = status;
+
+        const { count, rows } = await RetailEnrolleeSubscription.findAndCountAll({
+            where,
+            include: [
+                { model: Plan, as: 'plan', attributes: ['id', 'name', 'description'] }
+            ],
+            limit: parseInt(limit),
+            offset,
+            order: [[sortBy, sortOrder]],
+            distinct: true
+        });
+
+        return res.success(
+            {
+                subscriptions: rows,
+                pagination: {
+                    total: count,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    pages: Math.ceil(count / limit)
+                }
+            },
+            'Subscriptions retrieved successfully'
+        );
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createRetailEnrollee,
     getRetailEnrollees,
     getRetailEnrolleeById,
     updateRetailEnrollee,
-    deleteRetailEnrollee
+    deleteRetailEnrollee,
+    createRetailEnrolleeSubscription,
+    updateRetailEnrolleeSubscription,
+    getRetailEnrolleeSubscriptions
 };
