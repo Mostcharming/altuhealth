@@ -77,7 +77,7 @@ module.exports = {
       cwd: "./frontend/referral",
       env: {
         NODE_ENV: "production",
-        PORT: 3006
+        PORT: 3007
       }
     }
   ]
