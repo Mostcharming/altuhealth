@@ -43,14 +43,15 @@ interface AuthorizationCode {
   validTo: string;
   status: string;
   amountAuthorized?: number;
+  dateTimeRequested?: string;
 }
 
-interface Enrollee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  policyNumber: string;
-}
+// interface Enrollee {
+//   id: string;
+//   firstName: string;
+//   lastName: string;
+//   policyNumber: string;
+// }
 
 interface Provider {
   id: string;
@@ -58,10 +59,10 @@ interface Provider {
   code: string;
 }
 
-interface Company {
-  id: string;
-  name: string;
-}
+// interface Company {
+//   id: string;
+//   name: string;
+// }
 
 const AuthorizationCodesTable: React.FC = () => {
   const {
@@ -86,13 +87,13 @@ const AuthorizationCodesTable: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
-  const [selectedEnrolleeId, setSelectedEnrolleeId] = useState<string>("");
+  // const [selectedEnrolleeId, setSelectedEnrolleeId] = useState<string>("");
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+  // const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
-  const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
+  // const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  // const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
@@ -137,7 +138,7 @@ const AuthorizationCodesTable: React.FC = () => {
     { key: "CompanyPlan", label: "Plan" },
     { key: "authorizationType", label: "Type" },
     { key: "status", label: "Status" },
-    { key: "validFrom", label: "Valid From" },
+    { key: "dateTimeRequested", label: "Date Requested" },
     // { key: "actions", label: "Actions" },
   ];
 
@@ -145,22 +146,25 @@ const AuthorizationCodesTable: React.FC = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [enrolleesData, providersData, companiesData] = await Promise.all(
-          [
-            apiClient("/admin/enrollees?limit=all", { method: "GET" }),
-            apiClient("/admin/providers/list?limit=all", { method: "GET" }),
-            apiClient("/admin/companies/list?limit=all", { method: "GET" }),
-          ]
-        );
+        const [
+          // ,
+          // enrolleesData
+          providersData,
+          // companiesData,
+        ] = await Promise.all([
+          // apiClient("/admin/enrollees?limit=all", { method: "GET" }),
+          apiClient("/admin/providers/list?limit=all", { method: "GET" }),
+          // apiClient("/admin/companies/list?limit=all", { method: "GET" }),
+        ]);
 
-        const enrolleesList: Enrollee[] =
-          enrolleesData?.data?.enrollees &&
-          Array.isArray(enrolleesData.data.enrollees)
-            ? enrolleesData.data.enrollees
-            : Array.isArray(enrolleesData)
-            ? enrolleesData
-            : [];
-        setEnrollees(enrolleesList);
+        // const enrolleesList: Enrollee[] =
+        //   enrolleesData?.data?.enrollees &&
+        //   Array.isArray(enrolleesData.data.enrollees)
+        //     ? enrolleesData.data.enrollees
+        //     : Array.isArray(enrolleesData)
+        //     ? enrolleesData
+        //     : [];
+        // setEnrollees(enrolleesList);
 
         const providersList: Provider[] =
           providersData?.data?.list && Array.isArray(providersData.data.list)
@@ -170,13 +174,13 @@ const AuthorizationCodesTable: React.FC = () => {
             : [];
         setProviders(providersList);
 
-        const companiesList: Company[] =
-          companiesData?.data?.list && Array.isArray(companiesData.data.list)
-            ? companiesData.data.list
-            : Array.isArray(companiesData)
-            ? companiesData
-            : [];
-        setCompanies(companiesList);
+        // const companiesList: Company[] =
+        //   companiesData?.data?.list && Array.isArray(companiesData.data.list)
+        //     ? companiesData.data.list
+        //     : Array.isArray(companiesData)
+        //     ? companiesData
+        //     : [];
+        // setCompanies(companiesList);
       } catch (err) {
         console.warn("Failed to fetch initial data", err);
       }
@@ -192,9 +196,9 @@ const AuthorizationCodesTable: React.FC = () => {
       if (limit) params.append("limit", String(limit));
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
-      if (selectedEnrolleeId) params.append("enrolleeId", selectedEnrolleeId);
+      // if (selectedEnrolleeId) params.append("enrolleeId", selectedEnrolleeId);
       if (selectedProviderId) params.append("providerId", selectedProviderId);
-      if (selectedCompanyId) params.append("companyId", selectedCompanyId);
+      // if (selectedCompanyId) params.append("companyId", selectedCompanyId);
       if (selectedStatus) params.append("status", selectedStatus);
 
       const url = `/admin/authorization-codes?${params.toString()}`;
@@ -225,9 +229,9 @@ const AuthorizationCodesTable: React.FC = () => {
     limit,
     currentPage,
     search,
-    selectedEnrolleeId,
+    // selectedEnrolleeId,
     selectedProviderId,
-    selectedCompanyId,
+    // selectedCompanyId,
     selectedStatus,
     setAuthorizationCodesStore,
   ]);
@@ -362,7 +366,7 @@ const AuthorizationCodesTable: React.FC = () => {
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
             {/* Enrollee Filter */}
-            <div>
+            {/* <div>
               <Select
                 options={[
                   { value: "", label: "All Enrollees" },
@@ -378,7 +382,7 @@ const AuthorizationCodesTable: React.FC = () => {
                 }}
                 defaultValue={selectedEnrolleeId}
               />
-            </div>
+            </div> */}
 
             {/* Provider Filter */}
             <div>
@@ -387,7 +391,7 @@ const AuthorizationCodesTable: React.FC = () => {
                   { value: "", label: "All Providers" },
                   ...providers.map((p) => ({
                     value: p.id,
-                    label: p.name,
+                    label: capitalizeWords(p.name),
                   })),
                 ]}
                 placeholder="Select provider"
@@ -399,7 +403,7 @@ const AuthorizationCodesTable: React.FC = () => {
               />
             </div>
 
-            {/* Company Filter */}
+            {/* Company Filter
             <div>
               <Select
                 options={[
@@ -416,7 +420,7 @@ const AuthorizationCodesTable: React.FC = () => {
                 }}
                 defaultValue={selectedCompanyId}
               />
-            </div>
+            </div> */}
 
             {/* Status Filter */}
             <div>
@@ -516,7 +520,9 @@ const AuthorizationCodesTable: React.FC = () => {
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {code.Provider ? code.Provider.name : "—"}
+                        {code.Provider
+                          ? capitalizeWords(code.Provider.name)
+                          : "—"}
                       </p>
                     </td>
                     <td className="p-4 whitespace-nowrap">
@@ -550,7 +556,7 @@ const AuthorizationCodesTable: React.FC = () => {
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {formatDate(code.validFrom)}
+                        {formatDate(code.dateTimeRequested ?? "")}
                       </p>
                     </td>
                     {/* <td className="p-4 whitespace-nowrap">

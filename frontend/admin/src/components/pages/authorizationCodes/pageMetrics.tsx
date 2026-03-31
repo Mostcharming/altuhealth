@@ -39,12 +39,15 @@ interface Company {
   name: string;
 }
 
-export default function PageMetricsAuthorizationCodes({
-  buttonText,
-}: {
+export default function PageMetricsAuthorizationCodes({}: // buttonText,
+{
   buttonText?: string;
 }) {
-  const { isOpen, openModal, closeModal } = useModal();
+  const {
+    isOpen,
+    // openModal,
+    closeModal,
+  } = useModal();
   const [loading, setLoading] = useState(false);
   const addAuthorizationCode = useAuthorizationCodeStore(
     (state) => state.addAuthorizationCode
@@ -292,7 +295,7 @@ export default function PageMetricsAuthorizationCodes({
     <div className="p-4 sm:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
       <div className=" flex items-center justify-between">
         <div></div>
-        <div>
+        {/* <div>
           <div
             onClick={openModal}
             className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
@@ -314,7 +317,7 @@ export default function PageMetricsAuthorizationCodes({
             </svg>
             {buttonText}
           </div>
-        </div>
+        </div> */}
       </div>
 
       <Modal

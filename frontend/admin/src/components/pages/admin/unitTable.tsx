@@ -59,7 +59,7 @@ const AdminTable: React.FC = () => {
     { key: "unit", label: "Unit" },
     { key: "status", label: "Status" },
 
-    { key: "actions", label: "Actions" },
+    { key: "actions", label: "Action" },
   ];
 
   const fetch = useCallback(async () => {
