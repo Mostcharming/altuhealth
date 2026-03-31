@@ -6,17 +6,22 @@ export interface RetailEnrolleeDependent {
   firstName: string;
   middleName?: string | null;
   lastName: string;
-  phoneNumber?: string | null;
-  email?: string | null;
   dateOfBirth: string;
   gender: "male" | "female" | "other";
-  relationship: "spouse" | "child" | "parent" | "sibling" | "other";
-  state?: string | null;
-  lga?: string | null;
-  country?: string | null;
-  address?: string | null;
+  relationshipToEnrollee: "spouse" | "child" | "parent" | "sibling" | "other";
+  phoneNumber?: string | null;
+  email?: string | null;
+  occupation?: string | null;
+  maritalStatus?:
+    | "single"
+    | "married"
+    | "divorced"
+    | "widowed"
+    | "separated"
+    | null;
   pictureUrl?: string | null;
   idCardUrl?: string | null;
+  preexistingMedicalRecords?: string | null;
   isActive: boolean;
   RetailEnrollee?: {
     id: string;

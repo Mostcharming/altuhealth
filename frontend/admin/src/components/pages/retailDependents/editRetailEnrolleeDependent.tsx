@@ -5,6 +5,7 @@ import DatePicker from "@/components/form/date-picker";
 import PhoneInput from "@/components/form/group-input/PhoneInput";
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
+import TextArea from "@/components/form/input/TextArea";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
@@ -39,15 +40,17 @@ export default function EditRetailEnrolleeDependent({
   const [lastName, setLastName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState<"male" | "female" | "other">("male");
-  const [relationship, setRelationship] = useState<
+  const [relationshipToEnrollee, setRelationshipToEnrollee] = useState<
     "spouse" | "child" | "parent" | "sibling" | "other"
   >("child");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
-  const [state, setState] = useState("");
-  const [lga, setLga] = useState("");
-  const [country, setCountry] = useState("");
-  const [address, setAddress] = useState("");
+  const [occupation, setOccupation] = useState("");
+  const [maritalStatus, setMaritalStatus] = useState<
+    "single" | "married" | "divorced" | "widowed" | "separated" | ""
+  >();
+  const [preexistingMedicalRecords, setPreexistingMedicalRecords] =
+    useState("");
   const [isActive, setIsActive] = useState(true);
   const [retailEnrollees, setRetailEnrollees] = useState<any[]>([]);
   const [errorMessage, setErrorMessage] = useState(
@@ -115,13 +118,12 @@ export default function EditRetailEnrolleeDependent({
         dependent.dateOfBirth ? dependent.dateOfBirth.split("T")[0] : ""
       );
       setGender(dependent.gender ?? "male");
-      setRelationship(dependent.relationship ?? "child");
+      setRelationshipToEnrollee(dependent.relationshipToEnrollee ?? "child");
       setPhoneNumber(dependent.phoneNumber ?? "");
       setEmail(dependent.email ?? "");
-      setState(dependent.state ?? "");
-      setLga(dependent.lga ?? "");
-      setCountry(dependent.country ?? "");
-      setAddress(dependent.address ?? "");
+      setOccupation(dependent.occupation ?? "");
+      setMaritalStatus(dependent.maritalStatus ?? "");
+      setPreexistingMedicalRecords(dependent.preexistingMedicalRecords ?? "");
       setIsActive(dependent.isActive ?? true);
     }
 
@@ -133,13 +135,12 @@ export default function EditRetailEnrolleeDependent({
       setLastName("");
       setDateOfBirth("");
       setGender("male");
-      setRelationship("child");
+      setRelationshipToEnrollee("child");
       setPhoneNumber("");
       setEmail("");
-      setState("");
-      setLga("");
-      setCountry("");
-      setAddress("");
+      setOccupation("");
+      setMaritalStatus("");
+      setPreexistingMedicalRecords("");
       setIsActive(true);
     }
   }, [isOpen, dependent]);
@@ -154,13 +155,13 @@ export default function EditRetailEnrolleeDependent({
         lastName: lastName.trim(),
         dateOfBirth,
         gender,
-        relationship,
+        relationshipToEnrollee,
         phoneNumber: phoneNumber.trim() || undefined,
         email: email.trim() || undefined,
-        state: state.trim() || undefined,
-        lga: lga.trim() || undefined,
-        country: country.trim() || undefined,
-        address: address.trim() || undefined,
+        occupation: occupation.trim() || undefined,
+        maritalStatus: maritalStatus || undefined,
+        preexistingMedicalRecords:
+          preexistingMedicalRecords.trim() || undefined,
         isActive,
       };
 
@@ -179,13 +180,12 @@ export default function EditRetailEnrolleeDependent({
         lastName,
         dateOfBirth: dateOfBirth || undefined,
         gender,
-        relationship,
+        relationshipToEnrollee,
         phoneNumber: phoneNumber || undefined,
         email: email || undefined,
-        state: state || undefined,
-        lga: lga || undefined,
-        country: country || undefined,
-        address: address || undefined,
+        occupation: occupation || undefined,
+        maritalStatus: (maritalStatus as any) || undefined,
+        preexistingMedicalRecords: preexistingMedicalRecords || undefined,
         isActive,
       });
 
@@ -311,7 +311,7 @@ export default function EditRetailEnrolleeDependent({
               </div>
 
               <div>
-                <Label>Relationship</Label>
+                <Label>Relationship to Enrollee</Label>
                 <Select
                   options={[
                     { value: "spouse", label: "Spouse" },
@@ -322,7 +322,7 @@ export default function EditRetailEnrolleeDependent({
                   ]}
                   placeholder="Select relationship"
                   onChange={(value) =>
-                    setRelationship(
+                    setRelationshipToEnrollee(
                       value as
                         | "spouse"
                         | "child"
@@ -331,7 +331,7 @@ export default function EditRetailEnrolleeDependent({
                         | "other"
                     )
                   }
-                  defaultValue={relationship}
+                  defaultValue={relationshipToEnrollee}
                 />
               </div>
 
@@ -359,50 +359,50 @@ export default function EditRetailEnrolleeDependent({
               </div>
 
               <div>
-                <Label>Country</Label>
+                <Label>Occupation</Label>
                 <Input
                   type="text"
-                  placeholder="Country"
-                  value={country}
+                  placeholder="Occupation"
+                  value={occupation}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setCountry(e.target.value)
+                    setOccupation(e.target.value)
                   }
                 />
               </div>
 
               <div>
-                <Label>State</Label>
-                <Input
-                  type="text"
-                  placeholder="State"
-                  value={state}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setState(e.target.value)
+                <Label>Marital Status</Label>
+                <Select
+                  options={[
+                    { value: "single", label: "Single" },
+                    { value: "married", label: "Married" },
+                    { value: "divorced", label: "Divorced" },
+                    { value: "widowed", label: "Widowed" },
+                    { value: "separated", label: "Separated" },
+                  ]}
+                  placeholder="Select marital status"
+                  onChange={(value) =>
+                    setMaritalStatus(
+                      value as
+                        | "single"
+                        | "married"
+                        | "divorced"
+                        | "widowed"
+                        | "separated"
+                        | ""
+                    )
                   }
+                  defaultValue={maritalStatus}
                 />
               </div>
 
-              <div>
-                <Label>LGA</Label>
-                <Input
-                  type="text"
-                  placeholder="Local Government Area"
-                  value={lga}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setLga(e.target.value)
-                  }
-                />
-              </div>
-
-              <div>
-                <Label>Address</Label>
-                <Input
-                  type="text"
-                  placeholder="Address"
-                  value={address}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setAddress(e.target.value)
-                  }
+              <div className="lg:col-span-2">
+                <Label>Pre-existing Medical Records</Label>
+                <TextArea
+                  placeholder="Enter any pre-existing medical records..."
+                  rows={4}
+                  value={preexistingMedicalRecords}
+                  onChange={(value) => setPreexistingMedicalRecords(value)}
                 />
               </div>
 

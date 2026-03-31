@@ -6,8 +6,10 @@ const config = {
         adminUrl: "https://admin.altuhealth.com",
         providerUrl: "https://provider.altuhealth.com",
         enrolleeUrl: "https://enrollee.altuhealth.com",
+        enrolleeDependentPortalUrl: process.env.ENROLLEE_DEPENDENT_PORTAL_URL || "https://retail.altuhealth.com/login",
         doctorUrl: "https://doctors.altuhealth.com",
         retailUrl: "https://retail.altuhealth.com",
+        retailDependentPortalUrl: process.env.RETAIL_DEPENDENT_PORTAL_URL || "https://retail.altuhealth.com/login",
         referralUrl: "https://referral.altuhealth.com",
         db: {
             master: {
@@ -40,8 +42,10 @@ const config = {
         adminUrl: "https://admin.altuhealth.com",
         providerUrl: "https://provider.altuhealth.com",
         enrolleeUrl: "https://enrollee.altuhealth.com",
+        enrolleeDependentPortalUrl: process.env.ENROLLEE_DEPENDENT_PORTAL_URL || "https://enrollee.altuhealth.com/dependent",
         doctorUrl: "https://doctors.altuhealth.com",
         retailUrl: "https://retail.altuhealth.com",
+        retailDependentPortalUrl: process.env.RETAIL_DEPENDENT_PORTAL_URL || "https://retail.altuhealth.com/dependent",
         referralUrl: "https://referral.altuhealth.com",
         db: {
             master: {

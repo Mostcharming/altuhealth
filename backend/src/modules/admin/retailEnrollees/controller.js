@@ -179,7 +179,9 @@ async function getRetailEnrollees(req, res, next) {
         const { RetailEnrollee, Plan, Admin } = req.models;
         const { page = 1, limit = 20, search, planId, isActive, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
 
-        const offset = (page - 1) * limit;
+        const isAll = limit === 'all';
+        const limitNum = isAll ? null : parseInt(limit);
+        const offset = isAll ? 0 : (page - 1) * limitNum;
         const where = {};
 
         if (search) {
@@ -194,27 +196,38 @@ async function getRetailEnrollees(req, res, next) {
         if (planId) where.planId = planId;
         if (isActive !== undefined) where.isActive = isActive === 'true';
 
-        const { count, rows } = await RetailEnrollee.findAndCountAll({
+        const queryOptions = {
             where,
             include: [
                 { model: Plan, as: 'plan', attributes: ['id', 'name', 'description'] },
                 { model: Admin, as: 'soldByUser', attributes: ['id', 'firstName', 'lastName', 'email'] },
                 { association: 'subscriptions', attributes: ['id', 'referenceNumber', 'planCycle', 'amountPaid', 'currency', 'status', 'subscriptionStartDate', 'subscriptionEndDate'] }
             ],
-            limit: parseInt(limit),
-            offset,
             order: [[sortBy, sortOrder]],
             distinct: true
-        });
+        };
+
+        if (!isAll) {
+            queryOptions.limit = limitNum;
+            queryOptions.offset = offset;
+        }
+
+        const { count, rows } = await RetailEnrollee.findAndCountAll(queryOptions);
+
+        const totalPages = isAll ? 1 : (limitNum > 0 ? Math.ceil(count / limitNum) : 1);
+        const hasPrevPage = !isAll && parseInt(page) > 1;
+        const hasNextPage = !isAll && (offset + rows.length < count);
 
         return res.success(
             {
                 enrollees: rows,
                 pagination: {
                     total: count,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    pages: Math.ceil(count / limit)
+                    page: isAll ? 1 : parseInt(page),
+                    limit: isAll ? 'all' : limitNum,
+                    pages: totalPages,
+                    hasPrevPage,
+                    hasNextPage
                 }
             },
             'Retail enrollees retrieved successfully'

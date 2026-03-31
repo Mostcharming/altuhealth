@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
+const { generateTemporaryPassword, hashPassword } = require('../../../utils/passwordGenerator');
 
 async function createRetailEnrolleeDependent(req, res, next) {
     try {
@@ -15,11 +16,10 @@ async function createRetailEnrolleeDependent(req, res, next) {
             email,
             dateOfBirth,
             gender,
-            relationship,
-            state,
-            lga,
-            country,
-            address
+            relationshipToEnrollee,
+            occupation,
+            maritalStatus,
+            preexistingMedicalRecords
         } = req.body || {};
 
         // Validate required fields
@@ -28,7 +28,7 @@ async function createRetailEnrolleeDependent(req, res, next) {
         if (!lastName) return res.fail('`lastName` is required', 400);
         if (!dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
         if (!gender) return res.fail('`gender` is required', 400);
-        if (!relationship) return res.fail('`relationship` is required', 400);
+        if (!relationshipToEnrollee) return res.fail('`relationshipToEnrollee` is required', 400);
 
         // Verify retail enrollee exists
         const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
@@ -40,9 +40,38 @@ async function createRetailEnrolleeDependent(req, res, next) {
             if (existingEmail) return res.fail('Email already exists', 400);
         }
 
+        // Generate temporary password
+        const temporaryPassword = generateTemporaryPassword();
+        const hashedPassword = await hashPassword(temporaryPassword);
+
+        // Generate a unique policy number for the dependent
+        let policyNumber;
+        let exists = true;
+        let sequenceNumber = 1;
+        const maxAttempts = 100;
+        const basePolicyNumber = `RET-${enrollee.id.substring(0, 8).toUpperCase()}`;
+        let attempts = 0;
+
+        while (exists && attempts < maxAttempts) {
+            policyNumber = `${basePolicyNumber}-${String(sequenceNumber).padStart(2, '0')}`;
+            const foundDependent = await RetailEnrolleeDependent.findOne({
+                where: { policyNumber },
+                attributes: ['id'],
+                raw: true
+            });
+            exists = !!foundDependent;
+            sequenceNumber++;
+            attempts++;
+        }
+
+        if (exists) {
+            return res.fail('Unable to generate unique policy number for dependent', 500);
+        }
+
         // Create dependent
         const dependent = await RetailEnrolleeDependent.create({
             retailEnrolleeId,
+            policyNumber,
             firstName,
             middleName: middleName || null,
             lastName,
@@ -50,11 +79,11 @@ async function createRetailEnrolleeDependent(req, res, next) {
             email: email || null,
             dateOfBirth,
             gender,
-            relationship,
-            state: state || null,
-            lga: lga || null,
-            country: country || null,
-            address: address || null,
+            relationshipToEnrollee,
+            occupation: occupation || null,
+            maritalStatus: maritalStatus || null,
+            preexistingMedicalRecords: preexistingMedicalRecords || null,
+            password: hashedPassword,
             isActive: true
         });
 
@@ -66,6 +95,38 @@ async function createRetailEnrolleeDependent(req, res, next) {
             userType: (req.user && req.user.type) ? req.user.type : null,
             meta: { dependentId: dependent.id, retailEnrolleeId }
         });
+
+        // Send email notification if email is provided
+        if (email) {
+            try {
+                await notify(
+                    {
+                        id: dependent.id,
+                        email: dependent.email,
+                        firstName: dependent.firstName,
+                        enrolleeFirstName: enrollee.firstName,
+                        enrolleeLastName: enrollee.lastName,
+                        policyNumber: dependent.policyNumber,
+                        temporaryPassword: temporaryPassword,
+                        loginLink: `${config.retailDependentPortalUrl}/login`
+                    },
+                    'retail_enrollee_dependent',
+                    'RETAIL_ENROLLEE_DEPENDENT_CREATED',
+                    {
+                        firstName: dependent.firstName,
+                        enrolleeFirstName: enrollee.firstName,
+                        enrolleeLastName: enrollee.lastName,
+                        policyNumber: dependent.policyNumber,
+                        temporaryPassword: temporaryPassword,
+                        loginLink: `${config.retailDependentPortalUrl}/login`
+                    },
+                    ['email']
+                );
+            } catch (emailError) {
+                console.error('Error sending notification email:', emailError);
+                // Don't fail the request if email fails to send
+            }
+        }
 
         return res.success({ dependent: dependent.toJSON() }, 'Retail enrollee dependent created successfully', 201);
     } catch (err) {

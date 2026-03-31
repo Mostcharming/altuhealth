@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
+const { generateTemporaryPassword, hashPassword } = require('../../../utils/passwordGenerator');
 
 /**
  * Generate dependent policy number from enrollee policy number
@@ -67,6 +68,10 @@ async function createEnrolleeDependent(req, res, next) {
         const enrollee = await Enrollee.findByPk(enrolleeId);
         if (!enrollee) return res.fail('Enrollee not found', 404);
 
+        // Generate temporary password
+        const temporaryPassword = generateTemporaryPassword();
+        const hashedPassword = await hashPassword(temporaryPassword);
+
         // Generate policy number
         const policyNumber = await generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enrollee);
 
@@ -83,7 +88,8 @@ async function createEnrolleeDependent(req, res, next) {
             email: email || null,
             occupation: occupation || null,
             maritalStatus: maritalStatus || null,
-            preexistingMedicalRecords: preexistingMedicalRecords || null
+            preexistingMedicalRecords: preexistingMedicalRecords || null,
+            password: hashedPassword
         });
 
         await addAuditLog(req.models, {
@@ -93,6 +99,38 @@ async function createEnrolleeDependent(req, res, next) {
             userType: (req.user && req.user.type) ? req.user.type : null,
             meta: { dependentId: dependent.id, enrolleeId }
         });
+
+        // Send email notification if email is provided
+        if (email) {
+            try {
+                await notify(
+                    {
+                        id: dependent.id,
+                        email: dependent.email,
+                        firstName: dependent.firstName,
+                        enrolleeFirstName: enrollee.firstName,
+                        enrolleeLastName: enrollee.lastName,
+                        policyNumber: dependent.policyNumber,
+                        temporaryPassword: temporaryPassword,
+                        loginLink: `${config.enrolleeDependentPortalUrl}/login`
+                    },
+                    'enrollee_dependent',
+                    'ENROLLEE_DEPENDENT_CREATED',
+                    {
+                        firstName: dependent.firstName,
+                        enrolleeFirstName: enrollee.firstName,
+                        enrolleeLastName: enrollee.lastName,
+                        policyNumber: dependent.policyNumber,
+                        temporaryPassword: temporaryPassword,
+                        loginLink: `${config.enrolleeDependentPortalUrl}/login`
+                    },
+                    ['email']
+                );
+            } catch (emailError) {
+                console.error('Error sending notification email:', emailError);
+                // Don't fail the request if email fails to send
+            }
+        }
 
         return res.success({ dependent: dependent.toJSON() }, 'Enrollee dependent created', 201);
     } catch (err) {
