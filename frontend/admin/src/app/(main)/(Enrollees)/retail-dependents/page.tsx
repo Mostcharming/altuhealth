@@ -1,5 +1,5 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PageMetricsEnrolleeDependents from "@/components/pages/enrolleeDependents/pageMetrics";
+import PageMetricsRetailDependents from "@/components/pages/retailDependents/pageMetricsRetailDependents";
 import RetailDependentsTable from "@/components/pages/retailDependents/retailDependentsTable";
 import { Metadata } from "next";
 
@@ -13,7 +13,7 @@ export default function RetailDependents() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Retail Dependents Management" />
-      <PageMetricsEnrolleeDependents buttonText="Add New Dependent" />
+      <PageMetricsRetailDependents buttonText="Add New Dependent" />
       <RetailDependentsTable />
     </div>
   );

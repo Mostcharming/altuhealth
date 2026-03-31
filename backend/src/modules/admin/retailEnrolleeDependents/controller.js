@@ -79,7 +79,7 @@ async function createRetailEnrolleeDependent(req, res, next) {
             email: email || null,
             dateOfBirth,
             gender,
-            relationshipToEnrollee,
+            relationship: relationshipToEnrollee,
             occupation: occupation || null,
             maritalStatus: maritalStatus || null,
             preexistingMedicalRecords: preexistingMedicalRecords || null,
