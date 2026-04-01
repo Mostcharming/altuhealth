@@ -158,7 +158,6 @@ const supportItems: NavItem[] = [
     subItems: [
       { name: "Approvals", path: "/approvals" },
       { name: "Requests", path: "/requests" },
-      { name: "Reports", path: "/reports" },
     ],
   },
   {

@@ -129,6 +129,7 @@ export default function CreateInvoicePage() {
           subtotal: newInvoice.subtotal || 0,
           discountAmount: newInvoice.discountAmount || 0,
           taxAmount: newInvoice.taxAmount || 0,
+          invoiceNumber: "",
         });
       }
 
