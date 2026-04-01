@@ -20,6 +20,7 @@ interface Product {
   price: number;
   quantity: number;
   discount: number;
+  vat: number;
   total: string;
 }
 
@@ -46,11 +47,21 @@ export default function CreateInvoicePage() {
     setProducts(updatedProducts);
   };
 
-  const subtotal = products.reduce(
-    (sum, product) => sum + Number(product.total),
-    0
-  );
-  const vat = subtotal * 0.1;
+  // Get the VAT rate from the first product (or use 10 as default)
+  const vatRate = products.length > 0 ? products[0].vat : 10;
+
+  // Calculate subtotal without VAT by working backwards from the product totals
+  // Since products already include VAT in their totals: total = price * qty * (1 - discount/100) * (1 + vat/100)
+  // We need to extract the base amount before VAT
+  let subtotalBeforeVat = 0;
+  products.forEach((product) => {
+    const total = Number(product.total);
+    const baseAmount = total / (1 + product.vat / 100);
+    subtotalBeforeVat += baseAmount;
+  });
+
+  const vat = subtotalBeforeVat * (vatRate / 100);
+  const subtotal = subtotalBeforeVat;
   const total = subtotal + vat;
 
   const handleSaveInvoice = async () => {
@@ -238,6 +249,7 @@ export default function CreateInvoicePage() {
               products={products}
               subtotal={subtotal}
               vat={vat}
+              vatRate={vatRate}
               total={total}
               currency={currency}
               issuedDate={issuedDate}

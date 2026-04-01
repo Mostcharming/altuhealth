@@ -26,6 +26,14 @@ async function createInvoice(req, res, next) {
         if (!customerName) return res.fail('`customerName` is required', 400);
         if (!lineItems || lineItems.length === 0) return res.fail('At least one line item is required', 400);
 
+        // Validate line items
+        for (let i = 0; i < lineItems.length; i++) {
+            const item = lineItems[i];
+            if (!item.description) return res.fail(`Line item ${i + 1}: \`description\` is required`, 400);
+            if (!item.unitPrice && item.unitPrice !== 0) return res.fail(`Line item ${i + 1}: \`unitPrice\` is required`, 400);
+            if (!item.subtotal && item.subtotal !== 0) return res.fail(`Line item ${i + 1}: \`subtotal\` is required`, 400);
+        }
+
         // Verify enrollee/retail enrollee if provided
         if (enrolleeId) {
             const enrollee = await Enrollee.findByPk(enrolleeId);
@@ -91,14 +99,14 @@ async function createInvoice(req, res, next) {
             const lineItem = await InvoiceLineItem.create({
                 invoiceId: invoice.id,
                 itemNumber: i + 1,
-                serviceName: item.serviceName,
+                serviceName: item.description,
                 description: item.description || null,
                 quantity: item.quantity || 1,
                 unitOfMeasure: item.unitOfMeasure || 'unit',
-                unitCost: item.unitCost,
+                unitCost: item.unitPrice || item.unitCost,
                 subtotal: item.subtotal,
                 discountAmount: item.discountAmount || 0,
-                discountPercentage: item.discountPercentage || null,
+                discountPercentage: item.discountPercentage || item.discount || null,
                 taxAmount: item.taxAmount || 0,
                 taxPercentage: item.taxPercentage || null,
                 lineTotal,
@@ -213,13 +221,6 @@ async function listInvoices(req, res, next) {
 
 
 
-        if (enrolleeId) {
-            where.enrolleeId = enrolleeId;
-        }
-
-        if (retailEnrolleeId) {
-            where.retailEnrolleeId = retailEnrolleeId;
-        }
 
         if (status) {
             where.status = status;
@@ -246,17 +247,8 @@ async function listInvoices(req, res, next) {
             order: [['invoiceDate', 'DESC']],
             include: [
                 {
-                    model: Enrollee,
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
-                    required: false
-                },
-                {
-                    model: RetailEnrollee,
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
-                    required: false
-                },
-                {
                     model: InvoiceLineItem,
+                    as: 'lineItems',
                     attributes: ['id', 'itemNumber', 'serviceName', 'quantity', 'unitCost', 'lineTotal'],
                     required: false
                 }
@@ -291,24 +283,16 @@ async function listInvoices(req, res, next) {
 
 async function getInvoice(req, res, next) {
     try {
-        const { Invoice, Enrollee, RetailEnrollee, InvoiceLineItem, Admin } = req.models;
+        const { Invoice, InvoiceLineItem, Admin } = req.models;
         const { id } = req.params;
 
         const invoice = await Invoice.findByPk(id, {
             include: [
 
-                {
-                    model: Enrollee,
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
-                    required: false
-                },
-                {
-                    model: RetailEnrollee,
-                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
-                    required: false
-                },
+
                 {
                     model: InvoiceLineItem,
+                    as: 'lineItems',
                     attributes: ['id', 'itemNumber', 'serviceName', 'description', 'quantity', 'unitOfMeasure', 'unitCost', 'subtotal', 'discountAmount', 'taxAmount', 'lineTotal'],
                     required: false
                 },

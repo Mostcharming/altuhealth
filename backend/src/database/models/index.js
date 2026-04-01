@@ -458,10 +458,6 @@ function defineModels(sequelize) {
   Admin.hasMany(AdmissionTracker, { foreignKey: "approvedBy", constraints: false, as: 'approvedAdmissions' });
   AdmissionTracker.belongsTo(Admin, { foreignKey: "approvedBy", constraints: false, as: 'approver' });
 
-  // Invoice <-> Provider one-to-many
-  Provider.hasMany(Invoice, { foreignKey: "providerId", as: 'invoices' });
-  Invoice.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
-
   // Invoice <-> Enrollee one-to-many
   Enrollee.hasMany(Invoice, { foreignKey: "enrolleeId", as: 'invoices' });
   Invoice.belongsTo(Enrollee, { foreignKey: "enrolleeId", as: 'enrollee' });

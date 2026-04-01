@@ -10,6 +10,7 @@ interface Product {
   price: number;
   quantity: number;
   discount: number;
+  vat: number;
   total: string;
 }
 
@@ -18,6 +19,7 @@ interface FormData {
   price: number;
   quantity: number;
   discount: number;
+  vat: number;
 }
 
 const CreateInvoiceTable: React.FC<{
@@ -32,6 +34,7 @@ const CreateInvoiceTable: React.FC<{
     price: 0,
     quantity: 1,
     discount: 0,
+    vat: 10,
   });
 
   const handleDelete = (index: number): void => {
@@ -47,7 +50,10 @@ const CreateInvoiceTable: React.FC<{
     setForm((prev) => ({
       ...prev,
       [name]:
-        name === "price" || name === "quantity" || name === "discount"
+        name === "price" ||
+        name === "quantity" ||
+        name === "discount" ||
+        name === "vat"
           ? Number(value)
           : value,
     }));
@@ -66,7 +72,8 @@ const CreateInvoiceTable: React.FC<{
       const total = (
         form.price *
         form.quantity *
-        (1 - form.discount / 100)
+        (1 - form.discount / 100) *
+        (1 + form.vat / 100)
       ).toFixed(2);
       const updated = [...products, { ...form, total }];
       setProducts(updated);
@@ -76,6 +83,7 @@ const CreateInvoiceTable: React.FC<{
         price: 0,
         quantity: 1,
         discount: 0,
+        vat: 10,
       });
     }
   };
@@ -84,8 +92,8 @@ const CreateInvoiceTable: React.FC<{
     (sum, product) => sum + Number(product.total),
     0
   );
-  const vat: number = subtotal * 0.1;
-  const total: number = subtotal + vat;
+  const globalVat: number = subtotal * (form.vat / 100);
+  const total: number = subtotal + globalVat;
 
   return (
     <div className="space-y-6">
@@ -274,6 +282,26 @@ const CreateInvoiceTable: React.FC<{
                 </span>
               </div>
             </div>
+            <div className="w-full lg:col-span-2">
+              <Label>VAT</Label>
+              <div className="relative">
+                <select
+                  name="vat"
+                  value={form.vat}
+                  onChange={handleInputChange}
+                  className="dark:bg-dark-900 bg-none appearance-none shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                >
+                  <option value="0">0%</option>
+                  <option value="5">5%</option>
+                  <option value="10">10%</option>
+                  <option value="15">15%</option>
+                  <option value="20">20%</option>
+                </select>
+                <span className="absolute text-gray-500 -translate-y-1/2 pointer-events-none right-3 top-1/2 dark:text-gray-400">
+                  <ChevronDownIcon />
+                </span>
+              </div>
+            </div>
             <div className="flex w-full items-end lg:col-span-2">
               <button
                 type="submit"
@@ -333,11 +361,11 @@ const CreateInvoiceTable: React.FC<{
             </li>
             <li className="flex items-center justify-between">
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Vat (10%):
+                VAT ({form.vat}%):
               </span>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
                 {currencyData.symbol}
-                {vat.toFixed(2)}
+                {globalVat.toFixed(2)}
               </span>
             </li>
             <li className="flex items-center justify-between">

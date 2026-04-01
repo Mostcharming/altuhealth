@@ -16,17 +16,6 @@ module.exports = (sequelize, DataTypes) => {
             field: 'invoice_number',
             comment: 'Unique invoice number (e.g., INV-2025-001)'
         },
-        providerId: {
-            type: DataTypes.UUID,
-            allowNull: true,
-            references: {
-                model: 'providers',
-                key: 'id'
-            },
-            onDelete: 'SET NULL',
-            onUpdate: 'CASCADE',
-            field: 'provider_id'
-        },
         enrolleeId: {
             type: DataTypes.UUID,
             allowNull: true,

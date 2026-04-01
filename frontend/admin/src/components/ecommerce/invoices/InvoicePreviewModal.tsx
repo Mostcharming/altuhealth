@@ -9,6 +9,7 @@ interface Product {
   price: number;
   quantity: number;
   discount: number;
+  vat?: number;
   total: string;
 }
 
@@ -19,6 +20,7 @@ interface InvoiceData {
   products?: Product[];
   subtotal?: number;
   vat?: number;
+  vatRate?: number;
   total?: number;
   issuedDate?: string;
   dueDate?: string;
@@ -32,6 +34,7 @@ export default function InvoicePreviewModal({
   products = [],
   subtotal = 0,
   vat = 0,
+  vatRate = 10,
   total = 0,
   issuedDate = new Date().toLocaleDateString(),
   dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
@@ -204,7 +207,7 @@ export default function InvoicePreviewModal({
                 </li>
                 <li className="flex items-center justify-between">
                   <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Vat (10%):
+                    VAT ({vatRate}%):
                   </span>
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
                     {currencyData.symbol}

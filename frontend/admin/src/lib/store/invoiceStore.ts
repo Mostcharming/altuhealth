@@ -3,17 +3,26 @@ import { create } from "zustand";
 export interface InvoiceLineItem {
   id?: string;
   invoiceId?: string;
+  itemNumber?: number;
+  serviceName?: string;
   description: string;
-  quantity: number;
-  unitPrice: number;
+  quantity: number | string;
+  unitPrice?: number;
+  unitCost?: number;
+  unitOfMeasure?: string;
   discount?: number;
+  discountAmount?: number;
   tax?: number;
-  amount: number;
+  taxAmount?: number;
+  amount?: number;
+  subtotal?: number | string;
+  lineTotal?: number | string;
 }
 
 export interface Invoice {
   id: string;
-  providerId: string;
+  invoiceNumber: string;
+  providerId?: string;
   enrolleeId?: string | null;
   retailEnrolleeId?: string | null;
   customerName: string;
@@ -22,18 +31,27 @@ export interface Invoice {
   customerEmail?: string | null;
   invoiceDate: string;
   dueDate?: string | null;
-  subtotal: number;
-  discountAmount: number;
-  taxAmount: number;
-  totalAmount: number;
-  paidAmount: number;
-  balanceAmount: number;
+  subtotal: number | string;
+  discountAmount: number | string;
+  discountPercentage?: number | null;
+  taxAmount: number | string;
+  taxPercentage?: number | null;
+  totalAmount: number | string;
+  paidAmount: number | string;
+  balanceAmount: number | string;
   status: "issued" | "overdue" | "cancelled" | "paid" | "partially_paid";
   paymentStatus: "unpaid" | "paid" | "partially_paid";
+  currency?: string;
   notes?: string | null;
   description?: string | null;
   issuedBy?: string | null;
   issuedByType?: string;
+  issuedByAdmin?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   lineItems?: InvoiceLineItem[];
   Provider?: {
     id: string;
