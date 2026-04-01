@@ -291,17 +291,26 @@ const InvoiceTable: React.FC = () => {
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {formatPrice(invoice.totalAmount)}
+                      {formatPrice(
+                        Number(invoice.totalAmount),
+                        invoice.currency
+                      )}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {formatPrice(invoice.paidAmount)}
+                      {formatPrice(
+                        Number(invoice.paidAmount),
+                        invoice.currency
+                      )}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {formatPrice(invoice.balanceAmount)}
+                      {formatPrice(
+                        Number(invoice.balanceAmount),
+                        invoice.currency
+                      )}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
