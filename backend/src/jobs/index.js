@@ -3,11 +3,16 @@
 const cron = require('node-cron');
 const subscriptionReminderJob = require('./subscriptionReminderJob');
 const retailSubscriptionReminderJob = require('./retailSubscriptionReminderJob');
+const birthdayReminderJob = require('./birthdayReminderJob');
 
 // Map of job names to their handler functions
 const JOB_HANDLERS = {
     'COMPANY_SUBSCRIPTION_EXPIRY_REMINDER': subscriptionReminderJob,
-    'RETAIL_SUBSCRIPTION_EXPIRY_REMINDER': retailSubscriptionReminderJob
+    'RETAIL_SUBSCRIPTION_EXPIRY_REMINDER': retailSubscriptionReminderJob,
+    'ENROLLEE_BIRTHDAY_REMINDER': birthdayReminderJob,
+    'ENROLLEE_DEPENDENT_BIRTHDAY_REMINDER': birthdayReminderJob,
+    'RETAIL_ENROLLEE_BIRTHDAY_REMINDER': birthdayReminderJob,
+    'RETAIL_ENROLLEE_DEPENDENT_BIRTHDAY_REMINDER': birthdayReminderJob
 };
 
 let scheduledJobs = {};
