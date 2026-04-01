@@ -2,10 +2,44 @@
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
-import React from "react";
 
-export default function InvoicePreviewModal() {
+interface Product {
+  name: string;
+  price: number;
+  quantity: number;
+  discount: number;
+  total: string;
+}
+
+interface InvoiceData {
+  invoiceNumber?: string;
+  customerName?: string;
+  customerAddress?: string;
+  products?: Product[];
+  subtotal?: number;
+  vat?: number;
+  total?: number;
+  issuedDate?: string;
+  dueDate?: string;
+}
+
+export default function InvoicePreviewModal({
+  invoiceNumber = "#000000",
+  customerName = "Customer Name",
+  customerAddress = "Address",
+  products = [],
+  subtotal = 0,
+  vat = 0,
+  total = 0,
+  issuedDate = new Date().toLocaleDateString(),
+  dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+}: InvoiceData = {}) {
   const { isOpen, openModal, closeModal } = useModal();
+
+  const calculatedSubtotal = products.length > 0 ? subtotal : 0;
+  const calculatedVat = products.length > 0 ? vat : 0;
+  const calculatedTotal = products.length > 0 ? total : 0;
+
   return (
     <>
       <Button variant="outline" onClick={openModal}>
@@ -40,7 +74,7 @@ export default function InvoicePreviewModal() {
       >
         <div className="flex items-center justify-between px-6 py-4">
           <h3 className="text-lg text-gray-700 dark:text-gray-500">
-            Invoice: #34834
+            Invoice: {invoiceNumber}
           </h3>
         </div>
         <div className="max-h-[598px] overflow-y-auto p-4 sm:p-6">
@@ -51,12 +85,13 @@ export default function InvoicePreviewModal() {
               </span>
 
               <h5 className="mb-2 text-base font-semibold text-gray-800 dark:text-white/90">
-                Pimjo LLC
+                ALTUHEALTH LIMITED
               </h5>
 
               <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                1280, Clair Street, <br />
-                Massachusetts, New York - 02543
+                AltuHealth Place, 4 Irewole St, <br />
+                opposite DSTV Office, off Allen Avenue, <br />
+                Opebi, Ikeja 100218, Lagos
               </p>
 
               <span className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
@@ -64,7 +99,7 @@ export default function InvoicePreviewModal() {
               </span>
 
               <span className="block text-sm text-gray-500 dark:text-gray-400">
-                11 March, 2027
+                {issuedDate}
               </span>
             </div>
 
@@ -76,12 +111,11 @@ export default function InvoicePreviewModal() {
               </span>
 
               <h5 className="mb-2 text-base font-semibold text-gray-800 dark:text-white/90">
-                Albert Ward
+                {customerName}
               </h5>
 
               <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                355, Shobe Lane <br />
-                Colorado, Fort Collins - 80543
+                {customerAddress}
               </p>
 
               <span className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
@@ -89,7 +123,7 @@ export default function InvoicePreviewModal() {
               </span>
 
               <span className="block text-sm text-gray-500 dark:text-gray-400">
-                16 March, 2027
+                {dueDate}
               </span>
             </div>
           </div>
@@ -120,86 +154,28 @@ export default function InvoicePreviewModal() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                <tr>
-                  <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    1
-                  </td>
-                  <td className="px-5 py-3 text-sm whitespace-nowrap font-medium text-gray-800 dark:text-white/90">
-                    Macbook pro 13”
-                  </td>
-                  <td className="px-5 py-3 text-center  text-sm text-gray-500 whitespace-nowrap dark:text-gray-400">
-                    1
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    $48
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    0%
-                  </td>
-                  <td className="px-5 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
-                    $1,200
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    2
-                  </td>
-                  <td className="px-5 py-3 text-sm whitespace-nowrap font-medium text-gray-800 dark:text-white/90">
-                    Apple Watch Ultra
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    1
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    $300
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    50%
-                  </td>
-                  <td className="px-5 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
-                    $150
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    3
-                  </td>
-                  <td className="px-5 py-3 text-sm whitespace-nowrap font-medium text-gray-800 dark:text-white/90">
-                    iPhone 15 Pro Max
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    3
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    $800
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    0%
-                  </td>
-                  <td className="px-5 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
-                    $1,600
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    4
-                  </td>
-                  <td className="px-5 py-3 text-sm whitespace-nowrap font-medium text-gray-800 dark:text-white/90">
-                    iPad Pro 3rd Gen
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    1
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    $900
-                  </td>
-                  <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                    0%
-                  </td>
-                  <td className="px-5 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
-                    $900
-                  </td>
-                </tr>
+                {products.map((product, idx) => (
+                  <tr key={idx}>
+                    <td className="px-5 py-3 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
+                      {idx + 1}
+                    </td>
+                    <td className="px-5 py-3 text-sm whitespace-nowrap font-medium text-gray-800 dark:text-white/90">
+                      {product.name}
+                    </td>
+                    <td className="px-5 py-3 text-center text-sm text-gray-500 whitespace-nowrap dark:text-gray-400">
+                      {product.quantity}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                      ${product.price}
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                      {product.discount}%
+                    </td>
+                    <td className="px-5 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
+                      ${product.total}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -216,7 +192,7 @@ export default function InvoicePreviewModal() {
                     Sub Total
                   </span>
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                    $3,850
+                    ${calculatedSubtotal.toFixed(2)}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
@@ -224,7 +200,7 @@ export default function InvoicePreviewModal() {
                     Vat (10%):
                   </span>
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                    $385
+                    ${calculatedVat.toFixed(2)}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
@@ -232,7 +208,7 @@ export default function InvoicePreviewModal() {
                     Total
                   </span>
                   <span className="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    $4,235
+                    ${calculatedTotal.toFixed(2)}
                   </span>
                 </li>
               </ul>

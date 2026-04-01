@@ -116,6 +116,7 @@ const navItems: NavItem[] = [
     icon: <TaskIcon />,
     subItems: [
       { name: "Invoices", path: "/invoices" },
+      { name: "Create Invoice", path: "/create-invoice" },
       { name: "Payments", path: "/payments" },
     ],
   },

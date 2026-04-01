@@ -3,12 +3,10 @@
 import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
-import { apiClient } from "@/lib/apiClient";
 import { fetchInvoices } from "@/lib/apis/invoice";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate, formatPrice } from "@/lib/formatDate";
 import { Invoice, useInvoiceStore } from "@/lib/store/invoiceStore";
-import { Provider, useProviderStore } from "@/lib/store/providerStore";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -17,7 +15,6 @@ const InvoiceTable: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
-  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedPaymentStatus, setSelectedPaymentStatus] =
     useState<string>("");
@@ -28,8 +25,6 @@ const InvoiceTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const invoices = useInvoiceStore((s) => s.invoices);
   const setInvoices = useInvoiceStore((s) => s.setInvoices);
-  const providers = useProviderStore((s) => s.providers);
-  const setProviders = useProviderStore((s) => s.setProviders);
 
   type Header = {
     key: keyof Invoice | "actions";
@@ -63,7 +58,6 @@ const InvoiceTable: React.FC = () => {
   const headers: Header[] = [
     { key: "id", label: "Invoice #" },
     { key: "customerName", label: "Customer" },
-    { key: "providerId", label: "Provider" },
     { key: "totalAmount", label: "Total Amount" },
     { key: "paidAmount", label: "Paid Amount" },
     { key: "balanceAmount", label: "Balance" },
@@ -81,7 +75,6 @@ const InvoiceTable: React.FC = () => {
         limit,
         page: currentPage,
         q: search,
-        providerId: selectedProviderId || undefined,
         status: selectedStatus || undefined,
         paymentStatus: selectedPaymentStatus || undefined,
       });
@@ -117,7 +110,6 @@ const InvoiceTable: React.FC = () => {
     limit,
     currentPage,
     search,
-    selectedProviderId,
     selectedStatus,
     selectedPaymentStatus,
     setInvoices,
@@ -127,40 +119,12 @@ const InvoiceTable: React.FC = () => {
     fetch();
   }, [fetch]);
 
-  // Fetch providers on component mount
-  useEffect(() => {
-    const fetchProviderList = async () => {
-      try {
-        const url = `/admin/providers/list?limit=all`;
-
-        const data = await apiClient(url, {
-          method: "GET",
-          //   onLoading: (l) => setLoading(l),
-        });
-        const items: Provider[] =
-          data?.data?.list && Array.isArray(data.data.list)
-            ? data.data.list
-            : [];
-        setProviders(items);
-      } catch (err) {
-        console.warn("Providers fetch failed", err);
-      }
-    };
-
-    fetchProviderList();
-  }, [setProviders]);
-
   const startEntry: number =
     totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
   const endEntry: number = Math.min(currentPage * limit, totalItems);
 
   const handleSelectChange = (selectedValue: string) => {
     setLimit(Number(selectedValue));
-    setCurrentPage(1);
-  };
-
-  const handleProviderChange = (selectedValue: string) => {
-    setSelectedProviderId(selectedValue);
     setCurrentPage(1);
   };
 
@@ -245,18 +209,6 @@ const InvoiceTable: React.FC = () => {
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
             <Select
-              options={[
-                { value: "", label: "All Providers" },
-                ...providers.map((provider) => ({
-                  value: provider.id,
-                  label: provider.name,
-                })),
-              ]}
-              placeholder="Select provider"
-              onChange={handleProviderChange}
-              defaultValue={selectedProviderId}
-            />
-            <Select
               options={invoiceStatuses}
               placeholder="Select status"
               onChange={handleStatusChange}
@@ -335,11 +287,6 @@ const InvoiceTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
                       {capitalizeWords(invoice.customerName) || "-"}
-                    </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {capitalizeWords(invoice.Provider?.name) || "-"}
                     </span>
                   </td>
                   <td className="p-4 whitespace-nowrap">
