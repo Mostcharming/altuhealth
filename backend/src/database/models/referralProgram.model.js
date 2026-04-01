@@ -72,6 +72,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
             field: 'max_total_payout'
         },
+        picture: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'picture'
+        },
         isDeleted: {
             type: DataTypes.BOOLEAN,
             allowNull: false,

@@ -80,6 +80,11 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 0.00,
             field: 'total_withdrawn'
         },
+        picture: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'picture'
+        },
         isDeleted: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
