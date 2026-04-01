@@ -214,13 +214,7 @@ async function listPayments(req, res, next) {
                     model: Invoice,
                     attributes: ['id', 'invoiceNumber', 'customerName', 'totalAmount', 'status', 'paymentStatus'],
                     required: false,
-                    include: [
-                        {
-                            model: Provider,
-                            attributes: ['id', 'name', 'code'],
-                            required: false
-                        }
-                    ]
+
                 },
                 {
                     model: Admin,
@@ -265,22 +259,16 @@ async function listPayments(req, res, next) {
 
 async function getPayment(req, res, next) {
     try {
-        const { Payment, Invoice, Provider, Admin } = req.models;
+        const { Payment, Invoice, Admin } = req.models;
         const { id } = req.params;
 
         const payment = await Payment.findByPk(id, {
             include: [
                 {
                     model: Invoice,
-                    attributes: ['id', 'invoiceNumber', 'customerName', 'providerId', 'enrolleeId', 'retailEnrolleeId', 'totalAmount', 'paidAmount', 'balanceAmount', 'status', 'paymentStatus'],
+                    attributes: ['id', 'invoiceNumber', 'customerName', 'enrolleeId', 'retailEnrolleeId', 'totalAmount', 'paidAmount', 'balanceAmount', 'status', 'paymentStatus'],
                     required: false,
-                    include: [
-                        {
-                            model: Provider,
-                            attributes: ['id', 'name', 'code', 'email', 'phoneNumber'],
-                            required: false
-                        }
-                    ]
+
                 },
                 {
                     model: Admin,

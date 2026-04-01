@@ -17,10 +17,16 @@ export interface Payment {
   paymentGatewayTransactionId?: string | null;
   description?: string | null;
   receiptUrl?: string | null;
-  status: "completed" | "pending" | "failed" | "refunded";
-  verificationStatus: "verified" | "unverified";
+  status: "completed" | "pending" | "failed" | "refunded" | "cancelled";
+  verificationStatus: "verified" | "unverified" | "failed_verification";
   processedBy?: string | null;
   processedByType?: string;
+  verifiedAt?: string | null;
+  verifiedBy?: string | null;
+  refundAmount?: number;
+  refundDate?: string | null;
+  refundReason?: string | null;
+  failureReason?: string | null;
   notes?: string | null;
   createdAt?: string;
   updatedAt?: string;
