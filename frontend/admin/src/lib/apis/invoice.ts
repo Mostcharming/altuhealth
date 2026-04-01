@@ -30,7 +30,8 @@ export async function getInvoiceById(id: string) {
 }
 
 export async function createInvoice(data: {
-  providerId: string;
+  invoiceNumber?: string;
+  providerId?: string;
   enrolleeId?: string;
   retailEnrolleeId?: string;
   customerName: string;
@@ -39,6 +40,7 @@ export async function createInvoice(data: {
   customerEmail?: string;
   invoiceDate: string;
   dueDate?: string;
+  currency?: string;
   notes?: string;
   description?: string;
   lineItems: Array<{
@@ -47,6 +49,9 @@ export async function createInvoice(data: {
     unitPrice: number;
     discount?: number;
     tax?: number;
+    subtotal?: number;
+    discountAmount?: number;
+    taxAmount?: number;
   }>;
 }) {
   return apiClient("/admin/invoices", {

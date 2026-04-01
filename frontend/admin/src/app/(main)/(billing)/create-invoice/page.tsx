@@ -1,10 +1,18 @@
 "use client";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import InvoicePreviewModal from "@/components/ecommerce/invoices/InvoicePreviewModal";
+import DatePicker from "@/components/form/date-picker";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import CreateInvoiceTable from "@/components/invoice/CreateInvoiceTable";
+import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
 import Button from "@/components/ui/button/Button";
+import { createInvoice } from "@/lib/apis/invoice";
+import { getCurrencyOptions } from "@/lib/currencies";
+import { useInvoiceStore } from "@/lib/store/invoiceStore";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface Product {
@@ -16,10 +24,23 @@ interface Product {
 }
 
 export default function CreateInvoicePage() {
+  const router = useRouter();
+  const addInvoice = useInvoiceStore((s) => s.addInvoice);
+
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
+  const [currency, setCurrency] = useState("NGN");
+  const [issuedDate, setIssuedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [dueDate, setDueDate] = useState(
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  );
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [successModal, setSuccessModal] = useState({ isOpen: false });
+  const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
 
   const handleProductsChange = (updatedProducts: Product[]) => {
     setProducts(updatedProducts);
@@ -32,26 +53,98 @@ export default function CreateInvoicePage() {
   const vat = subtotal * 0.1;
   const total = subtotal + vat;
 
-  const handleSaveInvoice = () => {
-    if (
-      !invoiceNumber ||
-      !customerName ||
-      !customerAddress ||
-      products.length === 0
-    ) {
-      alert("Please fill in all fields and add at least one product");
+  const handleSaveInvoice = async () => {
+    // Invoice number is optional - backend will auto-generate if not provided
+    if (!customerName || !customerAddress || products.length === 0) {
+      setErrorModal({
+        isOpen: true,
+        message:
+          "Please fill in all required fields and add at least one product",
+      });
       return;
     }
-    // TODO: Add API call to save invoice
-    console.log({
-      invoiceNumber,
-      customerName,
-      customerAddress,
-      products,
-      subtotal,
-      vat,
-      total,
-    });
+
+    try {
+      setLoading(true);
+
+      // Transform products into line items format expected by the backend
+      const lineItems = products.map((product) => ({
+        description: product.name,
+        quantity: product.quantity,
+        unitPrice: product.price,
+        discount: product.discount,
+        subtotal: product.price * product.quantity,
+        discountAmount:
+          (product.price * product.quantity * product.discount) / 100,
+        taxAmount: Number(product.total) * 0.1,
+      }));
+
+      // Create invoice data without providerId (optional)
+      const invoiceData = {
+        ...(invoiceNumber && { invoiceNumber }),
+        customerName,
+        customerAddress,
+        invoiceDate: issuedDate,
+        dueDate,
+        currency,
+        lineItems,
+      };
+
+      const result = await createInvoice(invoiceData);
+
+      // Add the created invoice to store
+      if (result?.data?.invoice) {
+        const newInvoice = result.data.invoice;
+        addInvoice({
+          id: newInvoice.id || "",
+          providerId: newInvoice.providerId || "",
+          customerName: newInvoice.customerName || "",
+          totalAmount: newInvoice.totalAmount || 0,
+          paidAmount: newInvoice.paidAmount || 0,
+          balanceAmount: newInvoice.balanceAmount || 0,
+          invoiceDate: newInvoice.invoiceDate || new Date().toISOString(),
+          status:
+            (newInvoice.status as
+              | "issued"
+              | "overdue"
+              | "cancelled"
+              | "paid"
+              | "partially_paid") || "issued",
+          paymentStatus:
+            (newInvoice.paymentStatus as
+              | "unpaid"
+              | "paid"
+              | "partially_paid") || "unpaid",
+          subtotal: newInvoice.subtotal || 0,
+          discountAmount: newInvoice.discountAmount || 0,
+          taxAmount: newInvoice.taxAmount || 0,
+        });
+      }
+
+      setSuccessModal({ isOpen: true });
+
+      // Reset form
+      setTimeout(() => {
+        setInvoiceNumber("");
+        setCustomerName("");
+        setCustomerAddress("");
+        setProducts([]);
+        setIssuedDate(new Date().toISOString().split("T")[0]);
+        setDueDate(
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0]
+        );
+      }, 1500);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      setErrorModal({
+        isOpen: true,
+        message: err.message || "Failed to save invoice. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -77,7 +170,7 @@ export default function CreateInvoicePage() {
               <div>
                 <Label>Customer Name</Label>
                 <Input
-                  placeholder="Mayowa"
+                  placeholder=" LTD."
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                 />
@@ -90,11 +183,51 @@ export default function CreateInvoicePage() {
                   onChange={(e) => setCustomerAddress(e.target.value)}
                 />
               </div>
+              <div>
+                <Label>Currency</Label>
+                <Select
+                  options={getCurrencyOptions()}
+                  placeholder="Select currency"
+                  onChange={(val) => setCurrency(val)}
+                  defaultValue={currency}
+                />
+              </div>
+              <div>
+                <DatePicker
+                  id="issued-date"
+                  label="Issue Date"
+                  placeholder="Select issue date"
+                  defaultDate={issuedDate}
+                  onChange={(selectedDates) => {
+                    if (selectedDates.length > 0) {
+                      const date = new Date(selectedDates[0]);
+                      setIssuedDate(date.toISOString().split("T")[0]);
+                    }
+                  }}
+                />
+              </div>
+              <div>
+                <DatePicker
+                  id="due-date"
+                  label="Due Date"
+                  placeholder="Select due date"
+                  defaultDate={dueDate}
+                  onChange={(selectedDates) => {
+                    if (selectedDates.length > 0) {
+                      const date = new Date(selectedDates[0]);
+                      setDueDate(date.toISOString().split("T")[0]);
+                    }
+                  }}
+                />
+              </div>
             </div>
           </form>
         </div>
         <div className="border-b border-gray-200 p-4 sm:p-8 dark:border-gray-800">
-          <CreateInvoiceTable onProductsChange={handleProductsChange} />
+          <CreateInvoiceTable
+            onProductsChange={handleProductsChange}
+            currency={currency}
+          />
         </div>
         <div className="p-4 sm:p-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -106,8 +239,15 @@ export default function CreateInvoicePage() {
               subtotal={subtotal}
               vat={vat}
               total={total}
+              currency={currency}
+              issuedDate={issuedDate}
+              dueDate={dueDate}
             />
-            <Button variant="primary" onClick={handleSaveInvoice}>
+            <Button
+              variant="primary"
+              onClick={handleSaveInvoice}
+              disabled={loading}
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -123,11 +263,25 @@ export default function CreateInvoicePage() {
                   strokeLinejoin="round"
                 />
               </svg>
-              Save Invoice
+              {loading ? "Saving..." : "Save Invoice"}
             </Button>
           </div>
         </div>
       </div>
+
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={() => {
+          setSuccessModal({ isOpen: false });
+          router.push("/invoices");
+        }}
+      />
+
+      <ErrorModal
+        errorModal={errorModal}
+        handleErrorClose={() => setErrorModal({ isOpen: false, message: "" })}
+        message={errorModal.message}
+      />
     </div>
   );
 }

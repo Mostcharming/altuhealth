@@ -2,6 +2,7 @@
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
+import { getCurrencyByCode } from "@/lib/currencies";
 
 interface Product {
   name: string;
@@ -21,6 +22,7 @@ interface InvoiceData {
   total?: number;
   issuedDate?: string;
   dueDate?: string;
+  currency?: string;
 }
 
 export default function InvoicePreviewModal({
@@ -33,8 +35,10 @@ export default function InvoicePreviewModal({
   total = 0,
   issuedDate = new Date().toLocaleDateString(),
   dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+  currency = "NGN",
 }: InvoiceData = {}) {
   const { isOpen, openModal, closeModal } = useModal();
+  const currencyData = getCurrencyByCode(currency);
 
   const calculatedSubtotal = products.length > 0 ? subtotal : 0;
   const calculatedVat = products.length > 0 ? vat : 0;
@@ -166,13 +170,15 @@ export default function InvoicePreviewModal({
                       {product.quantity}
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
-                      ${product.price}
+                      {currencyData.symbol}
+                      {product.price}
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
                       {product.discount}%
                     </td>
                     <td className="px-5 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
-                      ${product.total}
+                      {currencyData.symbol}
+                      {product.total}
                     </td>
                   </tr>
                 ))}
@@ -192,7 +198,8 @@ export default function InvoicePreviewModal({
                     Sub Total
                   </span>
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                    ${calculatedSubtotal.toFixed(2)}
+                    {currencyData.symbol}
+                    {calculatedSubtotal.toFixed(2)}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
@@ -200,7 +207,8 @@ export default function InvoicePreviewModal({
                     Vat (10%):
                   </span>
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                    ${calculatedVat.toFixed(2)}
+                    {currencyData.symbol}
+                    {calculatedVat.toFixed(2)}
                   </span>
                 </li>
                 <li className="flex items-center justify-between">
@@ -208,7 +216,8 @@ export default function InvoicePreviewModal({
                     Total
                   </span>
                   <span className="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    ${calculatedTotal.toFixed(2)}
+                    {currencyData.symbol}
+                    {calculatedTotal.toFixed(2)}
                   </span>
                 </li>
               </ul>

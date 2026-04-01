@@ -1,5 +1,6 @@
 "use client";
 import { ChevronDownIcon } from "@/icons";
+import { getCurrencyByCode } from "@/lib/currencies";
 import { useState } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
@@ -21,7 +22,9 @@ interface FormData {
 
 const CreateInvoiceTable: React.FC<{
   onProductsChange?: (products: Product[]) => void;
-}> = ({ onProductsChange }) => {
+  currency?: string;
+}> = ({ onProductsChange, currency = "NGN" }) => {
+  const currencyData = getCurrencyByCode(currency);
   const [products, setProducts] = useState<Product[]>([]);
 
   const [form, setForm] = useState<FormData>({
@@ -128,13 +131,15 @@ const CreateInvoiceTable: React.FC<{
                     {product.quantity}
                   </td>
                   <td className="px-5 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    ${product.price}
+                    {currencyData.symbol}
+                    {product.price}
                   </td>
                   <td className="px-5 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
                     {product.discount}%
                   </td>
                   <td className="px-5 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
-                    ${product.total}
+                    {currencyData.symbol}
+                    {product.total}
                   </td>
                   <td className="px-5 py-4 text-sm whitespace-nowrap text-gray-500 dark:text-gray-400">
                     <div className="flex items-center justify-center">
@@ -322,7 +327,8 @@ const CreateInvoiceTable: React.FC<{
                 Sub Total
               </span>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                ${subtotal.toFixed(2)}
+                {currencyData.symbol}
+                {subtotal.toFixed(2)}
               </span>
             </li>
             <li className="flex items-center justify-between">
@@ -330,7 +336,8 @@ const CreateInvoiceTable: React.FC<{
                 Vat (10%):
               </span>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                ${vat.toFixed(2)}
+                {currencyData.symbol}
+                {vat.toFixed(2)}
               </span>
             </li>
             <li className="flex items-center justify-between">
@@ -338,7 +345,8 @@ const CreateInvoiceTable: React.FC<{
                 Total
               </span>
               <span className="text-lg font-semibold text-gray-800 dark:text-white/90">
-                ${total.toFixed(2)}
+                {currencyData.symbol}
+                {total.toFixed(2)}
               </span>
             </li>
           </ul>

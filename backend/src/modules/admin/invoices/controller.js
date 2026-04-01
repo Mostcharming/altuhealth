@@ -2,12 +2,13 @@
 
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
+const { getUniqueInvoiceNumber } = require('../../../utils/invoiceNumberGenerator');
 
 async function createInvoice(req, res, next) {
     try {
-        const { Invoice, InvoiceLineItem, Provider, Enrollee, RetailEnrollee } = req.models;
+        const { Invoice, InvoiceLineItem, Enrollee, RetailEnrollee } = req.models;
         const {
-            providerId,
+            invoiceNumber,
             enrolleeId,
             retailEnrolleeId,
             customerName,
@@ -18,16 +19,12 @@ async function createInvoice(req, res, next) {
             dueDate,
             notes,
             description,
+            currency,
             lineItems
         } = req.body || {};
 
         if (!customerName) return res.fail('`customerName` is required', 400);
-        if (!providerId) return res.fail('`providerId` is required', 400);
         if (!lineItems || lineItems.length === 0) return res.fail('At least one line item is required', 400);
-
-        // Verify provider exists
-        const provider = await Provider.findByPk(providerId);
-        if (!provider) return res.fail('Provider not found', 404);
 
         // Verify enrollee/retail enrollee if provided
         if (enrolleeId) {
@@ -53,9 +50,15 @@ async function createInvoice(req, res, next) {
 
         const totalAmount = subtotal - totalDiscount + totalTax;
 
+        // Generate invoice number if not provided
+        let finalInvoiceNumber = invoiceNumber;
+        if (!finalInvoiceNumber) {
+            finalInvoiceNumber = await getUniqueInvoiceNumber(Invoice);
+        }
+
         // Create invoice
         const invoice = await Invoice.create({
-            providerId,
+            invoiceNumber: finalInvoiceNumber,
             enrolleeId: enrolleeId || null,
             retailEnrolleeId: retailEnrolleeId || null,
             customerName,
@@ -72,6 +75,7 @@ async function createInvoice(req, res, next) {
             balanceAmount: totalAmount,
             status: 'issued',
             paymentStatus: 'unpaid',
+            currency: currency || 'NGN',
             notes: notes || null,
             description: description || null,
             issuedBy: (req.user && req.user.id) ? req.user.id : null,
@@ -111,7 +115,7 @@ async function createInvoice(req, res, next) {
             message: `Invoice created`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { invoiceId: invoice.id, providerId, customerId: enrolleeId || retailEnrolleeId }
+            meta: { invoiceId: invoice.id, customerId: enrolleeId || retailEnrolleeId }
         });
 
         return res.success({
@@ -197,8 +201,8 @@ async function deleteInvoice(req, res, next) {
 
 async function listInvoices(req, res, next) {
     try {
-        const { Invoice, Provider, Enrollee, RetailEnrollee, InvoiceLineItem } = req.models;
-        const { limit = 10, page = 1, q, providerId, enrolleeId, retailEnrolleeId, status, paymentStatus } = req.query;
+        const { Invoice, Enrollee, RetailEnrollee, InvoiceLineItem } = req.models;
+        const { limit = 10, page = 1, q, enrolleeId, retailEnrolleeId, status, paymentStatus } = req.query;
 
         const isAll = String(limit).toLowerCase() === 'all';
         const limitNum = isAll ? 0 : Number(limit);
@@ -207,9 +211,7 @@ async function listInvoices(req, res, next) {
 
         const where = {};
 
-        if (providerId) {
-            where.providerId = providerId;
-        }
+
 
         if (enrolleeId) {
             where.enrolleeId = enrolleeId;
@@ -243,11 +245,6 @@ async function listInvoices(req, res, next) {
             where,
             order: [['invoiceDate', 'DESC']],
             include: [
-                {
-                    model: Provider,
-                    attributes: ['id', 'name', 'code', 'email', 'phoneNumber'],
-                    required: false
-                },
                 {
                     model: Enrollee,
                     attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
@@ -294,16 +291,12 @@ async function listInvoices(req, res, next) {
 
 async function getInvoice(req, res, next) {
     try {
-        const { Invoice, Provider, Enrollee, RetailEnrollee, InvoiceLineItem, Admin } = req.models;
+        const { Invoice, Enrollee, RetailEnrollee, InvoiceLineItem, Admin } = req.models;
         const { id } = req.params;
 
         const invoice = await Invoice.findByPk(id, {
             include: [
-                {
-                    model: Provider,
-                    attributes: ['id', 'name', 'code', 'email', 'phoneNumber', 'address', 'state', 'lga'],
-                    required: false
-                },
+
                 {
                     model: Enrollee,
                     attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber'],
