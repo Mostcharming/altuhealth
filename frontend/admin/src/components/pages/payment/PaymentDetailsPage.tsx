@@ -180,7 +180,7 @@ export default function PaymentDetailsPage({
                 Customer Name
               </span>
               <p className="text-gray-800 dark:text-white/90">
-                {payment.Invoice?.Provider?.name || "-"}
+                {payment.Invoice?.customerName || "-"}
               </p>
             </div>
 
@@ -327,7 +327,9 @@ export default function PaymentDetailsPage({
                 Processed By
               </span>
               <p className="text-gray-800 dark:text-white/90">
-                {payment.processedByType || "System"}
+                {payment.processedByType || "System"}-{" "}
+                {payment.processedByAdmin?.firstName || "N/A"}{" "}
+                {payment.processedByAdmin?.lastName || "N/A"}
               </p>
             </div>
 

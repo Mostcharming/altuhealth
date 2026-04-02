@@ -34,10 +34,17 @@ export interface Payment {
     id: string;
     invoiceNumber: string;
     totalAmount: number;
+    customerName: string;
     Provider?: {
       id: string;
       name: string;
     };
+  };
+  processedByAdmin?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
   };
 }
 
