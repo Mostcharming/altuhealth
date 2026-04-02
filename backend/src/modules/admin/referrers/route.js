@@ -7,6 +7,7 @@ const Referrers = require('./controller');
 // CRUD for referrers
 router.post('/', Referrers.createReferrer);
 router.get('/list', Referrers.listReferrers);
+router.get('/:id/details', Referrers.getSingleReferrerDetails);
 router.get('/:id', Referrers.getReferrer);
 router.put('/:id', Referrers.updateReferrer);
 router.delete('/:id', Referrers.deleteReferrer);

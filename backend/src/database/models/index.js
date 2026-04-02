@@ -71,6 +71,7 @@ function defineModels(sequelize) {
   const SearchHistory = require("./searchHistory.model")(sequelize, DataTypes);
   const Referrer = require("./referrer.model")(sequelize, DataTypes);
   const ReferralProgram = require("./referralProgram.model")(sequelize, DataTypes);
+  const ReferrerEarning = require("./referrerEarning.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -520,10 +521,26 @@ function defineModels(sequelize) {
   Provider.hasMany(SearchHistory, { foreignKey: "providerId", as: 'searchHistories' });
   SearchHistory.belongsTo(Provider, { foreignKey: "providerId", as: 'provider' });
 
+  // ReferrerEarning <-> Referrer one-to-many
+  Referrer.hasMany(ReferrerEarning, { foreignKey: "referrerId", as: 'earnings' });
+  ReferrerEarning.belongsTo(Referrer, { foreignKey: "referrerId", as: 'referrer' });
+
+  // ReferrerEarning <-> RetailEnrollee one-to-many
+  RetailEnrollee.hasMany(ReferrerEarning, { foreignKey: "retailEnrolleeId", as: 'referrerEarnings' });
+  ReferrerEarning.belongsTo(RetailEnrollee, { foreignKey: "retailEnrolleeId", as: 'retailEnrollee' });
+
+  // ReferrerEarning <-> RetailEnrolleeSubscription one-to-many
+  RetailEnrolleeSubscription.hasMany(ReferrerEarning, { foreignKey: "retailEnrolleeSubscriptionId", as: 'referrerEarnings' });
+  ReferrerEarning.belongsTo(RetailEnrolleeSubscription, { foreignKey: "retailEnrolleeSubscriptionId", as: 'subscription' });
+
+  // ReferrerEarning <-> ReferralProgram one-to-many
+  ReferralProgram.hasMany(ReferrerEarning, { foreignKey: "referralProgramId", as: 'earnings' });
+  ReferrerEarning.belongsTo(ReferralProgram, { foreignKey: "referralProgramId", as: 'referralProgram' });
+
   // Referrer one-to-many with ReferralProgram (optional if a referrer manages programs)
   // This can be added if referrers are associated with specific programs
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning };
 }
 
 module.exports = defineModels;

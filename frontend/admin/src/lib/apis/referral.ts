@@ -57,14 +57,30 @@ export const referrerAPI = {
     });
   },
 
-  // Get referrer's referrals
-  async getReferrerReferrals(
+  // Get single referrer details with earnings
+  async getSingleReferrerDetails(
     id: string,
-    params?: { page?: number; limit?: number }
+    params?: { page?: number; limit?: number; status?: string }
   ) {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.append("page", String(params.page));
     if (params?.limit) searchParams.append("limit", String(params.limit));
+    if (params?.status) searchParams.append("status", params.status);
+
+    return apiClient(`/admin/referrers/${id}/details?${searchParams}`, {
+      method: "GET",
+    });
+  },
+
+  // Get referrer's referrals
+  async getReferrerReferrals(
+    id: string,
+    params?: { page?: number; limit?: number; status?: string }
+  ) {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append("page", String(params.page));
+    if (params?.limit) searchParams.append("limit", String(params.limit));
+    if (params?.status) searchParams.append("status", params.status);
 
     return apiClient(`/admin/referrers/${id}/referrals?${searchParams}`, {
       method: "GET",

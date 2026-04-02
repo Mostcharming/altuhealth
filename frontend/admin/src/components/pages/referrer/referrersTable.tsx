@@ -314,9 +314,10 @@ const ReferrersTable = () => {
                       <div className="flex items-center w-full gap-2">
                         <button
                           onClick={() =>
-                            router.push(`/referrals/${referrer.id}`)
+                            router.push(`/referrers/${referrer.id}`)
                           }
                           className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                          title="View Details"
                         >
                           <EyeIcon />
                         </button>

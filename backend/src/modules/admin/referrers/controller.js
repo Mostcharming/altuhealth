@@ -116,6 +116,135 @@ class ReferrersController {
         }
     }
 
+    // Get single referrer details with earnings
+    static async getSingleReferrerDetails(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { page = 1, limit = 10, status = '' } = req.query;
+            const offset = (page - 1) * limit;
+
+            const { Referrer, ReferrerEarning, RetailEnrollee, RetailEnrolleeSubscription, Plan } = req.models;
+
+            const referrer = await Referrer.findByPk(id, {
+                where: { isDeleted: false }
+            });
+
+            if (!referrer) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Referrer not found'
+                });
+            }
+
+            // Build where clause for earnings filter
+            const earningsWhere = { referrerId: id };
+            if (status) {
+                earningsWhere.status = status;
+            }
+
+            // Get paginated earnings with related data
+            const { count, rows: earnings } = await ReferrerEarning.findAndCountAll({
+                where: earningsWhere,
+                include: [
+                    {
+                        model: RetailEnrollee,
+                        as: 'retailEnrollee',
+                        attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber']
+                    },
+                    {
+                        model: RetailEnrolleeSubscription,
+                        as: 'subscription',
+                        attributes: ['id', 'subscriptionStartDate', 'subscriptionEndDate', 'status'],
+                        include: [
+                            {
+                                model: Plan,
+                                as: 'plan',
+                                attributes: ['id', 'name']
+                            }
+                        ]
+                    }
+                ],
+                limit: parseInt(limit),
+                offset,
+                order: [['createdAt', 'DESC']]
+            });
+
+            const totalPages = Math.ceil(count / limit);
+
+            // Calculate summary statistics
+            const summary = await ReferrerEarning.findAll({
+                where: { referrerId: id },
+                raw: true,
+                attributes: [
+                    [require('sequelize').fn('SUM', require('sequelize').col('earned_amount')), 'totalEarned'],
+                    [require('sequelize').fn('SUM', require('sequelize').literal('CASE WHEN status = \'confirmed\' THEN earned_amount ELSE 0 END')), 'confirmedEarnings'],
+                    [require('sequelize').fn('COUNT', require('sequelize').fn('CASE WHEN is_withdrawn = false THEN 1 END')), 'pendingWithdrawals']
+                ]
+            });
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    referrer: {
+                        id: referrer.id,
+                        firstName: referrer.firstName,
+                        lastName: referrer.lastName,
+                        email: referrer.email,
+                        phoneNumber: referrer.phoneNumber,
+                        referralCode: referrer.referralCode,
+                        status: referrer.status,
+                        bankName: referrer.bankName,
+                        accountName: referrer.accountName,
+                        accountNumber: referrer.accountNumber,
+                        totalEarning: parseFloat(referrer.totalEarning),
+                        availableBalance: parseFloat(referrer.availableBalance),
+                        totalWithdrawn: parseFloat(referrer.totalWithdrawn),
+                        picture: referrer.picture,
+                        createdAt: referrer.createdAt
+                    },
+                    summary: {
+                        totalEarned: parseFloat(summary[0]?.totalEarned || 0),
+                        confirmedEarnings: parseFloat(summary[0]?.confirmedEarnings || 0),
+                        pendingWithdrawals: summary[0]?.pendingWithdrawals || 0
+                    },
+                    earnings: earnings.map(earning => ({
+                        id: earning.id,
+                        retailEnrollee: {
+                            id: earning.retailEnrollee.id,
+                            name: `${earning.retailEnrollee.firstName} ${earning.retailEnrollee.lastName}`,
+                            email: earning.retailEnrollee.email,
+                            phoneNumber: earning.retailEnrollee.phoneNumber
+                        },
+                        subscriptionAmount: parseFloat(earning.subscriptionAmount),
+                        rewardType: earning.rewardType,
+                        rewardRate: parseFloat(earning.rewardRate),
+                        earnedAmount: parseFloat(earning.earnedAmount),
+                        currency: earning.currency,
+                        status: earning.status,
+                        isWithdrawn: earning.isWithdrawn,
+                        withdrawnAt: earning.withdrawnAt,
+                        plan: earning.subscription.plan,
+                        subscriptionPeriod: {
+                            start: earning.subscription.subscriptionStartDate,
+                            end: earning.subscription.subscriptionEndDate
+                        },
+                        createdAt: earning.createdAt
+                    })),
+                    pagination: {
+                        total: count,
+                        page: parseInt(page),
+                        limit: parseInt(limit),
+                        totalPages,
+                        hasNextPage: page < totalPages,
+                        hasPreviousPage: page > 1
+                    }
+                }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
     // Update a referrer
     static async updateReferrer(req, res, next) {
         try {
@@ -225,10 +354,10 @@ class ReferrersController {
     // Get referrer's referrals
     static async getReferrerReferrals(req, res, next) {
         try {
-            const { Referrer } = req.models
+            const { Referrer, ReferrerEarning, RetailEnrollee, RetailEnrolleeSubscription, Plan } = req.models;
 
             const { id } = req.params;
-            const { page = 1, limit = 10 } = req.query;
+            const { page = 1, limit = 10, status = '' } = req.query;
             const offset = (page - 1) * limit;
 
             const referrer = await Referrer.findByPk(id, {
@@ -242,19 +371,77 @@ class ReferrersController {
                 });
             }
 
-            // TODO: Implement actual referrals tracking once Referral model is created
+            // Build where clause
+            const where = { referrerId: id };
+            if (status) {
+                where.status = status;
+            }
+
+            const { count, rows } = await ReferrerEarning.findAndCountAll({
+                where,
+                include: [
+                    {
+                        model: RetailEnrollee,
+                        as: 'retailEnrollee',
+                        attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber', 'policyNumber']
+                    },
+                    {
+                        model: RetailEnrolleeSubscription,
+                        as: 'subscription',
+                        attributes: ['id', 'subscriptionStartDate', 'subscriptionEndDate', 'status'],
+                        include: [
+                            {
+                                model: Plan,
+                                as: 'plan',
+                                attributes: ['id', 'name']
+                            }
+                        ]
+                    }
+                ],
+                limit: parseInt(limit),
+                offset,
+                order: [['createdAt', 'DESC']]
+            });
+
+            const totalPages = Math.ceil(count / limit);
+
             res.status(200).json({
                 success: true,
                 data: {
                     referrerId: id,
-                    referrals: [],
+                    referrals: rows.map(earning => ({
+                        id: earning.id,
+                        retailEnrollee: {
+                            id: earning.retailEnrollee.id,
+                            name: `${earning.retailEnrollee.firstName} ${earning.retailEnrollee.lastName}`,
+                            email: earning.retailEnrollee.email,
+                            phoneNumber: earning.retailEnrollee.phoneNumber,
+                            policyNumber: earning.retailEnrollee.policyNumber
+                        },
+                        subscriptionAmount: parseFloat(earning.subscriptionAmount),
+                        earnedAmount: parseFloat(earning.earnedAmount),
+                        rewardType: earning.rewardType,
+                        rewardRate: parseFloat(earning.rewardRate),
+                        currency: earning.currency,
+                        status: earning.status,
+                        isWithdrawn: earning.isWithdrawn,
+                        plan: {
+                            id: earning.subscription.plan.id,
+                            name: earning.subscription.plan.name
+                        },
+                        subscriptionPeriod: {
+                            start: earning.subscription.subscriptionStartDate,
+                            end: earning.subscription.subscriptionEndDate
+                        },
+                        createdAt: earning.createdAt
+                    })),
                     pagination: {
-                        total: 0,
+                        total: count,
                         page: parseInt(page),
                         limit: parseInt(limit),
-                        totalPages: 0,
-                        hasNextPage: false,
-                        hasPreviousPage: false
+                        totalPages,
+                        hasNextPage: page < totalPages,
+                        hasPreviousPage: page > 1
                     }
                 }
             });
