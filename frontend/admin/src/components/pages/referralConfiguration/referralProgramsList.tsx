@@ -28,6 +28,8 @@ const ReferralProgramsList = () => {
     useState<ReferralProgram | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  console.log(selectedProgram, isEditing);
+
   const fetchPrograms = async () => {
     try {
       setLoading(true);
