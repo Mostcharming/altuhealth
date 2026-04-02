@@ -5,7 +5,7 @@ const { addAdminNotification, addAuditLog } = require('../../../utils/addAdminNo
 
 async function listApprovals(req, res, next) {
     try {
-        const { AdminApproval } = req.models;
+        const { AdminApproval, Admin } = req.models;
         const { limit = 10, page = 1, status, model, modelId } = req.query || {};
 
         const isAll = String(limit).toLowerCase() === 'all';
@@ -23,7 +23,15 @@ async function listApprovals(req, res, next) {
 
         const findOptions = {
             where,
-            order: [['created_at', 'DESC']]
+            order: [['created_at', 'DESC']],
+            include: [
+                {
+                    model: Admin,
+                    as: 'requestedByAdmin',
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
+                    required: false
+                }
+            ]
         };
 
         if (!isAll) {
@@ -50,10 +58,19 @@ async function listApprovals(req, res, next) {
 
 async function getApproval(req, res, next) {
     try {
-        const { AdminApproval } = req.models;
+        const { AdminApproval, Admin } = req.models;
         const { id } = req.params;
 
-        const approval = await AdminApproval.findByPk(id);
+        const approval = await AdminApproval.findByPk(id, {
+            include: [
+                {
+                    model: Admin,
+                    as: 'requestedByAdmin',
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'role'],
+                    required: false
+                }
+            ]
+        });
         if (!approval) return res.fail('Approval not found', 404);
 
         // Audit log for get

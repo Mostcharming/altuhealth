@@ -155,10 +155,7 @@ const supportItems: NavItem[] = [
   {
     name: "Operations",
     icon: <InfoIcon />,
-    subItems: [
-      { name: "Approvals", path: "/approvals" },
-      { name: "Requests", path: "/requests" },
-    ],
+    subItems: [{ name: "Approvals", path: "/approvals" }],
   },
   {
     icon: <CallIcon />,
@@ -180,7 +177,6 @@ const othersItems: NavItem[] = [
     name: "Developer",
     icon: <PaperPlaneIcon />,
     subItems: [
-      { name: "API Keys", path: "/api-keys" },
       { name: "Webhooks", path: "/webhooks" },
       { name: "Integrations", path: "/integrations" },
       { name: "Jobs", path: "/jobs" },
