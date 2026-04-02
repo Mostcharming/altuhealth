@@ -120,6 +120,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true,
             field: 'password'
+        },
+        referralCode: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'referral_code'
         }
     }, {
         tableName: 'retail_enrollees',

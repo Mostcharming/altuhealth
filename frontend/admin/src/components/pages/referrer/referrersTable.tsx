@@ -6,7 +6,7 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { EyeIcon, TrashBinIcon } from "@/icons";
+import { EyeIcon } from "@/icons";
 import { referrerAPI } from "@/lib/apis/referral";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
@@ -148,10 +148,10 @@ const ReferrersTable = () => {
     }
   };
 
-  const handleDeleteModal = (id: string) => {
-    setSelectedReferrerId(id);
-    confirmModal.openModal();
-  };
+  // const handleDeleteModal = (id: string) => {
+  //   setSelectedReferrerId(id);
+  //   confirmModal.openModal();
+  // };
 
   const handleCloseConfirm = () => {
     setSelectedReferrerId(null);
@@ -319,13 +319,6 @@ const ReferrersTable = () => {
                           className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
                         >
                           <EyeIcon />
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteModal(referrer.id)}
-                          className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
-                        >
-                          <TrashBinIcon />
                         </button>
                       </div>
                     </td>
