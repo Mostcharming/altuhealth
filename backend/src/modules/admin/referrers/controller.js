@@ -178,7 +178,7 @@ class ReferrersController {
                 attributes: [
                     [require('sequelize').fn('SUM', require('sequelize').col('earned_amount')), 'totalEarned'],
                     [require('sequelize').fn('SUM', require('sequelize').literal('CASE WHEN status = \'confirmed\' THEN earned_amount ELSE 0 END')), 'confirmedEarnings'],
-                    [require('sequelize').fn('COUNT', require('sequelize').fn('CASE WHEN is_withdrawn = false THEN 1 END')), 'pendingWithdrawals']
+                    [require('sequelize').fn('COUNT', require('sequelize').literal('CASE WHEN is_withdrawn = false THEN 1 END')), 'pendingWithdrawals']
                 ]
             });
 
