@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import ErrorModal from "@/components/modals/error";
+import IdCardModal from "@/components/modals/idCardModal";
 import SuccessModal from "@/components/modals/success";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
@@ -11,6 +12,7 @@ import { useState } from "react";
 export default function SinglePHeader({ data }: { data: any }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showIdCard, setShowIdCard] = useState(false);
   const successModal = useModal();
   const errorModal = useModal();
 
@@ -26,7 +28,7 @@ export default function SinglePHeader({ data }: { data: any }) {
     }
   };
 
-  const handleDownloadIdCard = async () => {
+  const handleViewIdCard = async () => {
     try {
       setLoading(true);
       const response = await apiClient(
@@ -38,25 +40,11 @@ export default function SinglePHeader({ data }: { data: any }) {
       );
 
       if (response?.data.idCardUrl) {
-        // Fetch the image and download it as a blob
-        const imageResponse = await fetch(response.data.idCardUrl);
-        const blob = await imageResponse.blob();
-
-        // Create a download link from the blob
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = `${data?.firstName}-${data?.lastName}-id-card.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        // Clean up the blob URL
-        window.URL.revokeObjectURL(blobUrl);
+        setShowIdCard(true);
       }
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Failed to download ID card"
+        err instanceof Error ? err.message : "Failed to fetch ID card"
       );
       errorModal.openModal();
     } finally {
@@ -112,11 +100,11 @@ export default function SinglePHeader({ data }: { data: any }) {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={handleDownloadIdCard}
+            onClick={handleViewIdCard}
             disabled={loading}
             className={getButtonClasses("not")}
           >
-            {loading ? "Processing..." : "Download ID card"}
+            {loading ? "Processing..." : "View ID card"}
           </button>
 
           <button
@@ -141,6 +129,19 @@ export default function SinglePHeader({ data }: { data: any }) {
         errorModal={errorModal}
         handleErrorClose={() => {
           errorModal.closeModal();
+        }}
+      />
+
+      <IdCardModal
+        isOpen={showIdCard}
+        onClose={() => setShowIdCard(false)}
+        idCardData={{
+          policyNumber: data?.policyNumber || "N/A",
+          firstName: data?.firstName || "",
+          lastName: data?.lastName || "",
+          gender: data?.gender || "M",
+          pictureUrl: data?.pictureUrl,
+          plan: data?.CompanyPlan?.name || "",
         }}
       />
     </>

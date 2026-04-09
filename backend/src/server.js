@@ -40,7 +40,7 @@ app.use(helmet({
   xssFilter: true,
 }));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://provider.altuhealth.com', 'https://admin.altuhealth.com', 'https://enrollee.altuhealth.com', 'https://retail.altuhealth.com', 'https://doctors.altuhealth.com', 'http://localhost:3003', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3007', 'http://192.168.1.191:3001', 'http://192.168.1.191:3002', 'http://192.168.1.191:3007', 'http://192.168.43.84:3001', 'http://192.168.43.84:3002', 'http://192.168.43.84:3007'],
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://provider.altuhealth.com', 'https://admin.altuhealth.com', 'https://enrollee.altuhealth.com', 'https://retail.altuhealth.com', 'https://doctors.altuhealth.com', 'http://localhost:3003', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3007', 'http://192.168.1.147:3001', 'http://192.168.1.147:3002', 'http://192.168.1.147:3007', 'http://192.168.43.84:3001', 'http://192.168.43.84:3002', 'http://192.168.43.84:3007'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
