@@ -226,6 +226,15 @@ async function listSubscriptions(req, res, next) {
         }
 
         const subscriptions = await Subscription.findAll(findOptions);
+
+        // Check and update expired subscriptions
+        const now = new Date();
+        for (const subscription of subscriptions) {
+            if (subscription.status !== 'expired' && new Date(subscription.endDate) < now) {
+                await subscription.update({ status: 'expired' });
+            }
+        }
+
         const data = subscriptions.map(s => s.toJSON());
 
         const hasPrevPage = !isAll && pageNum > 1;

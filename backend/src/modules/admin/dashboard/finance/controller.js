@@ -209,11 +209,7 @@ const getMetrics = async (req, res, next) => {
         const recentInvoices = await Invoice.findAll({
             attributes: ['id', 'invoiceNumber', 'createdAt', 'totalAmount', 'status'],
             include: [
-                {
-                    association: 'provider',
-                    attributes: ['name'],
-                    required: false
-                },
+
                 {
                     association: 'enrollee',
                     attributes: ['firstName', 'lastName'],
