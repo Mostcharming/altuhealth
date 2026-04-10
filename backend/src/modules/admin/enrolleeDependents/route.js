@@ -34,16 +34,37 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
+// Relationship options route (must come before :id routes)
+router.get('/relationship-options', EnrolleeDependent.getRelationshipOptions);
+
+// Bulk operations (must come before :id routes)
+router.post('/bulk/create', upload.single('file'), EnrolleeDependent.bulkCreateEnrolleeDependents);
+router.post('/bulk/verify', EnrolleeDependent.bulkVerifyEnrolleeDependents);
+
 // CRUD for enrollee dependents
 router.post('/', EnrolleeDependent.createEnrolleeDependent);
 router.get('/', EnrolleeDependent.listEnrolleeDependents);
-router.get('/relationship-options', EnrolleeDependent.getRelationshipOptions);
 router.get('/:id', EnrolleeDependent.getEnrolleeDependent);
 router.put('/:id', EnrolleeDependent.updateEnrolleeDependent);
 router.delete('/:id', EnrolleeDependent.deleteEnrolleeDependent);
 
-// Bulk operations
-router.post('/bulk/create', upload.single('file'), EnrolleeDependent.bulkCreateEnrolleeDependents);
-router.post('/bulk/verify', EnrolleeDependent.bulkVerifyEnrolleeDependents);
+// ID Card and verification routes for dependents (must come before medical history routes)
+router.get('/:dependentId/download-id-card', EnrolleeDependent.downloadIdCard);
+router.post('/:dependentId/resend-verification-code', EnrolleeDependent.resendVerificationCode);
+
+// Medical History routes for dependents
+router.post('/:dependentId/medical-histories', EnrolleeDependent.createMedicalHistory);
+router.get('/:dependentId/medical-histories', EnrolleeDependent.getMedicalHistories);
+router.put('/:dependentId/medical-histories/:medicalHistoryId', EnrolleeDependent.updateMedicalHistory);
+router.delete('/:dependentId/medical-histories/:medicalHistoryId', EnrolleeDependent.deleteMedicalHistory);
+
+// Authorization Code routes for dependents
+router.post('/:dependentId/authorization-codes', EnrolleeDependent.createAuthorizationCode);
+router.get('/:dependentId/authorization-codes', EnrolleeDependent.getAuthorizationCodes);
+router.get('/:dependentId/authorization-codes/:authorizationCodeId', EnrolleeDependent.getAuthorizationCodeById);
+router.put('/:dependentId/authorization-codes/:authorizationCodeId/use', EnrolleeDependent.useAuthorizationCode);
+router.put('/:dependentId/authorization-codes/:authorizationCodeId', EnrolleeDependent.updateAuthorizationCode);
+router.put('/:dependentId/authorization-codes/:authorizationCodeId/cancel', EnrolleeDependent.cancelAuthorizationCode);
+router.delete('/:dependentId/authorization-codes/:authorizationCodeId', EnrolleeDependent.deleteAuthorizationCode);
 
 module.exports = router;

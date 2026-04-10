@@ -45,6 +45,7 @@ function defineModels(sequelize) {
   const Enrollee = require("./enrollee.model")(sequelize, DataTypes);
   const EnrolleeMedicalHistory = require("./enrolleeMedicalHistory.model")(sequelize, DataTypes);
   const EnrolleeDependent = require("./enrolleeDependent.model")(sequelize, DataTypes);
+  const EnrolleeDependentMedicalHistory = require("./enrolleeDependentMedicalHistory.model")(sequelize, DataTypes);
   const AuthorizationCode = require("./authorizationCode.model")(sequelize, DataTypes);
   const RetailEnrollee = require("./retailEnrollee.model")(sequelize, DataTypes);
   const RetailEnrolleeNextOfKin = require("./retailEnrolleeNextOfKin.model")(sequelize, DataTypes);
@@ -288,6 +289,18 @@ function defineModels(sequelize) {
   // EnrolleeDependent <-> Enrollee one-to-many
   Enrollee.hasMany(EnrolleeDependent, { foreignKey: "enrolleeId", as: 'dependents' });
   EnrolleeDependent.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
+
+  // EnrolleeDependentMedicalHistory <-> EnrolleeDependent one-to-many
+  EnrolleeDependent.hasMany(EnrolleeDependentMedicalHistory, { foreignKey: "enrolleeDependentId", as: 'medicalHistories' });
+  EnrolleeDependentMedicalHistory.belongsTo(EnrolleeDependent, { foreignKey: "enrolleeDependentId" });
+
+  // EnrolleeDependentMedicalHistory <-> Provider one-to-many
+  Provider.hasMany(EnrolleeDependentMedicalHistory, { foreignKey: "providerId" });
+  EnrolleeDependentMedicalHistory.belongsTo(Provider, { foreignKey: "providerId" });
+
+  // EnrolleeDependentMedicalHistory <-> Diagnosis one-to-many
+  Diagnosis.hasMany(EnrolleeDependentMedicalHistory, { foreignKey: "diagnosisId" });
+  EnrolleeDependentMedicalHistory.belongsTo(Diagnosis, { foreignKey: "diagnosisId" });
 
   // RetailEnrollee <-> Plan one-to-many
   Plan.hasMany(RetailEnrollee, { foreignKey: "planId", as: 'retailEnrollees' });
@@ -540,7 +553,7 @@ function defineModels(sequelize) {
   // Referrer one-to-many with ReferralProgram (optional if a referrer manages programs)
   // This can be added if referrers are associated with specific programs
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning, EnrolleeDependentMedicalHistory };
 }
 
 module.exports = defineModels;

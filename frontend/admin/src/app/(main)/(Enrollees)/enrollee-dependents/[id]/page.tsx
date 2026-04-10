@@ -2,6 +2,7 @@
 "use client";
 
 import PageBreadcrumbSub from "@/components/common/PageBreadCrumbSub";
+import DefaultTab from "@/components/pages/enrollee/dependent/DefaultTab";
 import EnrolleeDependentDetails from "@/components/pages/enrollee/dependent/details";
 import EnrolleeDependentPHeader from "@/components/pages/enrollee/dependent/header";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
@@ -59,6 +60,8 @@ export default function SingleEnrolleeDependent() {
             <div>
               <EnrolleeDependentDetails data={dependent} />
             </div>
+
+            <DefaultTab id={id} />
           </div>
         </>
       )}

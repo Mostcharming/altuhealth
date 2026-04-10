@@ -519,6 +519,102 @@ async function bulkVerifyEnrolleeDependents(req, res, next) {
     }
 }
 
+// Import sub-controllers
+const medicalHistoryController = require('./medicalHistoryController');
+const authorizationCodeController = require('./authorizationCodeController');
+
+async function downloadIdCard(req, res, next) {
+    try {
+        const { EnrolleeDependent } = req.models;
+        const { dependentId } = req.params;
+
+        if (!dependentId) return res.fail('`dependentId` is required', 400);
+
+        // Find dependent
+        const dependent = await EnrolleeDependent.findByPk(dependentId);
+        if (!dependent) return res.fail('Dependent not found', 404);
+
+        // Check if ID card URL exists
+        if (!dependent.idCardUrl) {
+            return res.fail('ID card not available for this dependent', 404);
+        }
+
+        // Return the ID card URL to the client
+        return res.success(
+            { idCardUrl: dependent.idCardUrl },
+            'ID card retrieved successfully'
+        );
+    } catch (error) {
+        console.error('Error downloading ID card:', error);
+        next(error);
+    }
+}
+
+async function resendVerificationCode(req, res, next) {
+    try {
+        const { EnrolleeDependent } = req.models;
+        const { dependentId } = req.params;
+        const { via = 'email' } = req.body || {};
+
+        if (!dependentId) return res.fail('`dependentId` is required', 400);
+
+        // Find dependent
+        const dependent = await EnrolleeDependent.findByPk(dependentId);
+        if (!dependent) return res.fail('Dependent not found', 404);
+
+        // Generate new verification code
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verificationCodeExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        // Update dependent with new verification code
+        await dependent.update({
+            verificationCode,
+            verificationCodeExpiry
+        });
+
+        // Send verification code via email or SMS
+        try {
+            const notify = require('../../../utils/notify');
+            if (via === 'email') {
+                await notify.sendEmail({
+                    to: dependent.email,
+                    subject: 'Verification Code',
+                    template: 'verification-code',
+                    data: {
+                        name: `${dependent.firstName} ${dependent.lastName}`,
+                        verificationCode
+                    }
+                });
+            } else if (via === 'sms') {
+                await notify.sendSMS({
+                    to: dependent.phoneNumber,
+                    message: `Your verification code is: ${verificationCode}`
+                });
+            }
+        } catch (error) {
+            console.warn('Error sending verification code:', error);
+            // Don't fail the request if notification fails
+        }
+
+        // Add audit log
+        await addAuditLog(req.models, {
+            action: 'dependent.resend_verification_code',
+            message: `Resent verification code to dependent ${dependentId} via ${via}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { dependentId, via }
+        });
+
+        return res.success(
+            {},
+            `Verification code sent successfully via ${via}`
+        );
+    } catch (error) {
+        console.error('Error resending verification code:', error);
+        next(error);
+    }
+}
+
 module.exports = {
     createEnrolleeDependent,
     updateEnrolleeDependent,
@@ -527,5 +623,9 @@ module.exports = {
     getEnrolleeDependent,
     getRelationshipOptions,
     bulkCreateEnrolleeDependents,
-    bulkVerifyEnrolleeDependents
+    bulkVerifyEnrolleeDependents,
+    downloadIdCard,
+    resendVerificationCode,
+    ...medicalHistoryController,
+    ...authorizationCodeController
 };
