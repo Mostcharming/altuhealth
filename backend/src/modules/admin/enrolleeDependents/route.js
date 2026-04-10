@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const EnrolleeDependent = require('./controller');
+const { createMedicalHistory, getMedicalHistories, updateMedicalHistory, deleteMedicalHistory } = require('./medicalHistoryController');
+const { createAuthorizationCode, getAuthorizationCodes, getAuthorizationCodeById, useAuthorizationCode, updateAuthorizationCode, cancelAuthorizationCode, deleteAuthorizationCode } = require('./authorizationCodeController');
 const multer = require('multer');
 const path = require('path');
 
@@ -53,10 +55,10 @@ router.get('/:dependentId/download-id-card', EnrolleeDependent.downloadIdCard);
 router.post('/:dependentId/resend-verification-code', EnrolleeDependent.resendVerificationCode);
 
 // Medical History routes for dependents
-router.post('/:dependentId/medical-histories', EnrolleeDependent.createMedicalHistory);
-router.get('/:dependentId/medical-histories', EnrolleeDependent.getMedicalHistories);
-router.put('/:dependentId/medical-histories/:medicalHistoryId', EnrolleeDependent.updateMedicalHistory);
-router.delete('/:dependentId/medical-histories/:medicalHistoryId', EnrolleeDependent.deleteMedicalHistory);
+router.post('/:dependentId/medical-histories', createMedicalHistory);
+router.get('/:dependentId/medical-histories', getMedicalHistories);
+router.put('/:dependentId/medical-histories/:medicalHistoryId', updateMedicalHistory);
+router.delete('/:dependentId/medical-histories/:medicalHistoryId', deleteMedicalHistory);
 
 // Authorization Code routes for dependents
 router.post('/:dependentId/authorization-codes', EnrolleeDependent.createAuthorizationCode);
