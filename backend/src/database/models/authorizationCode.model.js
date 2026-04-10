@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         enrolleeId: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
             references: {
                 model: 'enrollees',
                 key: 'id'
@@ -25,6 +25,39 @@ module.exports = (sequelize, DataTypes) => {
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE',
             field: 'enrollee_id'
+        },
+        enrolleeDependentId: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'enrollee_dependents',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+            field: 'enrollee_dependent_id'
+        },
+        retailEnrolleeId: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'retail_enrollees',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+            field: 'retail_enrollee_id'
+        },
+        retailEnrolleeDependentId: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'retail_enrollee_dependents',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+            field: 'retail_enrollee_dependent_id'
         },
         providerId: {
             type: DataTypes.UUID,
@@ -55,7 +88,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         companyId: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
             references: {
                 model: 'companies',
                 key: 'id'

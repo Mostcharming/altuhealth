@@ -1,5 +1,4 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PageMetricsEnrolleeDependents from "@/components/pages/enrolleeDependents/pageMetrics";
 import EnrolleeDependentsTable from "@/components/pages/enrolleeDependents/enrolleeDependentsTable";
 import { Metadata } from "next";
 
@@ -13,7 +12,6 @@ export default function EnrolleeDependents() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Enrollee Dependents Management" />
-      <PageMetricsEnrolleeDependents buttonText="Add New Dependent" />
       <EnrolleeDependentsTable />
     </div>
   );

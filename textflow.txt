@@ -36,3 +36,67 @@ enrollee, dependents, no if visits , cost racked up
 enrollee side 
 buy plans
 renew plans
+
+
+Enrollee-upload profile before doing it anything
+Depends -upload before using the app
+Enrollee option to select if they want to be notified about dependants action
+For the landing page, use the reliance as sample, show the provider side like a brochure
+
+Altuhealth- limit the wording on the tablet to show all
+
+Altuhealth - Can I download a benefit that has been configured for a particular company?
+Altuhealth, enrolees filing their profile
+Altuhealt, mail to enrolees to continue with their sign up
+Altuhealth-new webpage for altuhealth
+Altuhealth- bill them for the design of landing page and development
+Altuhealth, when the company is no longer active the enrolled for the company cannot login
+Alt health resend enrollment information to enrolled button and actual email
+Altuhealth, mail to the dependent if added
+Altuhealth, when the company sub expires the enrolle cannot use anymore benefits or generate auth codes
+Sola - art project start the process
+Set up replication and update the db to be the latest
+Altuhealth, subscription id, if enrolled doesnt have, show the error
+Altuhealth-bulk upload staff should also bulk upload enrolled
+Altuhealth, remove optional text from subscriptions
+Altuhealth-realtime notification
+Altuhealth-provider requesting for code and amount, list service, admin reply each service or drug, if approved, partially or declined, enrolled pays the rest
+Altuhealth the lgas are not updated
+Altuhealtht , create provider manager compulsory
+Altuhealth, provider login buggy
+Altuhealth new admins have my picture
+Altuhealth- cannot upload images
+Altuhealth, single subscription
+Altuhealth-import data from the excel
+
+
+Info’s-database replication
+
+Manual import not working yet
+
+Filters for also you need to do the same for getting all the tasks
+
+Infonomics-einoviing missing allowance charge
+Add allowance charge
+
+Altuhealth- on the provider side, remove the enrollees list, add a verification  screen to search and then show the details of a single enrolled
+Altuhelthj, check this link for www.voisinlaw.com Altuhealth - www.portobellocapital.es
+Enrollee-upload profile before doing it anything
+Depends -upload before using the app
+Enrollee option to select if they want to be notified about dependants action
+For the landing page, use the reliance as sample, show the provider side like a brochure
+
+Altuhealth, enrollee can view the addtional infomation of the beneficiary
+Make then tick when creating the dependsnrs
+Dependent should know , can opt out
+Invoice to notes(per line item)/banking information/
+Remove flexible amount on the claims on the provider side, only use the amount on the database.
+Autovet amount based (x)
+Reconciliation ft (not needed, if amount this the same) support imminent , 
+On the
+Tie the authorisation code section to the claims section, make sure the admin can view the details well before performing the vetting feature,
+Authorization code adding to the claims feature, add the 
+Provider..
+Claims to have .. enrollee times listed, authorisation code, 
+Description showing on the provider plans,
+Search history saved

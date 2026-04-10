@@ -1,19 +1,17 @@
 "use client";
 
 import Select from "@/components/form/Select";
-import ConfirmModal from "@/components/modals/confirm";
 import ErrorModal from "@/components/modals/error";
-import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { PencilIcon, TrashBinIcon } from "@/icons";
+import { EyeIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import {
   EnrolleeDependent,
   useEnrolleeDependentStore,
 } from "@/lib/store/enrolleeDependentStore";
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
-import EditEnrolleeDependent from "./editEnrolleeDependent";
 
 interface Enrollee {
   id: string;
@@ -23,9 +21,8 @@ interface Enrollee {
 }
 
 const EnrolleeDependentsTable: React.FC = () => {
-  const { isOpen, openModal, closeModal } = useModal();
+  const router = useRouter();
   const errorModal = useModal();
-  const successModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -38,15 +35,8 @@ const EnrolleeDependentsTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const dependents = useEnrolleeDependentStore((s) => s.dependents);
   const setDependents = useEnrolleeDependentStore((s) => s.setDependents);
-  const confirmModal = useModal();
-  const [selectedDependentId, setSelectedDependentId] = useState<string | null>(
-    null
-  );
-  const [editingDependent, setEditingDependent] =
-    useState<EnrolleeDependent | null>(null);
-  const removeDependent = useEnrolleeDependentStore((s) => s.removeDependent);
-  const [errorMessage, setErrorMessage] = useState(
-    "Failed to delete dependent. Please try again."
+  const [errorMessage] = useState(
+    "Failed to load dependents. Please try again."
   );
 
   type Header = {
@@ -166,59 +156,13 @@ const EnrolleeDependentsTable: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleDeleteModal = (id: string) => {
-    setSelectedDependentId(id);
-    confirmModal.openModal();
+  const handleViewDependent = (dependentId: string) => {
+    router.push(`/enrollee-dependents/${dependentId}`);
   };
 
-  const handleCloseConfirm = () => {
-    setSelectedDependentId(null);
-    confirmModal.closeModal();
-  };
-
-  const handleView = (dependent: EnrolleeDependent) => {
-    setEditingDependent(dependent);
-    openModal();
-  };
-
-  const deleteDependent = async () => {
-    if (!selectedDependentId) return;
-    try {
-      setLoading(true);
-      const url = `/admin/enrollee-dependents/${selectedDependentId}`;
-      await apiClient(url, {
-        method: "DELETE",
-        onLoading: (l) => setLoading(l),
-      });
-
-      removeDependent(selectedDependentId);
-      setSelectedDependentId(null);
-      confirmModal.closeModal();
-      successModal.openModal();
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCloseEdit = () => {
-    setEditingDependent(null);
-    closeModal();
-  };
-
-  const handleSuccessClose = () => {
-    successModal.closeModal();
-    closeModal();
-  };
-
-  const handleErrorClose = () => {
-    errorModal.closeModal();
-    closeModal();
+  const capitalize = (str: string): string => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
   return (
@@ -315,12 +259,12 @@ const EnrolleeDependentsTable: React.FC = () => {
                 >
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {dependent.firstName}
+                      {capitalize(dependent.firstName)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {dependent.lastName}
+                      {capitalize(dependent.lastName)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
@@ -353,19 +297,11 @@ const EnrolleeDependentsTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
                       <button
-                        onClick={() => handleView(dependent)}
+                        onClick={() => handleViewDependent(dependent.id)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                        title="View/Edit"
+                        title="View Details"
                       >
-                        <PencilIcon />
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteModal(dependent.id)}
-                        className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
-                        title="Delete"
-                      >
-                        <TrashBinIcon />
+                        <EyeIcon />
                       </button>
                     </div>
                   </td>
@@ -485,25 +421,10 @@ const EnrolleeDependentsTable: React.FC = () => {
         </div>
       </div>
 
-      <ConfirmModal
-        confirmModal={confirmModal}
-        handleSave={deleteDependent}
-        closeModal={handleCloseConfirm}
-      />
-      <EditEnrolleeDependent
-        isOpen={isOpen}
-        closeModal={handleCloseEdit}
-        dependent={editingDependent}
-      />
-      <SuccessModal
-        successModal={successModal}
-        handleSuccessClose={handleSuccessClose}
-      />
-
       <ErrorModal
         message={errorMessage}
         errorModal={errorModal}
-        handleErrorClose={handleErrorClose}
+        handleErrorClose={() => errorModal.closeModal()}
       />
     </div>
   );
