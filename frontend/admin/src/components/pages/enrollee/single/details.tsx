@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+import ErrorModal from "@/components/modals/error";
+import IdCardModal from "@/components/modals/idCardModal";
+import { useModal } from "@/hooks/useModal";
+import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
+import { useState } from "react";
 
 const formatDate = (date: string | null | undefined) => {
   if (!date) return "N/A";
@@ -11,8 +17,34 @@ const formatDate = (date: string | null | undefined) => {
 };
 
 export default function Details({ data }: { data: any }) {
-  console.log(data);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showIdCard, setShowIdCard] = useState(false);
+  const errorModal = useModal();
 
+  const handleViewIdCard = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient(
+        `/admin/enrollees/${data?.id}/download-id-card`,
+        {
+          method: "GET",
+          onLoading: (l: boolean) => setLoading(l),
+        }
+      );
+
+      if (response?.data.idCardUrl) {
+        setShowIdCard(true);
+      }
+    } catch (err) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to fetch ID card"
+      );
+      errorModal.openModal();
+    } finally {
+      setLoading(false);
+    }
+  };
   const DetailRow = ({
     label,
     value,
@@ -139,42 +171,44 @@ export default function Details({ data }: { data: any }) {
         </h2>
         <ul className="divide-y divide-gray-100 dark:divide-gray-800">
           <DetailRow label="Date Added" value={formatDate(data?.createdAt)} />
-          {data?.pictureUrl && (
-            <li className="flex items-start gap-5 py-2.5">
-              <span className="w-1/2 text-sm text-gray-500 sm:w-1/3 dark:text-gray-400">
-                Picture URL
-              </span>
-              <span className="w-1/2 text-sm text-blue-600 break-all sm:w-2/3 dark:text-blue-400">
-                <a
-                  href={data?.pictureUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:no-underline"
-                >
-                  View Picture
-                </a>
-              </span>
-            </li>
-          )}
-          {data?.idCardUrl && (
-            <li className="flex items-start gap-5 py-2.5">
-              <span className="w-1/2 text-sm text-gray-500 sm:w-1/3 dark:text-gray-400">
-                ID Card URL
-              </span>
-              <span className="w-1/2 text-sm text-blue-600 break-all sm:w-2/3 dark:text-blue-400">
-                <a
-                  href={data?.idCardUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:no-underline"
-                >
-                  View ID Card
-                </a>
-              </span>
-            </li>
-          )}
+
+          <li className="flex items-start gap-5 py-2.5">
+            <span className="w-1/2 text-sm text-gray-500 sm:w-1/3 dark:text-gray-400">
+              ID Card
+            </span>
+            <span className="w-1/2 sm:w-2/3">
+              <button
+                onClick={handleViewIdCard}
+                disabled={loading}
+                className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-50"
+              >
+                {loading ? "Processing..." : "View ID Card"}
+              </button>
+            </span>
+          </li>
         </ul>
       </div>
+
+      <ErrorModal
+        message={errorMessage}
+        errorModal={errorModal}
+        handleErrorClose={() => {
+          errorModal.closeModal();
+        }}
+      />
+
+      <IdCardModal
+        isOpen={showIdCard}
+        onClose={() => setShowIdCard(false)}
+        idCardData={{
+          policyNumber: data?.policyNumber || "N/A",
+          firstName: data?.firstName || "",
+          lastName: data?.lastName || "",
+          gender: data?.gender || "M",
+          pictureUrl: data?.pictureUrl,
+          plan: data?.CompanyPlan?.name || "",
+        }}
+      />
     </>
   );
 }

@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import EnrolleeAuthorizationCodesTable from "./enrolleeAuthorizationCodesTable";
 import EnrolleeBenefitsTable from "./enrolleeBenefitsTable";
+import EnrolleeDependentsTable from "./enrolleeDependentsTable";
 import EnrolleeMedicalHistoryTable from "./enrolleeMedicalHistoryTable";
 
 interface TabItem {
@@ -22,6 +23,7 @@ const DefaultTab: React.FC<{ id: string }> = ({ id }) => {
       title: "Medical History",
     },
     { key: "authorization", title: "Authorization Codes" },
+    { key: "dependents", title: "Dependents" },
   ];
 
   return (
@@ -63,6 +65,11 @@ const DefaultTab: React.FC<{ id: string }> = ({ id }) => {
                 {tab.key === "authorization" && (
                   <div>
                     <EnrolleeAuthorizationCodesTable enrolleeId={id} />
+                  </div>
+                )}
+                {tab.key === "dependents" && (
+                  <div>
+                    <EnrolleeDependentsTable enrolleeId={id} />
                   </div>
                 )}
               </div>
