@@ -9,7 +9,8 @@ export interface RetailEnrolleeDependent {
   lastName: string;
   dateOfBirth: string;
   gender: "male" | "female" | "other";
-  relationshipToEnrollee: "spouse" | "child" | "parent" | "sibling" | "other";
+  relationshipToEnrollee: string;
+  relationship?: string | null;
   phoneNumber?: string | null;
   email?: string | null;
   occupation?: string | null;
