@@ -160,7 +160,7 @@ const supportItems: NavItem[] = [
   {
     icon: <CallIcon />,
     name: "Support",
-    subItems: [{ name: "Support-Tickets", path: "/messages" }],
+    subItems: [{ name: "Support-Tickets", path: "/tickets" }],
   },
 ];
 

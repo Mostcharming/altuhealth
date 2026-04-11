@@ -1,0 +1,507 @@
+import { create } from "zustand";
+import { apiClient } from "../apiClient";
+
+export interface Ticket {
+  id: string;
+  ticketNumber: number;
+  subject: string;
+  description?: string;
+  userId: string;
+  userType: "Enrollee" | "RetailEnrollee" | "Provider" | "Doctor";
+  category: string;
+  status: "pending" | "in_progress" | "on_hold" | "solved" | "closed";
+  priority: "low" | "medium" | "high" | "urgent";
+  createdAt: string;
+  updatedAt: string;
+  assignedToId?: string;
+  closedAt?: string;
+}
+
+export interface TicketMessage {
+  id: string;
+  ticketId: string;
+  senderId: string;
+  senderType:
+    | "Enrollee"
+    | "RetailEnrollee"
+    | "Provider"
+    | "Doctor"
+    | "Admin"
+    | "System";
+  messageType: "text" | "attachment" | "system" | "status_update" | "note";
+  content?: string;
+  attachmentUrl?: string;
+  attachmentType?: "image" | "document" | "other";
+  attachmentName?: string;
+  isInternal: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginationResponse<T> {
+  list: T[];
+  count: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface TicketStats {
+  total: number;
+  pending: number;
+  inProgress: number;
+  onHold: number;
+  solved: number;
+  closed: number;
+}
+
+interface TicketListOptions {
+  page?: number;
+  limit?: number;
+  q?: string;
+  status?: string;
+  category?: string;
+  priority?: string;
+  userType?: string;
+  assignedToId?: string;
+}
+
+interface MessageListOptions {
+  page?: number;
+  limit?: number;
+  includeInternal?: boolean;
+}
+
+type TicketStore = {
+  // Tickets
+  tickets: Ticket[];
+  currentTicket: Ticket | null;
+  ticketsLoading: boolean;
+  ticketsError: string | null;
+  ticketsPagination: {
+    page: number;
+    limit: number;
+    totalPages: number;
+    count: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+
+  // Messages
+  messages: TicketMessage[];
+  messagesLoading: boolean;
+  messagesError: string | null;
+  messagesPagination: {
+    page: number;
+    limit: number;
+    totalPages: number;
+    count: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
+
+  // Stats
+  stats: TicketStats | null;
+  statsLoading: boolean;
+
+  // Actions - Tickets
+  listTickets: (options?: TicketListOptions) => Promise<void>;
+  getTicket: (ticketId: string, includeMessages?: boolean) => Promise<void>;
+  createTicket: (data: {
+    userId: string;
+    userType: string;
+    subject: string;
+    description?: string;
+    category?: string;
+    priority?: string;
+  }) => Promise<Ticket>;
+  updateTicket: (
+    ticketId: string,
+    data: {
+      status?: string;
+      priority?: string;
+      category?: string;
+      assignedToId?: string;
+    }
+  ) => Promise<void>;
+  assignTicket: (ticketId: string, adminId: string) => Promise<void>;
+  closeTicket: (ticketId: string) => Promise<void>;
+  deleteTicket: (ticketId: string) => Promise<void>;
+
+  // Actions - Messages
+  getMessages: (
+    ticketId: string,
+    options?: MessageListOptions
+  ) => Promise<void>;
+  addMessage: (
+    ticketId: string,
+    data: {
+      senderId: string;
+      senderType: string;
+      content?: string;
+      messageType?: string;
+      attachmentUrl?: string;
+      attachmentType?: string;
+      attachmentName?: string;
+      isInternal?: boolean;
+    }
+  ) => Promise<void>;
+  deleteMessage: (ticketId: string, messageId: string) => Promise<void>;
+
+  // Actions - Stats
+  fetchStats: () => Promise<void>;
+
+  // Clear
+  clearTickets: () => void;
+  clearMessages: () => void;
+  clearCurrentTicket: () => void;
+};
+
+export const useTicketStore = create<TicketStore>((set) => ({
+  // Tickets
+  tickets: [],
+  currentTicket: null,
+  ticketsLoading: false,
+  ticketsError: null,
+  ticketsPagination: {
+    page: 1,
+    limit: 10,
+    totalPages: 1,
+    count: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  },
+
+  // Messages
+  messages: [],
+  messagesLoading: false,
+  messagesError: null,
+  messagesPagination: {
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+    count: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  },
+
+  // Stats
+  stats: null,
+  statsLoading: false,
+
+  // Actions - Tickets
+  listTickets: async (options = {}) => {
+    set({ ticketsLoading: true, ticketsError: null });
+    try {
+      const endpoint = `/admin/tickets/list?page=${options.page || 1}&limit=${
+        options.limit || 10
+      }${options.q ? `&q=${options.q}` : ""}${
+        options.status ? `&status=${options.status}` : ""
+      }${options.category ? `&category=${options.category}` : ""}${
+        options.priority ? `&priority=${options.priority}` : ""
+      }${options.userType ? `&userType=${options.userType}` : ""}${
+        options.assignedToId ? `&assignedToId=${options.assignedToId}` : ""
+      }`;
+
+      const data: PaginationResponse<Ticket> = await apiClient(endpoint);
+
+      set({
+        tickets: data.list,
+        ticketsPagination: {
+          page: data.page,
+          limit: data.limit,
+          totalPages: data.totalPages,
+          count: data.count,
+          hasNextPage: data.hasNextPage,
+          hasPrevPage: data.hasPrevPage,
+        },
+      });
+    } catch (error) {
+      set({
+        ticketsError:
+          error instanceof Error ? error.message : "Failed to fetch tickets",
+      });
+    } finally {
+      set({ ticketsLoading: false });
+    }
+  },
+
+  getTicket: async (ticketId, includeMessages = false) => {
+    set({ ticketsLoading: true, ticketsError: null });
+    try {
+      const endpoint = `/admin/tickets/${ticketId}${
+        includeMessages ? "?includeMessages=true" : ""
+      }`;
+      const data = await apiClient(endpoint);
+
+      set({ currentTicket: data.ticket || data.data?.ticket || data });
+    } catch (error) {
+      set({
+        ticketsError:
+          error instanceof Error ? error.message : "Failed to fetch ticket",
+      });
+    } finally {
+      set({ ticketsLoading: false });
+    }
+  },
+
+  createTicket: async (data) => {
+    set({ ticketsLoading: true, ticketsError: null });
+    try {
+      const response = await apiClient("/admin/tickets", {
+        method: "POST",
+        body: data,
+      });
+
+      const ticket = response.ticket || response.data?.ticket;
+      set((state) => ({
+        tickets: [ticket, ...state.tickets],
+      }));
+
+      return ticket;
+    } catch (error) {
+      set({
+        ticketsError:
+          error instanceof Error ? error.message : "Failed to create ticket",
+      });
+      throw error;
+    } finally {
+      set({ ticketsLoading: false });
+    }
+  },
+
+  updateTicket: async (ticketId, data) => {
+    set({ ticketsLoading: true, ticketsError: null });
+    try {
+      const response = await apiClient(`/admin/tickets/${ticketId}`, {
+        method: "PUT",
+        body: data,
+      });
+
+      const updatedTicket = response.ticket || response.data?.ticket;
+
+      set((state) => ({
+        tickets: state.tickets.map((t) =>
+          t.id === ticketId ? updatedTicket : t
+        ),
+        currentTicket:
+          state.currentTicket?.id === ticketId
+            ? updatedTicket
+            : state.currentTicket,
+      }));
+    } catch (error) {
+      set({
+        ticketsError:
+          error instanceof Error ? error.message : "Failed to update ticket",
+      });
+      throw error;
+    } finally {
+      set({ ticketsLoading: false });
+    }
+  },
+
+  assignTicket: async (ticketId, adminId) => {
+    set({ ticketsLoading: true, ticketsError: null });
+    try {
+      const response = await apiClient(`/admin/tickets/${ticketId}/assign`, {
+        method: "PATCH",
+        body: { assignedToId: adminId },
+      });
+
+      const updatedTicket = response.ticket || response.data?.ticket;
+
+      set((state) => ({
+        tickets: state.tickets.map((t) =>
+          t.id === ticketId ? updatedTicket : t
+        ),
+        currentTicket:
+          state.currentTicket?.id === ticketId
+            ? updatedTicket
+            : state.currentTicket,
+      }));
+    } catch (error) {
+      set({
+        ticketsError:
+          error instanceof Error ? error.message : "Failed to assign ticket",
+      });
+      throw error;
+    } finally {
+      set({ ticketsLoading: false });
+    }
+  },
+
+  closeTicket: async (ticketId) => {
+    set({ ticketsLoading: true, ticketsError: null });
+    try {
+      const response = await apiClient(`/admin/tickets/${ticketId}/close`, {
+        method: "PATCH",
+      });
+
+      const updatedTicket = response.ticket || response.data?.ticket;
+
+      set((state) => ({
+        tickets: state.tickets.map((t) =>
+          t.id === ticketId ? updatedTicket : t
+        ),
+        currentTicket:
+          state.currentTicket?.id === ticketId
+            ? updatedTicket
+            : state.currentTicket,
+      }));
+    } catch (error) {
+      set({
+        ticketsError:
+          error instanceof Error ? error.message : "Failed to close ticket",
+      });
+      throw error;
+    } finally {
+      set({ ticketsLoading: false });
+    }
+  },
+
+  deleteTicket: async (ticketId) => {
+    set({ ticketsLoading: true, ticketsError: null });
+    try {
+      await apiClient(`/admin/tickets/${ticketId}`, {
+        method: "DELETE",
+      });
+
+      set((state) => ({
+        tickets: state.tickets.filter((t) => t.id !== ticketId),
+        currentTicket:
+          state.currentTicket?.id === ticketId ? null : state.currentTicket,
+      }));
+    } catch (error) {
+      set({
+        ticketsError:
+          error instanceof Error ? error.message : "Failed to delete ticket",
+      });
+      throw error;
+    } finally {
+      set({ ticketsLoading: false });
+    }
+  },
+
+  // Actions - Messages
+  getMessages: async (ticketId, options = {}) => {
+    set({ messagesLoading: true, messagesError: null });
+    try {
+      const endpoint = `/admin/tickets/${ticketId}/messages?page=${
+        options.page || 1
+      }&limit=${options.limit || 20}${
+        options.includeInternal ? "&includeInternal=true" : ""
+      }`;
+
+      const data: PaginationResponse<TicketMessage> = await apiClient(endpoint);
+
+      set({
+        messages: data.list,
+        messagesPagination: {
+          page: data.page,
+          limit: data.limit,
+          totalPages: data.totalPages,
+          count: data.count,
+          hasNextPage: data.hasNextPage,
+          hasPrevPage: data.hasPrevPage,
+        },
+      });
+    } catch (error) {
+      set({
+        messagesError:
+          error instanceof Error ? error.message : "Failed to fetch messages",
+      });
+    } finally {
+      set({ messagesLoading: false });
+    }
+  },
+
+  addMessage: async (ticketId, data) => {
+    set({ messagesLoading: true, messagesError: null });
+    try {
+      const response = await apiClient(`/admin/tickets/${ticketId}/messages`, {
+        method: "POST",
+        body: data,
+      });
+
+      const message = response.message || response.data?.message;
+
+      set((state) => ({
+        messages: [...state.messages, message],
+      }));
+    } catch (error) {
+      set({
+        messagesError:
+          error instanceof Error ? error.message : "Failed to add message",
+      });
+      throw error;
+    } finally {
+      set({ messagesLoading: false });
+    }
+  },
+
+  deleteMessage: async (ticketId, messageId) => {
+    set({ messagesLoading: true, messagesError: null });
+    try {
+      await apiClient(`/admin/tickets/${ticketId}/messages/${messageId}`, {
+        method: "DELETE",
+      });
+
+      set((state) => ({
+        messages: state.messages.filter((m) => m.id !== messageId),
+      }));
+    } catch (error) {
+      set({
+        messagesError:
+          error instanceof Error ? error.message : "Failed to delete message",
+      });
+      throw error;
+    } finally {
+      set({ messagesLoading: false });
+    }
+  },
+
+  // Actions - Stats
+  fetchStats: async () => {
+    set({ statsLoading: true });
+    try {
+      const data = await apiClient("/admin/tickets/stats");
+
+      set({ stats: data.stats || data.data?.stats });
+    } catch (error) {
+      console.error("Failed to fetch ticket stats:", error);
+    } finally {
+      set({ statsLoading: false });
+    }
+  },
+
+  // Clear
+  clearTickets: () =>
+    set({
+      tickets: [],
+      ticketsPagination: {
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        count: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    }),
+
+  clearMessages: () =>
+    set({
+      messages: [],
+      messagesPagination: {
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+        count: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      },
+    }),
+
+  clearCurrentTicket: () => set({ currentTicket: null }),
+}));
