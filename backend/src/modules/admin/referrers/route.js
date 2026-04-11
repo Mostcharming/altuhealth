@@ -16,6 +16,9 @@ router.delete('/:id', Referrers.deleteReferrer);
 router.get('/:id/earnings', Referrers.getReferrerEarnings);
 router.get('/:id/referrals', Referrers.getReferrerReferrals);
 
+// Mark earning as withdrawn
+router.put('/:referrerId/earnings/:earningId/mark-withdrawn', Referrers.markEarningAsWithdrawn);
+
 // Withdraw request
 router.post('/:id/withdraw-request', Referrers.createWithdrawRequest);
 

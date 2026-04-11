@@ -228,6 +228,11 @@ class ReferrersController {
                             start: earning.subscription.subscriptionStartDate,
                             end: earning.subscription.subscriptionEndDate
                         },
+                        referrerAccount: {
+                            bankName: referrer.bankName,
+                            accountName: referrer.accountName,
+                            accountNumber: referrer.accountNumber
+                        },
                         createdAt: earning.createdAt
                     })),
                     pagination: {
@@ -492,6 +497,52 @@ class ReferrersController {
                     amount,
                     status: 'pending'
                 }
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // Mark earning as withdrawn/paid
+    static async markEarningAsWithdrawn(req, res, next) {
+        try {
+            const { referrerId, earningId } = req.params;
+            const { ReferrerEarning, Referrer } = req.models;
+
+            // Find the earning
+            const earning = await ReferrerEarning.findByPk(earningId);
+
+            if (!earning) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Earning not found'
+                });
+            }
+
+            if (earning.referrerId !== referrerId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Earning does not belong to this referrer'
+                });
+            }
+
+            if (earning.status !== 'confirmed') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Only confirmed earnings can be marked as withdrawn'
+                });
+            }
+
+            // Update earning status
+            earning.status = 'withdrawn';
+            earning.isWithdrawn = true;
+            earning.withdrawnAt = new Date();
+            await earning.save();
+
+            res.status(200).json({
+                success: true,
+                message: 'Earning marked as withdrawn successfully',
+                data: earning
             });
         } catch (error) {
             next(error);

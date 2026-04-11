@@ -94,6 +94,16 @@ export const referrerAPI = {
       body: { amount },
     });
   },
+
+  // Mark earning as withdrawn/paid
+  async markEarningAsWithdrawn(referrerId: string, earningId: string) {
+    return apiClient(
+      `/admin/referrers/${referrerId}/earnings/${earningId}/mark-withdrawn`,
+      {
+        method: "PUT",
+      }
+    );
+  },
 };
 
 export const referralProgramAPI = {

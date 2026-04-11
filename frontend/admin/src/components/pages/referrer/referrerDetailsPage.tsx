@@ -1,9 +1,13 @@
 "use client";
 
+import ConfirmModal from "@/components/modals/confirm";
+import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { referrerAPI } from "@/lib/apis/referral";
 import { capitalizeWords } from "@/lib/capitalize";
 import { formatDate, formatPrice } from "@/lib/formatDate";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -34,6 +38,11 @@ interface Earning {
   subscriptionPeriod: {
     start: string;
     end: string;
+  };
+  referrerAccount: {
+    bankName: string;
+    accountName: string;
+    accountNumber: string;
   };
   createdAt: string;
 }
@@ -82,6 +91,14 @@ const ReferrerDetailsPage = () => {
   const [limit] = useState(10);
   const [statusFilter, setStatusFilter] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [markingWithdrawn, setMarkingWithdrawn] = useState<string | null>(null);
+  const [successModal, setSuccessModal] = useState(false);
+  const [errorModal, setErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [confirmModal, setConfirmModal] = useState(false);
+  const [pendingWithdrawalId, setPendingWithdrawalId] = useState<string | null>(
+    null
+  );
 
   const fetchReferrerDetails = useCallback(async () => {
     try {
@@ -112,6 +129,56 @@ const ReferrerDetailsPage = () => {
       fetchReferrerDetails();
     }
   }, [id, fetchReferrerDetails]);
+
+  const handleMarkAsWithdrawn = async (earningId: string) => {
+    try {
+      setMarkingWithdrawn(earningId);
+      const result = await referrerAPI.markEarningAsWithdrawn(
+        id as string,
+        earningId
+      );
+
+      if (result?.success) {
+        setSuccessModal(true);
+        // Refresh the data
+        setTimeout(() => {
+          setSuccessModal(false);
+          fetchReferrerDetails();
+        }, 1500);
+      } else {
+        setErrorMessage(
+          result?.message || "Failed to mark earning as withdrawn"
+        );
+        setErrorModal(true);
+      }
+    } catch (err) {
+      console.error("Error marking earning as withdrawn:", err);
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Failed to mark earning as withdrawn"
+      );
+      setErrorModal(true);
+    } finally {
+      setMarkingWithdrawn(null);
+    }
+  };
+
+  const handleOpenConfirmModal = (earningId: string) => {
+    setPendingWithdrawalId(earningId);
+    setConfirmModal(true);
+  };
+
+  const handleCloseConfirmModal = () => {
+    setConfirmModal(false);
+    setPendingWithdrawalId(null);
+  };
+
+  const handleConfirmWithdrawal = async () => {
+    if (!pendingWithdrawalId) return;
+    handleCloseConfirmModal();
+    await handleMarkAsWithdrawn(pendingWithdrawalId);
+  };
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -159,9 +226,11 @@ const ReferrerDetailsPage = () => {
         <div className="flex items-start justify-between gap-4">
           <div className="flex gap-4">
             {referrer.picture && (
-              <img
+              <Image
                 src={referrer.picture}
                 alt={`${referrer.firstName} ${referrer.lastName}`}
+                width={112}
+                height={144}
                 className="h-20 w-20 rounded-full object-cover"
               />
             )}
@@ -334,11 +403,17 @@ const ReferrerDetailsPage = () => {
                   <th className="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">
                     Earned Amount
                   </th>
+                  <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
+                    Account Details
+                  </th>
                   <th className="p-4 text-center text-xs font-medium text-gray-700 dark:text-gray-400">
                     Status
                   </th>
                   <th className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
                     Date
+                  </th>
+                  <th className="p-4 text-center text-xs font-medium text-gray-700 dark:text-gray-400">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -369,16 +444,34 @@ const ReferrerDetailsPage = () => {
                       </p>
                     </td>
                     <td className="p-4 whitespace-nowrap text-center">
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                        {earning.rewardType === "percentage"
-                          ? `${earning.rewardRate}%`
-                          : formatPrice(earning.rewardRate)}
-                      </p>
+                      <div className="inline-flex flex-col items-center gap-1 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900/50">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white/90">
+                          {earning.rewardType === "percentage"
+                            ? `${earning.rewardRate}%`
+                            : formatPrice(earning.rewardRate)}
+                        </p>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                          {capitalizeWords(earning.rewardType)}
+                        </span>
+                      </div>
                     </td>
                     <td className="p-4 whitespace-nowrap text-right">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white/90">
                         {formatPrice(earning.earnedAmount)}
                       </p>
+                    </td>
+                    <td className="p-4">
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900 dark:text-white/90">
+                          {earning.referrerAccount.accountName}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {earning.referrerAccount.bankName}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {earning.referrerAccount.accountNumber}
+                        </p>
+                      </div>
                     </td>
                     <td className="p-4 whitespace-nowrap text-center">
                       <span
@@ -393,6 +486,25 @@ const ReferrerDetailsPage = () => {
                       <p className="text-sm text-gray-700 dark:text-gray-300">
                         {formatDate(earning.createdAt)}
                       </p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap text-center">
+                      {earning.status === "confirmed" ? (
+                        <button
+                          onClick={() => handleOpenConfirmModal(earning.id)}
+                          disabled={markingWithdrawn === earning.id}
+                          className="inline-flex items-center justify-center px-3 py-2 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                          {markingWithdrawn === earning.id ? (
+                            <span className="animate-spin">⏳</span>
+                          ) : (
+                            "Mark as Paid"
+                          )}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {earning.status === "withdrawn" ? "Paid" : "—"}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -445,6 +557,22 @@ const ReferrerDetailsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <SuccessModal
+        successModal={{ isOpen: successModal }}
+        handleSuccessClose={() => setSuccessModal(false)}
+      />
+      <ErrorModal
+        errorModal={{ isOpen: errorModal }}
+        handleErrorClose={() => setErrorModal(false)}
+        message={errorMessage}
+      />
+      <ConfirmModal
+        confirmModal={{ isOpen: confirmModal }}
+        handleSave={handleConfirmWithdrawal}
+        closeModal={handleCloseConfirmModal}
+      />
     </div>
   );
 };
