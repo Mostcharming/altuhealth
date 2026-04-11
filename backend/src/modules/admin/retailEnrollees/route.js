@@ -3,7 +3,9 @@ const {
     getRetailEnrollees,
     getRetailEnrolleeById,
     updateRetailEnrollee,
-    deleteRetailEnrollee
+    deleteRetailEnrollee,
+    downloadIdCard,
+    resendVerificationCode
 } = require('./controller');
 
 const {
@@ -13,6 +15,19 @@ const {
     updateRetailEnrolleeMedicalHistory,
     deleteRetailEnrolleeMedicalHistory
 } = require('./medicalHistoryController');
+
+const {
+    createRetailEnrolleeAuthorizationCode,
+    getRetailEnrolleeAuthorizationCodes,
+    getRetailEnrolleeAuthorizationCodeById,
+    updateRetailEnrolleeAuthorizationCode,
+    deleteRetailEnrolleeAuthorizationCode
+} = require('./authorizationCodeController');
+
+const {
+    getRetailEnrolleeBenefits,
+    getRetailEnrolleeBenefitById
+} = require('./benefitsController');
 
 const {
     createRetailEnrolleeDependent,
@@ -30,6 +45,19 @@ router.get('/', getRetailEnrollees);
 router.get('/:retailEnrolleeId', getRetailEnrolleeById);
 router.put('/:retailEnrolleeId', updateRetailEnrollee);
 router.delete('/:retailEnrolleeId', deleteRetailEnrollee);
+router.get('/:retailEnrolleeId/download-id-card', downloadIdCard);
+router.post('/:retailEnrolleeId/resend-verification-code', resendVerificationCode);
+
+// Benefits routes
+router.get('/:retailEnrolleeId/benefits', getRetailEnrolleeBenefits);
+router.get('/:retailEnrolleeId/benefits/:benefitId', getRetailEnrolleeBenefitById);
+
+// Authorization Codes routes
+router.post('/:retailEnrolleeId/authorization-codes', createRetailEnrolleeAuthorizationCode);
+router.get('/:retailEnrolleeId/authorization-codes', getRetailEnrolleeAuthorizationCodes);
+router.get('/:retailEnrolleeId/authorization-codes/:authorizationCodeId', getRetailEnrolleeAuthorizationCodeById);
+router.put('/:retailEnrolleeId/authorization-codes/:authorizationCodeId', updateRetailEnrolleeAuthorizationCode);
+router.delete('/:retailEnrolleeId/authorization-codes/:authorizationCodeId', deleteRetailEnrolleeAuthorizationCode);
 
 // Dependents routes
 router.post('/:retailEnrolleeId/dependents', createRetailEnrolleeDependent);

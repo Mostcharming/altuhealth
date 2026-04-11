@@ -549,6 +549,75 @@ async function getRetailEnrolleeSubscriptions(req, res, next) {
     }
 }
 
+async function downloadIdCard(req, res, next) {
+    try {
+        const { RetailEnrollee } = req.models;
+        const { retailEnrolleeId } = req.params;
+
+        const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
+        if (!enrollee) return res.fail('Retail enrollee not found', 404);
+
+        // Return ID card URL (can be extended to generate actual PDF in future)
+        return res.success(
+            { idCardUrl: enrollee.pictureUrl || '/images/main/small.svg' },
+            'ID card retrieved successfully'
+        );
+    } catch (err) {
+        return next(err);
+    }
+}
+
+async function resendVerificationCode(req, res, next) {
+    try {
+        const { RetailEnrollee } = req.models;
+        const { retailEnrolleeId } = req.params;
+        const { via = 'email' } = req.body || {};
+
+        const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
+        if (!enrollee) return res.fail('Retail enrollee not found', 404);
+
+        // Generate verification code
+        const verificationCode = generateCode(6, { numbers: true });
+
+        // Update enrollee with verification code and expiration
+        const expirationTime = new Date();
+        expirationTime.setHours(expirationTime.getHours() + 2);
+
+        await enrollee.update({
+            verificationCode,
+            verificationCodeExpiry: expirationTime
+        });
+
+        // Send verification code via email
+        if (via === 'email') {
+            await notify({
+                to: enrollee.email,
+                type: 'RETAIL_ENROLLEE_VERIFICATION_CODE',
+                data: {
+                    firstName: enrollee.firstName,
+                    verificationCode,
+                    expiresIn: '2 hours'
+                }
+            });
+        }
+
+        // Add audit log
+        await addAuditLog(req.models, {
+            action: 'retailEnrollee.verificationCodeResent',
+            message: `Resent verification code to retail enrollee ${retailEnrolleeId}`,
+            userId: req.user?.id,
+            userType: 'admin'
+        });
+
+        return res.success(
+            {},
+            'Verification code sent successfully'
+        );
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
     createRetailEnrollee,
     getRetailEnrollees,
@@ -557,5 +626,7 @@ module.exports = {
     deleteRetailEnrollee,
     createRetailEnrolleeSubscription,
     updateRetailEnrolleeSubscription,
-    getRetailEnrolleeSubscriptions
+    getRetailEnrolleeSubscriptions,
+    downloadIdCard,
+    resendVerificationCode
 };
