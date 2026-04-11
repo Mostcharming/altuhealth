@@ -30,6 +30,7 @@ export interface Plan {
   planCycle?: string;
   annualPremiumPrice?: number;
   allowDependentEnrolee?: boolean;
+  currency?: string;
   createdAt?: string;
   updatedAt?: string;
   benefitCategories?: BenefitCategory[];

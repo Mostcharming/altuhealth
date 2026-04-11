@@ -79,6 +79,13 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: true,
             field: 'allow_dependent_enrolee'
+        },
+        currency: {
+            type: DataTypes.STRING(3),
+            allowNull: false,
+            defaultValue: 'NGN',
+            field: 'currency',
+            comment: 'e.g., NGN, USD, EUR'
         }
     }, {
         tableName: 'plans',

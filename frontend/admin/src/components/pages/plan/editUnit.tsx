@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import Checkbox from "@/components/form/input/Checkbox";
@@ -10,6 +9,7 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { getCurrencyOptions } from "@/lib/currencies";
 import { Plan, usePlanStore } from "@/lib/store/planStore";
 import { ChangeEvent, useEffect, useState } from "react";
 
@@ -44,6 +44,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
   >();
   const [allowDependentEnrolee, setAllowDependentEnrolee] = useState(true);
   const [isActive, setIsActive] = useState(false);
+  const [currency, setCurrency] = useState("NGN");
   const [errorMessage, setErrorMessage] = useState(
     "Failed to update plan. Please try again."
   );
@@ -81,6 +82,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       setDiscountPerEnrolee(unit.discountPerEnrolee);
       setAllowDependentEnrolee(unit.allowDependentEnrolee ?? true);
       setIsActive(unit.isActive ?? false);
+      setCurrency(unit.currency ?? "NGN");
     }
 
     if (!isOpen) {
@@ -96,6 +98,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       setDiscountPerEnrolee(undefined);
       setAllowDependentEnrolee(true);
       setIsActive(false);
+      setCurrency("NGN");
     }
   }, [isOpen, unit]);
 
@@ -135,6 +138,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
         discountPerEnrolee,
         allowDependentEnrolee,
         isActive,
+        currency,
         status: isActive ? "active" : "inactive",
       };
 
@@ -223,6 +227,16 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                     )
                   }
                   placeholder="Enter annual premium price"
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Currency</Label>
+                <Select
+                  options={getCurrencyOptions()}
+                  placeholder="Select currency"
+                  onChange={(val) => setCurrency(val)}
+                  defaultValue={currency}
                 />
               </div>
 

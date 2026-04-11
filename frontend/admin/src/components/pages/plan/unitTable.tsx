@@ -8,7 +8,7 @@ import { useModal } from "@/hooks/useModal";
 import { EyeIcon, PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
-import { formatDate } from "@/lib/formatDate";
+import { formatDate, formatPrice } from "@/lib/formatDate";
 import { Plan, usePlanStore } from "@/lib/store/planStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditUnit from "./editUnit";
@@ -55,6 +55,7 @@ const AdminTable: React.FC = () => {
     { key: "name", label: "Name" },
     { key: "code", label: "Code" },
     { key: "description", label: "Description" },
+    { key: "annualPremiumPrice", label: "Premium Price" },
     { key: "createdAt", label: "Date Created" },
     { key: "status", label: "Status" },
     { key: "actions", label: "Actions" },
@@ -274,6 +275,16 @@ const AdminTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
                       {capitalizeWords(invoice.description)}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {invoice.annualPremiumPrice
+                        ? formatPrice(
+                            invoice.annualPremiumPrice,
+                            invoice.currency || "NGN"
+                          )
+                        : "-"}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">

@@ -18,7 +18,8 @@ async function createPlan(req, res, next) {
             discountPerEnrolee,
             planCycle,
             annualPremiumPrice,
-            allowDependentEnrolee
+            allowDependentEnrolee,
+            currency
         } = req.body || {};
         // normalize plan code to upper case for storage and uniqueness checks
         const codeUpper = (code !== undefined && code !== null) ? String(code).toUpperCase() : code;
@@ -41,7 +42,8 @@ async function createPlan(req, res, next) {
             discountPerEnrolee,
             planCycle,
             annualPremiumPrice,
-            allowDependentEnrolee: allowDependentEnrolee !== undefined ? allowDependentEnrolee : true
+            allowDependentEnrolee: allowDependentEnrolee !== undefined ? allowDependentEnrolee : true,
+            currency: currency || 'NGN'
         });
 
         await addAuditLog(req.models, {
@@ -99,7 +101,8 @@ async function updatePlan(req, res, next) {
             discountPerEnrolee,
             planCycle,
             annualPremiumPrice,
-            allowDependentEnrolee
+            allowDependentEnrolee,
+            currency
         } = req.body || {};
         // normalize plan code to upper case for updates
         const codeUpper = (code !== undefined && code !== null) ? String(code).toUpperCase() : code;
@@ -120,6 +123,7 @@ async function updatePlan(req, res, next) {
         if (planCycle !== undefined) updates.planCycle = planCycle;
         if (annualPremiumPrice !== undefined) updates.annualPremiumPrice = annualPremiumPrice;
         if (allowDependentEnrolee !== undefined) updates.allowDependentEnrolee = allowDependentEnrolee;
+        if (currency !== undefined) updates.currency = currency;
 
         if (code !== undefined) {
             // ensure unique code (exclude current record)

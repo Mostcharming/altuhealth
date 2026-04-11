@@ -9,6 +9,7 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { getCurrencyOptions } from "@/lib/currencies";
 import { usePlanStore } from "@/lib/store/planStore";
 import { ChangeEvent, useState } from "react";
 
@@ -45,6 +46,7 @@ export default function PageMetricsUnits({
     number | undefined
   >();
   const [allowDependentEnrolee, setAllowDependentEnrolee] = useState(true);
+  const [currency, setCurrency] = useState("NGN");
   const [errorMessage, setErrorMessage] = useState(
     "Failed to create plan. Please try again."
   );
@@ -66,6 +68,7 @@ export default function PageMetricsUnits({
     setMaxNumberOfDependents(undefined);
     setDiscountPerEnrolee(undefined);
     setAllowDependentEnrolee(true);
+    setCurrency("NGN");
   };
 
   const handleSuccessClose = () => {
@@ -116,6 +119,7 @@ export default function PageMetricsUnits({
         maxNumberOfDependents,
         discountPerEnrolee,
         allowDependentEnrolee,
+        currency,
       };
 
       const data = await apiClient("/admin/plans", {
@@ -138,6 +142,7 @@ export default function PageMetricsUnits({
           maxNumberOfDependents,
           discountPerEnrolee,
           allowDependentEnrolee,
+          currency,
           status: "pending",
           isActive: false,
           createdAt: new Date().toISOString(),
@@ -251,6 +256,16 @@ export default function PageMetricsUnits({
                     )
                   }
                   placeholder="Enter annual premium price"
+                />
+              </div>
+
+              <div className="col-span-2 lg:col-span-1">
+                <Label>Currency</Label>
+                <Select
+                  options={getCurrencyOptions()}
+                  placeholder="Select currency"
+                  onChange={(val) => setCurrency(val)}
+                  defaultValue={currency}
                 />
               </div>
 
