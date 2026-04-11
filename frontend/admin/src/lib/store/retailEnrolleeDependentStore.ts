@@ -3,12 +3,13 @@ import { create } from "zustand";
 export interface RetailEnrolleeDependent {
   id: string;
   retailEnrolleeId: string;
+  policyNumber: string;
   firstName: string;
   middleName?: string | null;
   lastName: string;
   dateOfBirth: string;
   gender: "male" | "female" | "other";
-  relationship: "spouse" | "child" | "parent" | "sibling" | "other";
+  relationshipToEnrollee: "spouse" | "child" | "parent" | "sibling" | "other";
   phoneNumber?: string | null;
   email?: string | null;
   occupation?: string | null;
@@ -22,12 +23,20 @@ export interface RetailEnrolleeDependent {
   pictureUrl?: string | null;
   idCardUrl?: string | null;
   preexistingMedicalRecords?: string | null;
+  isVerified: boolean;
+  verificationCode?: string | null;
+  verificationCodeExpiresAt?: string | null;
+  verifiedAt?: string | null;
+  verificationAttempts: number;
+  enrollmentDate: string;
+  expirationDate?: string | null;
   isActive: boolean;
+  notes?: string | null;
   RetailEnrollee?: {
     id: string;
     firstName: string;
     lastName: string;
-    email: string;
+    policyNumber: string;
   };
   createdAt?: string;
   updatedAt?: string;

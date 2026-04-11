@@ -2,31 +2,28 @@
 "use client";
 
 import Select from "@/components/form/Select";
-import ConfirmModal from "@/components/modals/confirm";
 import ErrorModal from "@/components/modals/error";
-import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { PencilIcon, TrashBinIcon } from "@/icons";
+import { EyeIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import {
   RetailEnrolleeDependent,
   useRetailEnrolleeDependentStore,
 } from "@/lib/store/retailEnrolleeDependentStore";
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
-import EditRetailEnrolleeDependent from "./editRetailEnrolleeDependent";
 
 interface RetailEnrollee {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  policyNumber: string;
 }
 
 const RetailDependentsTable: React.FC = () => {
-  const { isOpen, openModal, closeModal } = useModal();
+  const router = useRouter();
   const errorModal = useModal();
-  const successModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -40,17 +37,8 @@ const RetailDependentsTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const dependents = useRetailEnrolleeDependentStore((s) => s.dependents);
   const setDependents = useRetailEnrolleeDependentStore((s) => s.setDependents);
-  const confirmModal = useModal();
-  const [selectedDependentId, setSelectedDependentId] = useState<string | null>(
-    null
-  );
-  const [editingDependent, setEditingDependent] =
-    useState<RetailEnrolleeDependent | null>(null);
-  const removeDependent = useRetailEnrolleeDependentStore(
-    (s) => s.removeDependent
-  );
-  const [errorMessage, setErrorMessage] = useState(
-    "Failed to delete dependent. Please try again."
+  const [errorMessage] = useState(
+    "Failed to load dependents. Please try again."
   );
 
   type Header = {
@@ -69,7 +57,8 @@ const RetailDependentsTable: React.FC = () => {
   const headers: Header[] = [
     { key: "firstName", label: "First Name" },
     { key: "lastName", label: "Last Name" },
-    { key: "relationship", label: "Relationship" },
+    { key: "policyNumber", label: "Policy Number" },
+    { key: "relationshipToEnrollee", label: "Relationship" },
     { key: "gender", label: "Gender" },
     { key: "isActive", label: "Status" },
     { key: "actions", label: "Actions" },
@@ -105,8 +94,7 @@ const RetailDependentsTable: React.FC = () => {
       if (limit) params.append("limit", String(limit));
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
-      if (selectedRetailEnrolleeId)
-        params.append("retailEnrolleeId", selectedRetailEnrolleeId);
+      if (selectedRetailEnrolleeId) params.append("retailEnrolleeId", selectedRetailEnrolleeId);
 
       const url = `/admin/retail-enrollee-dependents?${params.toString()}`;
 
@@ -170,59 +158,13 @@ const RetailDependentsTable: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleDeleteModal = (id: string) => {
-    setSelectedDependentId(id);
-    confirmModal.openModal();
+  const handleViewDependent = (dependentId: string) => {
+    router.push(`/retail-dependents/${dependentId}`);
   };
 
-  const handleCloseConfirm = () => {
-    setSelectedDependentId(null);
-    confirmModal.closeModal();
-  };
-
-  const handleView = (dependent: RetailEnrolleeDependent) => {
-    setEditingDependent(dependent);
-    openModal();
-  };
-
-  const deleteDependent = async () => {
-    if (!selectedDependentId) return;
-    try {
-      setLoading(true);
-      const url = `/admin/retail-enrollee-dependents/${selectedDependentId}`;
-      await apiClient(url, {
-        method: "DELETE",
-        onLoading: (l) => setLoading(l),
-      });
-
-      removeDependent(selectedDependentId);
-      setSelectedDependentId(null);
-      confirmModal.closeModal();
-      successModal.openModal();
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCloseEdit = () => {
-    setEditingDependent(null);
-    closeModal();
-  };
-
-  const handleSuccessClose = () => {
-    successModal.closeModal();
-    closeModal();
-  };
-
-  const handleErrorClose = () => {
-    errorModal.closeModal();
-    closeModal();
+  const capitalize = (str: string): string => {
+    if (!str) return "";
+    return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
   return (
@@ -230,7 +172,7 @@ const RetailDependentsTable: React.FC = () => {
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Retail Dependents Listing
+            Dependents Listing
           </h3>
         </div>
 
@@ -239,13 +181,13 @@ const RetailDependentsTable: React.FC = () => {
             <div>
               <Select
                 options={[
-                  { value: "", label: "All Retail Enrollees" },
+                  { value: "", label: "All Enrollees" },
                   ...retailEnrollees.map((e) => ({
                     value: e.id,
                     label: `${e.firstName} ${e.lastName}`,
                   })),
                 ]}
-                placeholder="Select retail enrollee"
+                placeholder="Select enrollee"
                 onChange={(value) => {
                   setSelectedRetailEnrolleeId(value as string);
                   setCurrentPage(1);
@@ -256,7 +198,7 @@ const RetailDependentsTable: React.FC = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search by name, email..."
+                placeholder="Search by name, policy number..."
                 className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 value={search}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -299,7 +241,7 @@ const RetailDependentsTable: React.FC = () => {
               <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                 {headers.map((h) => (
                   <th
-                    key={String(h.key)}
+                    key={h.key}
                     className={` p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400`}
                   >
                     <div className="flex items-center gap-3">
@@ -319,17 +261,22 @@ const RetailDependentsTable: React.FC = () => {
                 >
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {dependent.firstName}
+                      {capitalize(dependent.firstName)}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400">
-                      {dependent.lastName}
+                      {capitalize(dependent.lastName)}
+                    </p>
+                  </td>
+                  <td className="p-4 whitespace-nowrap">
+                    <p className="text-sm text-gray-700 dark:text-gray-400">
+                      {dependent.policyNumber}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm text-gray-700 dark:text-gray-400 capitalize">
-                      {dependent.relationship}
+                      {dependent.relationshipToEnrollee}
                     </p>
                   </td>
                   <td className="p-4 whitespace-nowrap">
@@ -352,19 +299,11 @@ const RetailDependentsTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <div className="flex items-center w-full gap-2">
                       <button
-                        onClick={() => handleView(dependent)}
+                        onClick={() => handleViewDependent(dependent.id)}
                         className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                        title="View/Edit"
+                        title="View Details"
                       >
-                        <PencilIcon />
-                      </button>
-
-                      <button
-                        onClick={() => handleDeleteModal(dependent.id)}
-                        className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
-                        title="Delete"
-                      >
-                        <TrashBinIcon />
+                        <EyeIcon />
                       </button>
                     </div>
                   </td>
@@ -484,25 +423,10 @@ const RetailDependentsTable: React.FC = () => {
         </div>
       </div>
 
-      <ConfirmModal
-        confirmModal={confirmModal}
-        handleSave={deleteDependent}
-        closeModal={handleCloseConfirm}
-      />
-      <EditRetailEnrolleeDependent
-        isOpen={isOpen}
-        closeModal={handleCloseEdit}
-        dependent={editingDependent}
-      />
-      <SuccessModal
-        successModal={successModal}
-        handleSuccessClose={handleSuccessClose}
-      />
-
       <ErrorModal
         message={errorMessage}
         errorModal={errorModal}
-        handleErrorClose={handleErrorClose}
+        handleErrorClose={() => errorModal.closeModal()}
       />
     </div>
   );
