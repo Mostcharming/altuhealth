@@ -25,6 +25,7 @@ interface InvoiceData {
   issuedDate?: string;
   dueDate?: string;
   currency?: string;
+  notes?: string;
 }
 
 export default function InvoicePreviewModal({
@@ -39,6 +40,7 @@ export default function InvoicePreviewModal({
   issuedDate = new Date().toLocaleDateString(),
   dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
   currency = "NGN",
+  notes = "",
 }: InvoiceData = {}) {
   const { isOpen, openModal, closeModal } = useModal();
   const currencyData = getCurrencyByCode(currency);
@@ -226,6 +228,18 @@ export default function InvoicePreviewModal({
               </ul>
             </div>
           </div>
+
+          {/* Notes Section */}
+          {notes && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900">
+              <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-400">
+                Notes
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                {notes}
+              </p>
+            </div>
+          )}
         </div>
       </Modal>
     </>

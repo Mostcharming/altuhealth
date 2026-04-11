@@ -168,50 +168,80 @@ export default function InvoiceDetailsPage({
         </div>
 
         {/* Invoice Table */}
-        <InvoiceDetailsTable lineItems={invoice.lineItems} />
+        <InvoiceDetailsTable
+          lineItems={invoice.lineItems}
+          currency={invoice.currency}
+        />
 
         <div className="pb-6 my-6 text-right border-b border-gray-100 dark:border-gray-800">
           <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
             Sub Total amount:{" "}
-            {formatPrice(parseFloat(String(invoice.subtotal)))}{" "}
-            {invoice.currency || "NGN"}
+            {formatPrice(
+              parseFloat(String(invoice.subtotal)),
+              invoice.currency
+            )}{" "}
           </p>
           {parseFloat(String(invoice.discountAmount)) > 0 && (
             <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
               Discount:{" "}
-              {formatPrice(parseFloat(String(invoice.discountAmount)))}{" "}
-              {invoice.currency || "NGN"}
+              {formatPrice(
+                parseFloat(String(invoice.discountAmount)),
+                invoice.currency
+              )}
+              {"  "}
             </p>
           )}
           {parseFloat(String(invoice.taxAmount)) > 0 && (
             <p className="mb-3 text-sm text-gray-500 dark:text-gray-400">
-              Tax: {formatPrice(parseFloat(String(invoice.taxAmount)))}{" "}
-              {invoice.currency || "NGN"}
+              Tax:{" "}
+              {formatPrice(
+                parseFloat(String(invoice.taxAmount)),
+                invoice.currency
+              )}{" "}
             </p>
           )}
 
           <p className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Total : {formatPrice(parseFloat(String(invoice.totalAmount)))}{" "}
-            {invoice.currency || "NGN"}
+            Total :{" "}
+            {formatPrice(
+              parseFloat(String(invoice.totalAmount)),
+              invoice.currency
+            )}{" "}
           </p>
 
           {parseFloat(String(invoice.paidAmount)) > 0 && (
             <>
               <p className="mt-3 text-sm text-green-600 dark:text-green-400">
                 Paid Amount:{" "}
-                {formatPrice(parseFloat(String(invoice.paidAmount)))}{" "}
-                {invoice.currency || "NGN"}
+                {formatPrice(
+                  parseFloat(String(invoice.paidAmount)),
+                  invoice.currency
+                )}{" "}
               </p>
               {parseFloat(String(invoice.balanceAmount)) > 0 && (
                 <p className="text-sm text-orange-600 dark:text-orange-400">
                   Balance:{" "}
-                  {formatPrice(parseFloat(String(invoice.balanceAmount)))}{" "}
-                  {invoice.currency || "NGN"}
+                  {formatPrice(
+                    parseFloat(String(invoice.balanceAmount)),
+                    invoice.currency
+                  )}{" "}
                 </p>
               )}
             </>
           )}
         </div>
+
+        {/* Notes Section */}
+        {invoice.notes && (
+          <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900">
+            <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-400">
+              Notes
+            </h4>
+            <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+              {invoice.notes}
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
           <Button variant="outline" onClick={() => router.back()}>

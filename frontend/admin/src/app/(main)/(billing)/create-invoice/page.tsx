@@ -39,6 +39,7 @@ export default function CreateInvoicePage() {
     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   );
   const [products, setProducts] = useState<Product[]>([]);
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [successModal, setSuccessModal] = useState({ isOpen: false });
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
@@ -98,6 +99,7 @@ export default function CreateInvoicePage() {
         invoiceDate: issuedDate,
         dueDate,
         currency,
+        ...(notes && { notes }),
         lineItems,
       };
 
@@ -141,6 +143,7 @@ export default function CreateInvoicePage() {
         setCustomerName("");
         setCustomerAddress("");
         setProducts([]);
+        setNotes("");
         setIssuedDate(new Date().toISOString().split("T")[0]);
         setDueDate(
           new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -232,6 +235,16 @@ export default function CreateInvoicePage() {
                   }}
                 />
               </div>
+              <div className="col-span-full">
+                <Label>Notes (Optional)</Label>
+                <textarea
+                  placeholder="Add any payment instructions or additional notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400"
+                  rows={4}
+                />
+              </div>
             </div>
           </form>
         </div>
@@ -255,6 +268,7 @@ export default function CreateInvoicePage() {
               currency={currency}
               issuedDate={issuedDate}
               dueDate={dueDate}
+              notes={notes}
             />
             <Button
               variant="primary"

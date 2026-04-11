@@ -42,7 +42,7 @@ export default function PaymentMetrics({
   );
   const [paymentMethod, setPaymentMethod] = useState<
     "bank_transfer" | "cash" | "cheque" | "card" | "gateway"
-  >("bank_transfer");
+  >("cash");
   const [transactionReference, setTransactionReference] = useState("");
   const [bankName, setBankName] = useState("");
   const [accountName, setAccountName] = useState("");

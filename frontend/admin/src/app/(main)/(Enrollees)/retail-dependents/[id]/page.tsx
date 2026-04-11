@@ -21,7 +21,9 @@ export default function SingleRetailEnrolleeDependent() {
     const fetchDependent = async () => {
       try {
         setLoading(true);
-        const response = await apiClient(`/admin/retail-enrollee-dependents/${id}`);
+        const response = await apiClient(
+          `/admin/retail-enrollee-dependents/${id}`
+        );
 
         if (response.data) {
           setDependent(response.data.dependent || response.data);

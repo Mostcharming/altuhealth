@@ -94,7 +94,8 @@ const RetailDependentsTable: React.FC = () => {
       if (limit) params.append("limit", String(limit));
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
-      if (selectedRetailEnrolleeId) params.append("retailEnrolleeId", selectedRetailEnrolleeId);
+      if (selectedRetailEnrolleeId)
+        params.append("retailEnrolleeId", selectedRetailEnrolleeId);
 
       const url = `/admin/retail-enrollee-dependents?${params.toString()}`;
 

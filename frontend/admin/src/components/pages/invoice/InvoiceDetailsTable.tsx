@@ -5,10 +5,12 @@ import { InvoiceLineItem } from "@/lib/store/invoiceStore";
 
 interface InvoiceDetailsTableProps {
   lineItems?: InvoiceLineItem[];
+  currency?: string;
 }
 
 export default function InvoiceDetailsTable({
   lineItems = [],
+  currency,
 }: InvoiceDetailsTableProps) {
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-800">
@@ -50,17 +52,22 @@ export default function InvoiceDetailsTable({
                 </td>
                 <td className="px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
                   {formatPrice(
-                    parseFloat(String(item.unitCost || item.unitPrice || 0))
+                    parseFloat(String(item.unitCost || item.unitPrice || 0)),
+                    currency
                   )}
                 </td>
                 <td className="px-5 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
                   {item.discountAmount
-                    ? formatPrice(parseFloat(String(item.discountAmount)))
+                    ? formatPrice(
+                        parseFloat(String(item.discountAmount)),
+                        currency
+                      )
                     : "0"}
                 </td>
                 <td className="px-5 py-3 text-right text-sm text-gray-500 dark:text-gray-400">
                   {formatPrice(
-                    parseFloat(String(item.lineTotal || item.amount || 0))
+                    parseFloat(String(item.lineTotal || item.amount || 0)),
+                    currency
                   )}
                 </td>
               </tr>

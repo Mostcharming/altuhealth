@@ -1,8 +1,8 @@
 // This file is provided in the attachments
 "use client";
 import React, { useState } from "react";
-import RetailDependentMedicalHistoryTable from "./dependentMedicalHistoryTable";
 import RetailDependentAuthorizationCodesTable from "./dependentAuthorizationCodesTable";
+import RetailDependentMedicalHistoryTable from "./dependentMedicalHistoryTable";
 
 interface TabItem {
   key: string;

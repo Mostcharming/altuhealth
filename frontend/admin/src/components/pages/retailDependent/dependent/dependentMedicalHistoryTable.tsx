@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { apiClient } from "@/lib/apiClient";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
+import { apiClient } from "@/lib/apiClient";
+import { useCallback, useEffect, useState } from "react";
 
 interface RetailDependentMedicalHistoryTableProps {
   dependentId: string;
@@ -152,7 +152,10 @@ const RetailDependentMedicalHistoryTable: React.FC<
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {medicalHistories.map((history: any) => (
-                <tr key={history.id} className="hover:bg-gray-50 dark:hover:bg-gray-900">
+                <tr
+                  key={history.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-900"
+                >
                   <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
                     {history.Provider?.name || "N/A"}
                   </td>

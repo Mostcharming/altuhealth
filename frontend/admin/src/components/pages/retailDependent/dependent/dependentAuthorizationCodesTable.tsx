@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { apiClient } from "@/lib/apiClient";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
+import { apiClient } from "@/lib/apiClient";
+import { useCallback, useEffect, useState } from "react";
 
 interface RetailDependentAuthorizationCodesTableProps {
   dependentId: string;
@@ -145,7 +145,10 @@ const RetailDependentAuthorizationCodesTable: React.FC<
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {authorizationCodes.map((code: any) => (
-                <tr key={code.id} className="hover:bg-gray-50 dark:hover:bg-gray-900">
+                <tr
+                  key={code.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-900"
+                >
                   <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
                     {code.authorizationCode}
                   </td>

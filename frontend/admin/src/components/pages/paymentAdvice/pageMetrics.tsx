@@ -52,7 +52,7 @@ export default function PageMetricsPaymentAdvice({
   const [dueDate, setDueDate] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<
     "bank_transfer" | "check" | "eft" | "other"
-  >("bank_transfer");
+  >("other");
   const [bankName, setBankName] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");

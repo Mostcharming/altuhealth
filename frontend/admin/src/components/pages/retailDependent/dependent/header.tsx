@@ -1,15 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import ErrorModal from "@/components/modals/error";
+import IdCardModal from "@/components/modals/IdCardModal";
+import SuccessModal from "@/components/modals/success";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
-import ErrorModal from "@/components/modals/error";
-import SuccessModal from "@/components/modals/success";
-import IdCardModal from "@/components/modals/IdCardModal";
+import Image from "next/image";
+import { useState } from "react";
 
-export default function RetailEnrolleeDependentPHeader({ data }: { data: any }) {
+export default function RetailEnrolleeDependentPHeader({
+  data,
+}: {
+  data: any;
+}) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showIdCard, setShowIdCard] = useState(false);
