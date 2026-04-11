@@ -50,6 +50,7 @@ router.use('/payments', require('./payments/route'));
 router.use('/messages', require('./messages/route'));
 router.use('/referrers', require('./referrers/route'));
 router.use('/referral-programs', require('./referralPrograms/route'));
+router.use('/tickets', require('./tickets/route'));
 
 router.use(errorHandler);
 
