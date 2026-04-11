@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { apiClient } from "@/lib/apiClient";
-import { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 interface RetailDependentAuthorizationCodesTableProps {
   dependentId: string;
@@ -118,65 +119,113 @@ const RetailDependentAuthorizationCodesTable: React.FC<
     }
   };
 
+  const visiblePages: number[] = React.useMemo(() => {
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [currentPage, totalPages]);
+
+  const goToPage = (page: number): void => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
+
+  const nextPage = (): void => {
+    if (currentPage < totalPages) setCurrentPage((p) => p + 1);
+  };
+
+  const previousPage = (): void => {
+    if (currentPage > 1) setCurrentPage((p) => p - 1);
+  };
+
+  const handleSelectChange = (value: string) => {
+    setLimit(Number(value));
+    setCurrentPage(1);
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Authorization Codes
+          </h3>
+        </div>
+
+        <div className="flex gap-3.5">
+          <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
+            <input
+              type="text"
+              placeholder="Search codes..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 placeholder-gray-500 focus:border-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+      </div>
       {loading ? (
         <SpinnerThree />
       ) : authorizationCodes.length === 0 ? (
-        <div className="p-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-center py-12">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             No authorization codes found
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full table-auto">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-800">
-                {headers.map((h) => (
+                {headers.map((header) => (
                   <th
-                    key={h.key}
-                    className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
+                    key={header.key}
+                    className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300"
                   >
-                    {h.label}
+                    {header.label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {authorizationCodes.map((code: any) => (
+            <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+              {authorizationCodes.map((item, index) => (
                 <tr
-                  key={code.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-900"
+                  key={index}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 >
-                  <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                    {code.authorizationCode}
+                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-400">
+                    {item?.authorizationCode || "N/A"}
                   </td>
-                  <td className="p-4 text-sm text-gray-700 dark:text-gray-400 capitalize">
-                    {code.authorizationType}
+                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-400">
+                    {item?.authorizationType || "N/A"}
                   </td>
-                  <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                    {code.Provider?.name || "N/A"}
+                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-400">
+                    {item?.Provider?.name || "N/A"}
                   </td>
-                  <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                    {code.Diagnosis?.name || "N/A"}
+                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-400">
+                    {item?.Diagnosis?.name || "N/A"}
                   </td>
-                  <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                    {code.amountAuthorized || "N/A"}
+                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-400">
+                    {item?.amountAuthorized
+                      ? `₦${item.amountAuthorized.toLocaleString()}`
+                      : "N/A"}
                   </td>
-                  <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                    {formatDate(code.validFrom)}
+                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-400">
+                    {formatDate(item?.validFrom)}
                   </td>
-                  <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                    {formatDate(code.validTo)}
+                  <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-400">
+                    {formatDate(item?.validTo)}
                   </td>
-                  <td className="p-4 text-sm">
+                  <td className="px-4 py-3 text-sm">
                     <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getStatusBadge(
-                        code.status
+                      className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusBadge(
+                        item?.status
                       )}`}
                     >
-                      {code.status}
+                      {item?.status || "N/A"}
                     </span>
                   </td>
                 </tr>
@@ -185,6 +234,61 @@ const RetailDependentAuthorizationCodesTable: React.FC<
           </table>
         </div>
       )}
+
+      <div className="flex items-center flex-col sm:flex-row justify-between border-t border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div>
+          <Select
+            options={select}
+            placeholder="Select limit"
+            onChange={handleSelectChange}
+            defaultValue={String(limit)}
+          />
+        </div>
+        <div className="pb-4 sm:pb-0">
+          <span className="block text-sm font-medium text-gray-500 dark:text-gray-400">
+            Showing {startEntry} to {endEntry} of {totalItems}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-2 bg-gray-50 p-4 sm:p-0 rounded-lg sm:bg-transparent dark:sm:bg-transparent w-full sm:w-auto dark:bg-white/[0.03] sm:justify-normal">
+          <button
+            className={`shadow-theme-xs flex items-center gap-2 rounded-lg border border-gray-300 bg-white p-2 text-gray-700 hover:bg-gray-50 hover:text-gray-800 sm:p-2.5 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 ${
+              currentPage === 1 ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={previousPage}
+            disabled={!hasPreviousPage}
+          >
+            Previous
+          </button>
+          <span className="block text-sm font-medium text-gray-700 sm:hidden dark:text-gray-400">
+            Page {currentPage} of {totalPages}
+          </span>
+          <ul className="hidden items-center gap-0.5 sm:flex">
+            {visiblePages.map((page) => (
+              <li key={page}>
+                <button
+                  onClick={() => goToPage(page)}
+                  className={`rounded px-3 py-2 text-sm font-medium transition ${
+                    currentPage === page
+                      ? "bg-brand-500 text-white"
+                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {page}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            className={`shadow-theme-xs flex items-center gap-2 rounded-lg border border-gray-300 bg-white p-2 text-gray-700 hover:bg-gray-50 hover:text-gray-800 sm:p-2.5 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 ${
+              currentPage === totalPages ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={nextPage}
+            disabled={!hasNextPage}
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
