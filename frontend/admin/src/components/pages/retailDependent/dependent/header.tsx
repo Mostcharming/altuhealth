@@ -2,7 +2,7 @@
 "use client";
 
 import ErrorModal from "@/components/modals/error";
-import IdCardModal from "@/components/modals/IdCardModal";
+import IdCardModal from "@/components/modals/idCardModal";
 import SuccessModal from "@/components/modals/success";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
