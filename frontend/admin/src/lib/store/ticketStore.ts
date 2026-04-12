@@ -390,24 +390,24 @@ export const useTicketStore = create<TicketStore>((set) => ({
   getMessages: async (ticketId, options = {}) => {
     set({ messagesLoading: true, messagesError: null });
     try {
-      const endpoint = `/admin/tickets/${ticketId}/messages?page=${
-        options.page || 1
-      }&limit=${options.limit || 20}${
-        options.includeInternal ? "&includeInternal=true" : ""
+      const endpoint = `/admin/tickets/${ticketId}/messages${
+        options.includeInternal ? "?includeInternal=true" : ""
       }`;
 
-      const data: PaginationResponse<TicketMessage> = await apiClient(endpoint);
+      const response = await apiClient(endpoint);
+
+      const messages = response.data?.list || response.list || [];
+
+      // Sort messages by createdAt in ascending order (oldest first, newest last)
+      const sortedMessages = Array.isArray(messages)
+        ? [...messages].sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
+        : [];
 
       set({
-        messages: data.list,
-        messagesPagination: {
-          page: data.page,
-          limit: data.limit,
-          totalPages: data.totalPages,
-          count: data.count,
-          hasNextPage: data.hasNextPage,
-          hasPrevPage: data.hasPrevPage,
-        },
+        messages: sortedMessages,
       });
     } catch (error) {
       set({
@@ -429,8 +429,29 @@ export const useTicketStore = create<TicketStore>((set) => ({
 
       const message = response.message || response.data?.message;
 
+      // Ensure message has all required fields with fallbacks
+      const enrichedMessage: TicketMessage = {
+        id: message?.id || `temp-${Date.now()}`,
+        ticketId: ticketId,
+        senderId: message?.senderId || data.senderId,
+        senderType: message?.senderType || data.senderType || "Admin",
+        messageType: (message?.messageType || data.messageType || "text") as
+          | "text"
+          | "attachment"
+          | "system"
+          | "status_update"
+          | "note",
+        content: message?.content || data.content,
+        attachmentUrl: message?.attachmentUrl || data.attachmentUrl,
+        attachmentType: message?.attachmentType || data.attachmentType,
+        attachmentName: message?.attachmentName || data.attachmentName,
+        isInternal: message?.isInternal ?? data.isInternal ?? false,
+        createdAt: message?.createdAt || new Date().toISOString(),
+        updatedAt: message?.updatedAt || new Date().toISOString(),
+      };
+
       set((state) => ({
-        messages: [...state.messages, message],
+        messages: [...state.messages, enrichedMessage],
       }));
     } catch (error) {
       set({

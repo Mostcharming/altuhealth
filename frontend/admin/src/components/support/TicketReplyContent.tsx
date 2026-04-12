@@ -1,12 +1,15 @@
 "use client";
 
+import { useAuthStore } from "@/lib/authStore";
 import { useTicketStore } from "@/lib/store/ticketStore";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function TicketReplyContent() {
   const params = useParams();
   const ticketId = params.id as string;
+
+  const { user } = useAuthStore();
 
   const {
     currentTicket: ticket,
@@ -20,8 +23,8 @@ export default function TicketReplyContent() {
 
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const statusOptions = [
     { label: "Pending", value: "pending" },
@@ -45,29 +48,32 @@ export default function TicketReplyContent() {
 
   useEffect(() => {
     if (ticketId) {
-      getMessages(ticketId, { page: currentPage, limit: 20 });
+      getMessages(ticketId, {});
     }
-  }, [ticketId, currentPage, getMessages]);
+  }, [ticketId, getMessages]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   const handleSendReply = async () => {
-    if (!replyText.trim() || !ticket) return;
+    if (!replyText.trim() || !ticket || !user) return;
 
     setSending(true);
     try {
       await addMessage(ticketId, {
-        senderId:
-          typeof window !== "undefined"
-            ? localStorage.getItem("adminId") || ""
-            : "",
+        senderId: user.id,
         senderType: "Admin",
         content: replyText,
         messageType: "text",
         isInternal: false,
       });
       setReplyText("");
-      setCurrentPage(1);
       // Refresh messages
-      await getMessages(ticketId, { page: 1, limit: 20 });
+      await getMessages(ticketId, {});
     } catch (error) {
       console.error("Failed to send reply:", error);
     } finally {
@@ -114,7 +120,7 @@ export default function TicketReplyContent() {
 
       {/* Messages */}
       <div className="relative px-6 py-7">
-        <div className="custom-scrollbar h-[calc(58vh-162px)] space-y-7 divide-y divide-gray-200 overflow-y-auto pr-2 dark:divide-gray-800">
+        <div className="custom-scrollbar h-[calc(58vh-200px)] space-y-7 divide-y divide-gray-200 overflow-y-auto pr-2 dark:divide-gray-800">
           {messages.map((message) => (
             <article
               key={message.id}
@@ -124,7 +130,7 @@ export default function TicketReplyContent() {
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center">
                     <span className="text-xs font-bold text-white">
-                      {message.senderType[0]}
+                      {message.senderType ? message.senderType[0] : "?"}
                     </span>
                   </div>
                   <div>
@@ -179,6 +185,7 @@ export default function TicketReplyContent() {
               </div>
             </article>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Reply Input */}

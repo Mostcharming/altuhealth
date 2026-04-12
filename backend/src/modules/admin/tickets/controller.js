@@ -392,15 +392,11 @@ async function getTicketMessages(req, res, next) {
     try {
         const { TicketMessage, Ticket } = req.models;
         const { ticketId } = req.params;
-        const { limit = 20, page = 1, includeInternal = false } = req.query;
+        const { includeInternal = false } = req.query;
 
         // Verify ticket exists
         const ticket = await Ticket.findByPk(ticketId);
         if (!ticket) return res.fail('Ticket not found', 404);
-
-        const limitNum = Number(limit);
-        const pageNum = Number(page) || 1;
-        const offset = (pageNum - 1) * limitNum;
 
         const where = { ticketId };
 
@@ -413,25 +409,14 @@ async function getTicketMessages(req, res, next) {
 
         const messages = await TicketMessage.findAll({
             where,
-            order: [['createdAt', 'ASC']],
-            limit: limitNum,
-            offset
+            order: [['createdAt', 'ASC']]
         });
 
         const data = messages.map(m => m.toJSON());
 
-        const hasNextPage = offset + messages.length < total;
-        const hasPrevPage = pageNum > 1;
-        const totalPages = Math.ceil(total / limitNum);
-
         return res.success({
             list: data,
-            count: total,
-            page: pageNum,
-            limit: limitNum,
-            totalPages,
-            hasNextPage,
-            hasPrevPage
+            count: total
         });
     } catch (err) {
         return next(err);
