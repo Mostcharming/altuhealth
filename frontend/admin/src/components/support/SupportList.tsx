@@ -27,26 +27,26 @@ const SupportTicketsList: React.FC = () => {
   });
 
   // Fetch tickets
-useEffect(() => {
+  useEffect(() => {
     // Map display status to API status
     const statusMap: Record<string, string> = {
-      "All": "",
-      "Pending": "pending",
+      All: "",
+      Pending: "pending",
       "In Progress": "in_progress",
       "On Hold": "on_hold",
-      "Solved": "solved",
-      "Closed": "closed",
+      Solved: "solved",
+      Closed: "closed",
     };
 
     listTickets({
-        page: currentPage,
-        limit: perPage,
-        q: searchQuery,
-        status: statusMap[selectedStatus] || undefined,
-        category: filters.category || undefined,
-        priority: filters.priority || undefined,
+      page: currentPage,
+      limit: perPage,
+      q: searchQuery,
+      status: statusMap[selectedStatus] || undefined,
+      category: filters.category || undefined,
+      priority: filters.priority || undefined,
     });
-}, [currentPage, searchQuery, selectedStatus, filters, listTickets]);
+  }, [currentPage, searchQuery, selectedStatus, filters, listTickets]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -78,12 +78,13 @@ useEffect(() => {
   };
 
   const handleNextPage = () => {
-    if (currentPage < ticketsPagination.totalPages)
+    if (currentPage < (ticketsPagination?.totalPages || 1))
       setCurrentPage(currentPage + 1);
   };
 
   const handleGoToPage = (page: number) => {
-    if (page >= 1 && page <= ticketsPagination.totalPages) setCurrentPage(page);
+    if (page >= 1 && page <= (ticketsPagination?.totalPages || 1))
+      setCurrentPage(page);
   };
 
   const handleToggleAll = () => {
@@ -396,7 +397,7 @@ useEffect(() => {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <Link
-                          href={`/admin/tickets/${ticket.id}`}
+                          href={`/tickets/${ticket.id}`}
                           className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
                         >
                           #{ticket.ticketNumber}
@@ -442,7 +443,7 @@ useEffect(() => {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
                         <Link
-                          href={`/admin/tickets/${ticket.id}`}
+                          href={`/tickets/${ticket.id}`}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500/10 text-brand-600 hover:bg-brand-500/20 dark:text-brand-400 dark:hover:bg-brand-500/30"
                         >
                           <svg
@@ -481,18 +482,22 @@ useEffect(() => {
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Showing{" "}
                 <span className="text-gray-800 dark:text-white/90">
-                  {(ticketsPagination.page - 1) * perPage + 1}
+                  {ticketsPagination?.count > 0
+                    ? (ticketsPagination.page - 1) * perPage + 1
+                    : 0}
                 </span>{" "}
                 to{" "}
                 <span className="text-gray-800 dark:text-white/90">
-                  {Math.min(
-                    ticketsPagination.page * perPage,
-                    ticketsPagination.count
-                  )}
+                  {ticketsPagination?.count > 0
+                    ? Math.min(
+                        ticketsPagination.page * perPage,
+                        ticketsPagination.count
+                      )
+                    : 0}
                 </span>{" "}
                 of{" "}
                 <span className="text-gray-800 dark:text-white/90">
-                  {ticketsPagination.count}
+                  {ticketsPagination?.count || 0}
                 </span>
               </span>
             </div>
@@ -520,7 +525,7 @@ useEffect(() => {
               </button>
               <ul className="hidden sm:flex items-center gap-1">
                 {Array.from(
-                  { length: ticketsPagination.totalPages },
+                  { length: ticketsPagination?.totalPages || 1 },
                   (_, i) => i + 1
                 ).map((page) => (
                   <li key={page}>
@@ -538,11 +543,11 @@ useEffect(() => {
                 ))}
               </ul>
               <span className="text-sm font-medium text-gray-700 sm:hidden dark:text-gray-400">
-                Page {currentPage} of {ticketsPagination.totalPages}
+                Page {currentPage} of {ticketsPagination?.totalPages || 1}
               </span>
               <button
                 onClick={handleNextPage}
-                disabled={currentPage === ticketsPagination.totalPages}
+                disabled={currentPage === (ticketsPagination?.totalPages || 1)}
                 className="shadow-xs flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white p-2.5 text-gray-700 hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
               >
                 <svg

@@ -7,6 +7,7 @@ export interface Ticket {
   subject: string;
   description?: string;
   userId: string;
+  userName?: string;
   userType: "Enrollee" | "RetailEnrollee" | "Provider" | "Doctor";
   category: string;
   status: "pending" | "in_progress" | "on_hold" | "solved" | "closed";
@@ -205,7 +206,8 @@ export const useTicketStore = create<TicketStore>((set) => ({
         options.assignedToId ? `&assignedToId=${options.assignedToId}` : ""
       }`;
 
-      const data: PaginationResponse<Ticket> = await apiClient(endpoint);
+      const response = await apiClient(endpoint);
+      const data: PaginationResponse<Ticket> = response.data;
 
       set({
         tickets: data.list,

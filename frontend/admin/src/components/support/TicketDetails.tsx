@@ -1,5 +1,6 @@
 "use client";
 
+import capitalizeWords from "@/lib/capitalize";
 import { useTicketStore } from "@/lib/store/ticketStore";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
@@ -103,6 +104,14 @@ export default function TicketDetails() {
             {ticket.userType}
           </span>
         </li>
+        <li className="grid grid-cols-2 gap-5 py-3.5">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            User Name
+          </span>
+          <span className="text-sm text-gray-700 dark:text-gray-300">
+            {capitalizeWords(ticket.userName) || "Unknown"}
+          </span>
+        </li>
 
         <li className="grid grid-cols-2 gap-5 py-3.5">
           <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -155,15 +164,6 @@ export default function TicketDetails() {
           </span>
         </li>
 
-        <li className="grid grid-cols-2 gap-5 py-3.5">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Updated
-          </span>
-          <span className="text-sm text-gray-700 dark:text-gray-300">
-            {new Date(ticket.updatedAt).toLocaleDateString()}
-          </span>
-        </li>
-
         {ticket.closedAt && (
           <li className="grid grid-cols-2 gap-5 py-3.5">
             <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -174,15 +174,6 @@ export default function TicketDetails() {
             </span>
           </li>
         )}
-
-        <li className="grid grid-cols-2 gap-5 py-3.5">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            User ID
-          </span>
-          <span className="text-xs font-mono text-gray-600 dark:text-gray-400 truncate">
-            {ticket.userId}
-          </span>
-        </li>
 
         {ticket.assignedToId && (
           <li className="grid grid-cols-2 gap-5 py-3.5">
@@ -207,18 +198,6 @@ export default function TicketDetails() {
           </p>
         </div>
       )}
-
-      {/* Actions */}
-      <div className="border-t border-gray-100 px-6 py-4 dark:border-gray-800">
-        <div className="flex flex-col gap-2">
-          <button className="bg-brand-500 hover:bg-brand-600 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors">
-            Assign Ticket
-          </button>
-          <button className="border border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900 w-full rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors">
-            Delete Ticket
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

@@ -53,7 +53,7 @@ async function createTicket(req, res, next) {
 
 async function getTicket(req, res, next) {
     try {
-        const { Ticket, TicketMessage } = req.models;
+        const { Ticket, TicketMessage, Enrollee, EnrolleeDependent, RetailEnrollee, RetailEnrolleeDependent, Provider, Doctor } = req.models;
         const { id } = req.params;
         const { includeMessages } = req.query;
 
@@ -74,7 +74,49 @@ async function getTicket(req, res, next) {
         const ticket = await Ticket.findByPk(id, findOptions);
         if (!ticket) return res.fail('Ticket not found', 404);
 
-        return res.success({ ticket: ticket.toJSON() });
+        // Fetch user information based on userType
+        let userData = null;
+        try {
+            if (ticket.userType === 'Enrollee') {
+                // Try to get from Enrollee first
+                userData = await Enrollee.findByPk(ticket.userId);
+                // If not found, try EnrolleeDependent
+                if (!userData) {
+                    userData = await EnrolleeDependent.findByPk(ticket.userId);
+                }
+            } else if (ticket.userType === 'RetailEnrollee') {
+                // Try to get from RetailEnrollee first
+                userData = await RetailEnrollee.findByPk(ticket.userId);
+                // If not found, try RetailEnrolleeDependent
+                if (!userData) {
+                    userData = await RetailEnrolleeDependent.findByPk(ticket.userId);
+                }
+            } else if (ticket.userType === 'Provider') {
+                userData = await Provider.findByPk(ticket.userId);
+            } else if (ticket.userType === 'Doctor') {
+                userData = await Doctor.findByPk(ticket.userId);
+            }
+        } catch (err) {
+            console.error(`Error fetching user data for ticket ${id}:`, err);
+        }
+
+        const ticketJSON = ticket.toJSON();
+
+        // Format user name based on available fields
+        if (userData) {
+            if (ticket.userType === 'Provider') {
+                ticketJSON.userName = userData.name || 'Unknown';
+            } else {
+                const firstName = userData.firstName || '';
+                const middleName = userData.middleName || '';
+                const lastName = userData.lastName || '';
+                ticketJSON.userName = [firstName, middleName, lastName].filter(Boolean).join(' ') || 'Unknown';
+            }
+        } else {
+            ticketJSON.userName = 'Unknown';
+        }
+
+        return res.success({ ticket: ticketJSON });
     } catch (err) {
         return next(err);
     }
