@@ -96,7 +96,10 @@ if (config && config.uploads && config.uploads.profileDir) {
     etag: false,
     lastModified: false,
     setHeaders: (res, path) => {
-      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'");
+      // Allow images to be loaded from cross-origin
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       res.setHeader('X-Content-Type-Options', 'nosniff');
     }
   }));
@@ -108,7 +111,10 @@ if (config && config.uploads && config.uploads.ticketDir) {
     etag: false,
     lastModified: false,
     setHeaders: (res, path) => {
-      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'");
+      // Allow images to be loaded from cross-origin
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       res.setHeader('X-Content-Type-Options', 'nosniff');
     }
   }));
