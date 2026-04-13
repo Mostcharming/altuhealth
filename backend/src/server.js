@@ -6,6 +6,7 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const dbSelector = require('./middlewares/common/dbSelector');
+const jobRunnerMiddleware = require('./middlewares/common/jobRunner');
 const adminRouter = require('./modules/admin/route');
 const providerRouter = require('./modules/provider/route');
 const enrolleeRouter = require('./modules/enrollee/route');
@@ -78,6 +79,8 @@ app.use(hpp({
 app.use(responseFormatter);
 
 app.use(dbSelector);
+
+app.use(jobRunnerMiddleware);
 
 app.disable('x-powered-by');
 

@@ -53,6 +53,7 @@ router.use('/referral-programs', require('./referralPrograms/route'));
 router.use('/tickets', require('./tickets/route'));
 router.use('/audit-logs', require('./auditLogs/route'));
 router.use('/notification-logs', require('./notificationLogs/route'));
+router.use('/jobs', require('./jobs/route'));
 
 router.use(errorHandler);
 
