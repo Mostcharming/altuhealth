@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function SupportReply() {
   return (
-    <div className="overflow-hidden xl:h-[calc(100vh-180px)]">
+    <div className="overflow-hidden xl:h-[calc(100vh-100px)]">
       <PageBreadcrumb pageTitle="Support Ticket Details" />
       <div className="grid h-full grid-cols-1 gap-5 xl:grid-cols-12">
         <div className="xl:col-span-8 2xl:col-span-9">

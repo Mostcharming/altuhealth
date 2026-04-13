@@ -31,7 +31,8 @@ const config = {
 
         },
         uploads: {
-            profileDir: path.resolve(__dirname, '..', 'uploads', 'profiles')
+            profileDir: path.resolve(__dirname, '..', 'uploads', 'profiles'),
+            ticketDir: path.resolve(__dirname, '..', 'uploads', 'tickets')
         },
         apiVersion: process.env.API_VERSION,
         jwtSecret: process.env.JWT_SECRET,
@@ -66,7 +67,8 @@ const config = {
             },
         },
         uploads: {
-            profileDir: path.resolve(__dirname, '..', 'uploads', 'profiles')
+            profileDir: path.resolve(__dirname, '..', 'uploads', 'profiles'),
+            ticketDir: path.resolve(__dirname, '..', 'uploads', 'tickets')
         },
         apiVersion: process.env.API_VERSION || "v1",
         jwtSecret: process.env.JWT_SECRET,

@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const Tickets = require('./controller');
+const uploadTicketAttachment = require('../../../middlewares/common/uploadTicketAttachment');
 
 // ==================== TICKET ROUTES ====================
 
@@ -32,8 +33,8 @@ router.delete('/:id', Tickets.deleteTicket);
 
 // ==================== TICKET MESSAGE ROUTES ====================
 
-// Add a message to a ticket
-router.post('/:ticketId/messages', Tickets.addMessage);
+// Add a message to a ticket (with optional image attachment)
+router.post('/:ticketId/messages', uploadTicketAttachment('attachment'), Tickets.addMessage);
 
 // Get messages for a ticket
 router.get('/:ticketId/messages', Tickets.getTicketMessages);

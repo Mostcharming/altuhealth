@@ -102,6 +102,18 @@ if (config && config.uploads && config.uploads.profileDir) {
   }));
 }
 
+if (config && config.uploads && config.uploads.ticketDir) {
+  app.use('/upload', express.static(config.uploads.ticketDir, {
+    maxAge: '1d',
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, path) => {
+      res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self'; media-src 'self'");
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+  }));
+}
+
 app.use(`/api/${config.apiVersion}/admin`, adminRouter);
 app.use(`/api/${config.apiVersion}/provider`, providerRouter);
 app.use(`/api/${config.apiVersion}/enrollee`, enrolleeRouter);

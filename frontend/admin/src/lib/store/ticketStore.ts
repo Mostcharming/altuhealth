@@ -138,16 +138,18 @@ type TicketStore = {
   ) => Promise<void>;
   addMessage: (
     ticketId: string,
-    data: {
-      senderId: string;
-      senderType: string;
-      content?: string;
-      messageType?: string;
-      attachmentUrl?: string;
-      attachmentType?: string;
-      attachmentName?: string;
-      isInternal?: boolean;
-    }
+    data:
+      | FormData
+      | {
+          senderId: string;
+          senderType: string;
+          content?: string;
+          messageType?: string;
+          attachmentUrl?: string;
+          attachmentType?: string;
+          attachmentName?: string;
+          isInternal?: boolean;
+        }
   ) => Promise<void>;
   deleteMessage: (ticketId: string, messageId: string) => Promise<void>;
 
@@ -422,32 +424,75 @@ export const useTicketStore = create<TicketStore>((set) => ({
   addMessage: async (ticketId, data) => {
     set({ messagesLoading: true, messagesError: null });
     try {
-      const response = await apiClient(`/admin/tickets/${ticketId}/messages`, {
+      // Check if data is FormData (for file uploads)
+      const requestOptions: {
+        method: string;
+        body?: unknown;
+        formData?: FormData;
+      } = {
         method: "POST",
-        body: data,
-      });
+      };
 
-      const message = response.message || response.data?.message;
+      if (data instanceof FormData) {
+        requestOptions.formData = data;
+      } else {
+        requestOptions.body = data;
+      }
+
+      const response = await apiClient(
+        `/admin/tickets/${ticketId}/messages`,
+        requestOptions
+      );
+
+      // Extract message from response structure: { error, message, data: { message: {...} } }
+      const message = response.data?.message;
+
+      // If message is not an object or doesn't have required fields, log and throw
+      if (!message || typeof message !== "object") {
+        console.error("Invalid message response from server:", response);
+        throw new Error("Invalid message response from server");
+      }
+
+      const messageData = !(data instanceof FormData)
+        ? (data as {
+            senderId?: string;
+            senderType?: string;
+            content?: string;
+            messageType?: string;
+            attachmentUrl?: string;
+            attachmentType?: string;
+            attachmentName?: string;
+            isInternal?: boolean;
+          })
+        : {};
 
       // Ensure message has all required fields with fallbacks
       const enrichedMessage: TicketMessage = {
-        id: message?.id || `temp-${Date.now()}`,
+        id: message.id || `temp-${Date.now()}`,
         ticketId: ticketId,
-        senderId: message?.senderId || data.senderId,
-        senderType: message?.senderType || data.senderType || "Admin",
-        messageType: (message?.messageType || data.messageType || "text") as
+        senderId: message.senderId || messageData.senderId || "",
+        senderType: (message.senderType ||
+          messageData.senderType ||
+          "Admin") as TicketMessage["senderType"],
+        messageType: (message.messageType ||
+          messageData.messageType ||
+          "text") as
           | "text"
           | "attachment"
           | "system"
           | "status_update"
           | "note",
-        content: message?.content || data.content,
-        attachmentUrl: message?.attachmentUrl || data.attachmentUrl,
-        attachmentType: message?.attachmentType || data.attachmentType,
-        attachmentName: message?.attachmentName || data.attachmentName,
-        isInternal: message?.isInternal ?? data.isInternal ?? false,
-        createdAt: message?.createdAt || new Date().toISOString(),
-        updatedAt: message?.updatedAt || new Date().toISOString(),
+        content: message.content || messageData.content || undefined,
+        attachmentUrl: message.attachmentUrl || undefined,
+        attachmentType: (message.attachmentType || undefined) as
+          | "image"
+          | "document"
+          | "other"
+          | undefined,
+        attachmentName: message.attachmentName || undefined,
+        isInternal: message.isInternal ?? messageData.isInternal ?? false,
+        createdAt: message.createdAt || new Date().toISOString(),
+        updatedAt: message.updatedAt || new Date().toISOString(),
       };
 
       set((state) => ({

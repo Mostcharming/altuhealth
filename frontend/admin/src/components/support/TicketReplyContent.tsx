@@ -2,6 +2,7 @@
 
 import { useAuthStore } from "@/lib/authStore";
 import { useTicketStore } from "@/lib/store/ticketStore";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -24,6 +25,9 @@ export default function TicketReplyContent() {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const statusOptions = [
@@ -60,22 +64,36 @@ export default function TicketReplyContent() {
   }, [messages]);
 
   const handleSendReply = async () => {
-    if (!replyText.trim() || !ticket || !user) return;
+    if (!replyText.trim() && !selectedFile) return;
+    if (!ticket || !user) return;
 
     setSending(true);
     try {
-      await addMessage(ticketId, {
-        senderId: user.id,
-        senderType: "Admin",
-        content: replyText,
-        messageType: "text",
-        isInternal: false,
-      });
+      const formData = new FormData();
+      formData.append("senderId", user.id);
+      formData.append("senderType", "Admin");
+      formData.append("content", replyText);
+      formData.append("messageType", selectedFile ? "attachment" : "text");
+      formData.append("isInternal", "false");
+
+      if (selectedFile) {
+        formData.append("attachment", selectedFile);
+      }
+
+      // Use the store's addMessage method which handles FormData
+      await addMessage(ticketId, formData);
+
+      // Reset form after successful send
       setReplyText("");
-      // Refresh messages
+      setSelectedFile(null);
+      setPreviewUrl("");
+
+      // Refresh messages from server to ensure complete data is loaded
+      // This ensures attachment URLs are properly populated
       await getMessages(ticketId, {});
     } catch (error) {
       console.error("Failed to send reply:", error);
+      alert("Failed to send reply. Please try again.");
     } finally {
       setSending(false);
     }
@@ -87,6 +105,39 @@ export default function TicketReplyContent() {
       await updateTicket(ticketId, { status: newStatus });
     } catch (error) {
       console.error("Failed to update ticket status:", error);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file is an image
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file");
+        return;
+      }
+
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("File size must be less than 10MB");
+        return;
+      }
+
+      setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  const handleAttachClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveAttachment = () => {
+    setSelectedFile(null);
+    setPreviewUrl("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -156,30 +207,20 @@ export default function TicketReplyContent() {
                 )}
                 {message.messageType === "attachment" &&
                   message.attachmentUrl && (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-100 dark:bg-gray-800 w-fit">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
-                        fill="none"
-                      >
-                        <path
-                          d="M14.4194 11.7679L15.4506 10.7367C17.1591 9.02811 17.1591 6.25802 15.4506 4.54947C13.742 2.84093 10.9719 2.84093 9.2634 4.54947L8.2322 5.58067M11.77 14.4172L10.7365 15.4507C9.02799 17.1592 6.2579 17.1592 4.54935 15.4507C2.84081 13.7422 2.84081 10.9721 4.54935 9.26352L5.58285 8.23002M11.7677 8.23232L8.2322 11.7679"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <a
-                        href={message.attachmentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400 underline"
-                      >
-                        {message.attachmentName || "Download Attachment"}
-                      </a>
+                    <div className="flex flex-col gap-2">
+                      {message.content && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                      )}
+                      <Image
+                        src={message.attachmentUrl}
+                        alt={message.attachmentName || "Attachment"}
+                        width={320}
+                        height={240}
+                        className="max-w-xs h-auto rounded-lg shadow-sm"
+                        unoptimized
+                      />
                     </div>
                   )}
               </div>
@@ -190,7 +231,35 @@ export default function TicketReplyContent() {
 
         {/* Reply Input */}
         <div className="pt-5">
-          <div className="mx-auto max-h-[162px] w-full rounded-2xl border border-gray-200 shadow-xs dark:border-gray-800 dark:bg-gray-800">
+          <div className="mx-auto w-full rounded-2xl border border-gray-200 shadow-xs dark:border-gray-800 dark:bg-gray-800">
+            {previewUrl && (
+              <div className="relative p-3 border-b border-gray-200 dark:border-gray-700">
+                <Image
+                  src={previewUrl}
+                  alt="Preview"
+                  width={20}
+                  height={20}
+                  className="max-h-32 w-auto rounded-lg"
+                />
+                <button
+                  onClick={handleRemoveAttachment}
+                  className="absolute top-2 right-2 rounded-full bg-red-500 text-white p-1 hover:bg-red-600"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            )}
             <textarea
               placeholder="Type your reply here..."
               value={replyText}
@@ -199,7 +268,11 @@ export default function TicketReplyContent() {
             />
 
             <div className="flex items-center justify-between p-3">
-              <button className="flex h-9 items-center gap-1.5 rounded-lg bg-transparent px-2 py-3 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-300">
+              <button
+                onClick={handleAttachClick}
+                type="button"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-transparent px-2 py-3 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-300"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -216,9 +289,16 @@ export default function TicketReplyContent() {
                 </svg>
                 Attach
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
               <button
                 onClick={handleSendReply}
-                disabled={sending || !replyText.trim()}
+                disabled={sending || (!replyText.trim() && !selectedFile)}
                 className="bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs inline-flex h-9 items-center justify-center rounded-lg px-4 py-3 text-sm font-medium text-white transition-colors"
               >
                 {sending ? "Sending..." : "Reply"}
