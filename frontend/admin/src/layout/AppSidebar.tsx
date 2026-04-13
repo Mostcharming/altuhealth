@@ -177,7 +177,6 @@ const othersItems: NavItem[] = [
     name: "Developer",
     icon: <PaperPlaneIcon />,
     subItems: [
-      { name: "Webhooks", path: "/webhooks" },
       { name: "Integrations", path: "/integrations" },
       { name: "Jobs", path: "/jobs" },
     ],

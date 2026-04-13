@@ -51,6 +51,8 @@ router.use('/messages', require('./messages/route'));
 router.use('/referrers', require('./referrers/route'));
 router.use('/referral-programs', require('./referralPrograms/route'));
 router.use('/tickets', require('./tickets/route'));
+router.use('/audit-logs', require('./auditLogs/route'));
+router.use('/notification-logs', require('./notificationLogs/route'));
 
 router.use(errorHandler);
 

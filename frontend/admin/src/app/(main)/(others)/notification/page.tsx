@@ -1,3 +1,5 @@
+import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import NotificationLogTable from "@/components/pages/notificationLog/notificationLogTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,11 +9,9 @@ export const metadata: Metadata = {
 
 export default function NotificationLogs() {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-      <h3 className="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
-        Notification Logs
-      </h3>
-      {/* Content goes here */}
+    <div>
+      <PageBreadcrumb pageTitle="Notification Logs" />
+      <NotificationLogTable />
     </div>
   );
 }
