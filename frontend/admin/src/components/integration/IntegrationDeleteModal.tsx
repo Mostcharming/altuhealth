@@ -51,15 +51,11 @@ export default function IntegrationDeleteModal({
           Remove {integrationName}
         </h4>
         <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
-          Are you sure you want to remove this integration? This action cannot be
-          undone.
+          Are you sure you want to remove this integration? This action cannot
+          be undone.
         </p>
         <div className="flex gap-3">
-          <Button
-            onClick={onClose}
-            className="flex-1"
-            variant="outline"
-          >
+          <Button onClick={onClose} className="flex-1" variant="outline">
             Cancel
           </Button>
           <Button

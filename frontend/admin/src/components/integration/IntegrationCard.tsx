@@ -1,13 +1,13 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { useModal } from "@/hooks/useModal";
 import { HorizontaLDots } from "@/icons";
+import { ReactNode, useState } from "react";
+import Switch from "../form/switch/Switch";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import IntegrationDetailsModal from "./IntegrationDetailsModal";
-import { useModal } from "@/hooks/useModal";
 import IntegrationDeleteModal from "./IntegrationDeleteModal";
-import Switch from "../form/switch/Switch";
+import IntegrationDetailsModal from "./IntegrationDetailsModal";
 import IntegrationSettingsModal from "./IntegrationSettingsModal";
 
 interface IntegrationCardProps {
@@ -17,7 +17,7 @@ interface IntegrationCardProps {
   isConnected: boolean;
   integrationId?: string;
   onRemove?: (id: string) => void;
-  onToggleConnection?: (id: string, connected: boolean) => void;
+  onToggleConnection?: (id: string, connected: boolean) => Promise<void> | void;
 }
 
 export default function IntegrationCard({
@@ -31,6 +31,7 @@ export default function IntegrationCard({
 }: IntegrationCardProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [connected, setConnected] = useState(isConnected);
+  const [isLoading, setIsLoading] = useState(false);
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -49,10 +50,19 @@ export default function IntegrationCard({
     deleteModal.closeModal();
   };
 
-  const handleToggleConnection = (newState: boolean) => {
-    setConnected(newState);
-    if (onToggleConnection) {
-      onToggleConnection(integrationId, newState);
+  const handleToggleConnection = async (newState: boolean) => {
+    setIsLoading(true);
+    try {
+      setConnected(newState);
+      if (onToggleConnection) {
+        await onToggleConnection(integrationId, newState);
+      }
+    } catch (error) {
+      // Revert state on error
+      setConnected(!newState);
+      console.error("Failed to toggle integration:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -119,6 +129,7 @@ export default function IntegrationCard({
           <Switch
             defaultChecked={connected}
             onChange={handleToggleConnection}
+            disabled={isLoading}
           />
         </div>
       </article>
