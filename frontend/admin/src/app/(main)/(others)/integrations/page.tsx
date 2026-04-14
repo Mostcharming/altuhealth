@@ -156,6 +156,7 @@ export default function IntegrationsPage() {
               integrationId={item.id}
               onRemove={handleRemove}
               onToggleConnection={handleToggleConnection}
+              onUpdate={loadIntegrations}
             />
           ))}
         </div>

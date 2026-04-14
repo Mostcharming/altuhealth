@@ -1,27 +1,91 @@
 "use client";
 
 import { useModal } from "@/hooks/useModal";
+import { Integration, updateIntegration } from "@/lib/apis/integration";
+import { useEffect, useState } from "react";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import ErrorModal from "../modals/error";
+import SuccessModal from "../modals/success";
 import Button from "../ui/button/Button";
 import { Modal } from "../ui/modal";
 
 interface IntegrationSettingsModalProps {
   integrationName?: string;
+  integrationId?: string;
+  integrationData?: Integration | null;
   onSave?: () => void;
 }
 
 export default function IntegrationSettingsModal({
   integrationName = "Integration",
+  integrationId = "",
+  integrationData,
   onSave,
 }: IntegrationSettingsModalProps) {
   const settingsModal = useModal();
+  const [isSaving, setIsSaving] = useState(false);
+  const [successModal, setSuccessModal] = useState({ isOpen: false });
+  const [errorModal, setErrorModal] = useState({ isOpen: false });
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave();
+  const [formData, setFormData] = useState({
+    description: "",
+    base_url: "",
+    secret_key: "",
+    public_key: "",
+    api_key: "",
+    api_secret: "",
+    webhook_url: "",
+    webhook_secret: "",
+  });
+
+  useEffect(() => {
+    if (integrationData) {
+      setFormData({
+        description: integrationData.description || "",
+        base_url: integrationData.base_url || "",
+        secret_key: integrationData.secret_key || "",
+        public_key: integrationData.public_key || "",
+        api_key: integrationData.api_key || "",
+        api_secret: integrationData.api_secret || "",
+        webhook_url: integrationData.webhook_url || "",
+        webhook_secret: integrationData.webhook_secret || "",
+      });
     }
-    settingsModal.closeModal();
+  }, [integrationData]);
+
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!integrationId) {
+      setErrorMessage("Integration ID is missing");
+      setErrorModal({ isOpen: true });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateIntegration(integrationId, formData);
+      setSuccessModal({ isOpen: true });
+      setTimeout(() => {
+        settingsModal.closeModal();
+        if (onSave) {
+          onSave();
+        }
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to save integration settings:", error);
+      setErrorMessage("Failed to save integration settings");
+      setErrorModal({ isOpen: true });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -57,7 +121,7 @@ export default function IntegrationSettingsModal({
       <Modal
         isOpen={settingsModal.isOpen}
         onClose={settingsModal.closeModal}
-        className="relative w-full max-w-[558px] rounded-3xl m-5 sm:m-0 bg-white p-6 lg:p-10 dark:bg-gray-900"
+        className="relative w-full max-w-[558px] rounded-3xl m-5 sm:m-0 bg-white p-6 lg:p-10 dark:bg-gray-900 max-h-[90vh] overflow-y-auto"
       >
         <div>
           <h4 className="text-title-xs mb-1 font-semibold text-gray-800 dark:text-white/90">
@@ -69,24 +133,89 @@ export default function IntegrationSettingsModal({
           <form action="#">
             <div className="space-y-4">
               <div>
-                <Label>Client ID</Label>
+                <Label>Description</Label>
                 <Input
                   type="text"
-                  defaultValue="872364219810-abc123xyz456.apps.googleusercontent.com"
+                  placeholder="Integration description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
                 />
               </div>
               <div>
-                <Label>Client Secret</Label>
+                <Label>Base URL</Label>
                 <Input
                   type="text"
-                  defaultValue="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e"
+                  placeholder="https://api.example.com"
+                  value={formData.base_url}
+                  onChange={(e) =>
+                    handleInputChange("base_url", e.target.value)
+                  }
                 />
               </div>
               <div>
-                <Label>Authentication base URI</Label>
+                <Label>Public Key</Label>
                 <Input
                   type="text"
-                  defaultValue="https://accounts.application.com/o/oauth2/auth"
+                  placeholder="Your public key"
+                  value={formData.public_key}
+                  onChange={(e) =>
+                    handleInputChange("public_key", e.target.value)
+                  }
+                />
+              </div>
+              <div>
+                <Label>Secret Key</Label>
+                <Input
+                  type="password"
+                  placeholder="Your secret key"
+                  value={formData.secret_key}
+                  onChange={(e) =>
+                    handleInputChange("secret_key", e.target.value)
+                  }
+                />
+              </div>
+              <div>
+                <Label>API Key</Label>
+                <Input
+                  type="text"
+                  placeholder="Your API key"
+                  value={formData.api_key}
+                  onChange={(e) => handleInputChange("api_key", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>API Secret</Label>
+                <Input
+                  type="password"
+                  placeholder="Your API secret"
+                  value={formData.api_secret}
+                  onChange={(e) =>
+                    handleInputChange("api_secret", e.target.value)
+                  }
+                />
+              </div>
+              <div>
+                <Label>Webhook URL</Label>
+                <Input
+                  type="text"
+                  placeholder="https://example.com/webhook"
+                  value={formData.webhook_url}
+                  onChange={(e) =>
+                    handleInputChange("webhook_url", e.target.value)
+                  }
+                />
+              </div>
+              <div>
+                <Label>Webhook Secret</Label>
+                <Input
+                  type="password"
+                  placeholder="Your webhook secret"
+                  value={formData.webhook_secret}
+                  onChange={(e) =>
+                    handleInputChange("webhook_secret", e.target.value)
+                  }
                 />
               </div>
             </div>
@@ -100,15 +229,26 @@ export default function IntegrationSettingsModal({
               onClick={settingsModal.closeModal}
               className="w-full"
               variant="outline"
+              disabled={isSaving}
             >
               Close
             </Button>
-            <Button onClick={handleSave} className="w-full">
-              Save Changes
+            <Button onClick={handleSave} className="w-full" disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>
       </Modal>
+
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={() => setSuccessModal({ isOpen: false })}
+      />
+      <ErrorModal
+        errorModal={errorModal}
+        handleErrorClose={() => setErrorModal({ isOpen: false })}
+        message={errorMessage}
+      />
     </>
   );
 }

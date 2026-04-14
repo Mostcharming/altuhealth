@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { getIntegration, type Integration } from "@/lib/apis/integration";
+import { ReactNode, useEffect, useState } from "react";
 import Switch from "../form/switch/Switch";
 import IntegrationDetailsModal from "./IntegrationDetailsModal";
 import IntegrationSettingsModal from "./IntegrationSettingsModal";
@@ -13,6 +14,7 @@ interface IntegrationCardProps {
   integrationId?: string;
   onRemove?: (id: string) => void;
   onToggleConnection?: (id: string, connected: boolean) => Promise<void> | void;
+  onUpdate?: () => void;
 }
 
 export default function IntegrationCard({
@@ -22,9 +24,32 @@ export default function IntegrationCard({
   isConnected,
   integrationId = "",
   onToggleConnection,
+  onUpdate,
 }: IntegrationCardProps) {
   const [connected, setConnected] = useState(isConnected);
   const [isLoading, setIsLoading] = useState(false);
+  const [integrationData, setIntegrationData] = useState<Integration | null>(
+    null
+  );
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (integrationId) {
+        try {
+          setLoadingDetails(true);
+          const response = await getIntegration(integrationId);
+          const data = response?.data?.integration || response?.integration;
+          setIntegrationData(data);
+        } catch (error) {
+          console.error("Failed to fetch integration details:", error);
+        } finally {
+          setLoadingDetails(false);
+        }
+      }
+    };
+    fetchDetails();
+  }, [integrationId]);
 
   const handleToggleConnection = async (newState: boolean) => {
     setIsLoading(true);
@@ -39,6 +64,13 @@ export default function IntegrationCard({
       console.error("Failed to toggle integration:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSettingsSave = () => {
+    // Refresh integration data after settings save
+    if (onUpdate) {
+      onUpdate();
     }
   };
 
@@ -59,27 +91,16 @@ export default function IntegrationCard({
 
         <div className="flex items-center justify-between border-t border-gray-200 p-5 dark:border-gray-800">
           <div className="flex gap-3">
-            <IntegrationSettingsModal integrationName={title} />
+            <IntegrationSettingsModal
+              integrationName={title}
+              integrationId={integrationId}
+              integrationData={integrationData}
+              onSave={handleSettingsSave}
+            />
             <IntegrationDetailsModal
               integrationName={title}
-              details={[
-                {
-                  label: "Integration Name",
-                  value: title,
-                },
-                {
-                  label: "Status",
-                  value: connected ? "Connected" : "Disconnected",
-                },
-                {
-                  label: "Connection Type",
-                  value: "API",
-                },
-                {
-                  label: "Last Updated",
-                  value: new Date().toLocaleDateString(),
-                },
-              ]}
+              integrationData={integrationData}
+              isLoading={loadingDetails}
             />
           </div>
           <Switch
