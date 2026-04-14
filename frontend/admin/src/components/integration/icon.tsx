@@ -1,25 +1,6 @@
 // Stripe Icon
 export function StripeIcon() {
   return (
-    // <svg
-    //   xmlns="http://www.w3.org/2000/svg"
-    //   width="40"
-    //   height="40"
-    //   viewBox="0 0 40 40"
-    //   fill="none"
-    // >
-    //   <rect width="40" height="40" rx="8" fill="#625B9E" />
-    //   <path
-    //     d="M12 15C12 14.4477 12.4477 14 13 14H27C27.5523 14 28 14.4477 28 15V25C28 25.5523 27.5523 26 27 26H13C12.4477 26 12 25.5523 12 25V15Z"
-    //     fill="white"
-    //   />
-    //   <path
-    //     d="M16 21C16 19.8954 16.8954 19 18 19C19.1046 19 20 19.8954 20 21C20 22.1046 19.1046 23 18 23C16.8954 23 16 22.1046 16 21Z"
-    //     fill="#625B9E"
-    //   />
-    //   <circle cx="24" cy="21" r="2" fill="#625B9E" />
-    // </svg>
-
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="40"

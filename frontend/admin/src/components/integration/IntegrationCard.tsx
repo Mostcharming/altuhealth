@@ -1,12 +1,7 @@
 "use client";
 
-import { useModal } from "@/hooks/useModal";
-import { HorizontaLDots } from "@/icons";
 import { ReactNode, useState } from "react";
 import Switch from "../form/switch/Switch";
-import { Dropdown } from "../ui/dropdown/Dropdown";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import IntegrationDeleteModal from "./IntegrationDeleteModal";
 import IntegrationDetailsModal from "./IntegrationDetailsModal";
 import IntegrationSettingsModal from "./IntegrationSettingsModal";
 
@@ -26,29 +21,10 @@ export default function IntegrationCard({
   description,
   isConnected,
   integrationId = "",
-  onRemove,
   onToggleConnection,
 }: IntegrationCardProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [connected, setConnected] = useState(isConnected);
   const [isLoading, setIsLoading] = useState(false);
-
-  function toggleDropdown() {
-    setIsOpen(!isOpen);
-  }
-
-  function closeDropdown() {
-    setIsOpen(false);
-  }
-
-  const deleteModal = useModal();
-
-  const handleRemove = () => {
-    if (onRemove) {
-      onRemove(integrationId);
-    }
-    deleteModal.closeModal();
-  };
 
   const handleToggleConnection = async (newState: boolean) => {
     setIsLoading(true);
@@ -79,26 +55,6 @@ export default function IntegrationCard({
           <p className="max-w-xs text-sm text-gray-500 dark:text-gray-400">
             {description}
           </p>
-          <div className="absolute top-5 right-5 h-fit">
-            <button className="dropdown-toggle" onClick={toggleDropdown}>
-              <HorizontaLDots className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 size-6" />
-            </button>
-            <Dropdown
-              isOpen={isOpen}
-              onClose={closeDropdown}
-              className="w-40 p-2"
-            >
-              <DropdownItem
-                onItemClick={() => {
-                  deleteModal.openModal();
-                  closeDropdown();
-                }}
-                className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
-              >
-                Remove
-              </DropdownItem>
-            </Dropdown>
-          </div>
         </div>
 
         <div className="flex items-center justify-between border-t border-gray-200 p-5 dark:border-gray-800">
@@ -133,13 +89,6 @@ export default function IntegrationCard({
           />
         </div>
       </article>
-
-      <IntegrationDeleteModal
-        isOpen={deleteModal.isOpen}
-        onClose={deleteModal.closeModal}
-        integrationName={title}
-        onConfirm={handleRemove}
-      />
     </>
   );
 }
