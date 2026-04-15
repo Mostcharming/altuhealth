@@ -21,7 +21,8 @@ const enrolleeLogin = async (req, res, next) => {
                 enrollee = await EnrolleeModel.findOne({ where: { email: lookupValue } });
             }
         } else if (policyNumber) {
-            enrollee = await EnrolleeModel.findOne({ where: { policyNumber } });
+            const lookupPolicyNumber = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
+            enrollee = await EnrolleeModel.findOne({ where: { policyNumber: lookupPolicyNumber } });
         }
 
         if (!enrollee) return res.fail('Invalid credentials', 401);

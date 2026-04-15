@@ -1,11 +1,72 @@
-[1] Patient visits Provider
+[1] Patient (Enrollee) visits Provider:
+     - Enrollee checks in at provider facility
+     - Provider captures visit details:
+        * Chief complaint/reason for visit
+        * Vital signs recorded
+        * Initial assessment completed
+     - Provider determines if service requires prior authorization
+     - Provider verifies patient insurance coverage
+     - Enrollee identity confirmed (ID verification)
+     - Copay/deductible collected if applicable
         ↓
-[2] Provider submits Authorization Request
+[1a] Pre-Authorization Check:
+     - Provider determines service type (elective, emergency, routine)
+     - Provider checks if authorization is required based on:
+        * Service complexity
+        * Plan requirements
+        * Provider network status
+     - If required: proceed to [2]
+     - If not required: proceed directly to service delivery
         ↓
-[3] HMO ERP validates:
-     - Enrollment status
-     - Plan coverage
-     - Benefit limits
+[2] Provider submits Authorization Request:
+     - Provider collects required clinical information:
+        * Diagnosis codes (ICD-10)
+        * Proposed procedures/services (CPT codes)
+        * Duration and frequency of treatment
+        * Medical justification/clinical notes
+        * Supporting documentation (test results, imaging, etc.)
+     - Enrollee information verified:
+        * Name, DOB, Member ID
+        * Dependent status confirmation
+        * Plan details (plan name, ID, effective dates)
+     - Authorization request created in system:
+        * Request ID generated
+        * Timestamp recorded
+        * Provider details captured
+        * Request status set to "Submitted"
+     - Request validation:
+        * Required fields checked
+        * Medical codes validated
+        * Duplicate request check
+     - Authorization request transmitted to HMO ERP
+        ↓
+[3] HMO ERP System Validation:
+     - Data validation:
+        * Verify request format and completeness
+        * Validate medical codes (ICD-10, CPT, HCPCS)
+        * Check provider/facility network status
+     - Enrollee eligibility verification:
+        * Confirm enrollment status (active/inactive)
+        * Verify member is not in grace period or suspended
+        * Check for policy termination or cancellation
+     - Plan coverage & benefits verification:
+        * Confirm service covered under plan
+        * Check if service requires prior authorization
+        * Verify service not excluded from plan
+     - Benefit limits & utilization check:
+        * Calculate remaining annual deductible
+        * Check visit limits (e.g., PT visits per year)
+        * Verify remaining out-of-pocket maximum
+        * Review service-specific limits
+        * Cross-reference with dependent limits (if applicable)
+     - Concurrent review checks:
+        * Check for existing authorizations for same service
+        * Verify no conflicting treatments authorized
+        * Review patient's recent claim history
+     - Validation result:
+        * All checks passed → Proceed to [4]
+        * Validation errors found → Return error to provider with details
+        * Suspicious patterns detected → Flag for manual review
         ↓
 [4] Decision Point:
     ├── Auto-Approve (if rules match) 
@@ -13,13 +74,112 @@
               ↓
         HMO Admin reviews
               ↓
-        Approve / Reject / Query
+        Approve / Reject / Query / Suspend
+        ↓
+[4a] Handle Query/Additional Info Request:
+     - Provider submits additional documents
+     - Medical review team evaluates
+     - Final decision made
         ↓
 [5] Response sent to Provider
+     - Auth Code generated (if Approved)
+     - Rejection reason documented (if Rejected)
+     - Appeal instructions provided (if Denied)
         ↓
 [6] Provider delivers service
         ↓
+[6a] Medical History Updated:
+     - Diagnoses recorded
+     - Procedures documented
+     - Medications prescribed
+     - Visit notes stored
+     - Health records updated in Enrollee profile
+        ↓
+[6b] Benefit Utilization Updated:
+     - Deductible amount applied
+     - Co-pay/Co-insurance recorded
+     - Benefit limits decremented
+     - Annual usage tracked per service type
+        ↓
 [7] Claim submission (post-treatment)
+        ↓
+[8] Claim Adjudication & Verification:
+     - Claim validation against authorization
+     - Service code verification
+     - Amount verification against approved limits
+     - Duplicate claim check
+        ↓
+[8a] Admin Claim Vetting & Fraud Detection:
+     - Verify enrollee actually attended visit (check against provider schedule/check-in records)
+     - Cross-reference services billed vs. authorized services
+     - Compare claimed procedures with medical history records
+     - Verify provider credentials and authorization status
+     - Check for service bundling abuse
+     - Validate dates of service (no future dates, sequential visits logical)
+     - Review for billing anomalies or patterns
+        ↓
+[8b] Verification Decision:
+    ├── Verified & Approved (all checks passed)
+    ├── Flag for Review (inconsistencies found)
+    └── Reject (fraud/billing errors detected)
+        ↓
+[8c] Vetting Process (for flagged claims):
+     - Senior claims analyst reviews flagged claims
+     - Contact provider for clarification if needed
+     - Request additional documentation from enrollee
+     - Medical necessity review
+     - Final determination made
+        ↓
+[9] Claims Processing Decision:
+    ├── Approved for Payment (verified & within limits)
+    ├── Partial Payment (coverage limits or partial service verification)
+    ├── Denied (reason documented - fraud, unauthorized service, etc)
+    └── Queried (requesting more information from provider)
+        ↓
+[9a] Payment Batch Creation:
+     - All approved/partial payment claims collected
+     - Batches organized by:
+        * Provider
+        * Payment method
+        * Claim type
+     - Batch summary generated with total amounts
+     - Quality control check on batch integrity
+     - Batch marked ready for processing
+        ↓
+[10] Payment Processing:
+     - Insurance company pays provider (if applicable)
+     - Enrollee notified of charges/balance
+     - Payment reconciliation
+        ↓
+[10a] Payment Batch Processing Execution:
+     - Batch authorized for payment by finance manager
+     - Payment method initiated:
+        * Bank transfer (ACH/Wire)
+        * Check payment
+        * Digital wallet/Direct deposit
+     - Payment reference numbers generated for tracking
+     - Transaction logs created
+     - Payment status updated in system (pending → processing)
+        ↓
+[10b] Payment Settlement & Reconciliation:
+     - Batch payment status monitored
+     - Failed transactions identified and handled
+     - Payment confirmation received from bank/payment processor
+     - Reconciliation with GL (General Ledger)
+     - Payment status updated (processing → completed/settled)
+     - Provider notified of payment receipt
+        ↓
+[10c] Batch Reporting & Audit Trail:
+     - Payment batch report generated
+     - Transaction receipts stored
+     - Audit trail documented (who approved, when, amount)
+     - Batch reconciliation report finalized
+     - Records archived for compliance
+        ↓
+[11] Appeal Process (if Denied):
+     - Enrollee/Provider can appeal within timeframe
+     - Case reviewed by senior medical reviewer
+     - Appeal decision communicated
 
 
 //utilizations
@@ -31,72 +191,3 @@ Claim Amount → Aggregated by:
 
 Provider → Visits → Claims Cost
 enrollee, dependents, no if visits , cost racked up
-
-
-enrollee side 
-buy plans
-renew plans
-
-
-Enrollee-upload profile before doing it anything
-Depends -upload before using the app
-Enrollee option to select if they want to be notified about dependants action
-For the landing page, use the reliance as sample, show the provider side like a brochure
-
-Altuhealth- limit the wording on the tablet to show all
-
-Altuhealth - Can I download a benefit that has been configured for a particular company?
-Altuhealth, enrolees filing their profile
-Altuhealt, mail to enrolees to continue with their sign up
-Altuhealth-new webpage for altuhealth
-Altuhealth- bill them for the design of landing page and development
-Altuhealth, when the company is no longer active the enrolled for the company cannot login
-Alt health resend enrollment information to enrolled button and actual email
-Altuhealth, mail to the dependent if added
-Altuhealth, when the company sub expires the enrolle cannot use anymore benefits or generate auth codes
-Sola - art project start the process
-Set up replication and update the db to be the latest
-Altuhealth, subscription id, if enrolled doesnt have, show the error
-Altuhealth-bulk upload staff should also bulk upload enrolled
-Altuhealth, remove optional text from subscriptions
-Altuhealth-realtime notification
-Altuhealth-provider requesting for code and amount, list service, admin reply each service or drug, if approved, partially or declined, enrolled pays the rest
-Altuhealth the lgas are not updated
-Altuhealtht , create provider manager compulsory
-Altuhealth, provider login buggy
-Altuhealth new admins have my picture
-Altuhealth- cannot upload images
-Altuhealth, single subscription
-Altuhealth-import data from the excel
-
-
-Info’s-database replication
-
-Manual import not working yet
-
-Filters for also you need to do the same for getting all the tasks
-
-Infonomics-einoviing missing allowance charge
-Add allowance charge
-
-Altuhealth- on the provider side, remove the enrollees list, add a verification  screen to search and then show the details of a single enrolled
-Altuhelthj, check this link for www.voisinlaw.com Altuhealth - www.portobellocapital.es
-Enrollee-upload profile before doing it anything
-Depends -upload before using the app
-Enrollee option to select if they want to be notified about dependants action
-For the landing page, use the reliance as sample, show the provider side like a brochure
-
-Altuhealth, enrollee can view the addtional infomation of the beneficiary
-Make then tick when creating the dependsnrs
-Dependent should know , can opt out
-Invoice to notes(per line item)/banking information/
-Remove flexible amount on the claims on the provider side, only use the amount on the database.
-Autovet amount based (x)
-Reconciliation ft (not needed, if amount this the same) support imminent , 
-On the
-Tie the authorisation code section to the claims section, make sure the admin can view the details well before performing the vetting feature,
-Authorization code adding to the claims feature, add the 
-Provider..
-Claims to have .. enrollee times listed, authorisation code, 
-Description showing on the provider plans,
-Search history saved

@@ -16,6 +16,11 @@ function defineModels(sequelize) {
   const AdminNotification = require("./adminNotification.model")(sequelize, DataTypes);
   const NotificationLog = require("./notification.model")(sequelize, DataTypes);
   const NotificationTemplate = require("./notificationTemplate.model")(sequelize, DataTypes);
+  const ProviderNotification = require("./providerNotification.model")(sequelize, DataTypes);
+  const EnrolleeNotification = require("./enrolleeNotification.model")(sequelize, DataTypes);
+  const EnrolleeDependentNotification = require("./enrolleeDependentNotification.model")(sequelize, DataTypes);
+  const RetailEnrolleeNotification = require("./retailEnrolleeNotification.model")(sequelize, DataTypes);
+  const RetailEnrolleeDependentNotification = require("./retailEnrolleeDependentNotification.model")(sequelize, DataTypes);
   const PasswordReset = require("./passwordReset.model")(sequelize, DataTypes);
   const AuditLog = require("./auditLog.model")(sequelize, DataTypes);
   const Job = require("./job.model")(sequelize, DataTypes);
@@ -564,7 +569,7 @@ function defineModels(sequelize) {
   Admin.hasMany(Ticket, { foreignKey: "assignedToId", constraints: false, as: 'assignedTickets' });
   Ticket.belongsTo(Admin, { foreignKey: "assignedToId", constraints: false, as: 'assignedAdmin' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning, EnrolleeDependentMedicalHistory, Ticket, TicketMessage, Integration };
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, ProviderNotification, EnrolleeNotification, EnrolleeDependentNotification, RetailEnrolleeNotification, RetailEnrolleeDependentNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning, EnrolleeDependentMedicalHistory, Ticket, TicketMessage, Integration };
 }
 
 module.exports = defineModels;
