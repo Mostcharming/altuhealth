@@ -28,7 +28,6 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  // Clinical Management
   {
     icon: <GridIcon />,
     name: "Dashboard",
@@ -48,8 +47,6 @@ const navItems: NavItem[] = [
       { name: "Appointments", path: "/appointments" },
     ],
   },
-
-  // Clinical Records
   {
     name: "Enrollee Medical Records",
     icon: <TaskIcon />,
@@ -58,8 +55,6 @@ const navItems: NavItem[] = [
       { name: "Medical History", path: "/medical-history" },
     ],
   },
-
-  // Billing & Finance
   {
     name: "Billing Management",
     icon: <GridIcon />,
@@ -74,16 +69,12 @@ const navItems: NavItem[] = [
     icon: <TaskIcon />,
     path: "/claims-refunds",
   },
-
-  // Telemedicine
   {
     name: "Telemedicine Setup",
     icon: <PlugInIcon />,
     path: "/telemedicine-signup",
     new: true,
   },
-
-  // Support
   {
     name: "Support Messages",
     icon: <TaskIcon />,
@@ -95,28 +86,16 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
 
-  // Allow all menu items (no privilege check needed for providers)
   const allowedMenuNames = useMemo(() => {
     const set = new Set<string>();
     navItems.forEach((item) => set.add(item.name));
-    // supportItems.forEach((item) => set.add(item.name));
-    // othersItems.forEach((item) => set.add(item.name));
     return set;
   }, []);
 
-  // Filter the top-level arrays so only allowed sections are rendered (memoized)
   const filteredNavItems = useMemo(
     () => navItems.filter((item) => allowedMenuNames.has(item.name)),
     [allowedMenuNames]
   );
-  // const filteredSupportItems = useMemo(
-  //   () => supportItems.filter((item) => allowedMenuNames.has(item.name)),
-  //   [allowedMenuNames]
-  // );
-  // const filteredOthersItems = useMemo(
-  //   () => othersItems.filter((item) => allowedMenuNames.has(item.name)),
-  //   [allowedMenuNames]
-  // );
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -274,18 +253,13 @@ const AppSidebar: React.FC = () => {
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // const isActive = (path: string) => path === pathname;
-
   const isActive = useCallback((path: string) => path === pathname, [pathname]);
 
   useEffect(() => {
-    // Find the submenu (type + index) that matches the current pathname, if any
     let matched: { type: "main" | "support" | "others"; index: number } | null =
       null;
     const menuItemsMap: Record<string, NavItem[]> = {
       main: filteredNavItems,
-      // support: filteredSupportItems,
-      // others: filteredOthersItems,
     };
 
     (Object.keys(menuItemsMap) as Array<"main" | "support" | "others">).some(
@@ -307,7 +281,6 @@ const AppSidebar: React.FC = () => {
       }
     );
 
-    // Only update state if the matched submenu is different from current state
     setOpenSubmenu((prev) => {
       if (!matched) {
         return null;
@@ -317,16 +290,9 @@ const AppSidebar: React.FC = () => {
       }
       return matched;
     });
-  }, [
-    pathname,
-    isActive,
-    filteredNavItems,
-    // filteredSupportItems,
-    // filteredOthersItems,
-  ]);
+  }, [pathname, isActive, filteredNavItems]);
 
   useEffect(() => {
-    // Set the height of the submenu items when the submenu is opened
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
