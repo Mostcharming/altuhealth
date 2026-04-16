@@ -62,20 +62,14 @@ const navItems: NavItem[] = [
     path: "/hospital-list",
   },
 
-  // Claims & Refunds
+  // Women's Health
   {
-    name: "Refunds",
+    name: "Women's Health",
     icon: <TaskIcon />,
-    path: "/refunds",
+    path: "/womens-health",
   },
 
   // Requests & Approvals
-  {
-    name: "Medication Request History",
-    icon: <PlugInIcon />,
-    path: "/medication-requests",
-    new: true,
-  },
   {
     name: "Consult a Doctor",
     icon: <GridIcon />,
@@ -88,11 +82,6 @@ const navItems: NavItem[] = [
     name: "Support Messages",
     icon: <TaskIcon />,
     path: "/support-messages",
-  },
-  {
-    name: "Annual Medical Check-up",
-    icon: <PlugInIcon />,
-    path: "/annual-checkup",
   },
 ];
 
@@ -415,7 +404,7 @@ const AppSidebar: React.FC = () => {
               {renderMenuItems(filteredNavItems.slice(4, 6), "main")}
             </div>
 
-            {/* Claims & Refunds */}
+            {/* Women's Health */}
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
@@ -425,7 +414,7 @@ const AppSidebar: React.FC = () => {
                 }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Claims"
+                  "Women's Health"
                 ) : (
                   <HorizontaLDots />
                 )}
@@ -448,7 +437,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems.slice(7, 9), "main")}
+              {renderMenuItems(filteredNavItems.slice(7, 8), "main")}
             </div>
 
             {/* Support */}
@@ -466,7 +455,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems.slice(9, 11), "main")}
+              {renderMenuItems(filteredNavItems.slice(8, 9), "main")}
             </div>
           </div>
         </nav>
