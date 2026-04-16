@@ -36,10 +36,10 @@ const navItems: NavItem[] = [
   {
     name: "Patient Management",
     icon: <GroupIcon />,
-    subItems: [{ name: "Search Enrollee/Dependents", path: "/enrollees" }],
+    subItems: [{ name: "Search Enrollee", path: "/enrollees" }],
   },
   {
-    name: "Appointments & Authorizations",
+    name: "Clinical Operations",
     icon: <TaskIcon />,
     subItems: [
       { name: "Admissions", path: "/admission-tracker" },
@@ -48,7 +48,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    name: "Enrollee Medical Records",
+    name: "Medical Records",
     icon: <TaskIcon />,
     subItems: [
       { name: "Patient Records", path: "/patient-records" },
