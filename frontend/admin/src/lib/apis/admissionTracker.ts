@@ -132,10 +132,8 @@ export async function approveBillAmount(
   });
 }
 
-export async function fetchProviders(params: {
-  limit?: number;
-  page?: number;
-}) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchProviders(params: { limit?: any; page?: number }) {
   const queryParams = new URLSearchParams();
   if (params.limit) queryParams.append("limit", String(params.limit));
   if (params.page) queryParams.append("page", String(params.page));

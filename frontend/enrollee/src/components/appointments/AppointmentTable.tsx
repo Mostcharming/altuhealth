@@ -2,8 +2,8 @@
 
 import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
-import { EyeIcon, TrashBinIcon } from "@/icons";
-import { cancelAppointment, fetchAppointments } from "@/lib/apis/appointment";
+import { EyeIcon } from "@/icons";
+import { fetchAppointments } from "@/lib/apis/appointment";
 import { formatDate } from "@/lib/formatDate";
 import { Appointment, useAppointmentStore } from "@/lib/store/appointmentStore";
 import { capitalizeWords } from "@/utils";
@@ -25,7 +25,6 @@ const AppointmentTable: React.FC = () => {
     useState<Appointment | null>(null);
   const appointments = useAppointmentStore((s) => s.appointments);
   const setAppointments = useAppointmentStore((s) => s.setAppointments);
-  const removeAppointment = useAppointmentStore((s) => s.removeAppointment);
 
   type Header = {
     key: keyof Appointment | "actions";
@@ -142,19 +141,6 @@ const AppointmentTable: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedAppointment(null);
-  };
-
-  const handleCancel = async (appointmentId: string) => {
-    if (confirm("Are you sure you want to cancel this appointment?")) {
-      try {
-        await cancelAppointment(appointmentId);
-        removeAppointment(appointmentId);
-        alert("Appointment cancelled successfully");
-      } catch (err) {
-        console.error("Failed to cancel appointment", err);
-        alert("Failed to cancel appointment");
-      }
-    }
   };
 
   const getStatusColor = (status: string) => {
@@ -304,17 +290,8 @@ const AppointmentTable: React.FC = () => {
                         className="text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
                         title="View Details"
                       >
-                        <EyeIcon className="w-4 h-4" />
+                        <EyeIcon />
                       </button>
-                      {appointment.status === "pending" && (
-                        <button
-                          onClick={() => handleCancel(appointment.id)}
-                          className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                          title="Cancel Appointment"
-                        >
-                          <TrashBinIcon className="w-4 h-4" />
-                        </button>
-                      )}
                     </div>
                   </td>
                 </tr>

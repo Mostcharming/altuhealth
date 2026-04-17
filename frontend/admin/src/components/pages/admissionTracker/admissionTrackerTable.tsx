@@ -112,7 +112,7 @@ const AdmissionTrackerTable: React.FC = () => {
   useEffect(() => {
     const fetchProviderList = async () => {
       try {
-        const data = await fetchProviders({ limit: 100 });
+        const data = await fetchProviders({ limit: "all" });
         const items: Provider[] =
           data?.data?.list && Array.isArray(data.data.list)
             ? data.data.list

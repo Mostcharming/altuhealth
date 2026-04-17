@@ -11,22 +11,17 @@ async function createAppointment(req, res, next) {
 
         const {
             providerId,
-            companyId,
-            subsidiaryId,
             complaint,
             appointmentDateTime,
             notes
         } = req.body || {};
 
         if (!providerId) return res.fail('`providerId` is required', 400);
-        if (!companyId) return res.fail('`companyId` is required', 400);
         if (!appointmentDateTime) return res.fail('`appointmentDateTime` is required', 400);
 
         const appointment = await Appointment.create({
             enrolleeId,
             providerId,
-            companyId,
-            subsidiaryId,
             complaint,
             appointmentDateTime,
             notes,
@@ -35,6 +30,7 @@ async function createAppointment(req, res, next) {
 
         return res.success({ appointment: appointment.toJSON() }, 'Appointment created', 201);
     } catch (err) {
+        console.log('Error creating appointment:', err);
         return next(err);
     }
 }
@@ -201,7 +197,7 @@ async function updateAppointment(req, res, next) {
 
         await appointment.update(updates);
 
-        return res.success({ appointment }, 'Appointment updated');
+        return res.success({ appointment: appointment.toJSON() }, 'Appointment updated');
     } catch (err) {
         return next(err);
     }
