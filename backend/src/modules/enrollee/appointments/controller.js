@@ -1,10 +1,12 @@
 'use strict';
 
 const { Op } = require('sequelize');
+const { addProviderNotification } = require('../../../utils/addNotifications');
+const notify = require('../../../utils/notify');
 
 async function createAppointment(req, res, next) {
     try {
-        const { Appointment } = req.models;
+        const { Appointment, Enrollee, Provider } = req.models;
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
@@ -27,6 +29,55 @@ async function createAppointment(req, res, next) {
             notes,
             status: 'pending'
         });
+
+        // Fetch enrollee and provider details for notifications (non-blocking)
+        try {
+            const enrollee = await Enrollee.findByPk(enrolleeId);
+            const provider = await Provider.findByPk(providerId);
+
+            if (enrollee && provider) {
+                // Format appointment date time for display
+                const appointmentDate = new Date(appointmentDateTime);
+                const formattedDateTime = appointmentDate.toLocaleString('en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                // Create provider in-app notification
+                await addProviderNotification(req.models, {
+                    providerId,
+                    title: `New Appointment Request from ${enrollee.firstName} ${enrollee.lastName}`,
+                    message: `Patient: ${enrollee.firstName} ${enrollee.lastName}\nDate: ${formattedDateTime}\nReason: ${complaint || 'No reason specified'}`,
+                    clickUrl: 'appointments',
+                    notificationType: 'appointment_request'
+                });
+
+                // Send email notification to provider
+                await notify(
+                    provider,
+                    'Provider',
+                    'APPOINTMENT_CREATED',
+                    {
+                        enrolleeName: `${enrollee.firstName} ${enrollee.lastName}`,
+                        providerName: provider.name,
+                        appointmentDateTime: formattedDateTime,
+                        complaint: complaint || 'No complaint specified',
+                        notes: notes || 'No additional notes',
+                        providerPortalLink: `${process.env.FE_PROVIDER_URL || 'https://provider.altuhealth.com'}/appointments`
+                    },
+                    ['email'],
+                    true
+                );
+            }
+        } catch (notifErr) {
+            // Log notification error but don't block appointment creation
+            console.error('Error sending appointment notifications:', notifErr);
+        }
 
         return res.success({ appointment: appointment.toJSON() }, 'Appointment created', 201);
     } catch (err) {
@@ -205,7 +256,7 @@ async function updateAppointment(req, res, next) {
 
 async function cancelAppointment(req, res, next) {
     try {
-        const { Appointment } = req.models;
+        const { Appointment, Enrollee, Provider } = req.models;
         const { id } = req.params;
         const enrolleeId = req.user?.id;
 
@@ -227,6 +278,52 @@ async function cancelAppointment(req, res, next) {
         await appointment.update({
             status: 'cancelled'
         });
+
+        // Send notifications to provider (non-blocking)
+        try {
+            const enrollee = await Enrollee.findByPk(enrolleeId);
+            const provider = await Provider.findByPk(appointment.providerId);
+
+            if (enrollee && provider) {
+                const appointmentDate = new Date(appointment.appointmentDateTime);
+                const formattedDateTime = appointmentDate.toLocaleString('en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                // Create provider in-app notification
+                const { addProviderNotification } = require('../../../utils/addNotifications');
+                await addProviderNotification(req.models, {
+                    providerId: appointment.providerId,
+                    title: `Appointment Cancelled by ${enrollee.firstName} ${enrollee.lastName}`,
+                    message: `Patient: ${enrollee.firstName} ${enrollee.lastName}\nScheduled Date: ${formattedDateTime}\nStatus: Cancelled`,
+                    clickUrl: 'appointments',
+                    notificationType: 'appointment_cancelled'
+                });
+
+                // Send email notification to provider
+                await notify(
+                    provider,
+                    'Provider',
+                    'APPOINTMENT_CANCELLED_BY_ENROLLEE',
+                    {
+                        enrolleeName: `${enrollee.firstName} ${enrollee.lastName}`,
+                        providerName: provider.name,
+                        appointmentDateTime: formattedDateTime,
+                        providerPortalLink: `${process.env.FE_PROVIDER_URL || 'https://provider.altuhealth.com'}/appointments`
+                    },
+                    ['email'],
+                    true
+                );
+            }
+        } catch (notifErr) {
+            console.error('Error sending appointment cancellation notifications:', notifErr);
+        }
 
         return res.success({ appointment }, 'Appointment cancelled');
     } catch (err) {

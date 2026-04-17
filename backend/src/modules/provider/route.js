@@ -11,6 +11,7 @@ router.use(securityMiddleware);
 // Add other provider routes here as needed
 router.use('/account', require('./account/route'));
 router.use('/search', require('./search/route'));
+router.use('/appointments', require('./appointments/route'));
 router.use('/tickets', require('../common/tickets/route'));
 
 router.use(errorHandler);

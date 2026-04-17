@@ -20,8 +20,10 @@ interface Provider {
 
 export default function PageMetricsAppointments({
   buttonText = "Book an Appointment",
+  onAppointmentCreated,
 }: {
   buttonText?: string;
+  onAppointmentCreated?: () => void | Promise<void>;
 }) {
   const { isOpen, openModal, closeModal } = useModal();
   const [loading, setLoading] = useState(false);
@@ -70,7 +72,7 @@ export default function PageMetricsAppointments({
     if (isOpen) {
       fetchData();
     }
-  }, [isOpen]);
+  }, [isOpen, errorModal]);
 
   const resetForm = () => {
     setProviderId("");
@@ -83,6 +85,10 @@ export default function PageMetricsAppointments({
     successModal.closeModal();
     resetForm();
     closeModal();
+    // Trigger table refresh if callback is provided
+    if (onAppointmentCreated) {
+      onAppointmentCreated();
+    }
   };
 
   const handleErrorClose = () => {

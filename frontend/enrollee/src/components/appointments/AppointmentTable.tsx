@@ -10,7 +10,11 @@ import { capitalizeWords } from "@/utils";
 import React, { useCallback, useEffect, useState } from "react";
 import AppointmentDetailModal from "./AppointmentDetailModal";
 
-const AppointmentTable: React.FC = () => {
+interface AppointmentTableProps {
+  onFetchRef?: (fetch: () => Promise<void>) => void;
+}
+
+const AppointmentTable: React.FC<AppointmentTableProps> = ({ onFetchRef }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -93,6 +97,12 @@ const AppointmentTable: React.FC = () => {
   useEffect(() => {
     fetch();
   }, [fetch]);
+
+  useEffect(() => {
+    if (onFetchRef) {
+      onFetchRef(fetch);
+    }
+  }, [fetch, onFetchRef]);
 
   const startEntry: number =
     totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
@@ -269,7 +279,7 @@ const AppointmentTable: React.FC = () => {
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <span
-                      className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(
+                      className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
                         appointment.status
                       )}`}
                     >

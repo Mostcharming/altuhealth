@@ -1,6 +1,5 @@
-import AppointmentTable from "@/components/appointments/AppointmentTable";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PageMetricsAppointments from "@/components/pages/appointment/pageMetrics";
+import AppointmentsPageClient from "@/components/pages/appointment/AppointmentsPageClient";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -12,8 +11,7 @@ export default function AppointmentsPage() {
   return (
     <div>
       <PageBreadcrumb pageTitle="My Appointments" />
-      <PageMetricsAppointments buttonText="Book an Appointment" />
-      <AppointmentTable />
+      <AppointmentsPageClient />
     </div>
   );
 }

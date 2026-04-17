@@ -66,6 +66,15 @@ const AppointmentTable: React.FC = () => {
     { key: "actions", label: "Actions" },
   ];
 
+  const user = useAuthStore((s) => s.user);
+
+  // Set the selected provider ID from the user
+  useEffect(() => {
+    if (user?.id) {
+      setSelectedProviderId(user.id);
+    }
+  }, [user?.id]);
+
   const fetch = useCallback(async () => {
     try {
       setLoading(true);
@@ -74,7 +83,7 @@ const AppointmentTable: React.FC = () => {
         limit,
         page: currentPage,
         q: search,
-        providerId: selectedProviderId || undefined,
+        providerId: selectedProviderId,
         status: selectedStatus || undefined,
       });
 
@@ -103,11 +112,12 @@ const AppointmentTable: React.FC = () => {
     selectedStatus,
     setAppointments,
   ]);
-  const user = useAuthStore((s) => s.user);
+
   useEffect(() => {
-    setSelectedProviderId(user?.id || "");
-    fetch();
-  }, [fetch]);
+    if (selectedProviderId) {
+      fetch();
+    }
+  }, [fetch, selectedProviderId]);
 
   // Fetch providers on component mount
   useEffect(() => {

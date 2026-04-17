@@ -89,7 +89,6 @@ const CreateAppointmentForm: React.FC<CreateAppointmentFormProps> = ({
         notes: formData.notes || undefined,
       });
 
-      alert("Appointment created successfully!");
       setFormData({
         providerId: "",
         companyId: "",
