@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         companyId: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
             references: {
                 model: 'companies',
                 key: 'id'
@@ -59,7 +59,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: 'admins',
+                model: 'providers',
                 key: 'id'
             },
             field: 'approved_by'
@@ -68,7 +68,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.UUID,
             allowNull: true,
             references: {
-                model: 'admins',
+                model: 'providers',
                 key: 'id'
             },
             field: 'rejected_by'

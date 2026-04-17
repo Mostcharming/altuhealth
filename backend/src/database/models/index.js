@@ -454,13 +454,13 @@ function defineModels(sequelize) {
   CompanySubsidiary.hasMany(Appointment, { foreignKey: "subsidiaryId", as: 'appointments' });
   Appointment.belongsTo(CompanySubsidiary, { foreignKey: "subsidiaryId", as: 'subsidiary' });
 
-  // Appointment <-> Admin (approvedBy)
-  Admin.hasMany(Appointment, { foreignKey: "approvedBy", constraints: false, scope: { approvedBy: null }, as: 'approvedAppointments' });
-  Appointment.belongsTo(Admin, { foreignKey: "approvedBy", constraints: false, as: 'approver' });
+  // Appointment <-> Provider (approvedBy)
+  Provider.hasMany(Appointment, { foreignKey: "approvedBy", constraints: false, as: 'approvedAppointments' });
+  Appointment.belongsTo(Provider, { foreignKey: "approvedBy", constraints: false, as: 'approver' });
 
-  // Appointment <-> Admin (rejectedBy)
-  Admin.hasMany(Appointment, { foreignKey: "rejectedBy", constraints: false, scope: { rejectedBy: null }, as: 'rejectedAppointments' });
-  Appointment.belongsTo(Admin, { foreignKey: "rejectedBy", constraints: false, as: 'rejector' });
+  // Appointment <-> Provider (rejectedBy)
+  Provider.hasMany(Appointment, { foreignKey: "rejectedBy", constraints: false, as: 'rejectedAppointments' });
+  Appointment.belongsTo(Provider, { foreignKey: "rejectedBy", constraints: false, as: 'rejector' });
 
   // AdmissionTracker <-> Enrollee one-to-many
   Enrollee.hasMany(AdmissionTracker, { foreignKey: "enrolleeId", as: 'admissions' });
