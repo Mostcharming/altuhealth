@@ -213,6 +213,65 @@
         * Verify authorization code still valid
         * Check authorization hasn't been exhausted/used
         ↓
+[1a-1] Admission Determination (Inpatient vs Outpatient):
+     - Provider assesses if inpatient admission is medically necessary:
+        * Service type requires hospitalization? (Yes/No)
+        * Patient condition requires monitoring/bed stay? (Yes/No)
+        * Service-specific admission criteria met?
+        * Severity level warrants inpatient care?
+     - Admission decision classification:
+        ├─ OUTPATIENT: Service can be delivered in outpatient setting
+        │  └─ Admission flag: "Not Required"
+        │
+        └─ INPATIENT: Patient requires hospitalization
+           └─ Admission flag: "Required"
+              ↓
+              [1a-2] Inpatient Admission Authorization Check:
+                   - If admission required, check authorization:
+                      * Does pre-auth include inpatient services? (Yes/No)
+                      * Is hospitalization explicitly authorized?
+                      * Admission duration limits specified in auth?
+                   - Admission type determination:
+                      * Planned admission (scheduled)
+                      * Emergency admission (immediate)
+                   - For PLANNED admission (pre-authorized):
+                      * Proceed with admission workflow
+                   - For PLANNED admission (NOT pre-authorized):
+                      * Submit stat authorization request to HMO
+                      * Include: admission reason, expected duration, facility
+                      * Await real-time approval (stat review)
+                   - For EMERGENCY admission:
+                      * Proceed immediately with admission
+                      * Concurrent authorization review post-admission
+        ↓
+        [1a-3] Admission Record Created (if Admission Required):
+             - Admission details captured and stored:
+                * Admission ID generated
+                * Appointment ID linked to Admission ID
+                * Authorization code referenced (if pre-auth obtained)
+                * Admission date & time recorded
+                * Admission type: "Planned" or "Emergency"
+                * Facility/Hospital where admitted
+                * Admitting provider/physician
+             - Admission reason documented:
+                * Primary admission diagnosis (ICD-10 code)
+                * Secondary diagnoses
+                * Clinical justification for hospitalization
+             - Admission status recorded:
+                * Status: "Admitted" (for confirmed admissions)
+                * Status: "Pending Authorization" (if awaiting approval)
+                * Status: "Concurrent Review" (emergency admissions)
+             - Enrollee admission information captured:
+                * Emergency contact confirmation
+                * Room assignment (if available)
+                * Bed status updated in hospital system
+                * Insurance verification confirmed
+             - Admission notification sent:
+                * Enrollee notified of admission details
+                * Emergency contact notified
+                * Enrollee sent admission confirmation number
+                * Pre-admission/admission instructions provided
+        ↓
 [1b] Service Authorization Status Decision:
     ├─ Service covered under existing authorization
     │  └─ Proceed to [6] Service Delivery
@@ -292,6 +351,42 @@
         * Actual visit date/time recorded
         * Provider attestation of visit
      - Receipts/Discharge documents provided to enrollee
+        ↓
+[6d] Admission Discharge & Closure (if Inpatient Admission):
+     - Discharge determination by provider:
+        * Patient medically cleared for discharge? (Yes/No)
+        * All treatment goals achieved?
+        * Discharge criteria met per clinical protocol?
+     - Discharge details captured:
+        * Discharge date & time recorded
+        * Discharge status: "Discharged home", "Transferred to facility", etc.
+        * Actual length of stay calculated (admission to discharge dates)
+        * Total hospitalization charges accumulated
+     - Discharge clinical documentation:
+        * Discharge summary created
+        * Final diagnoses documented (ICD-10 codes)
+        * All procedures performed during stay (CPT, HCPCS codes)
+        * Medications prescribed at discharge
+        * Follow-up care instructions provided
+        * Restrictions/activity limitations noted
+        * Referrals to other providers (if needed)
+     - Post-discharge instructions provided to enrollee:
+        * Medication administration instructions
+        * Diet/activity restrictions
+        * Wound care instructions (if applicable)
+        * When to seek emergency care
+        * Follow-up appointment scheduling
+        * Contact numbers for questions
+     - Discharge notification:
+        * Enrollee provided discharge documentation
+        * Emergency contact notified of discharge
+        * Discharge confirmation sent via SMS/Email
+        * Access to discharge summary in ERP portal
+     - Admission record closed:
+        * Admission status changed to "Discharged"
+        * Discharge timestamp recorded
+        * Admission marked as "Complete"
+        * Admission ID linked to discharge record
         ↓
 
 ════════════════════════════════════════════════════════════════════════
@@ -658,3 +753,8 @@ Utilization Tracking:
 ════════════════════════════════════════════════════════════════════════
                           END OF FLOW
 ════════════════════════════════════════════════════════════════════════
+
+
+
+
+edit profile proveder/enrollee
