@@ -44,7 +44,7 @@ async function listMedicalHistory(req, res, next) {
                 },
                 {
                     model: Diagnosis,
-                    attributes: ['id', 'name', 'code', 'description'],
+                    attributes: ['id', 'name', 'description', 'severity'],
                     required: false
                 }
             ]
@@ -93,7 +93,7 @@ async function getMedicalHistory(req, res, next) {
                 },
                 {
                     model: Diagnosis,
-                    attributes: ['id', 'name', 'code', 'description'],
+                    attributes: ['id', 'name', 'description', 'severity'],
                     required: false
                 }
             ]

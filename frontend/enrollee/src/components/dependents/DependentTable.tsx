@@ -3,23 +3,19 @@
 import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
-import { fetchMedicalHistories } from "@/lib/apis/medicalHistory";
-import capitalizeWords from "@/lib/capitalize";
-import { formatDate, formatPrice } from "@/lib/formatDate";
-import {
-  MedicalHistory,
-  useMedicalHistoryStore,
-} from "@/lib/store/medicalHistoryStore";
+import { fetchDependents } from "@/lib/apis/dependent";
+import { formatDate } from "@/lib/formatDate";
+import { Dependent, useDependentStore } from "@/lib/store/dependentStore";
+import { capitalizeWords } from "@/utils";
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
-import MedicalHistoryDetailModal from "./MedicalHistoryDetailModal";
 
-interface MedicalHistoryTableProps {
+interface DependentTableProps {
   onFetchRef?: (fetch: () => Promise<void>) => void;
 }
 
-const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
-  onFetchRef,
-}) => {
+const DependentTable: React.FC<DependentTableProps> = ({ onFetchRef }) => {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -29,17 +25,11 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedRecord, setSelectedRecord] = useState<MedicalHistory | null>(
-    null
-  );
-  const medicalHistories = useMedicalHistoryStore((s) => s.medicalHistories);
-  const setMedicalHistories = useMedicalHistoryStore(
-    (s) => s.setMedicalHistories
-  );
+  const dependents = useDependentStore((s) => s.dependents);
+  const setDependents = useDependentStore((s) => s.setDependents);
 
   type Header = {
-    key: keyof MedicalHistory | "actions";
+    key: keyof Dependent | "actions";
     label: string;
   };
 
@@ -51,21 +41,21 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
     { value: "50", label: "50" },
   ];
 
-  const medicalHistoryStatuses = [
-    { value: "", label: "All Statuses" },
-    { value: "pending", label: "Pending" },
-    { value: "reviewed", label: "Reviewed" },
-    { value: "approved", label: "Approved" },
-    { value: "rejected", label: "Rejected" },
+  const statusOptions = [
+    { value: "", label: "All Status" },
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
   ];
 
   const headers: Header[] = [
-    { key: "id", label: "Record ID" },
-    { key: "serviceDate", label: "Service Date" },
-    { key: "evsCode", label: "EVS Code" },
-    { key: "amount", label: "Amount" },
-    { key: "status", label: "Status" },
-    { key: "createdAt", label: "Created At" },
+    { key: "policyNumber", label: "Policy Number" },
+    { key: "firstName", label: "First Name" },
+    { key: "lastName", label: "Last Name" },
+    { key: "relationshipToEnrollee", label: "Relationship" },
+    { key: "dateOfBirth", label: "Date of Birth" },
+    { key: "gender", label: "Gender" },
+    { key: "isActive", label: "Status" },
+    { key: "enrollmentDate", label: "Enrollment Date" },
     { key: "actions", label: "Actions" },
   ];
 
@@ -73,31 +63,31 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
     try {
       setLoading(true);
 
-      const data = await fetchMedicalHistories({
+      const data = await fetchDependents({
         limit,
         page: currentPage,
         q: search,
         status: selectedStatus || undefined,
       });
 
-      const items: MedicalHistory[] =
+      const items: Dependent[] =
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
           ? data
           : [];
 
-      setMedicalHistories(items);
+      setDependents(items);
       setTotalItems(data?.data?.count ?? 0);
       setHasNextPage(Boolean(data?.data?.hasNextPage));
       setHasPreviousPage(Boolean(data?.data?.hasPrevPage));
       setTotalPages(data?.data?.totalPages ?? 1);
     } catch (err) {
-      console.error("Error fetching medical histories:", err);
+      console.warn("Dependents fetch failed", err);
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, selectedStatus, setMedicalHistories]);
+  }, [limit, currentPage, search, selectedStatus, setDependents]);
 
   useEffect(() => {
     fetch();
@@ -148,29 +138,14 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
     visiblePages.push(i);
   }
 
-  const handleViewDetails = (record: MedicalHistory) => {
-    setSelectedRecord(record);
-    setIsModalOpen(true);
+  const handleViewDetails = (dependent: Dependent) => {
+    router.push(`/dependents/${dependent.id}`);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedRecord(null);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "reviewed":
-        return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
-      case "approved":
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-      case "rejected":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
-    }
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive
+      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+      : "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
   };
 
   return (
@@ -178,28 +153,45 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Medical History Records
+            My Dependents
           </h3>
         </div>
 
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
             <Select
-              options={medicalHistoryStatuses}
+              options={statusOptions}
               placeholder="Select status"
               onChange={handleStatusChange}
               defaultValue={selectedStatus}
             />
             <div className="relative">
+              <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                <svg
+                  className="fill-current"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z"
+                    fill=""
+                  />
+                </svg>
+              </span>
               <input
                 type="text"
-                placeholder="Search records..."
+                placeholder="Search..."
+                className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 value={search}
-                onChange={(e) => {
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-800 placeholder-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
               />
             </div>
           </div>
@@ -209,8 +201,8 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
       {loading ? (
         <SpinnerThree />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                 {headers.map((h) => (
@@ -227,70 +219,67 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {medicalHistories.map((record: MedicalHistory) => (
+
+            <tbody>
+              {dependents.map((dependent) => (
                 <tr
-                  key={record.id}
-                  className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
+                  key={dependent.id}
+                  className="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.02]"
                 >
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {record.id?.substring(0, 8) || "-"}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {dependent.policyNumber}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {record.serviceDate
-                        ? formatDate(record.serviceDate)
-                        : "-"}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {capitalizeWords(dependent.firstName)}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {record.evsCode || "-"}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {capitalizeWords(dependent.lastName)}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {formatPrice(record.amount ?? 0, record.currency)}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {capitalizeWords(
+                      dependent.relationshipToEnrollee.replace(/_/g, " ")
+                    )}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {formatDate(dependent.dateOfBirth)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {capitalizeWords(dependent.gender)}
+                  </td>
+                  <td className="px-4 py-3">
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        record.status
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusBadge(
+                        dependent.isActive ?? true
                       )}`}
                     >
-                      {capitalizeWords(record.status)}
+                      {dependent.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {record.createdAt ? formatDate(record.createdAt) : "-"}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {formatDate(dependent.enrollmentDate || "")}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
+                  <td className="px-4 py-3">
                     <button
-                      onClick={() => handleViewDetails(record)}
-                      className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                      onClick={() => handleViewDetails(dependent)}
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium hover:bg-brand-100 dark:bg-brand-900/20 dark:text-brand-400 dark:hover:bg-brand-900/30"
                     >
-                      <EyeIcon className="w-4 h-4" />
+                      <EyeIcon className="" />
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {medicalHistories.length === 0 && (
+
+          {dependents.length === 0 && (
             <div className="p-8 text-center">
               <p className="text-gray-500 dark:text-gray-400">
-                No medical history records found.
+                No dependents found
               </p>
             </div>
           )}
         </div>
       )}
-
       <div className="flex items-center flex-col sm:flex-row justify-between border-t border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <Select
@@ -399,14 +388,8 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
           </button>
         </div>
       </div>
-
-      <MedicalHistoryDetailModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        medicalHistory={selectedRecord}
-      />
     </div>
   );
 };
 
-export default MedicalHistoryTable;
+export default DependentTable;

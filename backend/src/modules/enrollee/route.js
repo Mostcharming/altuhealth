@@ -11,6 +11,7 @@ router.use(securityMiddleware);
 // Add other enrollee routes here as needed
 router.use('/account', require('./account/route'));
 router.use('/appointments', require('./appointments/route'));
+router.use('/dependents', require('./enrolleeDependents/route'));
 router.use('/medical-history', require('./medicalHistory/route'));
 router.use('/tickets', require('../common/tickets/route'));
 router.use('/notifications', require('./notifications/route'));

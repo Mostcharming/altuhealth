@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/ui/modal";
 import capitalizeWords from "@/lib/capitalize";
-import { formatDate } from "@/lib/formatDate";
+import { formatDate, formatPrice } from "@/lib/formatDate";
 import { MedicalHistory } from "@/lib/store/medicalHistoryStore";
 import React from "react";
 
@@ -97,8 +97,7 @@ const MedicalHistoryDetailModal: React.FC<MedicalHistoryDetailModalProps> = ({
                   Amount
                 </label>
                 <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                  {medicalHistory.currency}{" "}
-                  {Number(medicalHistory.amount).toLocaleString()}
+                  {formatPrice(medicalHistory.amount, medicalHistory.currency)}
                 </p>
               </div>
             )}

@@ -2,44 +2,46 @@
 
 import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
-import { EyeIcon } from "@/icons";
-import { fetchMedicalHistories } from "@/lib/apis/medicalHistory";
-import capitalizeWords from "@/lib/capitalize";
-import { formatDate, formatPrice } from "@/lib/formatDate";
-import {
-  MedicalHistory,
-  useMedicalHistoryStore,
-} from "@/lib/store/medicalHistoryStore";
+import { apiClient } from "@/lib/apiClient";
 import React, { useCallback, useEffect, useState } from "react";
-import MedicalHistoryDetailModal from "./MedicalHistoryDetailModal";
 
-interface MedicalHistoryTableProps {
-  onFetchRef?: (fetch: () => Promise<void>) => void;
+interface DependentMedicalHistoryTableProps {
+  dependentId: string;
 }
 
-const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
-  onFetchRef,
-}) => {
+interface MedicalHistory {
+  id: string;
+  enrolleeDependentId: string;
+  providerId?: string;
+  diagnosisId?: string;
+  evsCode?: string;
+  amount?: number;
+  serviceDate?: string;
+  notes?: string;
+  attachmentUrl?: string;
+  status: string;
+  createdAt: string;
+  provider?: { name: string };
+  diagnosis?: { name: string };
+}
+
+const DependentMedicalHistoryTable: React.FC<
+  DependentMedicalHistoryTableProps
+> = ({ dependentId }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
-  const [search, setSearch] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [totalItems, setTotalItems] = useState<number>(1);
+  const [totalItems, setTotalItems] = useState<number>(0);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedRecord, setSelectedRecord] = useState<MedicalHistory | null>(
-    null
-  );
-  const medicalHistories = useMedicalHistoryStore((s) => s.medicalHistories);
-  const setMedicalHistories = useMedicalHistoryStore(
-    (s) => s.setMedicalHistories
+  const [medicalHistories, setMedicalHistories] = useState<MedicalHistory[]>(
+    []
   );
 
   type Header = {
-    key: keyof MedicalHistory | "actions";
+    key: string;
     label: string;
   };
 
@@ -51,8 +53,8 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
     { value: "50", label: "50" },
   ];
 
-  const medicalHistoryStatuses = [
-    { value: "", label: "All Statuses" },
+  const statusOptions = [
+    { value: "", label: "All Status" },
     { value: "pending", label: "Pending" },
     { value: "reviewed", label: "Reviewed" },
     { value: "approved", label: "Approved" },
@@ -60,106 +62,81 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
   ];
 
   const headers: Header[] = [
-    { key: "id", label: "Record ID" },
-    { key: "serviceDate", label: "Service Date" },
+    { key: "provider", label: "Provider" },
+    { key: "diagnosis", label: "Diagnosis" },
     { key: "evsCode", label: "EVS Code" },
+    { key: "serviceDate", label: "Service Date" },
     { key: "amount", label: "Amount" },
     { key: "status", label: "Status" },
-    { key: "createdAt", label: "Created At" },
-    { key: "actions", label: "Actions" },
+    { key: "createdAt", label: "Date Created" },
   ];
 
   const fetch = useCallback(async () => {
     try {
       setLoading(true);
+      const response = await apiClient(
+        `/enrollee/dependents/${dependentId}/medical-histories?page=${currentPage}&limit=${limit}${
+          selectedStatus ? `&status=${selectedStatus}` : ""
+        }`
+      );
 
-      const data = await fetchMedicalHistories({
-        limit,
-        page: currentPage,
-        q: search,
-        status: selectedStatus || undefined,
-      });
-
-      const items: MedicalHistory[] =
-        data?.data?.list && Array.isArray(data.data.list)
-          ? data.data.list
-          : Array.isArray(data)
-          ? data
-          : [];
-
-      setMedicalHistories(items);
-      setTotalItems(data?.data?.count ?? 0);
-      setHasNextPage(Boolean(data?.data?.hasNextPage));
-      setHasPreviousPage(Boolean(data?.data?.hasPrevPage));
-      setTotalPages(data?.data?.totalPages ?? 1);
+      if (response?.data) {
+        setMedicalHistories(response.data.list || []);
+        setTotalItems(response.data.count || 0);
+        setHasNextPage(response.data.hasNextPage || false);
+        setHasPreviousPage(response.data.hasPrevPage || false);
+        setTotalPages(response.data.totalPages || 1);
+      }
     } catch (err) {
       console.error("Error fetching medical histories:", err);
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, selectedStatus, setMedicalHistories]);
+  }, [limit, currentPage, selectedStatus, dependentId]);
 
   useEffect(() => {
     fetch();
   }, [fetch]);
 
-  useEffect(() => {
-    if (onFetchRef) {
-      onFetchRef(fetch);
-    }
-  }, [fetch, onFetchRef]);
-
   const startEntry: number =
     totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
   const endEntry: number = Math.min(currentPage * limit, totalItems);
 
+  const visiblePages: number[] = React.useMemo(() => {
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [currentPage, totalPages]);
+
+  const goToPage = (page: number): void => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
+
   const handleSelectChange = (selectedValue: string) => {
-    setLimit(Number(selectedValue));
+    const newLimit = Number(selectedValue);
+    setLimit(newLimit);
     setCurrentPage(1);
   };
 
-  const handleStatusChange = (selectedValue: string) => {
-    setSelectedStatus(selectedValue);
+  const handleStatusChange = (status: string) => {
+    setSelectedStatus(status);
     setCurrentPage(1);
   };
 
-  const previousPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const nextPage = (): void => {
+    if (currentPage < totalPages) setCurrentPage((p) => p + 1);
   };
 
-  const nextPage = () => {
-    setCurrentPage((prev) => (hasNextPage ? prev + 1 : prev));
+  const previousPage = (): void => {
+    if (currentPage > 1) setCurrentPage((p) => p - 1);
   };
 
-  const goToPage = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const visiblePages: number[] = [];
-  const maxVisiblePages = 5;
-  let start = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-  const end = Math.min(totalPages, start + maxVisiblePages - 1);
-
-  if (end - start < maxVisiblePages - 1) {
-    start = Math.max(1, end - maxVisiblePages + 1);
-  }
-
-  for (let i = start; i <= end; i++) {
-    visiblePages.push(i);
-  }
-
-  const handleViewDetails = (record: MedicalHistory) => {
-    setSelectedRecord(record);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedRecord(null);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusBadgeColor = (status: string | undefined) => {
+    switch (status?.toLowerCase()) {
       case "pending":
         return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
       case "reviewed":
@@ -173,35 +150,32 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
     }
   };
 
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) return "N/A";
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Medical History Records
+            Medical History
           </h3>
         </div>
 
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
             <Select
-              options={medicalHistoryStatuses}
+              options={statusOptions}
               placeholder="Select status"
               onChange={handleStatusChange}
               defaultValue={selectedStatus}
             />
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search records..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-800 placeholder-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-              />
-            </div>
           </div>
         </div>
       </div>
@@ -209,8 +183,8 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
       {loading ? (
         <SpinnerThree />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                 {headers.map((h) => (
@@ -227,64 +201,49 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-              {medicalHistories.map((record: MedicalHistory) => (
+
+            <tbody>
+              {medicalHistories.map((history) => (
                 <tr
-                  key={record.id}
-                  className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
+                  key={history.id}
+                  className="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-white/[0.02]"
                 >
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {record.id?.substring(0, 8) || "-"}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {history.provider?.name || "N/A"}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {record.serviceDate
-                        ? formatDate(record.serviceDate)
-                        : "-"}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {history.diagnosis?.name || "N/A"}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {record.evsCode || "-"}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {history.evsCode || "N/A"}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {formatPrice(record.amount ?? 0, record.currency)}
-                    </span>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {formatDate(history.serviceDate)}
                   </td>
-                  <td className="p-4 whitespace-nowrap">
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {history.amount ? `$${history.amount.toFixed(2)}` : "N/A"}
+                  </td>
+                  <td className="px-4 py-3">
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        record.status
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(
+                        history.status
                       )}`}
                     >
-                      {capitalizeWords(record.status)}
+                      {history.status}
                     </span>
                   </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {record.createdAt ? formatDate(record.createdAt) : "-"}
-                    </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleViewDetails(record)}
-                      className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                    >
-                      <EyeIcon className="w-4 h-4" />
-                    </button>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">
+                    {formatDate(history.createdAt)}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
           {medicalHistories.length === 0 && (
             <div className="p-8 text-center">
               <p className="text-gray-500 dark:text-gray-400">
-                No medical history records found.
+                No medical history found
               </p>
             </div>
           )}
@@ -399,14 +358,8 @@ const MedicalHistoryTable: React.FC<MedicalHistoryTableProps> = ({
           </button>
         </div>
       </div>
-
-      <MedicalHistoryDetailModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        medicalHistory={selectedRecord}
-      />
     </div>
   );
 };
 
-export default MedicalHistoryTable;
+export default DependentMedicalHistoryTable;
