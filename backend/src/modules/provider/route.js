@@ -13,6 +13,8 @@ router.use('/account', require('./account/route'));
 router.use('/search', require('./search/route'));
 router.use('/appointments', require('./appointments/route'));
 router.use('/tickets', require('../common/tickets/route'));
+router.use('/notifications', require('./notifications/route'));
+
 
 router.use(errorHandler);
 

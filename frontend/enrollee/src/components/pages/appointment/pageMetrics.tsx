@@ -72,7 +72,8 @@ export default function PageMetricsAppointments({
     if (isOpen) {
       fetchData();
     }
-  }, [isOpen, errorModal]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const resetForm = () => {
     setProviderId("");
