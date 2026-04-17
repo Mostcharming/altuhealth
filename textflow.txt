@@ -1,18 +1,4 @@
 
-════════════════════════════════════════════════════════════════════════
-                    APPOINTMENT CREATION & BOOKING FLOW
-════════════════════════════════════════════════════════════════════════
-
-[0] Enrollee Initiates Appointment Request (via ERP Portal/Mobile):
-     - Enrollee logs into ERP system with Member ID credentials
-     - Browse/search for providers:
-        * By specialty (Cardiology, Orthopedics, etc.)
-        * By location/facility
-        * By insurance network availability
-        * View provider credentials, ratings, experience
-     - Select preferred provider/facility
-     - System retrieves provider's available time slots
-        ↓
 [0a] Appointment Details Collection:
      - Service type selection:
         * Reason for visit/Chief complaint (required)
@@ -23,6 +9,10 @@
         * Appointment type (In-person, Telehealth, Hybrid)
         * Duration estimate (based on service type)
      - Enrollee information verified:
+
+
+
+
         * Name, DOB, Member ID
         * Current contact information (phone, email)
         * Dependent status (if appointment for dependent)
@@ -755,6 +745,12 @@ Utilization Tracking:
 ════════════════════════════════════════════════════════════════════════
 
 
+enrollee dependent logging in and doing all actions
+adding dependents
+
+retail ernrolle doing the same but now, they get to pay subscription fee and so on
 
 
 edit profile proveder/enrollee
+
+referal onboarding and so on

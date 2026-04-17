@@ -53,7 +53,7 @@ export default function AiLayout({ children }: { children?: ReactNode }) {
     <div className="relative h-[calc(100vh-134px)] xl:h-[calc(100vh-146px)] px-4 xl:flex xl:px-0">
       <div className="my-6 flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-3 xl:hidden dark:border-gray-800 dark:bg-gray-900">
         <h4 className="pl-2 text-lg font-medium text-gray-800 dark:text-white/90">
-          Chats History
+          Search History
         </h4>
         <button
           onClick={() => setSidebarOpen(true)}

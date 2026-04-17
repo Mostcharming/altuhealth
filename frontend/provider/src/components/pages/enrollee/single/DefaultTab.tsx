@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import EnrolleeAuthorizationCodesTable from "./enrolleeAuthorizationCodesTable";
 import EnrolleeBenefitsTable from "./enrolleeBenefitsTable";
 import EnrolleeMedicalHistoryTable from "./enrolleeMedicalHistoryTable";
 
@@ -58,11 +57,6 @@ const DefaultTab: React.FC<{ id: string }> = ({ id }) => {
                 {tab.key === "medical" && (
                   <div>
                     <EnrolleeMedicalHistoryTable enrolleeId={id} />
-                  </div>
-                )}
-                {tab.key === "authorization" && (
-                  <div>
-                    <EnrolleeAuthorizationCodesTable enrolleeId={id} />
                   </div>
                 )}
               </div>
