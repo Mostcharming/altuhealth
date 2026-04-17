@@ -1,6 +1,6 @@
 "use client";
 import { apiClient } from "@/lib/apiClient";
-import { useAuthStore } from "@/lib/authStore";
+import capitalizeWords from "@/lib/capitalize";
 import { Account, useAccountStore } from "@/lib/store/accountStore";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
@@ -10,8 +10,6 @@ export default function UserMetaCard() {
   const account = useAccountStore((s) => s.account);
   const setAccount = useAccountStore((s) => s.setAccount);
   const [loading, setLoading] = useState(true);
-
-  const user = useAuthStore((s) => s.user);
 
   const fetchAccount = useCallback(async () => {
     try {
@@ -56,11 +54,11 @@ export default function UserMetaCard() {
               </div>
               <div className="order-3 xl:order-2">
                 <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-                  {account?.firstName || "John"} {account?.lastName || "Doe"}
+                  {capitalizeWords(account?.name) || "Provider"}
                 </h4>
                 <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {user?.role}
+                    Provider
                   </p>
                   <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">

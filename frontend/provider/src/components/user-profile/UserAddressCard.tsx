@@ -16,6 +16,7 @@ export default function UserAddressCard() {
   const [oldPassword, setOldPassword] = useState("");
   const errorModal = useModal();
   const successModal = useModal();
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +43,8 @@ export default function UserAddressCard() {
       setPassword("");
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
+      const errorMsg = err.message || "Failed to change password";
+      setErrorMessage(errorMsg);
       errorModal.openModal();
       console.error("Sign in error:", err);
     }
@@ -135,7 +138,7 @@ export default function UserAddressCard() {
       />
 
       <ErrorModal
-        message=""
+        message={errorMessage}
         errorModal={errorModal}
         handleErrorClose={handleErrorClose}
       />

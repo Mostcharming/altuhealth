@@ -1,49 +1,113 @@
-[1] Patient (Enrollee) visits Provider:
-     - Enrollee checks in at provider facility
-     - Provider captures visit details:
-        * Chief complaint/reason for visit
-        * Vital signs recorded
-        * Initial assessment completed
-     - Provider determines if service requires prior authorization
-     - Provider verifies patient insurance coverage
-     - Enrollee identity confirmed (ID verification)
-     - Copay/deductible collected if applicable
+
+════════════════════════════════════════════════════════════════════════
+                    APPOINTMENT CREATION & BOOKING FLOW
+════════════════════════════════════════════════════════════════════════
+
+[0] Enrollee Initiates Appointment Request (via ERP Portal/Mobile):
+     - Enrollee logs into ERP system with Member ID credentials
+     - Browse/search for providers:
+        * By specialty (Cardiology, Orthopedics, etc.)
+        * By location/facility
+        * By insurance network availability
+        * View provider credentials, ratings, experience
+     - Select preferred provider/facility
+     - System retrieves provider's available time slots
         ↓
-[1a] Pre-Authorization Check:
-     - Provider determines service type (elective, emergency, routine)
-     - Provider checks if authorization is required based on:
-        * Service complexity
-        * Plan requirements
-        * Provider network status
-     - If required: proceed to [2]
-     - If not required: proceed directly to service delivery
-        ↓
-[2] Provider submits Authorization Request:
-     - Provider collects required clinical information:
-        * Diagnosis codes (ICD-10)
-        * Proposed procedures/services (CPT codes)
-        * Duration and frequency of treatment
-        * Medical justification/clinical notes
-        * Supporting documentation (test results, imaging, etc.)
+[0a] Appointment Details Collection:
+     - Service type selection:
+        * Reason for visit/Chief complaint (required)
+        * Estimated service category (Consultation, Diagnostic, Procedure, etc.)
+        * Severity level (routine, urgent, non-emergency)
+     - Appointment details captured:
+        * Preferred appointment date & time
+        * Appointment type (In-person, Telehealth, Hybrid)
+        * Duration estimate (based on service type)
      - Enrollee information verified:
         * Name, DOB, Member ID
-        * Dependent status confirmation
-        * Plan details (plan name, ID, effective dates)
-     - Authorization request created in system:
-        * Request ID generated
-        * Timestamp recorded
-        * Provider details captured
-        * Request status set to "Submitted"
-     - Request validation:
-        * Required fields checked
-        * Medical codes validated
-        * Duplicate request check
-     - Authorization request transmitted to HMO ERP
+        * Current contact information (phone, email)
+        * Dependent status (if appointment for dependent)
+        * Insurance plan details (pulled from active enrollment)
+     - Insurance coverage verification at booking time:
+        * Verify plan is active/not suspended
+        * Confirm no delinquent payments
+        * Check policy effective dates
+     - Emergency contact information (if applicable)
         ↓
-[3] HMO ERP System Validation:
+[0b] Pre-Appointment Service Authorization Check (ERP):
+     - Service type analysis:
+        * Map chief complaint to medical service codes (CPT, ICD-10)
+        * Determine service category (elective, routine, emergency, diagnostic)
+     - Authorization requirement determination:
+        * Check plan requirements for service type
+        * Query authorization lookup table:
+           - Does this service require prior authorization? (Yes/No)
+           - Is provider network status relevant? (In-network vs Out-of-network)
+           - Are there service-specific preconditions?
+     - Eligibility cross-check:
+        * Verify enrollee age appropriateness for service (pediatric, adult-only)
+        * Check for coverage exclusions specific to service
+        * Verify plan covers this service (not excluded)
+        ↓
+[0c] Authorization Decision at Booking Stage:
+    ├─ Service DOES NOT require prior auth (routine/preventive)
+    │  └─ Proceed to [0d] - Confirm Appointment
+    │
+    └─ Service REQUIRES prior authorization (elective/complex)
+       └─ Proceed to [0c-1] - Collect Pre-Auth Data
+        ↓
+[0c-1] Collect Pre-Authorization Data at Booking:
+     - For authorization-required services, collect additional info:
+        * Relevant medical history:
+           - Previous treatments/surgeries for this condition
+           - Current medications related to condition
+           - Relevant lab results or imaging (if available)
+           - Chronic conditions that affect treatment
+        * Specific clinical information:
+           - Duration/frequency of treatment (if multi-visit)
+           - Specific procedures planned (if known)
+           - Treatment goals/objectives
+        * Supporting documentation upload option:
+           - Recent test results
+           - Imaging reports
+           - Medical records from other providers
+        * Authorization request status set to "Pre-Pending"
+        ↓
+[0d] Appointment Confirmation & Booking:
+     - Appointment slot reserved:
+        * Appointment ID generated
+        * Appointment status: "Confirmed" or "Pending Authorization"
+        * Timestamp recorded (booking date/time)
+     - For NON-authorization services: Status = "Confirmed"
+     - For AUTHORIZATION services: Status = "Pending Authorization"
+     - Confirmation details:
+        * Appointment confirmation number sent to enrollee
+        * SMS/Email confirmation sent with:
+           - Appointment date/time
+           - Provider details
+           - Facility location & directions
+           - Pre-visit instructions
+           - Cancellation policy
+        * Appointment stored in Enrollee's ERP schedule
+        * Provider calendar updated (pending if auth required)
+        ↓
+[0e] For Authorization-Required Services - Submit to HMO:
+     - If pre-auth required, forward collected data:
+        * Appointment ID linked to authorization request
+        * All collected service/clinical information
+        * Enrollee eligibility snapshot (active plan, coverage, limits)
+        * Provider information
+     - Request status: "Submitted for Pre-Authorization"
+     - Proceed to [3] HMO ERP System Validation
+        ↓
+        
+════════════════════════════════════════════════════════════════════════
+                    ENROLLMENT → PRE-AUTHORIZATION FLOW
+════════════════════════════════════════════════════════════════════════
+
+[3] HMO ERP System Validation (Pre-Authorization Received):
      - Data validation:
         * Verify request format and completeness
-        * Validate medical codes (ICD-10, CPT, HCPCS)
+        * Validate medical codes (ICD-10, CPT, HCPCS) if provided
         * Check provider/facility network status
      - Enrollee eligibility verification:
         * Confirm enrollment status (active/inactive)
@@ -77,117 +141,520 @@
         Approve / Reject / Query / Suspend
         ↓
 [4a] Handle Query/Additional Info Request:
-     - Provider submits additional documents
+     - Provider/Enrollee submits additional documents
      - Medical review team evaluates
      - Final decision made
         ↓
-[5] Response sent to Provider
+[5] Response sent to Provider & Enrollee:
      - Auth Code generated (if Approved)
+        * Authorization valid from date to date
+        * Authorization covers specific services/procedures
+        * Coverage percentage noted (80%, 90%, etc.)
      - Rejection reason documented (if Rejected)
      - Appeal instructions provided (if Denied)
+     - Appointment status updated in ERP:
+        * "Confirmed & Authorized" (if approved)
+        * "Appointment Cancelled - Not Authorized" (if rejected)
+     - Notification sent to Enrollee:
+        * Authorization status
+        * Expected out-of-pocket costs
+        * Any pre-visit requirements
         ↓
-[6] Provider delivers service
+        
+════════════════════════════════════════════════════════════════════════
+                      VISIT EXECUTION & SERVICE DELIVERY
+════════════════════════════════════════════════════════════════════════
+
+[1] Patient (Enrollee) Visits Provider (At Appointment):
+     - Enrollee checks in at provider facility
+     - Check-in process:
+        * Verify identity (ID/Member card)
+        * Confirm appointment details in provider system
+        * Update contact information if changed
+     - Pre-visit data collection:
+        * Chief complaint/reason for visit
+        * Vital signs recorded (temperature, BP, HR, weight, etc.)
+        * Current medications review
+        * Allergy review/confirmation
+        * Initial assessment completed
+     - Insurance verification at visit:
+        * Confirm coverage is still active
+        * Verify no changes to deductible/copay status
+        * Check eligibility in real-time
+     - Provider determines if service aligns with authorization (if pre-auth obtained):
+        * Compare actual services planned vs. authorized services
+        * Update any additional services if medically necessary
+     - Financial responsibility collection (if applicable):
+        * Copay collected based on plan/service type
+        * Deductible portions collected if applicable
+        * Co-insurance percentage explained to enrollee
+        * Payment methods accepted
+        ↓
+[1a] In-Visit Service Determination & Real-Time Authorization Check:
+     - Provider assesses patient during visit:
+        * Performs initial examination
+        * Determines actual services/procedures needed
+        * Identifies any additional/modified procedures
+     - Service type classification (real-time):
+        * Original planned service matches assessment? (Yes/No)
+        * Additional services identified? (If yes, determine authorization need)
+        * Service complexity level confirmed
+        * Duration/frequency finalized
+     - For MODIFIED/ADDITIONAL services (not in original pre-auth):
+        * Determine if new services require authorization
+        * If authorization required:
+           - Flag for real-time/stat authorization request
+           - Check if can proceed under emergency exception
+           - Escalate to HMO if not authorized
+        * If authorization not required:
+           - Proceed with service delivery
+     - Authorization status verification:
+        * Provider queries: Is this service covered under the appointment authorization?
+        * Verify authorization code still valid
+        * Check authorization hasn't been exhausted/used
+        ↓
+[1b] Service Authorization Status Decision:
+    ├─ Service covered under existing authorization
+    │  └─ Proceed to [6] Service Delivery
+    │
+    ├─ Service NOT covered under existing authorization
+    │  └─ Request real-time authorization to HMO
+    │     (provider system submits stat request)
+    │     - HMO reviews in real-time (15-30 min turnaround)
+    │     - Approval → Proceed to [6]
+    │     - Denial → Obtain written consent from enrollee to proceed
+    │             (patient assumes financial responsibility)
+    │
+    └─ Emergency service (life-threatening)
+       └─ Proceed immediately to [6]
+          (Concurrent review occurs post-treatment)
+        ↓
+[6] Provider Delivers Service:
+     - All authorized services provided:
+        * Procedures/treatments documented with timestamps
+        * All relevant clinical codes recorded (ICD-10, CPT, HCPCS)
+        * Provider notes documented in real-time
+        * Medication administered/prescribed (if applicable)
+     - Post-service data collection:
+        * Final assessment/outcomes documented
+        * Patient education provided
+        * Follow-up instructions given
+        * Discharge summary created (if applicable)
         ↓
 [6a] Medical History Updated:
-     - Diagnoses recorded
-     - Procedures documented
-     - Medications prescribed
-     - Visit notes stored
-     - Health records updated in Enrollee profile
+     - Diagnoses recorded:
+        * ICD-10 codes for conditions identified/treated
+        * Primary diagnosis
+        * Secondary diagnoses
+     - Procedures documented:
+        * CPT codes for procedures performed
+        * Procedure notes/details
+        * Start/end times
+     - Medications prescribed:
+        * Medication names, dosages, frequencies
+        * Duration of prescriptions
+        * Special instructions
+     - Visit notes stored:
+        * Provider's clinical assessment
+        * Treatment plan
+        * Future care recommendations
+     - Health records updated in Enrollee profile:
+        * All data synced to ERP medical history
+        * Records available for future provider access
+        * Patient can view visit summary in ERP portal
         ↓
-[6b] Benefit Utilization Updated:
-     - Deductible amount applied
-     - Co-pay/Co-insurance recorded
-     - Benefit limits decremented
-     - Annual usage tracked per service type
+[6b] Benefit Utilization Updated (Real-Time):
+     - Deductible amount applied:
+        * Calculate deductible portion of services
+        * Update remaining deductible balance
+     - Co-pay/Co-insurance recorded:
+        * Amount collected at visit
+        * Amount owed by enrollee
+     - Benefit limits decremented:
+        * Annual visit limits (specialist visits, PT sessions, etc.)
+        * Out-of-pocket maximums tracked
+     - Annual usage tracked per service type:
+        * Services logged against annual limits
+        * Concurrent utilization checked
+     - Authorization utilization tracked:
+        * If pre-auth was issued with visit limits, decrement usage
+        * Authorization status updated
         ↓
-[7] Claim submission (post-treatment)
+[6c] Checkout & Payment at Provider:
+     - Final visit charges confirmed:
+        * Amount billed to insurance
+        * Patient responsibility amount due
+     - Payment collected:
+        * Remaining copay/coinsurance collected
+        * Out-of-pocket amounts settled
+     - Visit completion recorded:
+        * Appointment status changed to "Completed"
+        * Actual visit date/time recorded
+        * Provider attestation of visit
+     - Receipts/Discharge documents provided to enrollee
+        ↓
+
+════════════════════════════════════════════════════════════════════════
+                    CLAIM SUBMISSION & PROCESSING FLOW
+════════════════════════════════════════════════════════════════════════
+
+[7] Claim Submission (Post-Treatment):
+[7] Claim Submission (Post-Treatment):
+     - Provider prepares claim with actual visit data:
+        * Claim ID generated
+        * Appointment ID linked to claim
+        * Authorization code referenced (if pre-auth obtained)
+        * Visit date verified against appointment date
+     - Claim line items created:
+        * Each service/procedure as separate line item
+        * Service codes (CPT, ICD-10, HCPCS) from actual delivery
+        * Quantities and units of service
+        * Charges for each service
+     - Provider information submitted:
+        * Provider credentials/NPI
+        * Facility details
+        * Tax ID
+     - Enrollee information submitted:
+        * Member ID
+        * DOB
+        * Plan details
+     - Claim transmission:
+        * Electronic claim sent to HMO
+        * Claim status: "Received"
+        * Timestamp recorded
         ↓
 [8] Claim Adjudication & Verification:
-     - Claim validation against authorization
-     - Service code verification
-     - Amount verification against approved limits
-     - Duplicate claim check
+     - Claim validation against authorization:
+        * If pre-auth obtained: Verify claim services match authorization
+        * Check authorization code validity
+        * Verify dates of service within authorization period
+     - Service code verification:
+        * CPT codes valid and appropriate
+        * ICD-10 codes valid and match services
+        * Service bundling rules applied
+     - Amount verification against approved limits:
+        * Billed amounts vs. allowed amounts
+        * Apply plan fee schedules
+        * Apply any negotiated rates with provider
+        * Calculate enrollee responsibility
+     - Duplicate claim check:
+        * Compare with historical claims (same enrollee, provider, dates)
+        * Identify potential duplicate submissions
         ↓
 [8a] Admin Claim Vetting & Fraud Detection:
-     - Verify enrollee actually attended visit (check against provider schedule/check-in records)
-     - Cross-reference services billed vs. authorized services
-     - Compare claimed procedures with medical history records
-     - Verify provider credentials and authorization status
-     - Check for service bundling abuse
-     - Validate dates of service (no future dates, sequential visits logical)
-     - Review for billing anomalies or patterns
+     - Verify enrollee actually attended visit:
+        * Cross-reference appointment record (check status: "Completed")
+        * Verify check-in record at provider facility
+        * Match claim service date with appointment date
+     - Cross-reference services billed vs. authorized services:
+        * Compare CPT codes on claim vs. authorization
+        * Identify any unbilled authorized services
+        * Identify any non-authorized services billed
+        * Flag variances for review
+     - Compare claimed procedures with medical history records:
+        * Verify procedures align with documented diagnoses
+        * Check for illogical service combinations
+        * Review against enrollee's medical pattern
+     - Verify provider credentials and authorization status:
+        * Provider NPI active and not excluded
+        * Provider still in network (as of service date)
+        * Facility credentials current
+        * License/certifications valid
+     - Check for service bundling abuse:
+        * Identify unbundled procedures (should be bundled)
+        * Check for component billing (billing parts separately)
+        * Apply bundling rules per plan
+     - Validate dates of service:
+        * No future dates on claim
+        * Sequential visits logical (not billing same service twice same day)
+        * Service dates within claim submission window
+     - Review for billing anomalies or patterns:
+        * Unusual high volumes of procedures
+        * Services rarely seen on this provider's claims
+        * Charges significantly higher than market rates
         ↓
 [8b] Verification Decision:
     ├── Verified & Approved (all checks passed)
+    │  └─ Proceed to [9] - Approved for Payment
+    │
     ├── Flag for Review (inconsistencies found)
+    │  └─ Proceed to [8c] - Vetting Process
+    │
     └── Reject (fraud/billing errors detected)
+       └─ Proceed to [9] - Denied with documentation
         ↓
 [8c] Vetting Process (for flagged claims):
-     - Senior claims analyst reviews flagged claims
-     - Contact provider for clarification if needed
-     - Request additional documentation from enrollee
-     - Medical necessity review
-     - Final determination made
+     - Senior claims analyst reviews flagged claims:
+        * Identify specific discrepancies
+        * Determine severity (minor billing issue vs. potential fraud)
+     - Contact provider for clarification if needed:
+        * Request supporting documentation
+        * Ask provider to explain service rationale
+        * Request itemized bills if needed
+     - Request additional documentation from enrollee:
+        * Confirm they received services
+        * Request provider receipts
+        * Obtain medical records if provider not responsive
+     - Medical necessity review:
+        * Consult clinical guidelines for diagnoses
+        * Verify procedures align with clinical standards
+        * Review against similar member claims
+     - Final determination made:
+        * Claim approved (issue resolved)
+        * Claim approved with adjustment (correct charges)
+        * Claim denied (fraud indicators)
+        * Claim queried (awaiting response)
         ↓
+
+════════════════════════════════════════════════════════════════════════
+                      PAYMENT & SETTLEMENT PROCESSING
+════════════════════════════════════════════════════════════════════════
+
+[9] Claims Processing Decision:
 [9] Claims Processing Decision:
     ├── Approved for Payment (verified & within limits)
+    │  - Calculate benefit percentage (80%, 90%, etc.)
+    │  - Calculate insurance payment amount
+    │  - Calculate enrollee balance
+    │  - Proceed to [9a] - Payment Batch Creation
+    │
     ├── Partial Payment (coverage limits or partial service verification)
+    │  - Some services covered, some not
+    │  - Calculate partial payment amount
+    │  - Document which services excluded and why
+    │  - Proceed to [9a] - Payment Batch Creation (reduced amount)
+    │
     ├── Denied (reason documented - fraud, unauthorized service, etc)
+    │  - Document denial reason (fraud, not covered, out-of-network, etc)
+    │  - No insurance payment
+    │  - Enrollee responsible for full amount
+    │  - Proceed to [9b] - Denial Notification
+    │
     └── Queried (requesting more information from provider)
+       - Hold claim in pending status
+       - Set response deadline (15-30 days)
+       - Notify provider of needed information
         ↓
 [9a] Payment Batch Creation:
-     - All approved/partial payment claims collected
+     - All approved/partial payment claims collected:
+        * Filter for claims marked "Approved for Payment"
+        * Filter for claims marked "Partial Payment"
+        * Exclude denied/queried claims
      - Batches organized by:
-        * Provider
-        * Payment method
-        * Claim type
-     - Batch summary generated with total amounts
-     - Quality control check on batch integrity
-     - Batch marked ready for processing
+        * Provider (group claims by provider for efficiency)
+        * Payment method (ACH, Check, Wire, etc.)
+        * Claim type (Insurance payment, Coordination of benefits, etc.)
+     - Batch summary generated with total amounts:
+        * Total insurance payment amount
+        * Total enrollee responsibility
+        * Number of claims in batch
+        * Number of affected enrollees
+     - Quality control check on batch integrity:
+        * Verify all claims in batch have valid approval
+        * Verify amounts calculated correctly
+        * Verify no duplicate claims included
+        * Verify provider information is valid
+     - Batch marked ready for processing:
+        * Batch ID generated
+        * Batch status: "Ready for Approval"
+        * Batch created timestamp recorded
+        ↓
+[9b] Denial Notification:
+     - Enrollee notified of claim denial:
+        * Denial reason clearly explained
+        * Service/procedure affected
+        * Specific plan limitation or exclusion referenced
+        * Appeal rights communicated
+     - Provider notified of denial:
+        * Allows provider to follow up with enrollee
+        * May resubmit if documentation was issue
+     - Appeal instructions provided:
+        * Appeal period timeframe
+        * Appeal contact information
+        * Documentation to submit with appeal
         ↓
 [10] Payment Processing:
-     - Insurance company pays provider (if applicable)
-     - Enrollee notified of charges/balance
-     - Payment reconciliation
+     - Insurance company pays provider:
+        * Via selected payment method
+        * Using pre-authorized payment information
+        * According to plan's payment terms
+     - Enrollee notified of visit charges/balance:
+        * Explanation of Benefits (EOB) generated
+        * Breakdown of charges, insurance payment, enrollee responsibility
+        * Amount due from enrollee (if any)
+        * Payment instructions if enrollee portion due
+     - Payment reconciliation initiated:
+        * Begin preparation for settlement
         ↓
 [10a] Payment Batch Processing Execution:
-     - Batch authorized for payment by finance manager
+     - Batch authorized for payment by finance manager:
+        * Finance/Billing manager reviews batch
+        * Verifies batch integrity and amounts
+        * Approves batch for payment execution
+        * Records authorization (who, when, signature)
      - Payment method initiated:
-        * Bank transfer (ACH/Wire)
-        * Check payment
-        * Digital wallet/Direct deposit
-     - Payment reference numbers generated for tracking
-     - Transaction logs created
-     - Payment status updated in system (pending → processing)
+        * Bank transfer (ACH/Wire):
+           - Initiate electronic transfer to provider bank
+           - Use provider's pre-registered banking information
+           - Generate transfer reference number
+        * Check payment:
+           - Print check for provider
+           - Require dual signatures
+           - Add check reference to batch
+        * Digital wallet/Direct deposit:
+           - Route payment to provider's preferred digital account
+           - Generate digital transfer confirmation
+     - Payment reference numbers generated for tracking:
+        * Unique reference number per payment
+        * Links payment to original batch
+        * Links payment to provider
+     - Transaction logs created:
+        * Record payment initiation
+        * Record payment method
+        * Record timestamp
+        * Record authorization person
+     - Payment status updated in system:
+        * Batch status changed: "Ready for Approval" → "Processing"
+        * Individual claim status: "Approved" → "In Payment"
         ↓
 [10b] Payment Settlement & Reconciliation:
-     - Batch payment status monitored
-     - Failed transactions identified and handled
-     - Payment confirmation received from bank/payment processor
-     - Reconciliation with GL (General Ledger)
-     - Payment status updated (processing → completed/settled)
-     - Provider notified of payment receipt
+     - Batch payment status monitored:
+        * Track payment through banking system
+        * Monitor for failed transactions
+     - Failed transactions identified and handled:
+        * Retry logic applied (ACH retries, etc.)
+        * Provider contacted if banking information invalid
+        * Alternate payment method arranged
+     - Payment confirmation received from bank/payment processor:
+        * Bank confirms payment sent/processed
+        * Delivery confirmation obtained
+        * Receipts collected
+     - Reconciliation with GL (General Ledger):
+        * Payment amount matched to GL entry
+        * Payment date recorded
+        * Payment account codes recorded
+        * Batch reconciliation to accounting system
+     - Payment status updated (processing → completed/settled):
+        * Batch status: "Processing" → "Settled"
+        * Individual claims: "In Payment" → "Paid"
+        * Final payment timestamp recorded
+     - Provider notified of payment receipt:
+        * Notification email sent with payment details
+        * Payment remittance advice attached
+        * Claim-to-payment mapping provided
         ↓
 [10c] Batch Reporting & Audit Trail:
-     - Payment batch report generated
-     - Transaction receipts stored
-     - Audit trail documented (who approved, when, amount)
-     - Batch reconciliation report finalized
-     - Records archived for compliance
+     - Payment batch report generated:
+        * Summary of all payments in batch
+        * Total amounts paid
+        * Provider breakdown
+        * Claim count
+     - Transaction receipts stored:
+        * Payment confirmation documents
+        * Bank receipts
+        * Check images/copies
+     - Audit trail documented:
+        * Who created batch (claims processor)
+        * Who authorized batch (finance manager)
+        * When approved (timestamp)
+        * Amount approved
+        * Who processed payment (payment processor)
+        * When processed (timestamp)
+     - Batch reconciliation report finalized:
+        * Batch reconciliation to original claims
+        * Reconciliation to payment executed
+        * Final reconciliation status confirmed
+     - Records archived for compliance:
+        * All batch documentation stored
+        * Records retained per regulatory requirements
+        * Records made available for audits
         ↓
-[11] Appeal Process (if Denied):
-     - Enrollee/Provider can appeal within timeframe
-     - Case reviewed by senior medical reviewer
-     - Appeal decision communicated
 
+════════════════════════════════════════════════════════════════════════
+                          APPEAL PROCESS
+════════════════════════════════════════════════════════════════════════
 
-//utilizations
-Claim Amount → Aggregated by:
-   - Company
-   - Enrollee
-   - Provider
-   - Service Type
+[11] Appeal Process (if Pre-Auth Denied or Claim Denied):
+     - Enrollee/Provider can appeal within timeframe:
+        * Appeal period typically 30-90 days from denial
+        * Appeals submitted via ERP portal or provider portal
+        * Appeal request must include member ID, claim/auth details
+     - Appeal documentation prepared:
+        * Enrollee/provider includes additional clinical evidence
+        * Justification for why service should be covered
+        * Medical literature supporting necessity
+     - Case reviewed by senior medical reviewer:
+        * Medical reviewer independent from original decision maker
+        * Clinical guidelines reviewed
+        * Enrollee's specific circumstances considered
+        * Expert opinion obtained if complex case
+     - Appeal decision communicated:
+        * Approval: Original decision reversed, service/claim approved
+        * Affirmed: Original denial upheld
+        * Partial approval: Service/claim approved partially
+        * Timeframe: Decision within 30 days (expedited if urgent)
+     - Next steps if appeal denied:
+        * External review option available (if applicable by law)
+        * Information provided on how to file external appeal
+        ↓
 
-Provider → Visits → Claims Cost
-enrollee, dependents, no if visits , cost racked up
+════════════════════════════════════════════════════════════════════════
+                        REPORTING & ANALYTICS
+════════════════════════════════════════════════════════════════════════
+
+[12] Utilization Analytics & Reporting:
+
+Claim Amount Aggregation:
+     - By Company:
+        * Total claims processed by employer/company
+        * Total insurance payments made
+        * Total enrollee out-of-pocket
+        * Trend analysis (month-over-month, year-over-year)
+     
+     - By Enrollee:
+        * Total claims per enrollee
+        * Total costs attributed to enrollee
+        * Annual spending per enrollee
+        * Top cost drivers per enrollee
+     
+     - By Provider:
+        * Total claims submitted by provider
+        * Total payments to provider
+        * Average claim amount
+        * Claim approval rate
+        * Cost per visit
+        * Quality metrics (if available)
+     
+     - By Service Type:
+        * Total costs for each service category
+        * Utilization rates (visits, procedures, etc.)
+        * Cost trends by service
+        * Authorization approval rates by service
+
+Utilization Tracking:
+     - Provider → Visits → Claims Cost:
+        * Number of visits per provider per enrollee
+        * Costs associated with each visit
+        * Total claims from those visits
+     
+     - Enrollee Benefits Tracking:
+        * Deductible usage (remaining available)
+        * Out-of-pocket maximum progress
+        * Visit limits (e.g., PT visits used of 30 annual)
+        * Any benefit caps (if applicable per service)
+     
+     - Dependent Benefits Tracking:
+        * Separate limits for dependents
+        * Dependent-specific service coverage
+        * Dependent cost sharing
+     
+     - Annual Cost Summary:
+        * Total claims for enrollee + dependents
+        * Total insurance payments
+        * Total enrollee out-of-pocket (copays, coinsurance, deductible)
+        * Remaining deductible
+        * Remaining out-of-pocket maximum
+
+════════════════════════════════════════════════════════════════════════
+                          END OF FLOW
+════════════════════════════════════════════════════════════════════════

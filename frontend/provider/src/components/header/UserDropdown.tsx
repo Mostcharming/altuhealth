@@ -1,12 +1,45 @@
 "use client";
+import { apiClient } from "@/lib/apiClient";
+import capitalizeWords from "@/lib/capitalize";
+import { Account, useAccountStore } from "@/lib/store/accountStore";
 import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuthStore } from "../../lib/authStore";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
+import SpinnerThree from "../ui/spinner/SpinnerThree";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const account = useAccountStore((s) => s.account);
+  const setAccount = useAccountStore((s) => s.setAccount);
+
+  const fetchAccount = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const url = `/provider/account/profile`;
+
+      const data = await apiClient(url, {
+        method: "GET",
+        onLoading: (l) => setLoading(l),
+      });
+
+      const items: Account = data.data.user;
+
+      setAccount(items);
+    } catch (err) {
+      console.warn("Role fetch failed", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [setAccount]);
+
+  useEffect(() => {
+    fetchAccount();
+  }, [fetchAccount]);
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -24,17 +57,21 @@ export default function UserDropdown() {
         onClick={toggleDropdown}
         className="flex items-center dropdown-toggle text-gray-700 dark:text-gray-400 dropdown-toggle"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <Image
-            width={44}
-            height={44}
-            src={user?.picture || "/images/main/small.svg"}
-            alt={user?.firstName || user?.email || "User"}
-          />
-        </span>
+        {loading ? (
+          <SpinnerThree />
+        ) : (
+          <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
+            <Image
+              width={44}
+              height={44}
+              src={account?.picture || "/images/main/small.svg"}
+              alt={user?.name || user?.email || "User"}
+            />
+          </span>
+        )}
 
         <span className="block mr-1 font-medium text-theme-sm">
-          {user?.firstName || user?.email || "User"}
+          {user?.name || user?.email || "User"}
         </span>
 
         <svg
@@ -64,9 +101,7 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            {user
-              ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
-              : "Guest"}
+            {capitalizeWords(user?.name) || "Guest"}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
             {user?.email || "-"}

@@ -28,6 +28,7 @@ export default function UserInfoCard() {
   const account = useAccountStore((s) => s.account);
   const setAccount = useAccountStore((s) => s.setAccount);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   // Local form state to make the form controlled
   const [name, setName] = useState<string>("");
@@ -105,7 +106,7 @@ export default function UserInfoCard() {
 
     // assemble form data for multipart/form-data upload
     const formData = new FormData();
-    formData.append("firstName", name ?? "");
+    formData.append("name", name ?? "");
     formData.append("phoneNumber", phone ?? "");
     formData.append("address", messageTwo ?? "");
     if (selectedCountry) formData.append("country", selectedCountry);
@@ -145,7 +146,13 @@ export default function UserInfoCard() {
       }
       closeModal();
     } catch (err) {
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : "An error occurred while updating your profile";
+      setErrorMessage(errorMsg);
       console.warn("Profile update failed", err);
+      errorModal.openModal();
     } finally {
       setLoading(false);
     }
@@ -205,19 +212,10 @@ export default function UserInfoCard() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                First Name
+                Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {account?.firstName || "Firstname"}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Last name
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {account?.lastName || "Lastname"}
+                {account?.name || "Name"}
               </p>
             </div>
 
@@ -368,7 +366,7 @@ export default function UserInfoCard() {
       />
 
       <ErrorModal
-        message=""
+        message={errorMessage}
         errorModal={errorModal}
         handleErrorClose={handleErrorClose}
       />
