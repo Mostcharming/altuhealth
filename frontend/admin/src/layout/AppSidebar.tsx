@@ -106,9 +106,9 @@ const navItems: NavItem[] = [
     name: "Services",
     icon: <CartIcon />,
     subItems: [
-      { name: "Org. Utilization Reviews", path: "/utilization-reviews" },
-      { name: "Provider Utilization Reviews", path: "/provider-utilization" },
-      { name: "Enrollee Utilization Reviews", path: "/client-utilization" },
+      { name: "Company Utilization", path: "/utilization-reviews" },
+      { name: "Provider Utilization", path: "/provider-utilization" },
+      { name: "Retail Enrollee Utilization", path: "/client-utilization" },
     ],
   },
   {

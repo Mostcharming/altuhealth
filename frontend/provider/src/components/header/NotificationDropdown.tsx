@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "../../lib/apiClient";
+import { useAuthStore } from "../../lib/authStore";
 import {
   Notification,
   useNotificationStore,
@@ -15,6 +16,7 @@ export default function NotificationDropdown() {
   const notifications = useNotificationStore((s) => s.notifications);
   const setNotifications = useNotificationStore((s) => s.setNotifications);
   const [loading, setLoading] = useState(false);
+  const user = useAuthStore((s) => s.user);
 
   // Helper: sort so unread (isRead === false) come first, then by createdAt desc
   const sortNotifications = (items: Notification[]) => {
@@ -80,13 +82,20 @@ export default function NotificationDropdown() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiClient("/provider/notifications/list", {
-        method: "GET",
-        onLoading: (l) => setLoading(l),
-      });
+      const params = new URLSearchParams();
+      if (user?.id) params.append("providerId", user.id);
+      const data = await apiClient(
+        `/provider/notifications/list?${params.toString()}`,
+        {
+          method: "GET",
+          onLoading: (l) => setLoading(l),
+        }
+      );
 
       const items: Notification[] =
-        data?.data && Array.isArray(data.data)
+        data?.data?.data && Array.isArray(data.data.data)
+          ? data.data.data
+          : data?.data && Array.isArray(data.data)
           ? data.data
           : Array.isArray(data)
           ? data
@@ -99,7 +108,7 @@ export default function NotificationDropdown() {
     } finally {
       setLoading(false);
     }
-  }, [setLoading, setNotifications]);
+  }, [user?.id, setLoading, setNotifications]);
 
   useEffect(() => {
     fetchNotifications();

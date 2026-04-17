@@ -153,6 +153,11 @@ const AppointmentTable: React.FC<AppointmentTableProps> = ({ onFetchRef }) => {
     setSelectedAppointment(null);
   };
 
+  const handleAppointmentUpdated = async () => {
+    // Refetch appointments after successful action
+    await fetch();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending":
@@ -432,6 +437,7 @@ const AppointmentTable: React.FC<AppointmentTableProps> = ({ onFetchRef }) => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         appointment={selectedAppointment}
+        onAppointmentUpdated={handleAppointmentUpdated}
       />
     </div>
   );

@@ -4,20 +4,72 @@ import { Modal } from "@/components/ui/modal";
 import { formatDate } from "@/lib/formatDate";
 import { Appointment } from "@/lib/store/appointmentStore";
 import { capitalizeWords } from "@/utils";
-import React from "react";
+import React, { useState } from "react";
+import { cancelAppointment } from "@/lib/apis/appointment";
+import ConfirmModal from "@/components/modals/confirm";
+import SuccessModal from "@/components/modals/success";
+import ErrorModal from "@/components/modals/error";
 
 interface AppointmentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   appointment: Appointment | null;
+  onAppointmentUpdated?: () => void;
 }
 
 const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   isOpen,
   onClose,
   appointment,
+  onAppointmentUpdated,
 }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+  const [successModal, setSuccessModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
   if (!appointment) return null;
+
+  const handleOpenConfirmModal = () => {
+    setConfirmModal({ isOpen: true });
+  };
+
+  const handleConfirmCancel = () => {
+    setConfirmModal({ isOpen: false });
+    handleCancelAppointment();
+  };
+
+  const handleCancelAppointment = async () => {
+    try {
+      setIsLoading(true);
+      await cancelAppointment(appointment.id);
+      setSuccessModal({ isOpen: true });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to cancel appointment"
+      );
+      setErrorModal({ isOpen: true });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setSuccessModal({ isOpen: false });
+    onAppointmentUpdated?.();
+    onClose();
+  };
+
+  const handleErrorClose = () => {
+    setErrorModal({ isOpen: false });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -288,14 +340,41 @@ const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
         )}
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-end gap-3">
+        {appointment.status === "pending" && (
+          <button
+            onClick={handleOpenConfirmModal}
+            disabled={isLoading}
+            className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 dark:bg-red-600 dark:hover:bg-red-700"
+          >
+            {isLoading ? "Cancelling..." : "Cancel Appointment"}
+          </button>
+        )}
         <button
           onClick={onClose}
-          className="px-4 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
+          disabled={isLoading}
+          className="px-4 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
         >
           Close
         </button>
       </div>
+
+      <ConfirmModal
+        confirmModal={confirmModal}
+        handleSave={handleConfirmCancel}
+        closeModal={() => setConfirmModal({ isOpen: false })}
+      />
+
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={handleSuccessClose}
+      />
+
+      <ErrorModal
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+        message={errorMessage}
+      />
     </Modal>
   );
 };

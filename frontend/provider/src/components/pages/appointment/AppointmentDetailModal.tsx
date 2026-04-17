@@ -4,20 +4,104 @@ import { Modal } from "@/components/ui/modal";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import { Appointment } from "@/lib/store/appointmentStore";
-import React from "react";
+import { approveAppointment, rejectAppointment } from "@/lib/apis/appointment";
+import React, { useState } from "react";
+import Label from "@/components/form/Label";
+import TextArea from "@/components/form/input/TextArea";
+import ConfirmModal from "@/components/modals/confirm";
+import SuccessModal from "@/components/modals/success";
+import ErrorModal from "@/components/modals/error";
 
 interface AppointmentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   appointment: Appointment | null;
+  onAppointmentUpdated?: () => void;
 }
 
 const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   isOpen,
   onClose,
   appointment,
+  onAppointmentUpdated,
 }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+  const [successModal, setSuccessModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean }>({
+    isOpen: false,
+  });
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [actionType, setActionType] = useState<"approve" | "reject" | null>(
+    null
+  );
+
   if (!appointment) return null;
+
+  const handleOpenApproveConfirm = () => {
+    setActionType("approve");
+    setConfirmModal({ isOpen: true });
+  };
+
+  const handleConfirmApprove = async () => {
+    setConfirmModal({ isOpen: false });
+    try {
+      setIsLoading(true);
+      await approveAppointment(appointment.id);
+      setSuccessModal({ isOpen: true });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to approve appointment"
+      );
+      setErrorModal({ isOpen: true });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOpenRejectConfirm = () => {
+    if (!rejectionReason.trim()) {
+      setErrorMessage("Please provide a rejection reason");
+      setErrorModal({ isOpen: true });
+      return;
+    }
+    setActionType("reject");
+    setConfirmModal({ isOpen: true });
+  };
+
+  const handleConfirmReject = async () => {
+    setConfirmModal({ isOpen: false });
+    try {
+      setIsLoading(true);
+      await rejectAppointment(appointment.id, rejectionReason);
+      setSuccessModal({ isOpen: true });
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to reject appointment"
+      );
+      setErrorModal({ isOpen: true });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSuccessClose = () => {
+    setSuccessModal({ isOpen: false });
+    setShowRejectForm(false);
+    setRejectionReason("");
+    onAppointmentUpdated?.();
+    onClose();
+  };
+
+  const handleErrorClose = () => {
+    setErrorModal({ isOpen: false });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -395,14 +479,86 @@ const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
         )}
       </div>
 
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
-        >
-          Close
-        </button>
+      <div className="mt-6 flex justify-end gap-3">
+        {!showRejectForm && appointment.status === "pending" && (
+          <>
+            <button
+              onClick={() => setShowRejectForm(true)}
+              disabled={isLoading}
+              className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 dark:bg-red-600 dark:hover:bg-red-700"
+            >
+              Reject
+            </button>
+            <button
+              onClick={handleOpenApproveConfirm}
+              disabled={isLoading}
+              className="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600 disabled:opacity-50 dark:bg-green-600 dark:hover:bg-green-700"
+            >
+              {isLoading ? "Processing..." : "Approve"}
+            </button>
+          </>
+        )}
+        
+        {showRejectForm && appointment.status === "pending" && (
+          <div className="col-span-full space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div>
+              <Label>Rejection Reason *</Label>
+              <TextArea
+                placeholder="Please provide a reason for rejecting this appointment"
+                value={rejectionReason}
+                onChange={setRejectionReason}
+                rows={3}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => {
+                  setShowRejectForm(false);
+                  setRejectionReason("");
+                }}
+                disabled={isLoading}
+                className="px-4 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleOpenRejectConfirm}
+                disabled={isLoading}
+                className="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 dark:bg-red-600 dark:hover:bg-red-700"
+              >
+                {isLoading ? "Rejecting..." : "Confirm Rejection"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!showRejectForm && (
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="px-4 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
+          >
+            Close
+          </button>
+        )}
       </div>
+
+      <ConfirmModal
+        confirmModal={confirmModal}
+        handleSave={actionType === "approve" ? handleConfirmApprove : handleConfirmReject}
+        closeModal={() => setConfirmModal({ isOpen: false })}
+      />
+
+      <SuccessModal
+        successModal={successModal}
+        handleSuccessClose={handleSuccessClose}
+      />
+
+      <ErrorModal
+        errorModal={errorModal}
+        handleErrorClose={handleErrorClose}
+        message={errorMessage}
+      />
     </Modal>
   );
 };

@@ -30,6 +30,7 @@ async function listNotifications(req, res, next) {
 
         return res.success({ data: rows, total: count, page: Number(page), limit: Number(limit) });
     } catch (err) {
+        console.log(err)
         return next(err);
     }
 }
