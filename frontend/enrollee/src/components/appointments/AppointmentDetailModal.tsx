@@ -1,14 +1,14 @@
 "use client";
 
+import ConfirmModal from "@/components/modals/confirm";
+import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
+import { cancelAppointment } from "@/lib/apis/appointment";
 import { formatDate } from "@/lib/formatDate";
 import { Appointment } from "@/lib/store/appointmentStore";
 import { capitalizeWords } from "@/utils";
 import React, { useState } from "react";
-import { cancelAppointment } from "@/lib/apis/appointment";
-import ConfirmModal from "@/components/modals/confirm";
-import SuccessModal from "@/components/modals/success";
-import ErrorModal from "@/components/modals/error";
 
 interface AppointmentDetailModalProps {
   isOpen: boolean;

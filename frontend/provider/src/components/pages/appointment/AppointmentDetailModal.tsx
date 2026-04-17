@@ -1,16 +1,16 @@
 "use client";
 
-import { Modal } from "@/components/ui/modal";
-import capitalizeWords from "@/lib/capitalize";
-import { formatDate } from "@/lib/formatDate";
-import { Appointment } from "@/lib/store/appointmentStore";
-import { approveAppointment, rejectAppointment } from "@/lib/apis/appointment";
-import React, { useState } from "react";
 import Label from "@/components/form/Label";
 import TextArea from "@/components/form/input/TextArea";
 import ConfirmModal from "@/components/modals/confirm";
-import SuccessModal from "@/components/modals/success";
 import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
+import { Modal } from "@/components/ui/modal";
+import { approveAppointment, rejectAppointment } from "@/lib/apis/appointment";
+import capitalizeWords from "@/lib/capitalize";
+import { formatDate } from "@/lib/formatDate";
+import { Appointment } from "@/lib/store/appointmentStore";
+import React, { useState } from "react";
 
 interface AppointmentDetailModalProps {
   isOpen: boolean;
@@ -498,7 +498,7 @@ const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
             </button>
           </>
         )}
-        
+
         {showRejectForm && appointment.status === "pending" && (
           <div className="col-span-full space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
             <div>
@@ -545,7 +545,9 @@ const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
 
       <ConfirmModal
         confirmModal={confirmModal}
-        handleSave={actionType === "approve" ? handleConfirmApprove : handleConfirmReject}
+        handleSave={
+          actionType === "approve" ? handleConfirmApprove : handleConfirmReject
+        }
         closeModal={() => setConfirmModal({ isOpen: false })}
       />
 
