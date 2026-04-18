@@ -1,32 +1,39 @@
 'use strict';
+const { v4: uuidv4 } = require('uuid');
 
+/** @type {import('sequelize-cli').Migration} */
 module.exports = {
-    up: async (queryInterface, Sequelize) => {
-        // Add women's health period prediction job
+    async up(queryInterface, Sequelize) {
+        const now = new Date();
+
         await queryInterface.bulkInsert('jobs', [
             {
-                id: Sequelize.fn('uuid_generate_v4'),
+                id: uuidv4(),
                 name: 'WOMEN_HEALTH_PERIOD_PREDICTION',
                 description: 'Daily period prediction calculation for women health tracking',
-                cronExpression: '0 0 * * *', // Runs daily at midnight
-                isActive: true,
-                lastStatus: 'pending',
-                lastError: null,
-                metadata: JSON.stringify({
-                    reminderDaysBefore: 3,
-                    lastExecutionTime: null,
-                    trackersProcessed: 0
-                }),
-                created_at: new Date(),
-                updated_at: new Date()
+                frequency: 'daily',
+                cron_expression: '0 0 * * *', // Runs daily at midnight
+                is_active: true,
+                last_run_at: null,
+                next_run_at: null,
+                last_status: 'pending',
+                last_error_message: null,
+                last_success_at: null,
+                total_runs: 0,
+                total_successful_runs: 0,
+                total_failed_runs: 0,
+                average_execution_time: null,
+                job_handler: 'jobs/periodPredictionJob',
+                metadata: null,
+                created_at: now,
+                updated_at: now
             }
-        ]);
+        ], {});
     },
 
-    down: async (queryInterface, Sequelize) => {
-        // Remove the job
+    async down(queryInterface, Sequelize) {
         await queryInterface.bulkDelete('jobs', {
             name: 'WOMEN_HEALTH_PERIOD_PREDICTION'
-        });
+        }, {});
     }
 };
