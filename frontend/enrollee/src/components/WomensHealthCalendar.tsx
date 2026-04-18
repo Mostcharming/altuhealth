@@ -58,7 +58,7 @@ const WomensHealthCalendar: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const data = await apiClient("/api/enrollee/womens-health/tracker");
+        const data = await apiClient("/enrollee/womens-health/tracker");
 
         if (data.data) {
           setTracker(data.data);

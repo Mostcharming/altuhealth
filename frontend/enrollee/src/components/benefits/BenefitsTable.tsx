@@ -3,9 +3,9 @@
 import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
+import { fetchEnrolleeBenefits } from "@/lib/apis/benefit";
 import capitalizeWords from "@/lib/capitalize";
 import { formatPrice } from "@/lib/formatDate";
-import { fetchEnrolleeBenefits } from "@/lib/apis/benefit";
 import React, { useCallback, useEffect, useState } from "react";
 import BenefitDetailModal from "./BenefitDetailModal";
 
@@ -93,23 +93,29 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
       const paginationData = response?.data?.pagination || {};
 
       // Format benefits to match component interface
-      const formattedBenefits: Benefit[] = benefitsData.map((benefit: Record<string, unknown>) => ({
-        id: String(benefit.id),
-        benefitName: String(benefit.benefitName),
-        benefitType: String(benefit.benefitType || "General"),
-        coverageAmount: Number(benefit.coverageAmount || 0),
-        currency: String(benefit.currency || "NGN"),
-        limitPerAnnum: Number(benefit.limitPerAnnum || 0),
-        amountUtilized: Number(benefit.amountUtilized || 0),
-        remainingBalance: Number(benefit.remainingBalance || 0),
-        status: (benefit.status as "active" | "inactive" | "pending" | "expired") || "active",
-        startDate: benefit.startDate ? String(benefit.startDate) : undefined,
-        endDate: benefit.endDate ? String(benefit.endDate) : undefined,
-        provider: benefit.provider ? String(benefit.provider) : undefined,
-        description: benefit.description ? String(benefit.description) : undefined,
-        createdAt: benefit.createdAt ? String(benefit.createdAt) : undefined,
-        updatedAt: benefit.updatedAt ? String(benefit.updatedAt) : undefined,
-      }));
+      const formattedBenefits: Benefit[] = benefitsData.map(
+        (benefit: Record<string, unknown>) => ({
+          id: String(benefit.id),
+          benefitName: String(benefit.benefitName),
+          benefitType: String(benefit.benefitType || "General"),
+          coverageAmount: Number(benefit.coverageAmount || 0),
+          currency: String(benefit.currency || "NGN"),
+          limitPerAnnum: Number(benefit.limitPerAnnum || 0),
+          amountUtilized: Number(benefit.amountUtilized || 0),
+          remainingBalance: Number(benefit.remainingBalance || 0),
+          status:
+            (benefit.status as "active" | "inactive" | "pending" | "expired") ||
+            "active",
+          startDate: benefit.startDate ? String(benefit.startDate) : undefined,
+          endDate: benefit.endDate ? String(benefit.endDate) : undefined,
+          provider: benefit.provider ? String(benefit.provider) : undefined,
+          description: benefit.description
+            ? String(benefit.description)
+            : undefined,
+          createdAt: benefit.createdAt ? String(benefit.createdAt) : undefined,
+          updatedAt: benefit.updatedAt ? String(benefit.updatedAt) : undefined,
+        })
+      );
 
       setBenefits(formattedBenefits);
       setTotalItems(Number(paginationData.total || 0));

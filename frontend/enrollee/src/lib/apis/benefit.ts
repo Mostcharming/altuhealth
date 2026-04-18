@@ -33,12 +33,9 @@ export async function fetchEnrolleeBenefits(params: {
   if (params.search) queryParams.append("search", params.search);
   if (params.status) queryParams.append("status", params.status);
 
-  return apiClient(
-    `/enrollee/benefits/list?${queryParams.toString()}`,
-    {
-      method: "GET",
-    }
-  );
+  return apiClient(`/enrollee/benefits/list?${queryParams.toString()}`, {
+    method: "GET",
+  });
 }
 
 export async function getEnrolleeBenefitById(benefitId: string) {

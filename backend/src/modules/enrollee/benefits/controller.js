@@ -12,7 +12,7 @@ async function getEnrolleeBenefits(req, res, next) {
     try {
         const { Enrollee, CompanyPlan, Plan, PlanBenefit, CompanyPlanBenefit, Benefit, BenefitCategory } = req.models;
         const enrolleeId = req.user?.id;
-        
+
         if (!enrolleeId) {
             return res.fail('Enrollee not authenticated', 401);
         }
