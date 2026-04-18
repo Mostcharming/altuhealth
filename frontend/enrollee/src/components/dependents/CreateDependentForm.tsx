@@ -1,5 +1,11 @@
 "use client";
 
+import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
+import DatePicker from "@/components/form/date-picker";
+import PhoneInput from "@/components/form/group-input/PhoneInput";
+import Input from "@/components/form/input/InputField";
+import TextArea from "@/components/form/input/TextArea";
 import { createDependent } from "@/lib/apis/dependent";
 import { useState } from "react";
 
@@ -13,7 +19,6 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    policyNumber: "",
     firstName: "",
     middleName: "",
     lastName: "",
@@ -33,8 +38,6 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.policyNumber)
-      newErrors.policyNumber = "Policy number is required";
     if (!formData.firstName) newErrors.firstName = "First name is required";
     if (!formData.lastName) newErrors.lastName = "Last name is required";
     if (!formData.dateOfBirth)
@@ -55,7 +58,6 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
     try {
       setLoading(true);
       await createDependent({
-        policyNumber: formData.policyNumber,
         firstName: formData.firstName,
         middleName: formData.middleName || undefined,
         lastName: formData.lastName,
@@ -83,7 +85,6 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
       });
 
       setFormData({
-        policyNumber: "",
         firstName: "",
         middleName: "",
         lastName: "",
@@ -127,147 +128,170 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
     }
   };
 
+  const genderOptions = [
+    { value: "male", label: "Male" },
+    { value: "female", label: "Female" },
+    { value: "other", label: "Other" },
+  ];
+
+  const relationshipOptions = [
+    { value: "spouse", label: "Spouse" },
+    { value: "child", label: "Child" },
+    { value: "parent", label: "Parent" },
+    { value: "sibling", label: "Sibling" },
+    { value: "other", label: "Other" },
+  ];
+
+  const maritalStatusOptions = [
+    { value: "single", label: "Single" },
+    { value: "married", label: "Married" },
+    { value: "divorced", label: "Divorced" },
+    { value: "widowed", label: "Widowed" },
+    { value: "separated", label: "Separated" },
+  ];
+
+  const countries = [
+    { code: "US", label: "+1" },
+    { code: "CA", label: "+1" },
+    { code: "GB", label: "+44" },
+    { code: "AU", label: "+61" },
+    { code: "IN", label: "+91" },
+    { code: "NG", label: "+234" },
+    { code: "DE", label: "+49" },
+    { code: "FR", label: "+33" },
+    { code: "ES", label: "+34" },
+    { code: "IT", label: "+39" },
+    { code: "BR", label: "+55" },
+    { code: "MX", label: "+52" },
+    { code: "CN", label: "+86" },
+    { code: "JP", label: "+81" },
+    { code: "ZA", label: "+27" },
+  ];
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Policy Number & Names */}
+      {/* Names */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Policy Number *
-          </label>
-          <input
-            type="text"
-            name="policyNumber"
-            value={formData.policyNumber}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700 ${
-              errors.policyNumber ? "border-red-500" : "border-gray-300"
-            }`}
-            placeholder="Enter policy number"
-          />
-          {errors.policyNumber && (
-            <p className="text-red-500 text-xs mt-1">{errors.policyNumber}</p>
-          )}
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            First Name *
-          </label>
-          <input
+          <Label htmlFor="firstName">First Name *</Label>
+          <Input
+            id="firstName"
             type="text"
             name="firstName"
             value={formData.firstName}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700 ${
-              errors.firstName ? "border-red-500" : "border-gray-300"
-            }`}
             placeholder="First name"
+            error={!!errors.firstName}
+            hint={errors.firstName}
           />
-          {errors.firstName && (
-            <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
-          )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Middle Name
-          </label>
-          <input
+          <Label htmlFor="middleName">Middle Name</Label>
+          <Input
+            id="middleName"
             type="text"
             name="middleName"
             value={formData.middleName}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700"
             placeholder="Middle name"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Last Name *
-          </label>
-          <input
+          <Label htmlFor="lastName">Last Name *</Label>
+          <Input
+            id="lastName"
             type="text"
             name="lastName"
             value={formData.lastName}
             onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700 ${
-              errors.lastName ? "border-red-500" : "border-gray-300"
-            }`}
             placeholder="Last name"
+            error={!!errors.lastName}
+            hint={errors.lastName}
           />
-          {errors.lastName && (
-            <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
-          )}
         </div>
       </div>
 
       {/* Date of Birth & Gender */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Date of Birth *
-          </label>
-          <input
-            type="date"
-            name="dateOfBirth"
-            value={formData.dateOfBirth}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700 ${
-              errors.dateOfBirth ? "border-red-500" : "border-gray-300"
-            }`}
+          <DatePicker
+            id="dateOfBirth"
+            label="Date of Birth *"
+            placeholder="Select date of birth"
+            onChange={(dates) => {
+              if (dates && dates.length > 0) {
+                const date = new Date(dates[0]);
+                const formattedDate = date.toISOString().split("T")[0];
+                setFormData((prev) => ({
+                  ...prev,
+                  dateOfBirth: formattedDate,
+                }));
+                if (errors.dateOfBirth) {
+                  setErrors((prev) => {
+                    const newErrors = { ...prev };
+                    delete newErrors.dateOfBirth;
+                    return newErrors;
+                  });
+                }
+              }
+            }}
+            defaultDate={formData.dateOfBirth}
           />
           {errors.dateOfBirth && (
-            <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>
+            <p className="text-error-500 text-xs mt-1.5">
+              {errors.dateOfBirth}
+            </p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Gender *
-          </label>
-          <select
-            name="gender"
-            value={formData.gender}
-            onChange={handleChange}
-            className={`w-full px-4 py-2 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700 ${
-              errors.gender ? "border-red-500" : "border-gray-300"
-            }`}
-          >
-            <option value="">Select gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
+          <Label>Gender *</Label>
+          <Select
+            options={genderOptions}
+            placeholder="Select gender"
+            onChange={(value) => {
+              setFormData((prev) => ({ ...prev, gender: value }));
+              if (errors.gender) {
+                setErrors((prev) => {
+                  const newErrors = { ...prev };
+                  delete newErrors.gender;
+                  return newErrors;
+                });
+              }
+            }}
+            defaultValue={formData.gender}
+          />
           {errors.gender && (
-            <p className="text-red-500 text-xs mt-1">{errors.gender}</p>
+            <p className="text-error-500 text-xs mt-1.5">{errors.gender}</p>
           )}
         </div>
       </div>
 
       {/* Relationship */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Relationship to Enrollee *
-        </label>
-        <select
-          name="relationshipToEnrollee"
-          value={formData.relationshipToEnrollee}
-          onChange={handleChange}
-          className={`w-full px-4 py-2 border rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700 ${
-            errors.relationshipToEnrollee ? "border-red-500" : "border-gray-300"
-          }`}
-        >
-          <option value="">Select relationship</option>
-          <option value="spouse">Spouse</option>
-          <option value="child">Child</option>
-          <option value="parent">Parent</option>
-          <option value="sibling">Sibling</option>
-          <option value="other">Other</option>
-        </select>
+        <Label>Relationship to Enrollee *</Label>
+        <Select
+          options={relationshipOptions}
+          placeholder="Select relationship"
+          onChange={(value) => {
+            setFormData((prev) => ({
+              ...prev,
+              relationshipToEnrollee: value,
+            }));
+            if (errors.relationshipToEnrollee) {
+              setErrors((prev) => {
+                const newErrors = { ...prev };
+                delete newErrors.relationshipToEnrollee;
+                return newErrors;
+              });
+            }
+          }}
+          defaultValue={formData.relationshipToEnrollee}
+        />
         {errors.relationshipToEnrollee && (
-          <p className="text-red-500 text-xs mt-1">
+          <p className="text-error-500 text-xs mt-1.5">
             {errors.relationshipToEnrollee}
           </p>
         )}
@@ -276,29 +300,29 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
       {/* Contact Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Phone Number
-          </label>
-          <input
-            type="tel"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700"
-            placeholder="Phone number"
+          <Label>Phone Number</Label>
+          <PhoneInput
+            countries={countries}
+            placeholder="+234 (0) 123-456-7890"
+            defaultValue={formData.phoneNumber}
+            defaultCountry="+234"
+            onChange={(phoneNumber) =>
+              setFormData((prev) => ({
+                ...prev,
+                phoneNumber,
+              }))
+            }
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Email
-          </label>
-          <input
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700"
             placeholder="Email address"
           />
         </div>
@@ -307,66 +331,63 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
       {/* Occupation & Marital Status */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Occupation
-          </label>
-          <input
+          <Label htmlFor="occupation">Occupation</Label>
+          <Input
+            id="occupation"
             type="text"
             name="occupation"
             value={formData.occupation}
             onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700"
             placeholder="Occupation"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Marital Status
-          </label>
-          <select
-            name="maritalStatus"
-            value={formData.maritalStatus}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700"
-          >
-            <option value="">Select status</option>
-            <option value="single">Single</option>
-            <option value="married">Married</option>
-            <option value="divorced">Divorced</option>
-            <option value="widowed">Widowed</option>
-            <option value="separated">Separated</option>
-          </select>
+          <Label>Marital Status</Label>
+          <Select
+            options={maritalStatusOptions}
+            placeholder="Select status"
+            onChange={(value) => {
+              setFormData((prev) => ({ ...prev, maritalStatus: value }));
+              if (errors.maritalStatus) {
+                setErrors((prev) => {
+                  const newErrors = { ...prev };
+                  delete newErrors.maritalStatus;
+                  return newErrors;
+                });
+              }
+            }}
+            defaultValue={formData.maritalStatus}
+          />
         </div>
       </div>
 
       {/* Medical Records */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Pre-existing Medical Records
-        </label>
-        <textarea
-          name="preexistingMedicalRecords"
+        <Label>Pre-existing Medical Records</Label>
+        <TextArea
           value={formData.preexistingMedicalRecords}
-          onChange={handleChange}
+          onChange={(value) =>
+            setFormData((prev) => ({
+              ...prev,
+              preexistingMedicalRecords: value,
+            }))
+          }
           placeholder="Any pre-existing medical conditions or records"
           rows={4}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700"
         />
       </div>
 
       {/* Notes */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Additional Notes
-        </label>
-        <textarea
-          name="notes"
+        <Label>Additional Notes</Label>
+        <TextArea
           value={formData.notes}
-          onChange={handleChange}
+          onChange={(value) =>
+            setFormData((prev) => ({ ...prev, notes: value }))
+          }
           placeholder="Any additional information"
           rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-900 dark:text-white dark:border-gray-700"
         />
       </div>
 

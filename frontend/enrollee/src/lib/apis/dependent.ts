@@ -31,7 +31,6 @@ export async function getDependentById(id: string) {
 }
 
 export async function createDependent(data: {
-  policyNumber: string;
   firstName: string;
   middleName?: string;
   lastName: string;

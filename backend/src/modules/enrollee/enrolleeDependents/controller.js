@@ -10,7 +10,6 @@ async function createDependent(req, res, next) {
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
 
         const {
-            policyNumber,
             firstName,
             middleName,
             lastName,
@@ -25,21 +24,23 @@ async function createDependent(req, res, next) {
             notes
         } = req.body || {};
 
-        if (!policyNumber) return res.fail('`policyNumber` is required', 400);
         if (!firstName) return res.fail('`firstName` is required', 400);
         if (!lastName) return res.fail('`lastName` is required', 400);
         if (!dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
         if (!gender) return res.fail('`gender` is required', 400);
         if (!relationshipToEnrollee) return res.fail('`relationshipToEnrollee` is required', 400);
 
-        // Check if policy number already exists
-        const existingDependent = await EnrolleeDependent.findOne({
-            where: { policyNumber }
+        // Get the enrollee to access their policy number
+        const enrollee = await Enrollee.findByPk(enrolleeId);
+        if (!enrollee) return res.fail('Enrollee not found', 404);
+
+        // Count existing dependents to generate policy number
+        const dependentCount = await EnrolleeDependent.count({
+            where: { enrolleeId }
         });
 
-        if (existingDependent) {
-            return res.fail('Policy number already exists', 409);
-        }
+        // Generate policy number: enrollee policy number + "-" + (count + 1)
+        const policyNumber = `${enrollee.policyNumber}-${dependentCount + 1}`;
 
         const dependent = await EnrolleeDependent.create({
             enrolleeId,
@@ -58,6 +59,40 @@ async function createDependent(req, res, next) {
             notes,
             isActive: true
         });
+
+        // Send email notification if email is provided
+        if (email) {
+            try {
+                const notify = require('../../../utils/notify');
+                await notify({
+                    email,
+                    id: dependent.id,
+                    firstName,
+                    lastName,
+                    policyNumber
+                }, 'dependent', 'dependent_enrollment', {
+                    dependentName: `${firstName} ${lastName}`,
+                    policyNumber,
+                    enrolleeName: `${enrollee.firstName} ${enrollee.lastName}`
+                }, 'email', false);
+            } catch (notificationError) {
+                console.log('Error sending notification:', notificationError);
+                // Don't fail the request if notification fails
+            }
+        }
+
+        // Create notification in database
+        try {
+            const { addEnrolleeDependentNotification } = require('../../../utils/addNotifications');
+            await addEnrolleeDependentNotification(req.models, {
+                enrolleeDependentId: dependent.id,
+                title: 'Enrollment Confirmation',
+                message: `You have been enrolled successfully. Your policy number is ${policyNumber}.`,
+                notificationType: 'enrollment'
+            });
+        } catch (notificationError) {
+            console.log('Error creating notification:', notificationError);
+        }
 
         return res.success({ dependent: dependent.toJSON() }, 'Dependent created successfully', 201);
     } catch (err) {
