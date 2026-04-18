@@ -16,7 +16,7 @@ export default function WomensHealthPage() {
         <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-6 lg:p-10">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-              Women's Health Tracker
+              Women&apos;s Health Tracker
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               Monitor your menstrual cycle, track your period, and get insights
