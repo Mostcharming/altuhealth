@@ -1,4 +1,5 @@
 "use client";
+import DatePicker from "@/components/form/date-picker";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
@@ -83,7 +84,7 @@ const WomensHealthCalendar: React.FC = () => {
 
   const fetchPeriodEvents = async () => {
     try {
-      const data = await apiClient("/api/enrollee/womens-health/events");
+      const data = await apiClient("/enrollee/womens-health/events");
       setEvents(data.data || []);
     } catch (err) {
       console.error("Error fetching period events:", err);
@@ -97,7 +98,7 @@ const WomensHealthCalendar: React.FC = () => {
     }
 
     try {
-      const data = await apiClient("/api/enrollee/womens-health/tracker", {
+      const data = await apiClient("/enrollee/womens-health/tracker", {
         method: "POST",
         body: {
           lastPeriodDate,
@@ -326,14 +327,18 @@ const WomensHealthCalendar: React.FC = () => {
           <div className="mt-8">
             {/* Last Period Date */}
             <div className="mb-6">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                Last Period Start Date *
-              </label>
-              <input
-                type="date"
-                value={lastPeriodDate}
-                onChange={(e) => setLastPeriodDate(e.target.value)}
-                className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+              <DatePicker
+                id="create-last-period-date"
+                label="Last Period Start Date *"
+                placeholder="Select a date"
+                defaultDate={lastPeriodDate}
+                onChange={(selectedDates) => {
+                  if (selectedDates[0]) {
+                    setLastPeriodDate(
+                      selectedDates[0].toISOString().split("T")[0]
+                    );
+                  }
+                }}
               />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 When did your last period start?
@@ -441,14 +446,18 @@ const WomensHealthCalendar: React.FC = () => {
           <div className="mt-8">
             {/* Last Period Date */}
             <div className="mb-6">
-              <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                Last Period Start Date *
-              </label>
-              <input
-                type="date"
-                value={lastPeriodDate}
-                onChange={(e) => setLastPeriodDate(e.target.value)}
-                className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+              <DatePicker
+                id="update-last-period-date"
+                label="Last Period Start Date *"
+                placeholder="Select a date"
+                defaultDate={lastPeriodDate}
+                onChange={(selectedDates) => {
+                  if (selectedDates[0]) {
+                    setLastPeriodDate(
+                      selectedDates[0].toISOString().split("T")[0]
+                    );
+                  }
+                }}
               />
             </div>
 

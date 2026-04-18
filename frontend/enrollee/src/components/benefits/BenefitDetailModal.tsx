@@ -59,7 +59,7 @@ const BenefitDetailModal: React.FC<BenefitDetailModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={benefit.benefitName}>
+    <Modal isOpen={isOpen} onClose={onClose}>
       <div className="space-y-6">
         {/* Status and Benefit Type */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
