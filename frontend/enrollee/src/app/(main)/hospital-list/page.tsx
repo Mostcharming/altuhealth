@@ -3,14 +3,15 @@ import HospitalListPageClient from "@/components/pages/hospitalList/HospitalList
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Hospital List",
-  description: "View list of affiliated hospitals and medical centers.",
+  title: "Providers List",
+  description:
+    "View list of affiliated healthcare providers and medical centers.",
 };
 
 export default function HospitalListPage() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Hospital List" />
+      <PageBreadcrumb pageTitle="Healthcare Providers" />
       <HospitalListPageClient />
     </div>
   );

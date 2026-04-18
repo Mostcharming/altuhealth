@@ -12,6 +12,8 @@ interface User {
   phoneNumber?: string;
   status?: string;
   rolePrivileges?: string[];
+  state?: string;
+  lga?: string;
 }
 
 interface AuthState {
