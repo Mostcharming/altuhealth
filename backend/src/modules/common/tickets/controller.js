@@ -184,13 +184,29 @@ async function addMessage(req, res, next) {
             messageType = 'text'
         } = req.body || {};
 
-        // For text messages, content is required
-        if (messageType === 'text' && !content) {
+        // Handle file upload if present
+        let finalAttachmentUrl = attachmentUrl;
+        let finalAttachmentType = attachmentType;
+        let finalAttachmentName = attachmentName;
+        let finalMessageType = messageType;
+
+        if (req.ticketAttachment) {
+            // store absolute URL so the DB contains a route like http://host:port/upload/<filename>
+            const base = (req.protocol && req.get && req.get('host')) ? `${req.protocol}://${req.get('host')}` : '';
+            const rel = req.ticketAttachment.url || `/upload/${req.ticketAttachment.filename}`;
+            finalAttachmentUrl = base ? `${base}${rel}` : rel;
+            finalAttachmentType = 'image';
+            finalAttachmentName = req.ticketAttachment.originalName;
+            finalMessageType = 'attachment';
+        }
+
+        // For text messages, content is required (unless attachment)
+        if (finalMessageType === 'text' && !content) {
             return res.fail('`content` is required for text messages', 400);
         }
 
         // For attachment messages, attachmentUrl is required
-        if (messageType === 'attachment' && !attachmentUrl) {
+        if (finalMessageType === 'attachment' && !finalAttachmentUrl) {
             return res.fail('`attachmentUrl` is required for attachment messages', 400);
         }
 
@@ -199,11 +215,11 @@ async function addMessage(req, res, next) {
             ticketId,
             senderId: userId,
             senderType: userType,
-            messageType,
+            messageType: finalMessageType,
             content,
-            attachmentUrl,
-            attachmentType,
-            attachmentName,
+            attachmentUrl: finalAttachmentUrl,
+            attachmentType: finalAttachmentType,
+            attachmentName: finalAttachmentName,
             isInternal: false
         });
 
