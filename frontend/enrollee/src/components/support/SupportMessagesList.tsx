@@ -206,16 +206,16 @@ const SupportMessagesList: React.FC = () => {
                 Filter
               </button>
               {showFilter && (
-                <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800 z-10">
+                <div className="absolute right-0 z-10 mt-2 w-56 rounded-lg border border-gray-200 bg-white p-4 shadow-lg dark:border-gray-700 dark:bg-gray-800">
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
                       Category
                     </label>
                     <select
                       name="category"
                       value={filters.category}
                       onChange={handleFilterChange}
-                      className="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                      className="shadow-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                     >
                       <option value="">All Categories</option>
                       <option value="billing">Billing</option>
@@ -226,19 +226,17 @@ const SupportMessagesList: React.FC = () => {
                       <option value="prescription">Prescription</option>
                       <option value="appointment">Appointment</option>
                       <option value="general">General</option>
-                      <option value="other">Other</option>
                     </select>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <div className="mb-4">
+                    <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
                       Priority
                     </label>
                     <select
                       name="priority"
                       value={filters.priority}
                       onChange={handleFilterChange}
-                      className="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                      className="shadow-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                     >
                       <option value="">All Priorities</option>
                       <option value="low">Low</option>
@@ -247,6 +245,12 @@ const SupportMessagesList: React.FC = () => {
                       <option value="urgent">Urgent</option>
                     </select>
                   </div>
+                  {/* <button
+                    className="bg-brand-500 hover:bg-brand-600 h-10 w-full rounded-lg px-3 py-2 text-sm font-medium text-white transition-colors"
+                    onClick={() => setShowFilter(false)}
+                  >
+                    Apply
+                  </button> */}
                 </div>
               )}
             </div>

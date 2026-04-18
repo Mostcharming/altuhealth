@@ -2,7 +2,6 @@
 
 import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
-import { EyeIcon } from "@/icons";
 import React, { useCallback, useEffect, useState } from "react";
 
 interface Hospital {
@@ -140,7 +139,6 @@ const HospitalListPageClient: React.FC = () => {
     { key: "phone", label: "Phone" },
     { key: "email", label: "Email" },
     { key: "accreditation", label: "Accreditation" },
-    { key: "actions", label: "Actions" },
   ];
 
   const fetch = useCallback(async () => {
@@ -211,11 +209,6 @@ const HospitalListPageClient: React.FC = () => {
   for (let i = start; i <= end; i++) {
     visiblePages.push(i);
   }
-
-  const handleViewDetails = (hospital: Hospital) => {
-    // Can be used to open a modal or navigate to hospital details page
-    console.log("View details for:", hospital);
-  };
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -317,17 +310,6 @@ const HospitalListPageClient: React.FC = () => {
                     <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                       {hospital.accreditation}
                     </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleViewDetails(hospital)}
-                        className="text-gray-700 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-                        title="View Details"
-                      >
-                        <EyeIcon />
-                      </button>
-                    </div>
                   </td>
                 </tr>
               ))}

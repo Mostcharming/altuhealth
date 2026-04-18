@@ -1,5 +1,6 @@
 "use client";
 
+import Select from "@/components/form/Select";
 import { useAuthStore } from "@/lib/authStore";
 import { useTicketStore } from "@/lib/store/ticketStore";
 import { useState } from "react";
@@ -27,11 +28,16 @@ export default function CreateTicketModal({
   const [error, setError] = useState<string | null>(null);
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -147,22 +153,22 @@ export default function CreateTicketModal({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Category
               </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-brand-800"
-              >
-                <option value="general">General</option>
-                <option value="billing">Billing</option>
-                <option value="technical">Technical</option>
-                <option value="claim">Claim</option>
-                <option value="provider">Provider</option>
-                <option value="enrollment">Enrollment</option>
-                <option value="prescription">Prescription</option>
-                <option value="appointment">Appointment</option>
-                <option value="other">Other</option>
-              </select>
+              <Select
+                options={[
+                  { value: "general", label: "General" },
+                  { value: "billing", label: "Billing" },
+                  { value: "technical", label: "Technical" },
+                  { value: "claim", label: "Claim" },
+                  { value: "provider", label: "Provider" },
+                  { value: "enrollment", label: "Enrollment" },
+                  { value: "prescription", label: "Prescription" },
+                  { value: "appointment", label: "Appointment" },
+                  { value: "other", label: "Other" },
+                ]}
+                placeholder="Select category"
+                defaultValue={formData.category}
+                onChange={(value) => handleSelectChange("category", value)}
+              />
             </div>
 
             {/* Priority */}
@@ -170,17 +176,17 @@ export default function CreateTicketModal({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Priority
               </label>
-              <select
-                name="priority"
-                value={formData.priority}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-brand-800"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
+              <Select
+                options={[
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                  { value: "urgent", label: "Urgent" },
+                ]}
+                placeholder="Select priority"
+                defaultValue={formData.priority}
+                onChange={(value) => handleSelectChange("priority", value)}
+              />
             </div>
 
             {/* Description */}
