@@ -11,10 +11,12 @@ import { useState } from "react";
 
 interface CreateDependentFormProps {
   onSuccess?: () => void;
+  onError?: (message: string) => void;
 }
 
 const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
   onSuccess,
+  onError,
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -102,7 +104,13 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error("Failed to create dependent", err);
-      alert("Failed to add dependent. Please try again.");
+      const errorMessage =
+        err instanceof Error ? err.message : "You cannot add more dependents";
+      if (onError) {
+        onError(errorMessage);
+      } else {
+        alert(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

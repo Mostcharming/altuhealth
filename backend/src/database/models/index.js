@@ -82,6 +82,7 @@ function defineModels(sequelize) {
   const Ticket = require("./ticket.model")(sequelize, DataTypes);
   const TicketMessage = require("./ticketMessage.model")(sequelize, DataTypes);
   const Integration = require("./integration.model")(sequelize, DataTypes);
+  const PeriodTracker = require("./periodTracker.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -110,7 +111,7 @@ function defineModels(sequelize) {
 
   // BenefitCategory <-> Benefit one-to-many
   BenefitCategory.hasMany(Benefit, { foreignKey: "benefitCategoryId" });
-  Benefit.belongsTo(BenefitCategory, { foreignKey: "benefitCategoryId" });
+  Benefit.belongsTo(BenefitCategory, { foreignKey: "benefitCategoryId", as: 'benefitCategory' });
 
   // Provider <-> Admin (manager)
   Admin.hasMany(Provider, { foreignKey: "managerId", as: 'managedProviders' });
@@ -257,7 +258,7 @@ function defineModels(sequelize) {
 
   // Enrollee <-> CompanyPlan one-to-many
   CompanyPlan.hasMany(Enrollee, { foreignKey: "companyPlanId" });
-  Enrollee.belongsTo(CompanyPlan, { foreignKey: "companyPlanId" });
+  Enrollee.belongsTo(CompanyPlan, { foreignKey: "companyPlanId", as: 'companyPlan' });
 
   // EnrolleeMedicalHistory <-> Enrollee one-to-many
   Enrollee.hasMany(EnrolleeMedicalHistory, { foreignKey: "enrolleeId", as: 'medicalHistories' });
@@ -570,7 +571,11 @@ function defineModels(sequelize) {
   Admin.hasMany(Ticket, { foreignKey: "assignedToId", constraints: false, as: 'assignedTickets' });
   Ticket.belongsTo(Admin, { foreignKey: "assignedToId", constraints: false, as: 'assignedAdmin' });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, ProviderNotification, EnrolleeNotification, EnrolleeDependentNotification, RetailEnrolleeNotification, RetailEnrolleeDependentNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, AuthorizationCodeRendered, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning, EnrolleeDependentMedicalHistory, Ticket, TicketMessage, Integration };
+  // PeriodTracker <-> Enrollee one-to-one
+  Enrollee.hasOne(PeriodTracker, { foreignKey: "enrolleeId", as: 'periodTracker' });
+  PeriodTracker.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, ProviderNotification, EnrolleeNotification, EnrolleeDependentNotification, RetailEnrolleeNotification, RetailEnrolleeDependentNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, AuthorizationCodeRendered, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning, EnrolleeDependentMedicalHistory, Ticket, TicketMessage, Integration, PeriodTracker };
 }
 
 module.exports = defineModels;

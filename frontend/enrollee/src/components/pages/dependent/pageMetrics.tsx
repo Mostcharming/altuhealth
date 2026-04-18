@@ -5,6 +5,7 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
+import React from "react";
 
 export default function PageMetricsDependents({
   buttonText = "Add Dependent",
@@ -16,6 +17,9 @@ export default function PageMetricsDependents({
   const { isOpen, openModal, closeModal } = useModal();
   const errorModal = useModal();
   const successModal = useModal();
+  const [errorMessage, setErrorMessage] = React.useState(
+    "You cannot add more dependents"
+  );
 
   const handleSuccessClose = () => {
     successModal.closeModal();
@@ -32,6 +36,11 @@ export default function PageMetricsDependents({
 
   const handleFormSuccess = () => {
     successModal.openModal();
+  };
+
+  const handleFormError = (message: string) => {
+    setErrorMessage(message);
+    errorModal.openModal();
   };
 
   return (
@@ -77,7 +86,10 @@ export default function PageMetricsDependents({
         </div>
 
         <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
-          <CreateDependentForm onSuccess={handleFormSuccess} />
+          <CreateDependentForm
+            onSuccess={handleFormSuccess}
+            onError={handleFormError}
+          />
         </div>
       </Modal>
 
@@ -89,7 +101,7 @@ export default function PageMetricsDependents({
       <ErrorModal
         errorModal={errorModal}
         handleErrorClose={handleErrorClose}
-        message="Failed to add dependent"
+        message={errorMessage}
       />
     </div>
   );

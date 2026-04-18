@@ -39,6 +39,16 @@ async function createDependent(req, res, next) {
             where: { enrolleeId }
         });
 
+        // Check if adding a new dependent would exceed the maximum allowed
+        if (enrollee.maxDependents !== null && enrollee.maxDependents !== undefined) {
+            if (dependentCount >= enrollee.maxDependents) {
+                return res.fail(
+                    `Maximum number of dependents (${enrollee.maxDependents}) has been reached for this enrollee`,
+                    400
+                );
+            }
+        }
+
         // Generate policy number: enrollee policy number + "-" + (count + 1)
         const policyNumber = `${enrollee.policyNumber}-${dependentCount + 1}`;
 
