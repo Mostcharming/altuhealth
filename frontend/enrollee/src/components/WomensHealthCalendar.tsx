@@ -1,6 +1,7 @@
 "use client";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
+import { apiClient } from "@/lib/apiClient";
 import { EventInput } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -57,8 +58,7 @@ const WomensHealthCalendar: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/enrollee/womens-health/tracker");
-        const data = await response.json();
+        const data = await apiClient("/api/enrollee/womens-health/tracker");
 
         if (data.data) {
           setTracker(data.data);
@@ -83,8 +83,7 @@ const WomensHealthCalendar: React.FC = () => {
 
   const fetchPeriodEvents = async () => {
     try {
-      const response = await fetch("/api/enrollee/womens-health/events");
-      const data = await response.json();
+      const data = await apiClient("/api/enrollee/womens-health/events");
       setEvents(data.data || []);
     } catch (err) {
       console.error("Error fetching period events:", err);
@@ -98,29 +97,27 @@ const WomensHealthCalendar: React.FC = () => {
     }
 
     try {
-      const response = await fetch("/api/enrollee/womens-health/tracker", {
+      const data = await apiClient("/api/enrollee/womens-health/tracker", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           lastPeriodDate,
           cycleLength,
           periodDuration,
           notes,
-        }),
+        },
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setTracker(data.data);
-        fetchPeriodEvents();
-        closeTrackerModal();
-        setError(null);
-      } else {
-        setError(data.message || "Failed to create tracker");
-      }
+      setTracker(data.data);
+      fetchPeriodEvents();
+      closeTrackerModal();
+      setError(null);
     } catch (err) {
       console.error("Error creating tracker:", err);
-      setError("Failed to create tracker. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to create tracker. Please try again."
+      );
     }
   };
 
@@ -131,29 +128,27 @@ const WomensHealthCalendar: React.FC = () => {
     }
 
     try {
-      const response = await fetch("/api/enrollee/womens-health/tracker", {
+      const data = await apiClient("/enrollee/womens-health/tracker", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: {
           lastPeriodDate,
           cycleLength,
           periodDuration,
           notes,
-        }),
+        },
       });
 
-      const data = await response.json();
-      if (response.ok) {
-        setTracker(data.data);
-        fetchPeriodEvents();
-        closeUpdateModal();
-        setError(null);
-      } else {
-        setError(data.message || "Failed to update tracker");
-      }
+      setTracker(data.data);
+      fetchPeriodEvents();
+      closeUpdateModal();
+      setError(null);
     } catch (err) {
       console.error("Error updating tracker:", err);
-      setError("Failed to update tracker. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update tracker. Please try again."
+      );
     }
   };
 
