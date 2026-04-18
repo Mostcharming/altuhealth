@@ -41,7 +41,7 @@ async function searchEnrolleeOrDependent(req, res, next) {
                 include: [
                     { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId', 'email', 'phoneNumber'] },
                     { model: Company, attributes: ['id', 'name'] },
-                    { model: CompanyPlan, attributes: ['id', 'name'] }
+                    { model: CompanyPlan, as: 'companyPlan', attributes: ['id', 'name'] }
                 ]
             });
         } else {
@@ -50,7 +50,7 @@ async function searchEnrolleeOrDependent(req, res, next) {
                 include: [
                     { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId', 'email', 'phoneNumber'] },
                     { model: Company, attributes: ['id', 'name'] },
-                    { model: CompanyPlan, attributes: ['id', 'name'] }
+                    { model: CompanyPlan, as: 'companyPlan', attributes: ['id', 'name'] }
                 ]
             });
         }

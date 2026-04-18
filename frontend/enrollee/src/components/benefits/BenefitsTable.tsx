@@ -2,27 +2,24 @@
 
 import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
-import { EyeIcon } from "@/icons";
 import { fetchEnrolleeBenefits } from "@/lib/apis/benefit";
-import capitalizeWords from "@/lib/capitalize";
-import { formatPrice } from "@/lib/formatDate";
 import React, { useCallback, useEffect, useState } from "react";
-import BenefitDetailModal from "./BenefitDetailModal";
 
 interface Benefit {
   id: string;
-  benefitName: string;
-  benefitType: string;
-  coverageAmount?: number;
-  currency?: string;
-  limitPerAnnum?: number;
-  amountUtilized?: number;
-  remainingBalance?: number;
-  status: "active" | "inactive" | "pending" | "expired";
-  startDate?: string;
-  endDate?: string;
-  provider?: string;
+  name: string;
+  benefitCategory?: string;
+  benefitCategoryId?: string;
+  isCovered: boolean;
   description?: string;
+  coverageType?:
+    | "times_per_year"
+    | "times_per_month"
+    | "quarterly"
+    | "unlimited"
+    | "amount_based"
+    | "limit_based";
+  coverageValue?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -35,15 +32,13 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  // const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [benefits, setBenefits] = useState<Benefit[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
 
   type Header = {
     key: keyof Benefit | "actions";
@@ -58,22 +53,17 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
     { value: "50", label: "50" },
   ];
 
-  const benefitStatuses = [
-    { value: "", label: "All Statuses" },
-    { value: "active", label: "Active" },
-    { value: "inactive", label: "Inactive" },
-    { value: "pending", label: "Pending" },
-    { value: "expired", label: "Expired" },
-  ];
+  // const benefitStatuses = [
+  //   { value: "", label: "All Statuses" },
+  //   { value: "active", label: "Active" },
+  //   { value: "inactive", label: "Inactive" },
+  //   { value: "pending", label: "Pending" },
+  //   { value: "expired", label: "Expired" },
+  // ];
 
   const headers: Header[] = [
-    { key: "benefitName", label: "Benefit Name" },
-    { key: "benefitType", label: "Benefit Type" },
-    { key: "coverageAmount", label: "Coverage Amount" },
-    { key: "amountUtilized", label: "Amount Utilized" },
-    { key: "remainingBalance", label: "Remaining Balance" },
-    { key: "status", label: "Status" },
-    { key: "actions", label: "Actions" },
+    { key: "name", label: "Benefit Name" },
+    { key: "description", label: "Description" },
   ];
 
   const fetch = useCallback(async () => {
@@ -85,7 +75,7 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
         limit,
         page: currentPage,
         search: search || undefined,
-        status: selectedStatus || undefined,
+        // status: selectedStatus || undefined,
       });
 
       // Handle response structure
@@ -96,7 +86,7 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
       const formattedBenefits: Benefit[] = benefitsData.map(
         (benefit: Record<string, unknown>) => ({
           id: String(benefit.id),
-          benefitName: String(benefit.benefitName),
+          name: String(benefit.name),
           benefitType: String(benefit.benefitType || "General"),
           coverageAmount: Number(benefit.coverageAmount || 0),
           currency: String(benefit.currency || "NGN"),
@@ -133,7 +123,12 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, selectedStatus]);
+  }, [
+    limit,
+    currentPage,
+    search,
+    //  selectedStatus
+  ]);
 
   useEffect(() => {
     fetch();
@@ -154,10 +149,10 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
     setCurrentPage(1);
   };
 
-  const handleStatusChange = (selectedValue: string) => {
-    setSelectedStatus(selectedValue);
-    setCurrentPage(1);
-  };
+  // const handleStatusChange = (selectedValue: string) => {
+  //   setSelectedStatus(selectedValue);
+  //   setCurrentPage(1);
+  // };
 
   const previousPage = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -184,30 +179,9 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
     visiblePages.push(i);
   }
 
-  const handleViewDetails = (benefit: Benefit) => {
-    setSelectedBenefit(benefit);
-    setIsModalOpen(true);
-  };
+  // Removed modal functionality
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedBenefit(null);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-      case "inactive":
-        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
-      case "pending":
-        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "expired":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
-    }
-  };
+  // Removed getStatusColor - no longer needed
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -220,12 +194,12 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
 
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
-            <Select
+            {/* <Select
               options={benefitStatuses}
               placeholder="Select status"
               onChange={handleStatusChange}
               defaultValue={selectedStatus}
-            />
+            /> */}
             <div className="relative">
               <input
                 type="text"
@@ -271,54 +245,13 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
                 >
                   <td className="p-4 whitespace-nowrap">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {benefit.benefitName || "-"}
+                      {benefit.name || "-"}
                     </span>
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {benefit.benefitType || "-"}
+                      {benefit.description || "-"}
                     </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {formatPrice(
-                        benefit.coverageAmount ?? 0,
-                        benefit.currency
-                      )}
-                    </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {formatPrice(
-                        benefit.amountUtilized ?? 0,
-                        benefit.currency
-                      )}
-                    </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {formatPrice(
-                        benefit.remainingBalance ?? 0,
-                        benefit.currency
-                      )}
-                    </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                        benefit.status
-                      )}`}
-                    >
-                      {capitalizeWords(benefit.status)}
-                    </span>
-                  </td>
-                  <td className="p-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleViewDetails(benefit)}
-                      className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
-                    >
-                      <EyeIcon className="w-4 h-4" />
-                    </button>
                   </td>
                 </tr>
               ))}
@@ -442,12 +375,6 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
           </button>
         </div>
       </div>
-
-      <BenefitDetailModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        benefit={selectedBenefit}
-      />
     </div>
   );
 };

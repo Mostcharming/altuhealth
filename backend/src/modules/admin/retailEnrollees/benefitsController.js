@@ -72,7 +72,7 @@ async function getRetailEnrolleeBenefitById(req, res, next) {
 
         const benefit = await Benefit.findByPk(benefitId, {
             include: [
-                { model: BenefitCategory, attributes: ['id', 'name'] }
+                { model: BenefitCategory, as: 'benefitCategory', attributes: ['id', 'name'] }
             ]
         });
 

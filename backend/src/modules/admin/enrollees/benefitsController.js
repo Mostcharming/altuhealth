@@ -79,7 +79,7 @@ async function getEnrolleeBenefits(req, res, next) {
         const { count, rows } = await Benefit.findAndCountAll({
             where: benefitWhere,
             include: [
-                { model: BenefitCategory, attributes: ['id', 'name', 'count'] }
+                { model: BenefitCategory, as: 'benefitCategory', attributes: ['id', 'name', 'count'] }
             ],
             limit: parseInt(limit),
             offset: parseInt(offset),
@@ -128,7 +128,7 @@ async function getEnrolleeBenefitById(req, res, next) {
 
         // Get the benefit
         const benefit = await Benefit.findByPk(benefitId, {
-            include: [{ model: BenefitCategory, attributes: ['id', 'name', 'count'] }]
+            include: [{ model: BenefitCategory, as: 'benefitCategory', attributes: ['id', 'name', 'count'] }]
         });
 
         if (!benefit)

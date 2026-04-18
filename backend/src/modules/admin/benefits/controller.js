@@ -236,6 +236,7 @@ async function getBenefit(req, res, next) {
         const benefit = await Benefit.findByPk(id, {
             include: [{
                 model: BenefitCategory,
+                as: 'benefitCategory',
                 attributes: ['id', 'name']
             }]
         });

@@ -160,7 +160,7 @@ async function getEnrollees(req, res, next) {
             include: [
                 { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId'] },
                 { model: Company, attributes: ['id', 'name'] },
-                { model: CompanyPlan, attributes: ['id', 'name'] }
+                { model: CompanyPlan, as: 'companyPlan', attributes: ['id', 'name'] }
             ],
             order: [['createdAt', 'DESC']],
             subQuery: false
@@ -202,7 +202,7 @@ async function getEnrolleeById(req, res, next) {
             include: [
                 { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId', 'email', 'phoneNumber'] },
                 { model: Company, attributes: ['id', 'name'] },
-                { model: CompanyPlan, attributes: ['id', 'name'] },
+                { model: CompanyPlan, as: 'companyPlan', attributes: ['id', 'name'] },
                 // {
                 //     model: EnrolleeMedicalHistory,
                 //     as: 'medicalHistories',

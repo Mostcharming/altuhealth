@@ -137,28 +137,25 @@ async function getEnrolleeBenefits(req, res, next) {
             return next(err);
         }
 
-        // Format benefits response
-        const formattedBenefits = benefits.map(benefit => ({
-            id: benefit.id,
-            benefitName: benefit.name,
-            benefitType: benefit.benefitCategory?.name || 'General',
-            description: benefit.description,
-            isCovered: benefit.isCovered,
-            coverageType: benefit.coverageType,
-            coverageValue: benefit.coverageValue,
-            currency: companyPlan.currency || 'NGN',
-            status: benefit.isCovered ? 'active' : 'inactive',
-            createdAt: benefit.created_at,
-            updatedAt: benefit.updated_at,
-            // Note: amountUtilized, remainingBalance, limitPerAnnum would come from
-            // claims/utilization data if available in future implementations
-            amountUtilized: 0,
-            remainingBalance: 0,
-            limitPerAnnum: 0,
-            startDate: null,
-            endDate: null,
-            provider: null
-        }));
+        // Format benefits response - only include fields present in database
+        const formattedBenefits = benefits.map(benefit => {
+            const formatted = {
+                id: benefit.id,
+                name: benefit.name,
+                benefitCategoryId: benefit.benefit_category_id,
+                benefitCategory: benefit.benefitCategory?.name,
+                isCovered: benefit.is_covered,
+                createdAt: benefit.created_at,
+                updatedAt: benefit.updated_at,
+            };
+
+            // Only add optional fields if they exist and are not null
+            if (benefit.description) formatted.description = benefit.description;
+            if (benefit.coverage_type) formatted.coverageType = benefit.coverage_type;
+            if (benefit.coverage_value) formatted.coverageValue = benefit.coverage_value;
+
+            return formatted;
+        });
 
         const totalPages = Math.ceil(totalCount / limitNum);
         const hasNextPage = pageNum < totalPages;
@@ -210,17 +207,22 @@ async function getEnrolleeBenefitById(req, res, next) {
             return res.fail('Benefit not found', 404);
         }
 
-        return res.success({
+        const formatted = {
             id: benefit.id,
-            benefitName: benefit.name,
-            benefitType: benefit.benefitCategory?.name || 'General',
-            description: benefit.description,
+            name: benefit.name,
+            benefitCategoryId: benefit.benefitCategoryId,
+            benefitCategory: benefit.benefitCategory?.name,
             isCovered: benefit.isCovered,
-            coverageType: benefit.coverageType,
-            coverageValue: benefit.coverageValue,
-            createdAt: benefit.created_at,
-            updatedAt: benefit.updated_at
-        }, 'Benefit retrieved successfully');
+            createdAt: benefit.createdAt,
+            updatedAt: benefit.updatedAt
+        };
+
+        // Only add optional fields if they exist and are not null
+        if (benefit.description) formatted.description = benefit.description;
+        if (benefit.coverageType) formatted.coverageType = benefit.coverageType;
+        if (benefit.coverageValue) formatted.coverageValue = benefit.coverageValue;
+
+        return res.success(formatted, 'Benefit retrieved successfully');
 
     } catch (err) {
         return next(err);
