@@ -24,6 +24,7 @@ type NavItem = {
   icon: React.ReactNode;
   path?: string;
   new?: boolean;
+  comingSoon?: boolean;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
@@ -74,6 +75,7 @@ const navItems: NavItem[] = [
     icon: <PlugInIcon />,
     path: "/telemedicine-signup",
     new: true,
+    comingSoon: true,
   },
   {
     name: "Support Messages",
@@ -85,6 +87,7 @@ const navItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
 
   const allowedMenuNames = useMemo(() => {
     const set = new Set<string>();
@@ -158,7 +161,30 @@ const AppSidebar: React.FC = () => {
                 )}
               </button>
             ) : (
-              nav.path && (
+              nav.path &&
+              (nav.comingSoon ? (
+                <button
+                  onClick={() => setShowComingSoonModal(true)}
+                  className={`menu-item group ${
+                    isActive(nav.path)
+                      ? "menu-item-active"
+                      : "menu-item-inactive"
+                  } cursor-pointer`}
+                >
+                  <span
+                    className={`${
+                      isActive(nav.path)
+                        ? "menu-item-icon-active"
+                        : "menu-item-icon-inactive"
+                    }`}
+                  >
+                    {nav.icon}
+                  </span>
+                  {(isExpanded || isHovered || isMobileOpen) && (
+                    <span className={`menu-item-text`}>{nav.name}</span>
+                  )}
+                </button>
+              ) : (
                 <Link
                   href={nav.path}
                   className={`menu-item group ${
@@ -180,7 +206,7 @@ const AppSidebar: React.FC = () => {
                     <span className={`menu-item-text`}>{nav.name}</span>
                   )}
                 </Link>
-              )
+              ))
             )}
             {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
               <div
@@ -464,6 +490,44 @@ const AppSidebar: React.FC = () => {
           </div>
         </nav>
       </div>
+
+      {/* Coming Soon Modal */}
+      {showComingSoonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <svg
+                  className="w-16 h-16 text-brand-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Coming Soon
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Telemedicine Setup will be available soon. We&apos;re working
+                hard to bring this feature to you!
+              </p>
+              <button
+                onClick={() => setShowComingSoonModal(false)}
+                className="w-full px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
+              >
+                Got It!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 };
