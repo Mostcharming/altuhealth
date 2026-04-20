@@ -198,6 +198,7 @@ async function listBenefits(req, res, next) {
             where,
             include: [{
                 model: BenefitCategory,
+                as: 'benefitCategory',
                 attributes: ['id', 'name']
             }],
             order: [['created_at', 'DESC']]

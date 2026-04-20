@@ -31,6 +31,7 @@ async function getRetailEnrolleeBenefits(req, res, next) {
             include: [
                 {
                     model: BenefitCategory,
+                    as: 'benefitCategory',
                     attributes: ['id', 'name']
                 }
             ],

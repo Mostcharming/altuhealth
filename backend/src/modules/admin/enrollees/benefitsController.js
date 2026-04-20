@@ -37,7 +37,7 @@ async function getEnrolleeBenefits(req, res, next) {
         const benefitCategories = await CompanyPlanBenefitCategory.findAll({
             where: benefitCategoryWhere,
             include: [
-                { model: BenefitCategory, attributes: ['id', 'name', 'count'] }
+                { model: BenefitCategory, as: 'benefitCategory', attributes: ['id', 'name', 'count'] }
             ],
             raw: false
         });
