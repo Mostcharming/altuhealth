@@ -61,6 +61,9 @@ async function createStaff(req, res, next) {
 
         // Only create enrollee if subscriptionId is provided
         let enrollee = null;
+        let rawPassword = null;
+        let hashedPassword = null;
+
         if (subscriptionId) {
             const subscriptionPlan = await SubscriptionPlan.findOne({
                 where: { subscriptionId },
@@ -82,8 +85,8 @@ async function createStaff(req, res, next) {
             const policyNumber = await getUniquePolicyNumber(Enrollee);
 
             // Generate password for enrollee
-            const rawPassword = generateCode(10, { letters: true, numbers: true });
-            const hashedPassword = await bcrypt.hash(rawPassword, 10);
+            rawPassword = generateCode(10, { letters: true, numbers: true });
+            hashedPassword = await bcrypt.hash(rawPassword, 10);
 
             enrollee = await Enrollee.create({
                 firstName,
@@ -124,14 +127,12 @@ async function createStaff(req, res, next) {
                 const notificationData = {
                     firstName: staff.firstName,
                     companyName: company.name,
-                    loginLink: enrollmentLink,
-                    policyNumber: policyNumber,
-                    temporaryPassword: hashedPassword
+                    loginLink: enrollmentLink
                 };
 
-                // Include password in notification if enrollee was created
+                // Include password and policy number in notification if enrollee was created
                 if (enrollee) {
-                    notificationData.password = rawPassword;
+                    notificationData.temporaryPassword = rawPassword;
                     notificationData.policyNumber = enrollee.policyNumber;
                 }
 
