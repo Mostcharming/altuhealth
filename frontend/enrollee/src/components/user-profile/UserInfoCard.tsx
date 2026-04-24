@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import PhoneInput from "../form/group-input/PhoneInput";
+import FileInput from "../form/input/FileInput";
 import Input from "../form/input/InputField";
 import TextArea from "../form/input/TextArea";
 import Label from "../form/Label";
@@ -34,6 +35,7 @@ export default function UserInfoCard() {
   const [phone, setPhone] = useState<string>("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [messageTwo, setMessageTwo] = useState<string>("");
+  const [file, setFile] = useState<File | null>(null);
   const user = useAuthStore((s) => s.user);
 
   const fetchAccount = useCallback(async () => {
@@ -79,6 +81,24 @@ export default function UserInfoCard() {
     setSelectedCountry(value ?? null);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement> | null) => {
+    if (!e) {
+      setFile(null);
+      return;
+    }
+    const files = e.target.files;
+    const selected = files && files[0] ? files[0] : null;
+
+    // Only accept image files
+    if (selected && !selected.type.startsWith("image/")) {
+      console.warn("Only image files are allowed");
+      setFile(null);
+      return;
+    }
+
+    setFile(selected);
+  };
+
   const handleSave = async (e?: SyntheticEvent) => {
     if (e && typeof e.preventDefault === "function") {
       e.preventDefault();
@@ -91,6 +111,9 @@ export default function UserInfoCard() {
     formData.append("phoneNumber", phone ?? "");
     formData.append("address", messageTwo ?? "");
     if (selectedCountry) formData.append("country", selectedCountry);
+    if (file) {
+      formData.append("picture", file);
+    }
 
     try {
       setLoading(true);
@@ -122,6 +145,7 @@ export default function UserInfoCard() {
 
         useAuthStore.setState({ user: authUser });
       }
+      setFile(null);
       closeModal();
     } catch (err) {
       console.warn("Profile update failed", err);
@@ -328,6 +352,14 @@ export default function UserInfoCard() {
                       value={messageTwo}
                       error
                       onChange={(value) => setMessageTwo(value)}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label>Profile Picture</Label>
+                    <FileInput
+                      onChange={handleFileChange}
+                      className="custom-class"
+                      accept="image/*"
                     />
                   </div>
                 </div>

@@ -151,7 +151,7 @@ export default function UserInfoCard() {
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -361,7 +361,7 @@ export default function UserInfoCard() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label>Upload file</Label>
+                    <Label>Profile Picture</Label>
                     <FileInput
                       onChange={handleFileChange}
                       className="custom-class"

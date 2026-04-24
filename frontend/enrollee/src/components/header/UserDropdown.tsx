@@ -1,4 +1,5 @@
 "use client";
+import { useAccountStore } from "@/lib/store/accountStore";
 import Image from "next/image";
 import { useState } from "react";
 import { useAuthStore } from "../../lib/authStore";
@@ -7,6 +8,7 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const account = useAccountStore((s) => s.account);
 
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -28,7 +30,7 @@ export default function UserDropdown() {
           <Image
             width={44}
             height={44}
-            src={user?.picture || "/images/main/small.svg"}
+            src={account?.picture || "/images/main/small.svg"}
             alt={user?.firstName || user?.email || "User"}
           />
         </span>
