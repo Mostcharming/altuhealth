@@ -52,7 +52,7 @@ router.delete('/:id', EnrolleeDependent.deleteEnrolleeDependent);
 
 // ID Card and verification routes for dependents (must come before medical history routes)
 router.get('/:dependentId/download-id-card', EnrolleeDependent.downloadIdCard);
-router.post('/:dependentId/resend-verification-code', EnrolleeDependent.resendVerificationCode);
+// router.post('/:dependentId/resend-verification-code', EnrolleeDependent.resendVerificationCode);
 
 // Medical History routes for dependents
 router.post('/:dependentId/medical-histories', createMedicalHistory);

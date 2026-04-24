@@ -46,7 +46,7 @@ router.get('/:retailEnrolleeId', getRetailEnrolleeById);
 router.put('/:retailEnrolleeId', updateRetailEnrollee);
 router.delete('/:retailEnrolleeId', deleteRetailEnrollee);
 router.get('/:retailEnrolleeId/download-id-card', downloadIdCard);
-router.post('/:retailEnrolleeId/resend-verification-code', resendVerificationCode);
+// router.post('/:retailEnrolleeId/resend-verification-code', resendVerificationCode);
 
 // Benefits routes
 router.get('/:retailEnrolleeId/benefits', getRetailEnrolleeBenefits);

@@ -1,9 +1,11 @@
+const bcrypt = require('bcrypt');
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
 const { getUniqueAuthorizationCode } = require('../../../utils/authorizationCodeGenerator');
 const { getUniqueVerificationCode, getVerificationCodeExpirationDate, isVerificationCodeExpired, formatVerificationCode } = require('../../../utils/verificationCodeGenerator');
 const notify = require('../../../utils/notify');
+const generateCode = require('../../../utils/verificationCode');
 
 async function createEnrollee(req, res, next) {
     try {
@@ -463,61 +465,76 @@ async function verifyEnrollee(req, res, next) {
 
 async function resendVerificationCode(req, res, next) {
     try {
-        const { Enrollee } = req.models;
+        const { Enrollee, Company, Staff } = req.models;
         const { enrolleeId } = req.params;
-        const { via = 'email' } = req.body || {};
 
         if (!enrolleeId) return res.fail('`enrolleeId` is required', 400);
 
         // Find enrollee
-        const enrollee = await Enrollee.findByPk(enrolleeId);
+        const enrollee = await Enrollee.findByPk(enrolleeId, {
+            include: [
+                {
+                    model: Company,
+                    attributes: ['id', 'name'],
+                    required: false
+                },
+                {
+                    model: Staff,
+                    attributes: ['id', 'firstName', 'lastName', 'email'],
+                    required: false
+                }
+            ]
+        });
         if (!enrollee) return res.fail('Enrollee not found', 404);
 
-        // Check if already verified
-        if (enrollee.isVerified) {
-            return res.fail('Enrollee is already verified', 400);
+        // Check if enrollee has email
+        if (!enrollee.email) {
+            return res.fail('Enrollee email is not available', 400);
         }
 
-        // Generate new verification code
-        const verificationCode = await getUniqueVerificationCode(Enrollee);
-        const expirationDate = getVerificationCodeExpirationDate(30);
+        // Generate a new password and hash it
+        const rawPassword = generateCode(10, { letters: true, numbers: true });
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-        // Update enrollee with new code
+        // Update enrollee with new password
         await enrollee.update({
-            verificationCode,
-            verificationCodeExpiresAt: expirationDate,
-            verificationAttempts: 0 // Reset attempts on resend
+            password: hashedPassword
         });
 
-        // Send verification code
-        const formattedCode = formatVerificationCode(verificationCode);
+        const enrollmentLink = `https://enrollee.altuhealth.com`;
+        const company = enrollee.Company;
+        const companyName = company ? company.name : 'Your Company';
+        const policyNumber = enrollee.policyNumber;
 
-
-        // Send notification using the notify function
-        await notify(
-            enrollee,
-            'enrollee',
-            'OTP',
-            {
-                firstName: enrollee.firstName,
-                code: formattedCode,
-                expiresIn: '30 minutes'
-            },
-            ['email', 'sms'],
-            true
-        ).catch(err => console.error('Error sending verification code:', err));
+        try {
+            // Send enrollment email with new password
+            await notify(
+                { id: enrollee.id, email: enrollee.email, firstName: enrollee.firstName },
+                'enrollee',
+                'STAFF_ENROLLMENT_REQUIRED',
+                {
+                    firstName: enrollee.firstName,
+                    companyName,
+                    temporaryPassword: rawPassword,
+                    policyNumber,
+                    loginLink: enrollmentLink
+                }
+            );
+        } catch (notifyErr) {
+            console.error('Error sending enrollment email:', notifyErr);
+        }
 
         // Add audit log
         await addAuditLog(req.models, {
             action: 'verification.codeResent',
-            message: `Resent verification code to ${enrollee.email}`,
+            message: `Resent enrollment notification to ${enrollee.email} with new password`,
             userId: req.user?.id,
             userType: 'admin'
         });
 
         return res.success(
-            { message: `Verification code resent via ${via}` },
-            'Verification code resent successfully'
+            { message: 'Enrollment notification resent successfully with new password' },
+            'Enrollment notification resent successfully'
         );
     } catch (error) {
         console.error('Error resending verification code:', error);

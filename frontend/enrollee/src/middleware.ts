@@ -18,6 +18,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(signinUrl);
   }
 
+  // Redirect to /overview when launching the app
+  if (pathname === "/" || pathname === "") {
+    return NextResponse.redirect(new URL("/overview", req.url));
+  }
+
   return NextResponse.next();
 }
 
