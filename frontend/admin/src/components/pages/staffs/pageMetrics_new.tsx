@@ -60,7 +60,7 @@ export default function PageMetricsStaffs({
   const [bulkSubscriptions, setBulkSubscriptions] = useState<any[]>([]);
 
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to save staff. Please try again."
+    "Failed to save staff. Please try again.",
   );
 
   // countries for PhoneInput
@@ -135,7 +135,7 @@ export default function PageMetricsStaffs({
         `/admin/company-subsidiaries/list?companyId=${cId}&limit=all`,
         {
           method: "GET",
-        }
+        },
       );
       const subsidiariesList = data?.data?.list || [];
       setSubsidiaries(subsidiariesList);
@@ -150,7 +150,7 @@ export default function PageMetricsStaffs({
         `/admin/subscriptions/list?companyId=${cId}&limit=all`,
         {
           method: "GET",
-        }
+        },
       );
       const subscriptionsList = data?.data?.list || [];
       setSubscriptions(subscriptionsList);
@@ -177,7 +177,7 @@ export default function PageMetricsStaffs({
         `/admin/company-subsidiaries/list?companyId=${cId}&limit=all`,
         {
           method: "GET",
-        }
+        },
       );
       const subsidiariesList = data?.data?.list || [];
       setBulkSubsidiaries(subsidiariesList);
@@ -192,7 +192,7 @@ export default function PageMetricsStaffs({
         `/admin/subscriptions/list?companyId=${cId}&limit=all`,
         {
           method: "GET",
-        }
+        },
       );
       const subscriptionsList = data?.data?.list || [];
       setBulkSubscriptions(subscriptionsList);
@@ -274,7 +274,7 @@ export default function PageMetricsStaffs({
               ? `"${value}"`
               : value;
           })
-          .join(",")
+          .join(","),
       ),
     ].join("\n");
 
@@ -332,7 +332,7 @@ export default function PageMetricsStaffs({
       resetForm();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -398,7 +398,7 @@ export default function PageMetricsStaffs({
           maxDependents: maxDependents ? parseInt(maxDependents) : null,
           preexistingMedicalRecords: preexistingMedicalRecords || null,
           subscriptionId: subscriptionId || null,
-          enrollmentStatus: "not_enrolled",
+          enrollmentStatus: "enrolled",
           isNotified: false,
           isActive: true,
           createdAt: data.data.staff.createdAt,
@@ -408,7 +408,7 @@ export default function PageMetricsStaffs({
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {

@@ -7,6 +7,7 @@ const config = require('../../../config');
 const generateCode = require('../../../utils/verificationCode');
 
 async function createStaff(req, res, next) {
+    let transaction;
     try {
         const { Staff, Company, CompanySubsidiary, Subscription, Enrollee, CompanyPlan, SubscriptionPlan } = req.models;
         const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, dateOfBirth, maxDependents, preexistingMedicalRecords, subscriptionId, gender } = req.body || {};
@@ -44,6 +45,9 @@ async function createStaff(req, res, next) {
             if (existingStaffId) return res.fail('Staff ID already exists', 400);
         }
 
+        // Start transaction for atomic staff and enrollee creation
+        transaction = await Staff.sequelize.transaction();
+
         const staff = await Staff.create({
             firstName,
             middleName: middleName || null,
@@ -57,7 +61,7 @@ async function createStaff(req, res, next) {
             maxDependents: maxDependents || null,
             preexistingMedicalRecords: preexistingMedicalRecords || null,
             subscriptionId: subscriptionId || null
-        });
+        }, { transaction });
 
         // Only create enrollee if subscriptionId is provided
         let enrollee = null;
@@ -71,14 +75,19 @@ async function createStaff(req, res, next) {
             });
 
             if (!subscriptionPlan) {
+                await transaction.rollback();
                 return res.fail('No company plan found for the specified subscription', 404);
             }
 
             const planId = subscriptionPlan.companyPlanId;
 
             const companyPlan = await CompanyPlan.findByPk(planId);
-            if (!companyPlan) return res.fail('Company plan not found', 404);
+            if (!companyPlan) {
+                await transaction.rollback();
+                return res.fail('Company plan not found', 404);
+            }
             if (companyPlan.companyId !== companyId) {
+                await transaction.rollback();
                 return res.fail('Company plan does not belong to the specified company', 400);
             }
 
@@ -104,12 +113,15 @@ async function createStaff(req, res, next) {
                 preexistingMedicalRecords: preexistingMedicalRecords || null,
                 isActive: true,
                 password: hashedPassword
-            });
+            }, { transaction });
 
             await staff.update({
                 enrollmentStatus: 'enrolled'
-            });
+            }, { transaction });
         }
+
+        // Commit transaction before audit log and notifications (which are not critical for atomicity)
+        await transaction.commit();
 
         await addAuditLog(req.models, {
             action: 'staff.create',
@@ -154,6 +166,9 @@ async function createStaff(req, res, next) {
 
         return res.success({ staff: staff.toJSON(), enrollee: enrollee?.toJSON() }, 'Staff created', 201);
     } catch (err) {
+        if (transaction) {
+            await transaction.rollback();
+        }
         return next(err);
     }
 }
