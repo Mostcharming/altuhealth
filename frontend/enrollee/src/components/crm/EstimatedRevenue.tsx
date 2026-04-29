@@ -20,9 +20,14 @@ export default function EstimatedRevenue() {
   function closeDropdown() {
     setIsOpen(false);
   }
+
+  // Dummy data - replace with actual API data
+  const daysUntilRenewal = 120;
+  const renewalProgressPercent = (daysUntilRenewal / 365) * 100;
+
   // ApexCharts configuration
   const options: ApexOptions = {
-    colors: ["#465FFF"],
+    colors: ["#10B981"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "radialBar",
@@ -53,7 +58,7 @@ export default function EstimatedRevenue() {
             offsetY: -25,
             color: "#1D2939",
             formatter: function (val) {
-              return "NGN " + val;
+              return Math.round(val) + " days";
             },
           },
         },
@@ -61,23 +66,23 @@ export default function EstimatedRevenue() {
     },
     fill: {
       type: "solid",
-      colors: ["#465FFF"],
+      colors: ["#10B981"],
     },
     stroke: {
       lineCap: "round",
     },
-    labels: ["Claim Submitted"],
+    labels: ["Days Until Renewal"],
   };
-  const series = [0];
+  const series = [renewalProgressPercent];
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
       <div className="flex justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Healthcare Claims
+            Health Plan Status
           </h3>
           <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
-            Status of your healthcare claims
+            Your coverage status and renewal details
           </p>
         </div>
 
@@ -116,30 +121,27 @@ export default function EstimatedRevenue() {
           />
         </div>
         <span className="absolute left-1/2 top-[60%] -translate-x-1/2 -translate-y-[60%] text-xs font-normal text-gray-500 dark:text-gray-400">
-          Claim Submitted
+          Days Remaining
         </span>
       </div>
 
       <div className="pt-6 mt-6 space-y-5 border-t border-gary-200 dark:border-gray-800">
         <div>
           <p className="mb-2 text-gray-500 text-theme-sm dark:text-gray-400">
-            Claim Approved
+            Coverage Status
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <p className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  NGN 0.00
+                <p className="text-base font-semibold text-green-600 dark:text-green-400">
+                  Active
                 </p>
               </div>
             </div>
-
-            <div className="flex w-full max-w-[140px] items-center gap-3">
-              <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-                <div className="absolute left-0 top-0 flex h-full w-[0%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
-              </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-green-500"></div>
               <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                0%
+                Active
               </p>
             </div>
           </div>
@@ -147,25 +149,21 @@ export default function EstimatedRevenue() {
 
         <div>
           <p className="mb-2 text-gray-500 text-theme-sm dark:text-gray-400">
-            Pending Review
+            Renewal Date
           </p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  NGN 0.00
+                  {new Date(
+                    Date.now() + daysUntilRenewal * 24 * 60 * 60 * 1000,
+                  ).toLocaleDateString()}
                 </p>
               </div>
             </div>
-
-            <div className="flex w-full max-w-[140px] items-center gap-3">
-              <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-                <div className="absolute left-0 top-0 flex h-full w-[0%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
-              </div>
-              <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                0%
-              </p>
-            </div>
+            <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
+              {daysUntilRenewal} days
+            </p>
           </div>
         </div>
       </div>
