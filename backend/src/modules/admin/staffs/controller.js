@@ -481,8 +481,8 @@ async function bulkEnrollStaffs(req, res, next) {
 
 async function bulkCreateStaffs(req, res, next) {
     try {
-        const { Staff, Company, CompanySubsidiary, CompanyPlan } = req.models;
-        const { companyId, subsidiaryId, companyPlanId } = req.body || {};
+        const { Staff, Company, CompanySubsidiary, Subscription, Enrollee, CompanyPlan, SubscriptionPlan } = req.models;
+        const { companyId, subsidiaryId, subscriptionId } = req.body || {};
         const file = req.file;
 
         if (!file) {
@@ -508,13 +508,13 @@ async function bulkCreateStaffs(req, res, next) {
             }
         }
 
-        if (companyPlanId) {
-            const plan = await CompanyPlan.findByPk(companyPlanId);
-            if (!plan) {
-                return res.fail('Company plan not found', 404);
+        if (subscriptionId) {
+            const subscription = await Subscription.findByPk(subscriptionId);
+            if (!subscription) {
+                return res.fail('Subscription not found', 404);
             }
-            if (plan.companyId !== companyId) {
-                return res.fail('Company plan does not belong to the specified company', 400);
+            if (subscription.companyId !== companyId) {
+                return res.fail('Subscription does not belong to the specified company', 400);
             }
         }
 
@@ -549,9 +549,11 @@ async function bulkCreateStaffs(req, res, next) {
         }
 
         const createdStaffs = [];
+        const createdEnrollees = [];
         const errors = [];
 
         for (let i = 0; i < rows.length; i++) {
+            let transaction;
             try {
                 const row = rows[i];
                 const {
@@ -564,7 +566,8 @@ async function bulkCreateStaffs(req, res, next) {
                     dateOfBirth,
                     maxDependents,
                     preexistingMedicalRecords,
-                    companyPlanId
+                    gender,
+                    subscriptionId: rowSubscriptionId
                 } = row;
 
                 if (!firstName) {
@@ -583,10 +586,10 @@ async function bulkCreateStaffs(req, res, next) {
                     errors.push(`Row ${i + 2}: phoneNumber is required`);
                     continue;
                 }
-                if (!staffId) {
-                    errors.push(`Row ${i + 2}: staffId is required`);
-                    continue;
-                }
+                // if (!staffId) {
+                //     errors.push(`Row ${i + 2}: staffId is required`);
+                //     continue;
+                // }
 
                 const existingEmail = await Staff.findOne({ where: { email } });
                 if (existingEmail) {
@@ -600,19 +603,11 @@ async function bulkCreateStaffs(req, res, next) {
                     continue;
                 }
 
-                const planIdToUse = companyPlanId || row.companyPlanId;
+                // Use subscriptionId from row if provided, otherwise use the one from body
+                const subscriptionIdToUse = rowSubscriptionId || subscriptionId;
 
-                if (planIdToUse) {
-                    const plan = await CompanyPlan.findByPk(planIdToUse);
-                    if (!plan) {
-                        errors.push(`Row ${i + 2}: Company plan not found`);
-                        continue;
-                    }
-                    if (plan.companyId !== companyId) {
-                        errors.push(`Row ${i + 2}: Company plan does not belong to the specified company`);
-                        continue;
-                    }
-                }
+                // Start transaction for atomic staff and enrollee creation
+                transaction = await Staff.sequelize.transaction();
 
                 const staff = await Staff.create({
                     firstName: firstName.trim(),
@@ -626,32 +621,110 @@ async function bulkCreateStaffs(req, res, next) {
                     dateOfBirth: dateOfBirth || null,
                     maxDependents: maxDependents ? parseInt(maxDependents) : null,
                     preexistingMedicalRecords: preexistingMedicalRecords ? preexistingMedicalRecords.trim() : null,
-                    companyPlanId: planIdToUse || null
-                });
+                    subscriptionId: subscriptionIdToUse || null
+                }, { transaction });
 
-                createdStaffs.push(staff.toJSON());
+                // Only create enrollee if subscriptionId is provided
+                let enrollee = null;
+                let rawPassword = null;
 
-                const enrollmentLink = `${config.feUrl}/enroll/${staff.id}`;
-                try {
-                    // await notify(
-                    //     { id: staff.id, email: staff.email, firstName: staff.firstName, },
-                    //     'staff',
-                    //     'STAFF_ENROLLMENT_REQUIRED',
-                    //     {
-                    //         firstName: staff.firstName,
-                    //         companyName: company.name,
-                    //         enrollmentLink
-                    //     }
-                    // );
+                if (subscriptionIdToUse) {
+                    const subscriptionPlan = await SubscriptionPlan.findOne({
+                        where: { subscriptionId: subscriptionIdToUse },
+                        raw: true
+                    });
+
+                    if (!subscriptionPlan) {
+                        await transaction.rollback();
+                        errors.push(`Row ${i + 2}: No company plan found for the specified subscription`);
+                        continue;
+                    }
+
+                    const planId = subscriptionPlan.companyPlanId;
+
+                    const companyPlan = await CompanyPlan.findByPk(planId);
+                    if (!companyPlan) {
+                        await transaction.rollback();
+                        errors.push(`Row ${i + 2}: Company plan not found`);
+                        continue;
+                    }
+                    if (companyPlan.companyId !== companyId) {
+                        await transaction.rollback();
+                        errors.push(`Row ${i + 2}: Company plan does not belong to the specified company`);
+                        continue;
+                    }
+
+                    const policyNumber = await getUniquePolicyNumber(Enrollee);
+
+                    // Generate password for enrollee
+                    rawPassword = generateCode(10, { letters: true, numbers: true });
+                    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+                    enrollee = await Enrollee.create({
+                        firstName: firstName.trim(),
+                        middleName: middleName ? middleName.trim() : null,
+                        lastName: lastName.trim(),
+                        policyNumber,
+                        staffId: staff.id,
+                        companyId,
+                        companyPlanId: planId,
+                        dateOfBirth: dateOfBirth || new Date(),
+                        gender: gender || 'other',
+                        phoneNumber: phoneNumber.trim(),
+                        email: email.trim(),
+                        maxDependents: maxDependents ? parseInt(maxDependents) : null,
+                        preexistingMedicalRecords: preexistingMedicalRecords ? preexistingMedicalRecords.trim() : null,
+                        isActive: true,
+                        password: hashedPassword
+                    }, { transaction });
 
                     await staff.update({
-                        isNotified: true,
-                        notifiedAt: new Date()
-                    });
-                } catch (notifyErr) {
-                    console.error('Error sending enrollment email:', notifyErr);
+                        enrollmentStatus: 'enrolled'
+                    }, { transaction });
+                }
+
+                // Commit transaction before audit log and notifications
+                await transaction.commit();
+
+                createdStaffs.push(staff.toJSON());
+                if (enrollee) {
+                    createdEnrollees.push(enrollee.toJSON());
+                }
+
+                // Send notification if email is provided
+                if (staff.email) {
+                    try {
+                        const notificationData = {
+                            firstName: staff.firstName,
+                            companyName: company.name,
+                            loginLink: `https://enrollee.altuhealth.com`
+                        };
+
+                        // Include password and policy number in notification if enrollee was created
+                        if (enrollee) {
+                            notificationData.temporaryPassword = rawPassword;
+                            notificationData.policyNumber = enrollee.policyNumber;
+                        }
+
+                        await notify(
+                            { id: staff.id, email: staff.email, firstName: staff.firstName },
+                            'staff',
+                            'STAFF_ENROLLMENT_REQUIRED',
+                            notificationData
+                        );
+
+                        await staff.update({
+                            isNotified: true,
+                            notifiedAt: new Date()
+                        });
+                    } catch (notifyErr) {
+                        console.error(`Error sending enrollment email for ${staff.email}:`, notifyErr);
+                    }
                 }
             } catch (err) {
+                if (transaction) {
+                    await transaction.rollback();
+                }
                 errors.push(`Row ${i + 2}: ${err.message}`);
             }
         }
@@ -665,10 +738,10 @@ async function bulkCreateStaffs(req, res, next) {
 
         await addAuditLog(req.models, {
             action: 'staff.bulk_create',
-            message: `${createdStaffs.length} staff(s) created via bulk upload`,
+            message: `${createdStaffs.length} staff(s) created via bulk upload${createdEnrollees.length > 0 ? ` with ${createdEnrollees.length} enrollee(s)` : ''}`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { createdCount: createdStaffs.length, errorCount: errors.length }
+            meta: { createdCount: createdStaffs.length, enrolleeCount: createdEnrollees.length, errorCount: errors.length }
         });
 
         const message =
@@ -677,7 +750,14 @@ async function bulkCreateStaffs(req, res, next) {
                 : `${createdStaffs.length} staff(s) created successfully`;
 
         return res.success(
-            { staffs: createdStaffs, errors, createdCount: createdStaffs.length, errorCount: errors.length },
+            {
+                staffs: createdStaffs,
+                enrollees: createdEnrollees,
+                errors,
+                createdCount: createdStaffs.length,
+                enrolleeCount: createdEnrollees.length,
+                errorCount: errors.length
+            },
             message,
             201
         );
