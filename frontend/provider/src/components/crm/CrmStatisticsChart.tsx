@@ -2,12 +2,44 @@
 import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import ChartTab from "../common/ChartTab";
+
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function CrmStatisticsChart() {
+interface StatisticsChartData {
+  drugsUsed: number;
+  drugsPercentage: number;
+  servicesUsed: number;
+  servicesPercentage: number;
+  monthlyData: {
+    drugs: number[];
+    services: number[];
+  };
+}
+
+interface CrmStatisticsChartProps {
+  data?: StatisticsChartData;
+  isLoading?: boolean;
+}
+
+const defaultData: StatisticsChartData = {
+  drugsUsed: 0,
+  drugsPercentage: 0,
+  servicesUsed: 0,
+  servicesPercentage: 0,
+  monthlyData: {
+    drugs: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    services: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  },
+};
+
+export default function CrmStatisticsChart({
+  data = defaultData,
+  // isLoading = false,
+}: CrmStatisticsChartProps) {
+  const chartData = data || defaultData;
   const options: ApexOptions = {
     legend: {
       show: false,
@@ -119,11 +151,11 @@ export default function CrmStatisticsChart() {
   const series = [
     {
       name: "Drugs",
-      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      data: chartData.monthlyData.drugs,
     },
     {
       name: "Services",
-      data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      data: chartData.monthlyData.services,
     },
   ];
   return (
@@ -144,27 +176,27 @@ export default function CrmStatisticsChart() {
         <div className="flex items-start gap-2">
           <div>
             <h4 className="text-base font-bold text-gray-800 dark:text-white/90 sm:text-theme-xl">
-              0
+              {chartData.drugsUsed}
             </h4>
             <span className="text-gray-500 text-theme-xs dark:text-gray-400">
               Drugs Used
             </span>
           </div>
           <span className="mt-1.5 flex items-center gap-1 rounded-full bg-success-50 px-2 py-0.5 text-theme-xs font-medium text-success-600 dark:bg-success-500/15 dark:text-success-500">
-            0%
+            {chartData.drugsPercentage}%
           </span>
         </div>
         <div className="flex items-start gap-2">
           <div>
             <h4 className="text-base font-bold text-gray-800 dark:text-white/90 sm:text-theme-xl">
-              0
+              {chartData.servicesUsed}
             </h4>
             <span className="text-gray-500 text-theme-xs dark:text-gray-400">
               Services Used
             </span>
           </div>
           <span className="mt-1.5 flex items-center gap-1 rounded-full bg-error-50 px-2 py-0.5 text-theme-xs font-medium text-error-600 dark:bg-error-500/15 dark:text-error-500">
-            0%
+            {chartData.servicesPercentage}%
           </span>
         </div>
       </div>

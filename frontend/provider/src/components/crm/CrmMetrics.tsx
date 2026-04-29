@@ -1,6 +1,12 @@
+import { ProviderMetricItem } from "@/hooks/useDashboardData";
 import Badge from "../ui/badge/Badge";
 
-const mockData = [
+interface CrmMetricsProps {
+  data?: ProviderMetricItem[];
+  isLoading?: boolean;
+}
+
+const defaultMetrics: ProviderMetricItem[] = [
   {
     id: 1,
     title: "Enrollee Visits",
@@ -27,11 +33,15 @@ const mockData = [
   },
 ];
 
-export default function CrmMetrics() {
+export default function CrmMetrics({
+  data = defaultMetrics,
+  // isLoading = false,
+}: CrmMetricsProps) {
+  const displayData = data || defaultMetrics;
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 xl:grid-cols-3">
       {/* <!-- Metric Item Start --> */}
-      {mockData.map((item) => (
+      {displayData.map((item) => (
         <div
           key={item.id}
           className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6"
@@ -54,8 +64,8 @@ export default function CrmMetrics() {
                   item.direction === "up"
                     ? "success"
                     : item.direction === "down"
-                    ? "error"
-                    : "warning"
+                      ? "error"
+                      : "warning"
                 }
               >
                 {" "}

@@ -4,8 +4,27 @@ import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
-export default function UpcomingSchedule() {
+interface Appointment {
+  id: number;
+  title: string;
+  date: string;
+  time: string;
+  enrolleeName: string;
+}
+
+interface UpcomingScheduleProps {
+  data?: Appointment[];
+  isLoading?: boolean;
+}
+
+const defaultData: Appointment[] = [];
+
+export default function UpcomingSchedule({
+  data = defaultData,
+  isLoading = false,
+}: UpcomingScheduleProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const appointments = data || defaultData;
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -49,7 +68,41 @@ export default function UpcomingSchedule() {
       <div className="max-w-full overflow-x-auto custom-scrollbar">
         <div className="min-w-[500px] xl:min-w-full">
           <div className="flex flex-col gap-2">
-            {/* Appointments will go here */}
+            {isLoading ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-theme-sm">
+                Loading appointments...
+              </div>
+            ) : appointments.length === 0 ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-theme-sm">
+                No upcoming appointments scheduled
+              </div>
+            ) : (
+              appointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="rounded-lg border border-gray-200 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-white/[0.02]"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h5 className="font-medium text-gray-800 dark:text-white/90">
+                        {appointment.title}
+                      </h5>
+                      <p className="text-theme-sm text-gray-500 dark:text-gray-400">
+                        {appointment.enrolleeName}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-theme-sm font-medium text-gray-800 dark:text-white/90">
+                        {new Date(appointment.date).toLocaleDateString()}
+                      </p>
+                      <p className="text-theme-xs text-gray-500 dark:text-gray-400">
+                        {appointment.time}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

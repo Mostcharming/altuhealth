@@ -5,13 +5,39 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
+
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function EstimatedRevenue() {
+interface BillsData {
+  totalBilled: string;
+  billsPaid: string;
+  billsPaidPercentage: number;
+  billsDraft: string;
+  billsDraftPercentage: number;
+}
+
+interface EstimatedRevenueProps {
+  data?: BillsData;
+  isLoading?: boolean;
+}
+
+const defaultData: BillsData = {
+  totalBilled: "0",
+  billsPaid: "NGN 0.00",
+  billsPaidPercentage: 0,
+  billsDraft: "NGN 0.00",
+  billsDraftPercentage: 0,
+};
+
+export default function EstimatedRevenue({
+  data = defaultData,
+  // isLoading = false,
+}: EstimatedRevenueProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const billsData = data || defaultData;
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -129,17 +155,20 @@ export default function EstimatedRevenue() {
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  NGN 0.00
+                  {billsData.billsPaid}
                 </p>
               </div>
             </div>
 
             <div className="flex w-full max-w-[140px] items-center gap-3">
               <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-                <div className="absolute left-0 top-0 flex h-full w-[0%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
+                <div
+                  className="absolute left-0 top-0 flex h-full items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"
+                  style={{ width: `${billsData.billsPaidPercentage}%` }}
+                ></div>
               </div>
               <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                0%
+                {billsData.billsPaidPercentage}%
               </p>
             </div>
           </div>
@@ -153,17 +182,20 @@ export default function EstimatedRevenue() {
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  NGN 0.00
+                  {billsData.billsDraft}
                 </p>
               </div>
             </div>
 
             <div className="flex w-full max-w-[140px] items-center gap-3">
               <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-                <div className="absolute left-0 top-0 flex h-full w-[0%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
+                <div
+                  className="absolute left-0 top-0 flex h-full items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"
+                  style={{ width: `${billsData.billsDraftPercentage}%` }}
+                ></div>
               </div>
               <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                0%
+                {billsData.billsDraftPercentage}%
               </p>
             </div>
           </div>

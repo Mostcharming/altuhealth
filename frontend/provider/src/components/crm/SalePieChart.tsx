@@ -11,7 +11,34 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function SalePieChart() {
+interface AuthorizationCodesData {
+  requestedCount: number;
+  requestedPercentage: number;
+  usedCount: number;
+  usedPercentage: number;
+  cancelledCount: number;
+  cancelledPercentage: number;
+}
+
+interface SalePieChartProps {
+  data?: AuthorizationCodesData;
+  isLoading?: boolean;
+}
+
+const defaultData: AuthorizationCodesData = {
+  requestedCount: 0,
+  requestedPercentage: 0,
+  usedCount: 0,
+  usedPercentage: 0,
+  cancelledCount: 0,
+  cancelledPercentage: 0,
+};
+
+export default function SalePieChart({
+  data = defaultData,
+  // isLoading = false,
+}: SalePieChartProps) {
+  const authData = data || defaultData;
   // ApexCharts configuration
   const options: ApexOptions = {
     colors: ["#3641f5", "#7592ff", "#dde9ff"],
@@ -107,7 +134,7 @@ export default function SalePieChart() {
     ],
   };
 
-  const series = [0, 0];
+  const series = [authData.requestedCount, authData.usedCount];
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -166,11 +193,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {authData.requestedPercentage}%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  0
+                  {authData.requestedCount}
                 </p>
               </div>
             </div>
@@ -184,11 +211,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {authData.usedPercentage}%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-400 text-theme-sm dark:text-gray-400">
-                  0
+                  {authData.usedCount}
                 </p>
               </div>
             </div>
@@ -202,11 +229,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {authData.cancelledPercentage}%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  0
+                  {authData.cancelledCount}
                 </p>
               </div>
             </div>
