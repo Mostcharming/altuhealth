@@ -37,7 +37,7 @@ const defaultData: StatisticsChartData = {
 
 export default function CrmStatisticsChart({
   data = defaultData,
-  isLoading = false,
+  // isLoading = false,
 }: CrmStatisticsChartProps) {
   const chartData = data || defaultData;
   const options: ApexOptions = {

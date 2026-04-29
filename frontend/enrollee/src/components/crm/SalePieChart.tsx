@@ -32,7 +32,7 @@ const defaultData: BenefitsData = {
 
 export default function SalePieChart({
   data = defaultData,
-  isLoading = false,
+  // isLoading = false,
 }: SalePieChartProps) {
   const benefitsData = data || defaultData;
   // ApexCharts configuration
