@@ -11,7 +11,30 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function SalePieChart() {
+interface BenefitsData {
+  availablePercentage: number;
+  usedPercentage: number;
+  remainingPercentage: number;
+  totalBenefits: string;
+}
+
+interface SalePieChartProps {
+  data?: BenefitsData;
+  isLoading?: boolean;
+}
+
+const defaultData: BenefitsData = {
+  availablePercentage: 0,
+  usedPercentage: 0,
+  remainingPercentage: 0,
+  totalBenefits: "0",
+};
+
+export default function SalePieChart({
+  data = defaultData,
+  isLoading = false,
+}: SalePieChartProps) {
+  const benefitsData = data || defaultData;
   // ApexCharts configuration
   const options: ApexOptions = {
     colors: ["#3641f5", "#7592ff", "#dde9ff"],
@@ -40,7 +63,7 @@ export default function SalePieChart() {
               fontSize: "12px",
               fontWeight: "normal",
               // text: "",
-              formatter: () => "Total 3.5K",
+              formatter: () => benefitsData.totalBenefits,
             },
             value: {
               show: true,
@@ -107,7 +130,10 @@ export default function SalePieChart() {
     ],
   };
 
-  const series = [0, 0];
+  const series = [
+    benefitsData.availablePercentage,
+    benefitsData.usedPercentage,
+  ];
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -166,11 +192,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {benefitsData.availablePercentage}%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  0
+                  NGN {benefitsData.totalBenefits}
                 </p>
               </div>
             </div>
@@ -184,11 +210,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {benefitsData.usedPercentage}%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-400 text-theme-sm dark:text-gray-400">
-                  0
+                  NGN {benefitsData.totalBenefits}
                 </p>
               </div>
             </div>
@@ -202,11 +228,11 @@ export default function SalePieChart() {
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  0%
+                  {benefitsData.remainingPercentage}%
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  0
+                  NGN {benefitsData.totalBenefits}
                 </p>
               </div>
             </div>

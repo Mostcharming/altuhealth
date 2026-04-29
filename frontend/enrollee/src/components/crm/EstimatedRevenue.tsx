@@ -5,13 +5,33 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
+
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export default function EstimatedRevenue() {
+interface HealthPlanData {
+  daysUntilRenewal: number;
+  status: string;
+}
+
+interface EstimatedRevenueProps {
+  data?: HealthPlanData;
+  isLoading?: boolean;
+}
+
+const defaultData: HealthPlanData = {
+  daysUntilRenewal: 0,
+  status: "Inactive",
+};
+
+export default function EstimatedRevenue({
+  data = defaultData,
+  // isLoading = false,
+}: EstimatedRevenueProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const planData = data || defaultData;
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -22,10 +42,8 @@ export default function EstimatedRevenue() {
   }
 
   // Dummy data - replace with actual API data
-  const daysUntilRenewal = 120;
+  const daysUntilRenewal = planData.daysUntilRenewal;
   const renewalProgressPercent = (daysUntilRenewal / 365) * 100;
-
-  // ApexCharts configuration
   const options: ApexOptions = {
     colors: ["#10B981"],
     chart: {

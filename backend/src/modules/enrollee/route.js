@@ -12,6 +12,7 @@ router.use(securityMiddleware);
 router.use('/account', require('./account/route'));
 router.use('/appointments', require('./appointments/route'));
 router.use('/benefits', require('./benefits/route'));
+router.use('/dashboard', require('./dashboard/route'));
 router.use('/dependents', require('./enrolleeDependents/route'));
 router.use('/medical-history', require('./medicalHistory/route'));
 router.use('/tickets', require('../common/tickets/route'));
