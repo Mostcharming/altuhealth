@@ -597,11 +597,11 @@ async function bulkCreateStaffs(req, res, next) {
                     continue;
                 }
 
-                const existingStaffId = await Staff.findOne({ where: { staffId } });
-                if (existingStaffId) {
-                    errors.push(`Row ${i + 2}: Staff ID already exists`);
-                    continue;
-                }
+                // const existingStaffId = await Staff.findOne({ where: { staffId } });
+                // if (existingStaffId) {
+                //     errors.push(`Row ${i + 2}: Staff ID already exists`);
+                //     continue;
+                // }
 
                 // Use subscriptionId from row if provided, otherwise use the one from body
                 const subscriptionIdToUse = rowSubscriptionId || subscriptionId;
