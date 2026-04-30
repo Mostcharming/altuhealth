@@ -1,12 +1,17 @@
 "use client";
 import { useSidebar } from "@/context/SidebarContext";
 import {
+  CalenderIcon,
+  CartIcon,
+  ChatIcon,
   ChevronDownIcon,
+  DollarLineIcon,
+  EnvelopeIcon,
+  FileIcon,
   GridIcon,
   GroupIcon,
   HorizontaLDots,
-  PlugInIcon,
-  TaskIcon,
+  TruckDelivery,
 } from "@/icons";
 import Image from "next/image";
 import Link from "next/link";
@@ -40,17 +45,25 @@ const navItems: NavItem[] = [
     subItems: [{ name: "Search Enrollee", path: "/enrollees" }],
   },
   {
-    name: "Clinical Operations",
-    icon: <TaskIcon />,
+    name: "Tariffs",
+    icon: <DollarLineIcon />,
     subItems: [
+      { name: "Drugs", path: "/drugs" },
+      { name: "Services", path: "/services" },
+    ],
+  },
+  {
+    name: "Clinical Operations",
+    icon: <CalenderIcon />,
+    subItems: [
+      { name: "Appointments", path: "/appointments" },
       { name: "Admissions", path: "/admission-tracker" },
       { name: "Authorization Codes", path: "/authorization-codes" },
-      { name: "Appointments", path: "/appointments" },
     ],
   },
   {
     name: "Medical Records",
-    icon: <TaskIcon />,
+    icon: <FileIcon />,
     subItems: [
       { name: "Patient Records", path: "/patient-records" },
       { name: "Medical History", path: "/medical-history" },
@@ -58,7 +71,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Billing Management",
-    icon: <GridIcon />,
+    icon: <CartIcon />,
     subItems: [
       { name: "Capture Bill", path: "/bills" },
       { name: "Saved Bills", path: "/saved-bills" },
@@ -67,19 +80,19 @@ const navItems: NavItem[] = [
   },
   {
     name: "Claims & Refunds",
-    icon: <TaskIcon />,
+    icon: <TruckDelivery />,
     path: "/claims-refunds",
   },
   {
     name: "Telemedicine Setup",
-    icon: <PlugInIcon />,
+    icon: <ChatIcon />,
     path: "/telemedicine-signup",
     new: true,
     comingSoon: true,
   },
   {
     name: "Support Messages",
-    icon: <TaskIcon />,
+    icon: <EnvelopeIcon />,
     path: "/support-messages",
   },
 ];
@@ -97,13 +110,13 @@ const AppSidebar: React.FC = () => {
 
   const filteredNavItems = useMemo(
     () => navItems.filter((item) => allowedMenuNames.has(item.name)),
-    [allowedMenuNames]
+    [allowedMenuNames],
   );
 
   const renderMenuItems = (
     navItems: NavItem[],
     menuType: "main" | "support" | "others",
-    startIndex: number = 0
+    startIndex: number = 0,
   ) => (
     <ul className="flex flex-col gap-1">
       {navItems.map((nav, index) => {
@@ -275,7 +288,7 @@ const AppSidebar: React.FC = () => {
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -304,7 +317,7 @@ const AppSidebar: React.FC = () => {
             });
           })
         );
-      }
+      },
     );
 
     setOpenSubmenu((prev) => {
@@ -332,7 +345,7 @@ const AppSidebar: React.FC = () => {
 
   const handleSubmenuToggle = (
     index: number,
-    menuType: "main" | "support" | "others"
+    menuType: "main" | "support" | "others",
   ) => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
@@ -353,8 +366,8 @@ const AppSidebar: React.FC = () => {
           isExpanded || isMobileOpen
             ? "w-[290px]"
             : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
+              ? "w-[290px]"
+              : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         xl:translate-x-0`}

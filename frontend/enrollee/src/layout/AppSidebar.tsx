@@ -1,12 +1,17 @@
 "use client";
 import { useSidebar } from "@/context/SidebarContext";
 import {
+  CalenderIcon,
+  CallIcon,
+  CartIcon,
+  ChatIcon,
   ChevronDownIcon,
+  EnvelopeIcon,
+  FileIcon,
   GridIcon,
   GroupIcon,
   HorizontaLDots,
-  PlugInIcon,
-  TaskIcon,
+  TruckDelivery,
 } from "@/icons";
 import Image from "next/image";
 import Link from "next/link";
@@ -36,7 +41,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Medical History",
-    icon: <PlugInIcon />,
+    icon: <FileIcon />,
     path: "/medical-history",
   },
   {
@@ -46,33 +51,33 @@ const navItems: NavItem[] = [
   },
   {
     name: "Appointments",
-    icon: <TaskIcon />,
+    icon: <CalenderIcon />,
     path: "/appointments",
   },
 
   // Benefits & Coverage
   {
     name: "Enrollee Benefits",
-    icon: <GridIcon />,
+    icon: <CartIcon />,
     path: "/benefits",
   },
   {
     name: "Hospital List",
-    icon: <GroupIcon />,
+    icon: <TruckDelivery />,
     path: "/hospital-list",
   },
 
   // Women's Health
   {
     name: "Women's Health",
-    icon: <TaskIcon />,
+    icon: <ChatIcon />,
     path: "/womens-health",
   },
 
   // Requests & Approvals
   {
     name: "Consult a Doctor",
-    icon: <GridIcon />,
+    icon: <CallIcon />,
     path: "/doctor-consultation",
     new: true,
   },
@@ -80,7 +85,7 @@ const navItems: NavItem[] = [
   // Support
   {
     name: "Support Messages",
-    icon: <TaskIcon />,
+    icon: <EnvelopeIcon />,
     path: "/support-messages",
   },
 ];
@@ -99,12 +104,12 @@ const AppSidebar: React.FC = () => {
   // Filter the top-level arrays so only allowed sections are rendered (memoized)
   const filteredNavItems = useMemo(
     () => navItems.filter((item) => allowedMenuNames.has(item.name)),
-    [allowedMenuNames]
+    [allowedMenuNames],
   );
 
   const renderMenuItems = (
     navItems: NavItem[],
-    menuType: "main" | "support" | "others"
+    menuType: "main" | "support" | "others",
   ) => (
     <ul className="flex flex-col gap-1">
       {navItems.map((nav, index) => (
@@ -245,7 +250,7 @@ const AppSidebar: React.FC = () => {
     index: number;
   } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
+    {},
   );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -274,7 +279,7 @@ const AppSidebar: React.FC = () => {
             });
           })
         );
-      }
+      },
     );
 
     setOpenSubmenu((prev) => {
@@ -302,7 +307,7 @@ const AppSidebar: React.FC = () => {
 
   const handleSubmenuToggle = (
     index: number,
-    menuType: "main" | "support" | "others"
+    menuType: "main" | "support" | "others",
   ) => {
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
@@ -323,8 +328,8 @@ const AppSidebar: React.FC = () => {
           isExpanded || isMobileOpen
             ? "w-[290px]"
             : isHovered
-            ? "w-[290px]"
-            : "w-[90px]"
+              ? "w-[290px]"
+              : "w-[90px]"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         xl:translate-x-0`}

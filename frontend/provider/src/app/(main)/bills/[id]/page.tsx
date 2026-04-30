@@ -26,7 +26,7 @@ export default function ClaimDetail() {
   const errorModal = useModal();
   const successModal = useModal();
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to load claim details. Please try again."
+    "Failed to load claim details. Please try again.",
   );
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function ClaimDetail() {
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : "Failed to fetch claim. Please try again."
+            : "Failed to fetch claim. Please try again.",
         );
         errorModal.openModal();
         setLoading(false);
@@ -54,6 +54,7 @@ export default function ClaimDetail() {
     if (id) {
       fetchClaim();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -131,7 +132,7 @@ export default function ClaimDetail() {
                 </div>
                 <span
                   className={`inline-block px-4 py-2 rounded-full text-sm font-medium ${getStatusBadgeColor(
-                    claim?.status
+                    claim?.status,
                   )}`}
                 >
                   {capitalizeWords(claim?.status)}
@@ -535,7 +536,7 @@ export default function ClaimDetail() {
                           <td className="p-4 text-sm">
                             <span
                               className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusBadgeColor(
-                                detail.status
+                                detail.status,
                               )}`}
                             >
                               {capitalizeWords(detail.status || "pending")}
