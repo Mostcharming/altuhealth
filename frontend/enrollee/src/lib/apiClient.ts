@@ -27,7 +27,7 @@ export async function apiClient(
     baseUrl = APP_CONFIG.API_BASE_URL,
     nextOptions = {},
     onLoading,
-  }: ApiRequestOptions = {}
+  }: ApiRequestOptions = {},
 ) {
   try {
     onLoading?.(true);
@@ -55,6 +55,9 @@ export async function apiClient(
     if (formData) {
       payload = formData;
       delete finalHeaders["Content-Type"];
+    } else if (body instanceof FormData) {
+      payload = body;
+      delete finalHeaders["Content-Type"];
     } else if (body && typeof body === "object") {
       finalHeaders["Content-Type"] = "application/json";
       payload = JSON.stringify(body);
@@ -76,7 +79,7 @@ export async function apiClient(
 
     if (!response.ok) {
       throw new Error(
-        data?.message || `API error: ${response.status} ${response.statusText}`
+        data?.message || `API error: ${response.status} ${response.statusText}`,
       );
     }
 

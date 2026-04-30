@@ -5,6 +5,7 @@ const { createMedicalHistory, getMedicalHistories, updateMedicalHistory, deleteM
 const { createAuthorizationCode, getAuthorizationCodes, getAuthorizationCodeById, useAuthorizationCode, updateAuthorizationCode, cancelAuthorizationCode, deleteAuthorizationCode } = require('./authorizationCodeController');
 const multer = require('multer');
 const path = require('path');
+const uploadProfileImage = require('../../../middlewares/common/uploadProfileImage');
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -44,7 +45,7 @@ router.post('/bulk/create', upload.single('file'), EnrolleeDependent.bulkCreateE
 router.post('/bulk/verify', EnrolleeDependent.bulkVerifyEnrolleeDependents);
 
 // CRUD for enrollee dependents
-router.post('/', EnrolleeDependent.createEnrolleeDependent);
+router.post('/', uploadProfileImage('picture'), EnrolleeDependent.createEnrolleeDependent);
 router.get('/', EnrolleeDependent.listEnrolleeDependents);
 router.get('/:id', EnrolleeDependent.getEnrolleeDependent);
 router.put('/:id', EnrolleeDependent.updateEnrolleeDependent);

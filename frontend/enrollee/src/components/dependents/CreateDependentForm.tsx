@@ -4,6 +4,7 @@ import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
 import DatePicker from "@/components/form/date-picker";
 import PhoneInput from "@/components/form/group-input/PhoneInput";
+import FileInput from "@/components/form/input/FileInput";
 import Input from "@/components/form/input/InputField";
 import TextArea from "@/components/form/input/TextArea";
 import { createDependent } from "@/lib/apis/dependent";
@@ -33,7 +34,10 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
     maritalStatus: "",
     preexistingMedicalRecords: "",
     notes: "",
+    profilePicture: null as File | null,
   });
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -84,6 +88,7 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
         preexistingMedicalRecords:
           formData.preexistingMedicalRecords || undefined,
         notes: formData.notes || undefined,
+        profilePicture: formData.profilePicture || undefined,
       });
 
       setFormData({
@@ -99,7 +104,9 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
         maritalStatus: "",
         preexistingMedicalRecords: "",
         notes: "",
+        profilePicture: null,
       });
+      setPreviewUrl(null);
 
       if (onSuccess) onSuccess();
     } catch (err) {
@@ -119,7 +126,7 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -133,6 +140,22 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
         delete newErrors[name];
         return newErrors;
       });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormData((prev) => ({
+        ...prev,
+        profilePicture: file,
+      }));
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -397,6 +420,29 @@ const CreateDependentForm: React.FC<CreateDependentFormProps> = ({
           placeholder="Any additional information"
           rows={3}
         />
+      </div>
+
+      {/* Profile Picture */}
+      <div>
+        <Label htmlFor="profilePicture">Profile Picture</Label>
+        <FileInput
+          id="profilePicture"
+          name="profilePicture"
+          onChange={handleFileChange}
+          accept="image/*"
+        />
+        {previewUrl && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Preview:
+            </p>
+            <img
+              src={previewUrl}
+              alt="Profile preview"
+              className="w-24 h-24 rounded-lg object-cover"
+            />
+          </div>
+        )}
       </div>
 
       {/* Submit Button */}

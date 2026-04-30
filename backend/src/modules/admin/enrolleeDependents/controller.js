@@ -89,6 +89,7 @@ async function createEnrolleeDependent(req, res, next) {
             occupation: occupation || null,
             maritalStatus: maritalStatus || null,
             preexistingMedicalRecords: preexistingMedicalRecords || null,
+            pictureUrl: req.profileImage?.url || null,
             password: hashedPassword
         });
 

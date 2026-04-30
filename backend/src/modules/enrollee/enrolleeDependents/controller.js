@@ -67,6 +67,7 @@ async function createDependent(req, res, next) {
             maritalStatus,
             preexistingMedicalRecords,
             notes,
+            pictureUrl: req.profileImage?.url || null,
             isActive: true
         });
 

@@ -43,7 +43,39 @@ export async function createDependent(data: {
   maritalStatus?: "single" | "married" | "divorced" | "widowed" | "separated";
   preexistingMedicalRecords?: string;
   notes?: string;
+  profilePicture?: File;
 }) {
+  // If there's a file, use FormData for multipart/form-data
+  if (data.profilePicture) {
+    const formData = new FormData();
+    formData.append("firstName", data.firstName);
+    formData.append("lastName", data.lastName);
+    formData.append("dateOfBirth", data.dateOfBirth);
+    formData.append("gender", data.gender);
+    formData.append("relationshipToEnrollee", data.relationshipToEnrollee);
+
+    if (data.middleName) formData.append("middleName", data.middleName);
+    if (data.phoneNumber) formData.append("phoneNumber", data.phoneNumber);
+    if (data.email) formData.append("email", data.email);
+    if (data.occupation) formData.append("occupation", data.occupation);
+    if (data.maritalStatus)
+      formData.append("maritalStatus", data.maritalStatus);
+    if (data.preexistingMedicalRecords)
+      formData.append(
+        "preexistingMedicalRecords",
+        data.preexistingMedicalRecords,
+      );
+    if (data.notes) formData.append("notes", data.notes);
+
+    formData.append("picture", data.profilePicture);
+
+    return apiClient("/enrollee/dependents", {
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  // Otherwise use JSON
   return apiClient("/enrollee/dependents", {
     method: "POST",
     body: data,
