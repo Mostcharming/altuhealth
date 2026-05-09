@@ -11,7 +11,7 @@ function generatePolicyNumber() {
     const numPart = Math.floor(Math.random() * 100000)
         .toString()
         .padStart(5, '0');
-    return `AHL-${numPart}`;
+    return `AHL-11${numPart}`;
 }
 
 /**

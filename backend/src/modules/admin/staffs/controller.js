@@ -615,7 +615,7 @@ async function bulkCreateStaffs(req, res, next) {
                     lastName: lastName.trim(),
                     email: email.trim(),
                     phoneNumber: phoneNumber.trim(),
-                    staffId: staffId.trim(),
+                    staffId: staffId ? staffId.trim() : null,
                     companyId,
                     subsidiaryId: subsidiaryId || null,
                     dateOfBirth: dateOfBirth || null,
@@ -692,35 +692,35 @@ async function bulkCreateStaffs(req, res, next) {
                 }
 
                 // Send notification if email is provided
-                if (staff.email) {
-                    try {
-                        const notificationData = {
-                            firstName: staff.firstName,
-                            companyName: company.name,
-                            loginLink: `https://enrollee.altuhealth.com`
-                        };
+                // if (staff.email) {
+                //     try {
+                //         const notificationData = {
+                //             firstName: staff.firstName,
+                //             companyName: company.name,
+                //             loginLink: `https://enrollee.altuhealth.com`
+                //         };
 
-                        // Include password and policy number in notification if enrollee was created
-                        if (enrollee) {
-                            notificationData.temporaryPassword = rawPassword;
-                            notificationData.policyNumber = enrollee.policyNumber;
-                        }
+                //         // Include password and policy number in notification if enrollee was created
+                //         if (enrollee) {
+                //             notificationData.temporaryPassword = rawPassword;
+                //             notificationData.policyNumber = enrollee.policyNumber;
+                //         }
 
-                        await notify(
-                            { id: staff.id, email: staff.email, firstName: staff.firstName },
-                            'staff',
-                            'STAFF_ENROLLMENT_REQUIRED',
-                            notificationData
-                        );
+                //         await notify(
+                //             { id: staff.id, email: staff.email, firstName: staff.firstName },
+                //             'staff',
+                //             'STAFF_ENROLLMENT_REQUIRED',
+                //             notificationData
+                //         );
 
-                        await staff.update({
-                            isNotified: true,
-                            notifiedAt: new Date()
-                        });
-                    } catch (notifyErr) {
-                        console.error(`Error sending enrollment email for ${staff.email}:`, notifyErr);
-                    }
-                }
+                //         await staff.update({
+                //             isNotified: true,
+                //             notifiedAt: new Date()
+                //         });
+                //     } catch (notifyErr) {
+                //         console.error(`Error sending enrollment email for ${staff.email}:`, notifyErr);
+                //     }
+                // }
             } catch (err) {
                 if (transaction) {
                     await transaction.rollback();
