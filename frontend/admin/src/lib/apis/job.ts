@@ -35,7 +35,7 @@ export async function updateJob(
     isActive?: boolean;
     cronExpression?: string;
     metadata?: Record<string, unknown>;
-  }
+  },
 ) {
   return apiClient(`/admin/jobs/${id}`, {
     method: "PUT",

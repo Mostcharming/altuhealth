@@ -8,8 +8,8 @@ import { fetchJobs, runJob, updateJob } from "@/lib/apis/job";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import { Job, useJobStore } from "@/lib/store/jobStore";
-import React, { useCallback, useEffect, useState } from "react";
 import cronstrue from "cronstrue";
+import React, { useCallback, useEffect, useState } from "react";
 
 const JobTable: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -77,8 +77,8 @@ const JobTable: React.FC = () => {
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
 
       setJobs(items);
       setTotalItems(data?.data?.count ?? 0);
@@ -297,14 +297,18 @@ const JobTable: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
-                      <span className="text-xs font-mono text-gray-700 dark:text-gray-400" title={job.cronExpression}>
-                        {job.cronExpression && cronstrue.toString(job.cronExpression)}
+                      <span
+                        className="text-xs font-mono text-gray-700 dark:text-gray-400"
+                        title={job.cronExpression}
+                      >
+                        {job.cronExpression &&
+                          cronstrue.toString(job.cronExpression)}
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(
-                          job.isActive
+                          job.isActive,
                         )}`}
                       >
                         {job.isActive ? "Active" : "Inactive"}
@@ -313,7 +317,7 @@ const JobTable: React.FC = () => {
                     <td className="p-4 whitespace-nowrap">
                       <span
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getLastStatusColor(
-                          job.lastStatus
+                          job.lastStatus,
                         )}`}
                       >
                         {job.lastStatus ? capitalizeWords(job.lastStatus) : "-"}
