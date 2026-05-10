@@ -39,6 +39,6 @@ export async function updateJob(
 ) {
   return apiClient(`/admin/jobs/${id}`, {
     method: "PUT",
-    body: JSON.stringify(data),
+    body: data,
   });
 }

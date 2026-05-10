@@ -4,11 +4,12 @@ import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
-import { fetchJobs, runJob } from "@/lib/apis/job";
+import { fetchJobs, runJob, updateJob } from "@/lib/apis/job";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
 import { Job, useJobStore } from "@/lib/store/jobStore";
 import React, { useCallback, useEffect, useState } from "react";
+import cronstrue from "cronstrue";
 
 const JobTable: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -17,6 +18,7 @@ const JobTable: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [runningJobs, setRunningJobs] = useState<Set<string>>(new Set());
+  const [togglingJobs, setTogglingJobs] = useState<Set<string>>(new Set());
   const [totalItems, setTotalItems] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
@@ -57,9 +59,6 @@ const JobTable: React.FC = () => {
     { key: "isActive", label: "Status" },
     { key: "lastStatus", label: "Last Status" },
     { key: "lastRunAt", label: "Last Run" },
-    { key: "totalRuns", label: "Total Runs" },
-    { key: "totalSuccessfulRuns", label: "Successful Runs" },
-    { key: "averageExecutionTime", label: "Avg Time (ms)" },
     { key: "actions", label: "Actions" },
   ];
 
@@ -177,6 +176,30 @@ const JobTable: React.FC = () => {
     }
   };
 
+  const handleToggleJobStatus = async (job: Job) => {
+    try {
+      setTogglingJobs((prev) => new Set(prev).add(job.id));
+      await updateJob(job.id, { isActive: !job.isActive });
+      setSuccessModal({ isOpen: true });
+      // Refresh the jobs list after toggling
+      await fetch();
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error
+          ? err.message
+          : "Failed to toggle job status. Please try again.";
+      setErrorMessage(errorMsg);
+      setErrorModal({ isOpen: true });
+      console.error(`Failed to toggle job status:`, err);
+    } finally {
+      setTogglingJobs((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(job.id);
+        return newSet;
+      });
+    }
+  };
+
   const handleSuccessClose = () => {
     setSuccessModal({ isOpen: false });
   };
@@ -274,8 +297,8 @@ const JobTable: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
-                      <span className="text-xs font-mono text-gray-700 dark:text-gray-400">
-                        {job.cronExpression}
+                      <span className="text-xs font-mono text-gray-700 dark:text-gray-400" title={job.cronExpression}>
+                        {job.cronExpression && cronstrue.toString(job.cronExpression)}
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">
@@ -302,41 +325,46 @@ const JobTable: React.FC = () => {
                       </p>
                     </td>
                     <td className="p-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {job.totalRuns ?? 0}
-                      </p>
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {job.totalSuccessfulRuns ?? 0}
-                      </p>
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {job.averageExecutionTime
-                          ? `${job.averageExecutionTime}ms`
-                          : "-"}
-                      </p>
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleRunJob(job.id)}
-                        disabled={!job.isActive || runningJobs.has(job.id)}
-                        className={`shadow-theme-xs flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 ${
-                          !job.isActive || runningJobs.has(job.id)
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                      >
-                        {runningJobs.has(job.id) ? (
-                          <>
-                            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
-                            Running
-                          </>
-                        ) : (
-                          "Run Now"
-                        )}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleRunJob(job.id)}
+                          disabled={!job.isActive || runningJobs.has(job.id)}
+                          className={`shadow-theme-xs flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 ${
+                            !job.isActive || runningJobs.has(job.id)
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }`}
+                        >
+                          {runningJobs.has(job.id) ? (
+                            <>
+                              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                              Running
+                            </>
+                          ) : (
+                            "Run Now"
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleToggleJobStatus(job)}
+                          disabled={togglingJobs.has(job.id)}
+                          className={`shadow-theme-xs flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${
+                            job.isActive
+                              ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-700/30 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
+                              : "border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-700/30 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30"
+                          } ${togglingJobs.has(job.id) ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          {togglingJobs.has(job.id) ? (
+                            <>
+                              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+                              Updating
+                            </>
+                          ) : job.isActive ? (
+                            "Deactivate"
+                          ) : (
+                            "Activate"
+                          )}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
