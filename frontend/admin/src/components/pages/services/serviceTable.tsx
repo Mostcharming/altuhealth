@@ -40,6 +40,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
   const createModal = useModal();
   const errorModal = useModal();
   const successModal = useModal();
+  const deleteAllModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -53,12 +54,12 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
   const addService = useServiceStore((s) => s.addService);
   const confirmModal = useModal();
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(
-    null
+    null,
   );
   const [editingService, setEditingService] = useState<Service | null>(null);
   const removeService = useServiceStore((s) => s.removeService);
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to delete service. Please try again."
+    "Failed to delete service. Please try again.",
   );
 
   // Create service form state
@@ -68,7 +69,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
   const [createRequiresPreauthorization, setCreateRequiresPreauthorization] =
     useState(false);
   const [createPriceType, setCreatePriceType] = useState<"fixed" | "rate">(
-    "fixed"
+    "fixed",
   );
   const [createFixedPrice, setCreateFixedPrice] = useState("");
   const [createRateType, setCreateRateType] = useState<string>("");
@@ -125,8 +126,8 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
 
       setServices(items);
       setTotalItems(data?.data?.count ?? 0);
@@ -208,7 +209,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -264,6 +265,31 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
     errorModal.closeModal();
   };
 
+  const handleDeleteAll = async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const url = `/admin/services/provider/${id}`;
+      await apiClient(url, {
+        method: "DELETE",
+        onLoading: (l) => setLoading(l),
+      });
+
+      setServices([]);
+      deleteAllModal.closeModal();
+      successModal.openModal();
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred.",
+      );
+      deleteAllModal.closeModal();
+      errorModal.openModal();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateSubmit = async () => {
     try {
       if (!createName) {
@@ -282,7 +308,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         createPriceType,
         createPriceType === "fixed" ? parseFloat(createFixedPrice) : undefined,
         createPriceType === "rate" ? createRateType : undefined,
-        createPriceType === "rate" ? parseFloat(createRateAmount) : undefined
+        createPriceType === "rate" ? parseFloat(createRateAmount) : undefined,
       );
 
       if (!validation.isValid) {
@@ -324,7 +350,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -369,7 +395,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
               ? `"${value}"`
               : value;
           })
-          .join(",")
+          .join(","),
       ),
     ].join("\n");
 
@@ -422,7 +448,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
       resetCreateForm();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -469,27 +495,38 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                 }
               />
             </div>
-            <button
-              onClick={createModal.openModal}
-              className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
+            <div className="flex gap-2">
+              <button
+                onClick={createModal.openModal}
+                className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
               >
-                <path
-                  d="M5 10.0002H15.0006M10.0002 5V15.0006"
-                  stroke="white"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              {buttonText}
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                >
+                  <path
+                    d="M5 10.0002H15.0006M10.0002 5V15.0006"
+                    stroke="white"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {buttonText}
+              </button>
+              {id && totalItems > 0 && (
+                <button
+                  onClick={deleteAllModal.openModal}
+                  className="cursor-pointer bg-red-500 shadow-theme-xs hover:bg-red-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
+                >
+                  <TrashBinIcon />
+                  Delete All
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -533,7 +570,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                   <td className="p-4 whitespace-nowrap">
                     <span
                       className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getPriceTypeColor(
-                        service.priceType
+                        service.priceType,
                       )}`}
                     >
                       {service.priceType === "rate" ? "Rate" : "Fixed"}
@@ -547,7 +584,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                         service.rateType,
                         service.rateAmount,
                         service.price,
-                        service.currency
+                        service.currency,
                       )}
                     </p>
                     {service.priceType === "rate" && service.rateType && (
@@ -559,7 +596,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                   <td className="p-4 whitespace-nowrap">
                     <span
                       className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getStatusColor(
-                        service.status
+                        service.status,
                       )}`}
                     >
                       {service.status}
@@ -704,6 +741,13 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         confirmModal={confirmModal}
         handleSave={deleteService}
         closeModal={handleCloseConfirm}
+      />
+      <ConfirmModal
+        confirmModal={deleteAllModal}
+        handleSave={handleDeleteAll}
+        closeModal={deleteAllModal.closeModal}
+        title="Delete All Services?"
+        message="This will permanently delete all services for this provider. This action cannot be undone."
       />
       <EditService
         isOpen={isOpen}
@@ -861,7 +905,7 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
                     placeholder="Select status"
                     onChange={(value) =>
                       setCreateStatus(
-                        value as "active" | "inactive" | "pending"
+                        value as "active" | "inactive" | "pending",
                       )
                     }
                     defaultValue={createStatus}

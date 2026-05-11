@@ -33,6 +33,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
   const createModal = useModal();
   const errorModal = useModal();
   const successModal = useModal();
+  const deleteAllModal = useModal();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
@@ -49,7 +50,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
   const [editingDrug, setEditingDrug] = useState<Drug | null>(null);
   const removeDrug = useDrugStore((s) => s.removeDrug);
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to delete drug. Please try again."
+    "Failed to delete drug. Please try again.",
   );
 
   // Create drug form state
@@ -111,8 +112,8 @@ const DrugTable: React.FC<DrugTableProps> = ({
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
 
       setDrugs(items);
       setTotalItems(data?.data?.count ?? 0);
@@ -194,7 +195,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -238,6 +239,31 @@ const DrugTable: React.FC<DrugTableProps> = ({
 
   const handleCreateErrorClose = () => {
     errorModal.closeModal();
+  };
+
+  const handleDeleteAll = async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const url = `/admin/drugs/provider/${id}`;
+      await apiClient(url, {
+        method: "DELETE",
+        onLoading: (l) => setLoading(l),
+      });
+
+      setDrugs([]);
+      deleteAllModal.closeModal();
+      successModal.openModal();
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      setErrorMessage(
+        err instanceof Error ? err.message : "An unexpected error occurred.",
+      );
+      deleteAllModal.closeModal();
+      errorModal.openModal();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateSubmit = async () => {
@@ -309,7 +335,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -348,7 +374,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
               ? `"${value}"`
               : value;
           })
-          .join(",")
+          .join(","),
       ),
     ].join("\n");
 
@@ -401,7 +427,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
       resetCreateForm();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -448,27 +474,38 @@ const DrugTable: React.FC<DrugTableProps> = ({
                 }
               />
             </div>
-            <button
-              onClick={createModal.openModal}
-              className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
+            <div className="flex gap-2">
+              <button
+                onClick={createModal.openModal}
+                className="cursor-pointer bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
               >
-                <path
-                  d="M5 10.0002H15.0006M10.0002 5V15.0006"
-                  stroke="white"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              {buttonText}
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                >
+                  <path
+                    d="M5 10.0002H15.0006M10.0002 5V15.0006"
+                    stroke="white"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {buttonText}
+              </button>
+              {id && totalItems > 0 && (
+                <button
+                  onClick={deleteAllModal.openModal}
+                  className="cursor-pointer bg-red-500 shadow-theme-xs hover:bg-red-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
+                >
+                  <TrashBinIcon />
+                  Delete All
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -522,7 +559,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
                   <td className="p-4 whitespace-nowrap">
                     <span
                       className={`inline-flex rounded-full px-2 py-1 text-xs font-medium capitalize ${getStatusColor(
-                        drug.status
+                        drug.status,
                       )}`}
                     >
                       {drug.status}
@@ -672,6 +709,13 @@ const DrugTable: React.FC<DrugTableProps> = ({
         confirmModal={confirmModal}
         handleSave={deleteDrug}
         closeModal={handleCloseConfirm}
+      />
+      <ConfirmModal
+        confirmModal={deleteAllModal}
+        handleSave={handleDeleteAll}
+        closeModal={deleteAllModal.closeModal}
+        title="Delete All Drugs?"
+        message="This will permanently delete all drugs for this provider. This action cannot be undone."
       />
       <EditDrug
         isOpen={isOpen}
@@ -840,7 +884,7 @@ const DrugTable: React.FC<DrugTableProps> = ({
                     placeholder="Select status"
                     onChange={(value) =>
                       setCreateStatus(
-                        value as "active" | "inactive" | "pending"
+                        value as "active" | "inactive" | "pending",
                       )
                     }
                     defaultValue={createStatus}
