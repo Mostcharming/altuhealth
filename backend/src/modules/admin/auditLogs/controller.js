@@ -48,7 +48,27 @@ async function listAuditLogs(req, res, next) {
         }
 
         const auditLogs = await AuditLog.findAll(findOptions);
-        const data = auditLogs.map(log => log.toJSON());
+        const { Admin } = req.models;
+
+        const data = await Promise.all(auditLogs.map(async (log) => {
+            const logData = log.toJSON();
+
+            // If userType is Admin, fetch admin details
+            if (logData.userType === 'Admin' && logData.userId) {
+                const admin = await Admin.findByPk(logData.userId, {
+                    attributes: ['firstName', 'lastName']
+                });
+                if (admin) {
+                    logData.userName = `${admin.firstName} ${admin.lastName}`;
+                } else {
+                    logData.userName = 'Unknown Admin';
+                }
+            } else {
+                logData.userName = null;
+            }
+
+            return logData;
+        }));
 
         const hasPrevPage = !isAll && pageNum > 1;
         const hasNextPage = !isAll && (offset + auditLogs.length < total);

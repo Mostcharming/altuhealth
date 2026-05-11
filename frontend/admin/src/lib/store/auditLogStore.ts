@@ -4,6 +4,7 @@ export interface AuditLog {
   id: string;
   userId?: string | null;
   userType?: string | null;
+  userName?: string | null;
   action: string;
   message: string;
   meta?: Record<string, unknown> | null;

@@ -46,7 +46,7 @@ const AuditLogTable: React.FC = () => {
     { key: "action", label: "Action" },
     { key: "message", label: "Message" },
     { key: "userType", label: "User Type" },
-    { key: "userId", label: "User ID" },
+    { key: "userName", label: "User" },
     { key: "createdAt", label: "Date/Time" },
   ];
 
@@ -65,8 +65,8 @@ const AuditLogTable: React.FC = () => {
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
 
       setAuditLogs(items);
       setTotalItems(data?.data?.count ?? 0);
@@ -214,7 +214,7 @@ const AuditLogTable: React.FC = () => {
                   <td className="p-4 whitespace-nowrap">
                     <span
                       className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getActionColor(
-                        log.action
+                        log.action,
                       )}`}
                     >
                       {capitalizeWords(log.action.replace(/\./g, " "))}
@@ -232,7 +232,7 @@ const AuditLogTable: React.FC = () => {
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
-                      {log.userId?.substring(0, 8) || "-"}
+                      {log.userName || "-"}
                     </span>
                   </td>
                   <td className="p-4 whitespace-nowrap">
