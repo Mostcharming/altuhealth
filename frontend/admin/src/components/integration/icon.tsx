@@ -16,3 +16,64 @@ export function StripeIcon() {
     </svg>
   );
 }
+
+// PayPal Icon
+// export function PayPalIcon() {
+//   return (
+//     <svg
+//       xmlns="http://www.w3.org/2000/svg"
+//       width="40"
+//       height="40"
+//       viewBox="0 0 40 40"
+//       fill="none"
+//     >
+//       <rect width="40" height="40" rx="8" fill="#003087" />
+//       <path
+//         d="M14.5 12C13.947 12 13.5 12.447 13.5 13V27C13.5 27.553 13.947 28 14.5 28H25.5C26.053 28 26.5 27.553 26.5 27V13C26.5 12.447 26.053 12 25.5 12H14.5Z"
+//         fill="#003087"
+//       />
+//       <path
+//         d="M16.8 14H22.8C24.3255 14 25.3 15.209 25.3 16.75C25.3 18.29 24.3255 19.5 22.8 19.5H19.6L18.9 24H16.1L16.8 14Z"
+//         fill="white"
+//       />
+//       <path
+//         d="M19.6 19.5H22.8C23.56 19.5 24.2 19.039 24.2 18.25C24.2 17.461 23.56 17 22.8 17H20.3L19.6 19.5Z"
+//         fill="#009cde"
+//       />
+//     </svg>
+//   );
+// }
+
+export function PayPalIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="40"
+      height="40"
+      viewBox="0 0 40 40"
+      fill="none"
+    >
+      {/* Background */}
+      <rect width="40" height="40" rx="10" fill="#003087" />
+
+      {/* Dark blue P */}
+      <path
+        d="M15.8 10.5H23.2C27.1 10.5 29.3 12.4 29.3 16.1C29.3 20.3 26.4 22.7 22.1 22.7H19.5L18.4 29H14.3L17.1 12.4C17.3 11.3 18.2 10.5 19.3 10.5H15.8Z"
+        fill="#012169"
+      />
+
+      {/* Light blue P overlay */}
+      <path
+        d="M13 13H20.2C24.1 13 26.2 14.8 26.2 18C26.2 21.8 23.6 24 19.7 24H17.3L16.3 30H12.6L15.1 15C15.3 13.9 16 13 17.2 13H13Z"
+        fill="#009CDE"
+      />
+
+      {/* White highlight */}
+      <path
+        d="M18.1 16.2H20.8C22.4 16.2 23.4 17 23.4 18.5C23.4 20.2 22.1 21.2 20.2 21.2H18.9L18.1 16.2Z"
+        fill="white"
+        opacity="0.95"
+      />
+    </svg>
+  );
+}

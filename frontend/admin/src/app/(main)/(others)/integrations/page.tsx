@@ -1,6 +1,6 @@
 "use client";
 
-import { StripeIcon } from "@/components/integration/icon";
+import { PayPalIcon, StripeIcon } from "@/components/integration/icon";
 import IntegrationBreadcrumb from "@/components/integration/IntegrationBreadcrumb";
 import IntegrationCard from "@/components/integration/IntegrationCard";
 import ErrorModal from "@/components/modals/error";
@@ -34,6 +34,18 @@ const integrationDefaults = {
       "Connect your Stripe Sandbox account for testing payments and development purposes.",
     icon: <StripeIcon />,
   },
+  "paypal-production": {
+    title: "PayPal Production",
+    description:
+      "Connect your PayPal Production account to process live payments.",
+    icon: <PayPalIcon />,
+  },
+  "paypal-sandbox": {
+    title: "PayPal Sandbox",
+    description:
+      "Connect your PayPal Sandbox account for testing payments and development purposes.",
+    icon: <PayPalIcon />,
+  },
 };
 
 export default function IntegrationsPage() {
@@ -65,7 +77,7 @@ export default function IntegrationsPage() {
               .replace(/\s+/g, "-") as keyof typeof integrationDefaults
           ]?.icon || <StripeIcon />,
           isConnected: integration.is_active,
-        })
+        }),
       );
 
       setIntegrations(formattedIntegrations);
@@ -106,7 +118,7 @@ export default function IntegrationsPage() {
     try {
       await toggleIntegrationStatus(id, isConnected);
       setIntegrations((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, isConnected } : item))
+        prev.map((item) => (item.id === id ? { ...item, isConnected } : item)),
       );
       setSuccessModal({ isOpen: true });
     } catch (error) {
@@ -116,8 +128,8 @@ export default function IntegrationsPage() {
       // Revert the toggle
       setIntegrations((prev) =>
         prev.map((item) =>
-          item.id === id ? { ...item, isConnected: !isConnected } : item
-        )
+          item.id === id ? { ...item, isConnected: !isConnected } : item,
+        ),
       );
     }
   };
