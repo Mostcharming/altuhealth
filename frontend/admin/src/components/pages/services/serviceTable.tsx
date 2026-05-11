@@ -746,8 +746,8 @@ const ServiceTable: React.FC<ServiceTableProps> = ({
         confirmModal={deleteAllModal}
         handleSave={handleDeleteAll}
         closeModal={deleteAllModal.closeModal}
-        title="Delete All Services?"
-        message="This will permanently delete all services for this provider. This action cannot be undone."
+        // title="Delete All Services?"
+        // message="This will permanently delete all services for this provider. This action cannot be undone."
       />
       <EditService
         isOpen={isOpen}

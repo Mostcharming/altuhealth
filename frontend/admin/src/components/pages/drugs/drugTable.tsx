@@ -714,8 +714,8 @@ const DrugTable: React.FC<DrugTableProps> = ({
         confirmModal={deleteAllModal}
         handleSave={handleDeleteAll}
         closeModal={deleteAllModal.closeModal}
-        title="Delete All Drugs?"
-        message="This will permanently delete all drugs for this provider. This action cannot be undone."
+        // title="Delete All Drugs?"
+        // message="This will permanently delete all drugs for this provider. This action cannot be undone."
       />
       <EditDrug
         isOpen={isOpen}
