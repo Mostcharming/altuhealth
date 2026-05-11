@@ -227,7 +227,13 @@ async function listInvoices(req, res, next) {
         }
 
         if (paymentStatus) {
-            where.paymentStatus = paymentStatus;
+            if (paymentStatus === 'unpaid') {
+                where.paymentStatus = {
+                    [Op.in]: ['unpaid', 'partially_paid']
+                };
+            } else {
+                where.paymentStatus = paymentStatus;
+            }
         }
 
         if (q) {
