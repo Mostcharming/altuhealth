@@ -36,13 +36,11 @@ async function getEnrolleeBenefits(req, res, next) {
 
         const benefitCategories = await CompanyPlanBenefitCategory.findAll({
             where: benefitCategoryWhere,
-            include: [
-                { model: BenefitCategory, as: 'BenefitCategory', attributes: ['id', 'name', 'count'] }
-            ],
-            raw: false
+            raw: true
         });
 
-        const categoryIds = benefitCategories.map(bc => bc.BenefitCategory.id);
+        // Get all benefit categories for this company plan
+        const categoryIds = benefitCategories.map(bc => bc.benefitCategoryId);
 
         if (categoryIds.length === 0) {
             return res.success(
@@ -59,6 +57,12 @@ async function getEnrolleeBenefits(req, res, next) {
                 'No benefits available for this enrollee'
             );
         }
+
+        // Fetch the actual category details
+        const categoriesData = await BenefitCategory.findAll({
+            where: { id: { [Op.in]: categoryIds } },
+            raw: true
+        });
 
         const offset = (page - 1) * limit;
         const benefitWhere = { benefitCategoryId: { [Op.in]: categoryIds } };
@@ -79,7 +83,7 @@ async function getEnrolleeBenefits(req, res, next) {
         const { count, rows } = await Benefit.findAndCountAll({
             where: benefitWhere,
             include: [
-                { model: BenefitCategory, as: 'BenefitCategory', attributes: ['id', 'name', 'count'] }
+                { model: BenefitCategory, as: 'benefitCategory', attributes: ['id', 'name', 'count'] }
             ],
             limit: parseInt(limit),
             offset: parseInt(offset),
@@ -90,7 +94,7 @@ async function getEnrolleeBenefits(req, res, next) {
         return res.success(
             {
                 benefits: rows,
-                categories: benefitCategories.map(bc => bc.BenefitCategory),
+                categories: categoriesData,
                 pagination: {
                     total: count,
                     page: parseInt(page),
@@ -128,7 +132,7 @@ async function getEnrolleeBenefitById(req, res, next) {
 
         // Get the benefit
         const benefit = await Benefit.findByPk(benefitId, {
-            include: [{ model: BenefitCategory, as: 'BenefitCategory', attributes: ['id', 'name', 'count'] }]
+            include: [{ model: BenefitCategory, as: 'benefitCategory', attributes: ['id', 'name', 'count'] }]
         });
 
         if (!benefit)
