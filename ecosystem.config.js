@@ -61,16 +61,6 @@ module.exports = {
       }
     },
     {
-      name: "retail",
-      script: "npm",
-      args: "start",
-      cwd: "./frontend/retail",
-      env: {
-        NODE_ENV: "production",
-        PORT: 3005
-      }
-    },
-    {
       name: "referral",
       script: "npm",
       args: "start",

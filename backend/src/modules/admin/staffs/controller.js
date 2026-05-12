@@ -570,30 +570,18 @@ async function bulkCreateStaffs(req, res, next) {
                     errors.push(`Row ${i + 2}: lastName is required`);
                     continue;
                 }
-                if (!email) {
-                    errors.push(`Row ${i + 2}: email is required`);
-                    continue;
-                }
-                if (!phoneNumber) {
-                    errors.push(`Row ${i + 2}: phoneNumber is required`);
-                    continue;
-                }
-                // if (!staffId) {
-                //     errors.push(`Row ${i + 2}: staffId is required`);
-                //     continue;
-                // }
 
-                const existingEmail = await Staff.findOne({ where: { email } });
+                // Auto-generate email if not provided
+                const generatedEmail = email || `${firstName.toLowerCase().trim()}.${lastName.toLowerCase().trim()}@${company.name.toLowerCase().replace(/\s+/g, '')}.enrollee`;
+
+                const existingEmail = await Staff.findOne({ where: { email: generatedEmail } });
                 if (existingEmail) {
                     errors.push(`Row ${i + 2}: Email already exists`);
                     continue;
                 }
 
-                // const existingStaffId = await Staff.findOne({ where: { staffId } });
-                // if (existingStaffId) {
-                //     errors.push(`Row ${i + 2}: Staff ID already exists`);
-                //     continue;
-                // }
+                // Auto-generate staffId if not provided
+                const generatedStaffId = staffId || `STF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
                 // Use subscriptionId from row if provided, otherwise use the one from body
                 const subscriptionIdToUse = rowSubscriptionId || subscriptionId;
@@ -605,9 +593,9 @@ async function bulkCreateStaffs(req, res, next) {
                     firstName: firstName.trim(),
                     middleName: middleName ? middleName.trim() : null,
                     lastName: lastName.trim(),
-                    email: email.trim(),
-                    phoneNumber: phoneNumber.trim(),
-                    staffId: staffId ? staffId.trim() : null,
+                    email: generatedEmail,
+                    phoneNumber: phoneNumber ? phoneNumber.trim() : null,
+                    staffId: generatedStaffId,
                     companyId,
                     subsidiaryId: subsidiaryId || null,
                     dateOfBirth: dateOfBirth || null,
@@ -662,8 +650,8 @@ async function bulkCreateStaffs(req, res, next) {
                         companyPlanId: planId,
                         dateOfBirth: dateOfBirth || new Date(),
                         gender: gender || 'other',
-                        phoneNumber: phoneNumber.trim(),
-                        email: email.trim(),
+                        phoneNumber: phoneNumber ? phoneNumber.trim() : generatedEmail,
+                        email: generatedEmail,
                         maxDependents: maxDependents ? parseInt(maxDependents) : null,
                         preexistingMedicalRecords: preexistingMedicalRecords ? preexistingMedicalRecords.trim() : null,
                         isActive: true,
@@ -684,35 +672,35 @@ async function bulkCreateStaffs(req, res, next) {
                 }
 
                 // Send notification if email is provided
-                // if (staff.email) {
-                //     try {
-                //         const notificationData = {
-                //             firstName: staff.firstName,
-                //             companyName: company.name,
-                //             loginLink: `https://enrollee.altuhealth.com`
-                //         };
+                if (staff.email) {
+                    try {
+                        const notificationData = {
+                            firstName: staff.firstName,
+                            companyName: company.name,
+                            loginLink: `https://enrollee.altuhealth.com`
+                        };
 
-                //         // Include password and policy number in notification if enrollee was created
-                //         if (enrollee) {
-                //             notificationData.temporaryPassword = rawPassword;
-                //             notificationData.policyNumber = enrollee.policyNumber;
-                //         }
+                        // Include password and policy number in notification if enrollee was created
+                        if (enrollee) {
+                            notificationData.temporaryPassword = rawPassword;
+                            notificationData.policyNumber = enrollee.policyNumber;
+                        }
 
-                //         await notify(
-                //             { id: staff.id, email: staff.email, firstName: staff.firstName },
-                //             'staff',
-                //             'STAFF_ENROLLMENT_REQUIRED',
-                //             notificationData
-                //         );
+                        await notify(
+                            { id: staff.id, email: staff.email, firstName: staff.firstName },
+                            'staff',
+                            'STAFF_ENROLLMENT_REQUIRED',
+                            notificationData
+                        );
 
-                //         await staff.update({
-                //             isNotified: true,
-                //             notifiedAt: new Date()
-                //         });
-                //     } catch (notifyErr) {
-                //         console.error(`Error sending enrollment email for ${staff.email}:`, notifyErr);
-                //     }
-                // }
+                        await staff.update({
+                            isNotified: true,
+                            notifiedAt: new Date()
+                        });
+                    } catch (notifyErr) {
+                        console.error(`Error sending enrollment email for ${staff.email}:`, notifyErr);
+                    }
+                }
             } catch (err) {
                 if (transaction) {
                     await transaction.rollback();
