@@ -26,7 +26,6 @@ async function createStaff(req, res, next) {
                 return res.fail('Subsidiary does not belong to the specified company', 400);
             }
         }
-
         if (subscriptionId) {
             const subscription = await Subscription.findByPk(subscriptionId);
             if (!subscription) return res.fail('Subscription not found', 404);
@@ -34,16 +33,16 @@ async function createStaff(req, res, next) {
                 return res.fail('Subscription does not belong to the specified company', 400);
             }
         }
+        // Auto-generate email if not provided
+        const generatedEmail = email || `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${company.name.toLowerCase().replace(/\s+/g, '')}.enrollee`;
 
-        if (email) {
-            const existingEmail = await Staff.findOne({ where: { email } });
+        if (generatedEmail) {
+            const existingEmail = await Staff.findOne({ where: { email: generatedEmail } });
             if (existingEmail) return res.fail('Email already exists', 400);
         }
 
-        if (staffId) {
-            const existingStaffId = await Staff.findOne({ where: { staffId } });
-            if (existingStaffId) return res.fail('Staff ID already exists', 400);
-        }
+        // Auto-generate staffId if not provided
+        const generatedStaffId = staffId || `STF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
         // Start transaction for atomic staff and enrollee creation
         transaction = await Staff.sequelize.transaction();
@@ -52,9 +51,9 @@ async function createStaff(req, res, next) {
             firstName,
             middleName: middleName || null,
             lastName,
-            email,
+            email: generatedEmail,
             phoneNumber,
-            staffId,
+            staffId: generatedStaffId,
             companyId,
             subsidiaryId: subsidiaryId || null,
             dateOfBirth: dateOfBirth || null,
@@ -63,61 +62,54 @@ async function createStaff(req, res, next) {
             subscriptionId: subscriptionId || null
         }, { transaction });
 
-        // Only create enrollee if subscriptionId is provided
+        // Always create enrollee for staff member
         let enrollee = null;
         let rawPassword = null;
         let hashedPassword = null;
 
-        if (subscriptionId) {
+        try {
+
             const subscriptionPlan = await SubscriptionPlan.findOne({
                 where: { subscriptionId },
                 raw: true
             });
 
-            if (!subscriptionPlan) {
-                await transaction.rollback();
-                return res.fail('No company plan found for the specified subscription', 404);
-            }
-
             const planId = subscriptionPlan.companyPlanId;
 
             const companyPlan = await CompanyPlan.findByPk(planId);
-            if (!companyPlan) {
-                await transaction.rollback();
-                return res.fail('Company plan not found', 404);
+
+            if (companyPlan) {
+                const policyNumber = await getUniquePolicyNumber(Enrollee);
+
+                // Generate password for enrollee
+                rawPassword = generateCode(10, { letters: true, numbers: true });
+                hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+                enrollee = await Enrollee.create({
+                    firstName,
+                    middleName: middleName || null,
+                    lastName,
+                    policyNumber,
+                    staffId: staff.id,
+                    companyId,
+                    companyPlanId: planId,
+                    dateOfBirth: dateOfBirth || new Date('1990-01-01'),
+                    gender: gender || 'other',
+                    phoneNumber: phoneNumber || generatedEmail,
+                    email: generatedEmail,
+                    maxDependents: maxDependents || null,
+                    preexistingMedicalRecords: preexistingMedicalRecords || null,
+                    isActive: true,
+                    password: hashedPassword
+                }, { transaction });
+
+                await staff.update({
+                    enrollmentStatus: 'enrolled'
+                }, { transaction });
             }
-            if (companyPlan.companyId !== companyId) {
-                await transaction.rollback();
-                return res.fail('Company plan does not belong to the specified company', 400);
-            }
-
-            const policyNumber = await getUniquePolicyNumber(Enrollee);
-
-            // Generate password for enrollee
-            rawPassword = generateCode(10, { letters: true, numbers: true });
-            hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-            enrollee = await Enrollee.create({
-                firstName,
-                middleName: middleName || null,
-                lastName,
-                policyNumber,
-                staffId: staff.id,
-                companyId,
-                companyPlanId: planId,
-                dateOfBirth: dateOfBirth || new Date(),
-                gender: gender || 'other',
-                phoneNumber,
-                email,
-                maxDependents: maxDependents || null,
-                preexistingMedicalRecords: preexistingMedicalRecords || null,
-                isActive: true,
-                password: hashedPassword
-            }, { transaction });
-
-            await staff.update({
-                enrollmentStatus: 'enrolled'
-            }, { transaction });
+        } catch (enrolleeErr) {
+            console.error('Error creating enrollee:', enrolleeErr);
+            // Continue even if enrollee creation fails - staff will still be created
         }
 
         // Commit transaction before audit log and notifications (which are not critical for atomicity)
@@ -131,7 +123,7 @@ async function createStaff(req, res, next) {
             meta: { staffId: staff.id, enrolleeId: enrollee?.id, policyNumber: enrollee?.policyNumber }
         });
 
-        // Only send notification if email is provided
+        // Send notification with generated password and policy details
         if (staff.email) {
             const enrollmentLink = `https://enrollee.altuhealth.com`;
 

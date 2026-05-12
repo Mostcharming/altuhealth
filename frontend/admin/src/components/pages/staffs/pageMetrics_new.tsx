@@ -613,7 +613,7 @@ export default function PageMetricsStaffs({
                 </div>
 
                 <div>
-                  <Label>Staff ID *</Label>
+                  <Label>Staff ID</Label>
                   <Input
                     type="text"
                     value={staffId}
@@ -625,7 +625,7 @@ export default function PageMetricsStaffs({
                 </div>
 
                 <div>
-                  <Label>Email *</Label>
+                  <Label>Email</Label>
                   <Input
                     type="email"
                     value={email}
@@ -637,7 +637,7 @@ export default function PageMetricsStaffs({
                 </div>
 
                 <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Label htmlFor="phone">Phone Number</Label>
                   <PhoneInput
                     selectPosition="start"
                     countries={countries}
