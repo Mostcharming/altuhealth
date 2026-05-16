@@ -128,8 +128,6 @@ export default function PageMetricsAuthorizationCodes({
   const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
   // const [providers, setProviders] = useState<Provider[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [companyPlans, setCompanyPlans] = useState<CompanyPlan[]>([]);
 
   const [claimDetails, setClaimDetails] = useState<ClaimDetail[]>([]);
   const [currentDetailIndex, setCurrentDetailIndex] = useState<number | null>(
@@ -183,13 +181,13 @@ export default function PageMetricsAuthorizationCodes({
             method: "GET",
           },
         );
-        const items: CompanyPlan[] =
-          data?.data?.list && Array.isArray(data.data.list)
-            ? data.data.list
-            : Array.isArray(data)
-              ? data
-              : [];
-        setCompanyPlans(items);
+        // const items: CompanyPlan[] =
+        //   data?.data?.list && Array.isArray(data.data.list)
+        //     ? data.data.list
+        //     : Array.isArray(data)
+        //       ? data
+        //       : [];
+        // setCompanyPlans(items);
       } catch (err) {
         console.warn("Failed to fetch company plans", err);
       }
@@ -198,7 +196,7 @@ export default function PageMetricsAuthorizationCodes({
     if (companyId) {
       fetchPlans();
     } else {
-      setCompanyPlans([]);
+      // setCompanyPlans([]);
     }
   }, [companyId]);
 
@@ -270,7 +268,7 @@ export default function PageMetricsAuthorizationCodes({
           : Array.isArray(data)
             ? data
             : [];
-      setCompanies(items);
+      // setCompanies(items);
     } catch (err) {
       console.warn("Failed to fetch companies", err);
     }
