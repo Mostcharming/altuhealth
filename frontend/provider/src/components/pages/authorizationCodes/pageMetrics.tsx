@@ -34,10 +34,10 @@ interface Diagnosis {
 //   name: string;
 // }
 
-interface Company {
-  id: string;
-  name: string;
-}
+// interface Company {
+//   id: string;
+//   name: string;
+// }
 interface ClaimDetail {
   enrolleeId?: string;
   retailEnrolleeId?: string;
@@ -259,9 +259,9 @@ export default function PageMetricsAuthorizationCodes({
 
   const fetchCompanies = async () => {
     try {
-      const data = await apiClient("/admin/companies/list?limit=all", {
-        method: "GET",
-      });
+      // const data = await apiClient("/admin/companies/list?limit=all", {
+      //   method: "GET",
+      // });
       // const items: Company[] =
       //   data?.data?.list && Array.isArray(data.data.list)
       //     ? data.data.list
