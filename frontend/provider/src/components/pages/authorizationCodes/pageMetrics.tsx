@@ -29,10 +29,10 @@ interface Diagnosis {
   code: string;
 }
 
-interface CompanyPlan {
-  id: string;
-  name: string;
-}
+// interface CompanyPlan {
+//   id: string;
+//   name: string;
+// }
 
 interface Company {
   id: string;
@@ -175,12 +175,12 @@ export default function PageMetricsAuthorizationCodes({
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const data = await apiClient(
-          `/admin/company-plans/list?limit=all&companyId=${companyId}`,
-          {
-            method: "GET",
-          },
-        );
+        // const data = await apiClient(
+        //   `/admin/company-plans/list?limit=all&companyId=${companyId}`,
+        //   {
+        //     method: "GET",
+        //   },
+        // );
         // const items: CompanyPlan[] =
         //   data?.data?.list && Array.isArray(data.data.list)
         //     ? data.data.list
@@ -262,12 +262,12 @@ export default function PageMetricsAuthorizationCodes({
       const data = await apiClient("/admin/companies/list?limit=all", {
         method: "GET",
       });
-      const items: Company[] =
-        data?.data?.list && Array.isArray(data.data.list)
-          ? data.data.list
-          : Array.isArray(data)
-            ? data
-            : [];
+      // const items: Company[] =
+      //   data?.data?.list && Array.isArray(data.data.list)
+      //     ? data.data.list
+      //     : Array.isArray(data)
+      //       ? data
+      //       : [];
       // setCompanies(items);
     } catch (err) {
       console.warn("Failed to fetch companies", err);
