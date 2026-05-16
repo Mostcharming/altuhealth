@@ -679,7 +679,7 @@ export default function PageMetricsAuthorizationCodes({
                       onChange={(value) =>
                         setCurrentDetail({
                           ...currentDetail,
-                          serviceType: value as any,
+                          serviceType: value as "outpatient" | "inpatient" | "emergency" | "procedure" | "consultation" | "diagnostic" | "laboratory" | "pharmacy" | "dental" | "optical",
                         })
                       }
                       defaultValue={currentDetail.serviceType}
@@ -743,7 +743,7 @@ export default function PageMetricsAuthorizationCodes({
                         onChange={(value) =>
                           setCurrentItem({
                             ...currentItem,
-                            itemType: value as any,
+                            itemType: value as "drug" | "service",
                           })
                         }
                         defaultValue={currentItem.itemType}
