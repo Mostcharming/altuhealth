@@ -11,6 +11,42 @@ import { Company, useCompanyStore } from "@/lib/store/companyStore";
 import { Enrollee, useEnrolleeStore } from "@/lib/store/enrolleeStore";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
+
+const copyTextToClipboard = async (text: string): Promise<boolean> => {
+  if (!text) return false;
+
+  // Prefer the modern clipboard API when available (requires secure context).
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fall back to legacy execCommand path below.
+    }
+  }
+
+  // Fallback for browsers/environments where clipboard API is unavailable.
+  if (typeof document === "undefined") return false;
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.top = "-9999px";
+  textArea.style.left = "-9999px";
+
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textArea);
+  }
+};
 // ...existing code...
 
 const EnrolleeTable: React.FC = () => {
@@ -282,10 +318,11 @@ const EnrolleeTable: React.FC = () => {
                             className={`flex items-center justify-center rounded p-1 ml-1 transition-colors duration-150 text-gray-400 hover:text-gray-700 dark:hover:text-white/90 focus:outline-none focus:ring-2 focus:ring-brand-500 ${copiedId === enrollee.id ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" : ""}`}
                             style={{ lineHeight: 0 }}
                             onClick={async () => {
-                              try {
-                                await navigator.clipboard.writeText(
-                                  enrollee.policyNumber ?? "",
-                                );
+                              const copied = await copyTextToClipboard(
+                                enrollee.policyNumber ?? "",
+                              );
+
+                              if (copied) {
                                 setCopiedId(enrollee.id);
                                 setShowCopyNotification(true);
                                 setNotificationKey((k) => k + 1);
@@ -293,7 +330,9 @@ const EnrolleeTable: React.FC = () => {
                                   setCopiedId(null);
                                   setShowCopyNotification(false);
                                 }, 3000);
-                              } catch {}
+                              } else {
+                                console.warn("Unable to copy policy number");
+                              }
                             }}
                           >
                             <CopyIcon width={18} height={18} />
