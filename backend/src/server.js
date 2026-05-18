@@ -137,7 +137,7 @@ app.get('/', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+
 
   const isDevelopment = process.env.NODE_ENV === 'development';
   const errorMessage = isDevelopment ? err.message : 'Internal Server Error';

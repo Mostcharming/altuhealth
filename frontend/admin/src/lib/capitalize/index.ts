@@ -36,4 +36,11 @@ export function capitalizeWords(value: unknown, locale = "en-US"): string {
   });
 }
 
+// Uppercase all words in a string while preserving separators and digits
+export function capitalizeAllWords(input: string, locale = "en-US"): string {
+  if (typeof input !== "string") return "";
+
+  return input.toLocaleUpperCase(locale);
+}
+
 export default capitalizeWords;
