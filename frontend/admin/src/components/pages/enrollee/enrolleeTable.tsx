@@ -293,9 +293,7 @@ const EnrolleeTable: React.FC = () => {
                                   setCopiedId(null);
                                   setShowCopyNotification(false);
                                 }, 3000);
-                              } catch {
-                                // Optionally show error feedback
-                              }
+                              } catch {}
                             }}
                           >
                             <CopyIcon width={18} height={18} />
