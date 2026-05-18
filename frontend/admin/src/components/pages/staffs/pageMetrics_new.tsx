@@ -43,6 +43,7 @@ export default function PageMetricsStaffs({
   const [subsidiaryId, setSubsidiaryId] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [maxDependents, setMaxDependents] = useState("");
+  const [policyNumber, setPolicyNumber] = useState("");
   const [preexistingMedicalRecords, setPreexistingMedicalRecords] =
     useState("");
   const [subscriptionId, setSubscriptionId] = useState("");
@@ -212,6 +213,7 @@ export default function PageMetricsStaffs({
     setSubsidiaryId("");
     setDateOfBirth("");
     setMaxDependents("");
+    setPolicyNumber("");
     setPreexistingMedicalRecords("");
     setSubscriptionId("");
     setBulkCompanyId("");
@@ -239,26 +241,18 @@ export default function PageMetricsStaffs({
         middleName: "Michael",
         lastName: "Doe",
         email: "john.doe@example.com",
-        phoneNumber: "+1234567890",
-        staffId: "STF001",
-        subsidiaryId: "",
-        dateOfBirth: "1990-01-15",
+        policyNumber: "ALT-000123",
         maxDependents: "3",
         preexistingMedicalRecords: "None",
-        subscriptionId: "",
       },
       {
         firstName: "Jane",
         middleName: "Elizabeth",
         lastName: "Smith",
         email: "jane.smith@example.com",
-        phoneNumber: "+1234567891",
-        staffId: "STF002",
-        subsidiaryId: "",
-        dateOfBirth: "1992-05-20",
+        policyNumber: "xxx",
         maxDependents: "2",
         preexistingMedicalRecords: "Diabetes",
-        subscriptionId: "",
       },
     ];
 
@@ -294,6 +288,12 @@ export default function PageMetricsStaffs({
     try {
       if (!bulkCompanyId) {
         setErrorMessage("Company is required for bulk upload.");
+        errorModal.openModal();
+        return;
+      }
+
+      if (!bulkSubscriptionId) {
+        setErrorMessage("Subscription is required for bulk upload.");
         errorModal.openModal();
         return;
       }
@@ -359,6 +359,12 @@ export default function PageMetricsStaffs({
         return;
       }
 
+      if (!subscriptionId) {
+        setErrorMessage("Subscription is required.");
+        errorModal.openModal();
+        return;
+      }
+
       setLoading(true);
 
       const payload: any = {
@@ -372,6 +378,7 @@ export default function PageMetricsStaffs({
         subsidiaryId: subsidiaryId || undefined,
         dateOfBirth: dateOfBirth || undefined,
         maxDependents: maxDependents ? parseInt(maxDependents) : undefined,
+        policyNumber: policyNumber.trim() || undefined,
         preexistingMedicalRecords:
           preexistingMedicalRecords.trim() || undefined,
         subscriptionId: subscriptionId || undefined,
@@ -511,7 +518,7 @@ export default function PageMetricsStaffs({
                 </div>
 
                 <div>
-                  <Label>Subscription </Label>
+                  <Label>Subscription *</Label>
                   <Select
                     options={bulkSubscriptions.map((s) => ({
                       value: s.id,
@@ -534,7 +541,8 @@ export default function PageMetricsStaffs({
                     }}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Supported formats: CSV, XLSX, XLS
+                    Supported formats: CSV, XLSX, XLS. Optional column:
+                    policyNumber.
                   </p>
                 </div>
 
@@ -675,7 +683,7 @@ export default function PageMetricsStaffs({
                 </div>
 
                 <div>
-                  <Label>Subscription</Label>
+                  <Label>Subscription *</Label>
                   <Select
                     options={subscriptions.map((s) => ({
                       value: s.id,
@@ -714,6 +722,18 @@ export default function PageMetricsStaffs({
                       setMaxDependents(e.target.value)
                     }
                     min="0"
+                  />
+                </div>
+
+                <div>
+                  <Label>Policy Number</Label>
+                  <Input
+                    type="text"
+                    value={policyNumber}
+                    placeholder="Enter existing policy number (optional)..."
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setPolicyNumber(e.target.value)
+                    }
                   />
                 </div>
 

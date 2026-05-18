@@ -10,7 +10,7 @@ async function createStaff(req, res, next) {
     let transaction;
     try {
         const { Staff, Company, CompanySubsidiary, Subscription, Enrollee, CompanyPlan, SubscriptionPlan } = req.models;
-        const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, dateOfBirth, maxDependents, preexistingMedicalRecords, subscriptionId, gender } = req.body || {};
+        const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, dateOfBirth, maxDependents, preexistingMedicalRecords, subscriptionId, gender, policyNumber } = req.body || {};
 
         if (!firstName) return res.fail('`firstName` is required', 400);
         if (!lastName) return res.fail('`lastName` is required', 400);
@@ -39,6 +39,12 @@ async function createStaff(req, res, next) {
         if (generatedEmail) {
             const existingEmail = await Staff.findOne({ where: { email: generatedEmail } });
             if (existingEmail) return res.fail('Email already exists', 400);
+        }
+
+        const providedPolicyNumber = policyNumber && String(policyNumber).trim() ? String(policyNumber).trim() : null;
+        if (providedPolicyNumber) {
+            const existingPolicyNumber = await Enrollee.findOne({ where: { policyNumber: providedPolicyNumber } });
+            if (existingPolicyNumber) return res.fail('Policy number already exists', 400);
         }
 
         // Auto-generate staffId if not provided
@@ -79,7 +85,7 @@ async function createStaff(req, res, next) {
             const companyPlan = await CompanyPlan.findByPk(planId);
 
             if (companyPlan) {
-                const policyNumber = await getUniquePolicyNumber(Enrollee);
+                const enrolleePolicyNumber = providedPolicyNumber || await getUniquePolicyNumber(Enrollee);
 
                 // Generate password for enrollee
                 rawPassword = generateCode(10, { letters: true, numbers: true });
@@ -89,7 +95,7 @@ async function createStaff(req, res, next) {
                     firstName,
                     middleName: middleName || null,
                     lastName,
-                    policyNumber,
+                    policyNumber: enrolleePolicyNumber,
                     staffId: staff.id,
                     companyId,
                     companyPlanId: planId,
@@ -559,6 +565,7 @@ async function bulkCreateStaffs(req, res, next) {
                     maxDependents,
                     preexistingMedicalRecords,
                     gender,
+                    policyNumber,
                     subscriptionId: rowSubscriptionId
                 } = row;
 
@@ -634,7 +641,16 @@ async function bulkCreateStaffs(req, res, next) {
                         continue;
                     }
 
-                    const policyNumber = await getUniquePolicyNumber(Enrollee);
+                    const providedPolicyNumber = policyNumber && String(policyNumber).trim() ? String(policyNumber).trim() : null;
+                    if (providedPolicyNumber) {
+                        const existingPolicyNumber = await Enrollee.findOne({ where: { policyNumber: providedPolicyNumber } });
+                        if (existingPolicyNumber) {
+                            await transaction.rollback();
+                            errors.push(`Row ${i + 2}: Policy number already exists`);
+                            continue;
+                        }
+                    }
+                    const enrolleePolicyNumber = providedPolicyNumber || await getUniquePolicyNumber(Enrollee);
 
                     // Generate password for enrollee
                     rawPassword = generateCode(10, { letters: true, numbers: true });
@@ -644,7 +660,7 @@ async function bulkCreateStaffs(req, res, next) {
                         firstName: firstName.trim(),
                         middleName: middleName ? middleName.trim() : null,
                         lastName: lastName.trim(),
-                        policyNumber,
+                        policyNumber: enrolleePolicyNumber,
                         staffId: staff.id,
                         companyId,
                         companyPlanId: planId,
