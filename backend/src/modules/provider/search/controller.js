@@ -170,8 +170,106 @@ async function getSearchHistory(req, res, next) {
         next(error);
     }
 }
+async function lookupEnrollee(req, res, next) {
+    try {
+        const { Enrollee, RetailEnrollee } = req.models;
+        const { query } = req.query;
+
+        if (!query) {
+            return res.success(
+                { enrollee: null },
+                'Please enter a search query'
+            );
+        }
+
+        const { Op } = require('sequelize');
+
+        // Search Enrollee model first
+        let enrollee = await Enrollee.findOne({
+            where: {
+                [Op.or]: [
+                    { policyNumber: query },
+                    { email: { [Op.iLike]: query } }
+                ]
+            },
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email']
+        });
+
+        if (enrollee) {
+            return res.success(
+                { enrollee },
+                'Enrollee found'
+            );
+        }
+
+        // Fallback to partial match on Enrollee
+        enrollee = await Enrollee.findOne({
+            where: {
+                [Op.or]: [
+                    { policyNumber: { [Op.iLike]: `%${query}%` } },
+                    { email: { [Op.iLike]: `%${query}%` } }
+                ]
+            },
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email']
+        });
+
+        if (enrollee) {
+            return res.success(
+                { enrollee },
+                'Enrollee found'
+            );
+        }
+
+        // Search RetailEnrollee model
+        let retailEnrollee = await RetailEnrollee.findOne({
+            where: {
+                [Op.or]: [
+                    { policyNumber: query },
+                    { email: { [Op.iLike]: query } }
+                ]
+            },
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email']
+        });
+
+        if (retailEnrollee) {
+            return res.success(
+                { enrollee: retailEnrollee },
+                'Retail enrollee found'
+            );
+        }
+
+        // Fallback to partial match on RetailEnrollee
+        retailEnrollee = await RetailEnrollee.findOne({
+            where: {
+                [Op.or]: [
+                    { policyNumber: { [Op.iLike]: `%${query}%` } },
+                    { email: { [Op.iLike]: `%${query}%` } }
+                ]
+            },
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email']
+        });
+
+        if (retailEnrollee) {
+            return res.success(
+                { enrollee: retailEnrollee },
+                'Retail enrollee found'
+            );
+        }
+
+        return res.success(
+            { enrollee: null },
+            'No enrollee found'
+        );
+
+    } catch (error) {
+        console.error('Error looking up enrollee:', error);
+        next(error);
+    }
+}
+
 
 module.exports = {
     searchEnrolleeOrDependent,
-    getSearchHistory
+    getSearchHistory,
+    lookupEnrollee
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import DatePicker from "@/components/form/date-picker";
+import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
@@ -8,36 +9,20 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 
-interface Enrollee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  policyNumber: string;
-}
-
-// interface Provider {
-//   id: string;
-//   name: string;
-//   code: string;
-// }
+type EnrolleeLookupStatus =
+  | "idle"
+  | "searching"
+  | "found"
+  | "not-found"
+  | "error";
 
 interface Diagnosis {
   id: string;
   name: string;
   code: string;
 }
-
-// interface CompanyPlan {
-//   id: string;
-//   name: string;
-// }
-
-// interface Company {
-//   id: string;
-//   name: string;
-// }
 interface ClaimDetail {
   enrolleeId?: string;
   retailEnrolleeId?: string;
@@ -110,6 +95,12 @@ export default function PageMetricsAuthorizationCodes({
 
   // Form state
   const [enrolleeId, setEnrolleeId] = useState("");
+  const [enrolleeLookupValue, setEnrolleeLookupValue] = useState("");
+  const [enrolleeLookupStatus, setEnrolleeLookupStatus] =
+    useState<EnrolleeLookupStatus>("idle");
+  const [enrolleeLookupHint, setEnrolleeLookupHint] = useState(
+    "Type policy number or email.",
+  );
   const [providerId, setProviderId] = useState("");
   const [diagnosisId, setDiagnosisId] = useState("");
   const [companyId, setCompanyId] = useState("");
@@ -125,9 +116,8 @@ export default function PageMetricsAuthorizationCodes({
   const [notes, setNotes] = useState("");
 
   // Fetch data
-  const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
-  // const [providers, setProviders] = useState<Provider[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
+  const enrolleeLookupRequestIdRef = useRef(0);
 
   const [claimDetails, setClaimDetails] = useState<ClaimDetail[]>([]);
   const [currentDetailIndex, setCurrentDetailIndex] = useState<number | null>(
@@ -160,79 +150,82 @@ export default function PageMetricsAuthorizationCodes({
     { value: "diagnostic", label: "Diagnostic" },
   ];
 
-  // Fetch all related data when modal opens
-
   useEffect(() => {
     if (isOpen) {
-      fetchEnrollees();
-      // fetchProviders();
       fetchDiagnoses();
-      fetchCompanies();
     }
   }, [isOpen]);
 
-  // Fetch company plans when company is selected
   useEffect(() => {
-    const fetchPlans = async () => {
+    if (!isOpen) return;
+
+    const searchValue = enrolleeLookupValue.trim();
+    if (!searchValue) {
+      setEnrolleeId("");
+      setEnrolleeLookupStatus("idle");
+      setEnrolleeLookupHint("Type policy number or email.");
+      return;
+    }
+
+    if (searchValue.length < 3) {
+      setEnrolleeId("");
+      setEnrolleeLookupStatus("idle");
+      setEnrolleeLookupHint("Keep typing at least 3 characters.");
+      return;
+    }
+
+    const requestId = ++enrolleeLookupRequestIdRef.current;
+    setEnrolleeLookupStatus("searching");
+    setEnrolleeLookupHint("Checking enrollee...");
+
+    const timer = setTimeout(async () => {
       try {
-        // const data = await apiClient(
-        //   `/admin/company-plans/list?limit=all&companyId=${companyId}`,
-        //   {
-        //     method: "GET",
-        //   },
-        // );
-        // const items: CompanyPlan[] =
-        //   data?.data?.list && Array.isArray(data.data.list)
-        //     ? data.data.list
-        //     : Array.isArray(data)
-        //       ? data
-        //       : [];
-        // setCompanyPlans(items);
+        const data = await apiClient(
+          `/provider/enrollee-lookup?query=${encodeURIComponent(searchValue)}`,
+          {
+            method: "GET",
+          },
+        );
+
+        if (requestId !== enrolleeLookupRequestIdRef.current) return;
+
+        const enrollee = data?.data?.enrollee;
+        if (enrollee?.id) {
+          setEnrolleeId(String(enrollee.id));
+          setEnrolleeLookupStatus("found");
+          setEnrolleeLookupHint(
+            `Found: ${enrollee.firstName} ${enrollee.lastName} (${enrollee.policyNumber || enrollee.email})`,
+          );
+          return;
+        }
+
+        setEnrolleeId("");
+        setEnrolleeLookupStatus("not-found");
+        setEnrolleeLookupHint(
+          "No enrollee found for this policy number/email.",
+        );
       } catch (err) {
-        console.warn("Failed to fetch company plans", err);
+        if (requestId !== enrolleeLookupRequestIdRef.current) return;
+
+        const message =
+          err instanceof Error ? err.message : "Failed to validate enrollee.";
+
+        setEnrolleeId("");
+
+        if (/not found/i.test(message)) {
+          setEnrolleeLookupStatus("not-found");
+          setEnrolleeLookupHint(
+            "No enrollee found for this policy number/email.",
+          );
+        } else {
+          setEnrolleeLookupStatus("error");
+          setEnrolleeLookupHint("Unable to validate enrollee right now.");
+        }
       }
-    };
+    }, 350);
 
-    if (companyId) {
-      fetchPlans();
-    } else {
-      // setCompanyPlans([]);
-    }
-  }, [companyId]);
-
-  const fetchEnrollees = async () => {
-    try {
-      const data = await apiClient("/admin/enrollees?limit=all", {
-        method: "GET",
-      });
-      const items: Enrollee[] =
-        data?.data?.enrollees && Array.isArray(data.data.enrollees)
-          ? data.data.enrollees
-          : Array.isArray(data)
-            ? data
-            : [];
-      setEnrollees(items);
-    } catch (err) {
-      console.warn("Failed to fetch enrollees", err);
-    }
-  };
-
-  // const fetchProviders = async () => {
-  //   try {
-  //     const data = await apiClient("/admin/providers/list?limit=all", {
-  //       method: "GET",
-  //     });
-  //     const items: Provider[] =
-  //       data?.data?.list && Array.isArray(data.data.list)
-  //         ? data.data.list
-  //         : Array.isArray(data)
-  //         ? data
-  //         : [];
-  //     setProviders(items);
-  //   } catch (err) {
-  //     console.warn("Failed to fetch providers", err);
-  //   }
-  // };
+    return () => clearTimeout(timer);
+  }, [enrolleeLookupValue, isOpen]);
 
   const fetchDiagnoses = async () => {
     try {
@@ -257,25 +250,11 @@ export default function PageMetricsAuthorizationCodes({
       0,
     ) || 0;
 
-  const fetchCompanies = async () => {
-    try {
-      // const data = await apiClient("/admin/companies/list?limit=all", {
-      //   method: "GET",
-      // });
-      // const items: Company[] =
-      //   data?.data?.list && Array.isArray(data.data.list)
-      //     ? data.data.list
-      //     : Array.isArray(data)
-      //       ? data
-      //       : [];
-      // setCompanies(items);
-    } catch (err) {
-      console.warn("Failed to fetch companies", err);
-    }
-  };
-
   const resetForm = () => {
     setEnrolleeId("");
+    setEnrolleeLookupValue("");
+    setEnrolleeLookupStatus("idle");
+    setEnrolleeLookupHint("Type policy number or email.");
     setProviderId("");
     setDiagnosisId("");
     setCompanyId("");
@@ -287,6 +266,7 @@ export default function PageMetricsAuthorizationCodes({
     setReasonForCode("");
     setApprovalNote("");
     setNotes("");
+    enrolleeLookupRequestIdRef.current += 1;
   };
 
   const handleSuccessClose = () => {
@@ -379,9 +359,15 @@ export default function PageMetricsAuthorizationCodes({
 
   const handleSubmit = async () => {
     try {
-      // Validation
       if (!enrolleeId) {
         setErrorMessage("`enrolleeId` is required");
+        errorModal.openModal();
+        return;
+      }
+      if (enrolleeLookupStatus !== "found") {
+        setErrorMessage(
+          "Please enter a valid enrollee policy number or email.",
+        );
         errorModal.openModal();
         return;
       }
@@ -508,51 +494,113 @@ export default function PageMetricsAuthorizationCodes({
         <form className="flex flex-col">
           <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-              {/* Enrollee */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Enrollee *
                 </label>
-                <input
-                  type="text"
-                  placeholder="Enrollee"
-                  value={currentItem.itemName}
-                  onChange={(e) =>
-                    setCurrentItem({
-                      ...currentItem,
-                      itemName: e.target.value,
-                    })
-                  }
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                />
-                {/* <Select
-                  options={enrollees.map((e) => ({
-                    value: e.id,
-                    label: `${e.firstName} ${e.lastName} (${e.policyNumber})`,
-                  }))}
-                  placeholder="Select enrollee"
-                  onChange={(value) => setEnrolleeId(value as string)}
-                  defaultValue={enrolleeId}
-                /> */}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <Input
+                      type="text"
+                      placeholder="Type policy number or email..."
+                      value={enrolleeLookupValue}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        setEnrolleeLookupValue(e.target.value)
+                      }
+                      success={enrolleeLookupStatus === "found"}
+                      error={
+                        enrolleeLookupStatus === "not-found" ||
+                        enrolleeLookupStatus === "error"
+                      }
+                      hint={enrolleeLookupHint}
+                    />
+                  </div>
+
+                  <div className="h-11 w-11 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 mt-[1px]">
+                    {enrolleeLookupStatus === "searching" ? (
+                      <svg
+                        className="h-5 w-5 animate-spin text-gray-500"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          opacity="0.25"
+                        />
+                        <path
+                          d="M22 12a10 10 0 0 0-10-10"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    ) : enrolleeLookupStatus === "found" ? (
+                      <svg
+                        className="h-6 w-6 text-green-600"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M20 6L9 17L4 12"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : enrolleeLookupStatus === "not-found" ||
+                      enrolleeLookupStatus === "error" ? (
+                      <svg
+                        className="h-6 w-6 text-red-600"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M18 6L6 18"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M6 6L18 18"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="h-5 w-5 text-gray-400"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <circle
+                          cx="11"
+                          cy="11"
+                          r="7"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        />
+                        <path
+                          d="M20 20L17 17"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Provider */}
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
-                  Provider
-                </label>
-                <Select
-                  options={providers.map((p) => ({
-                    value: p.id,
-                    label: `${p.name} (${p.code})`,
-                  }))}
-                  placeholder="Select provider"
-                  onChange={(value) => setProviderId(value as string)}
-                  defaultValue={providerId}
-                />
-              </div> */}
-
-              {/* Diagnosis */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Diagnosis
@@ -568,7 +616,6 @@ export default function PageMetricsAuthorizationCodes({
                 />
               </div>
 
-              {/* Authorization Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Authorization Type *
@@ -590,7 +637,6 @@ export default function PageMetricsAuthorizationCodes({
                 />
               </div>
 
-              {/* Amount Authorized */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Amount
@@ -605,7 +651,6 @@ export default function PageMetricsAuthorizationCodes({
                 />
               </div>
 
-              {/* Notes */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Notes
@@ -625,31 +670,8 @@ export default function PageMetricsAuthorizationCodes({
                 Service Encounters
               </h5>
 
-              {/* Add/Edit Detail Form */}
               <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
-                  {/* Enrollee */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
-                      Enrollee *
-                    </label>
-                    <Select
-                      options={enrollees.map((e) => ({
-                        value: e.id,
-                        label: `${e.firstName} ${e.lastName} (${e.policyNumber})`,
-                      }))}
-                      placeholder="Select enrollee"
-                      onChange={(value) =>
-                        setCurrentDetail({
-                          ...currentDetail,
-                          enrolleeId: value as string,
-                        })
-                      }
-                      defaultValue={currentDetail.enrolleeId || ""}
-                    />
-                  </div>
-
-                  {/* Service Date */}
                   <div>
                     <DatePicker
                       id="serviceDate"
@@ -668,7 +690,6 @@ export default function PageMetricsAuthorizationCodes({
                     />
                   </div>
 
-                  {/* Service Type */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                       Service Type *
@@ -679,34 +700,24 @@ export default function PageMetricsAuthorizationCodes({
                       onChange={(value) =>
                         setCurrentDetail({
                           ...currentDetail,
-                          serviceType: value as "outpatient" | "inpatient" | "emergency" | "procedure" | "consultation" | "diagnostic" | "laboratory" | "pharmacy" | "dental" | "optical",
+                          serviceType: value as
+                            | "outpatient"
+                            | "inpatient"
+                            | "emergency"
+                            | "procedure"
+                            | "consultation"
+                            | "diagnostic"
+                            | "laboratory"
+                            | "pharmacy"
+                            | "dental"
+                            | "optical",
                         })
                       }
                       defaultValue={currentDetail.serviceType}
                     />
                   </div>
-
-                  {/* Discharge Date */}
-                  <div>
-                    <DatePicker
-                      id="dischargeDate"
-                      label="Discharge Date"
-                      placeholder="Select date"
-                      defaultDate={currentDetail.dischargeDate}
-                      onChange={(selectedDates) => {
-                        if (selectedDates[0]) {
-                          const date = new Date(selectedDates[0]);
-                          setCurrentDetail({
-                            ...currentDetail,
-                            dischargeDate: date.toISOString().split("T")[0],
-                          });
-                        }
-                      }}
-                    />
-                  </div>
                 </div>
 
-                {/* Detail Description */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                     Description
@@ -725,14 +736,12 @@ export default function PageMetricsAuthorizationCodes({
                   />
                 </div>
 
-                {/* Items Section */}
                 <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                   <h6 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                     Service Items
                   </h6>
 
                   <div className="grid grid-cols-1 gap-x-6 gap-y-3 lg:grid-cols-2 mb-3">
-                    {/* Item Type */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">
                         Item Type
@@ -750,7 +759,6 @@ export default function PageMetricsAuthorizationCodes({
                       />
                     </div>
 
-                    {/* Item ID */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">
                         Item ID *
@@ -769,7 +777,6 @@ export default function PageMetricsAuthorizationCodes({
                       />
                     </div>
 
-                    {/* Item Name */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">
                         Item Name *
@@ -788,7 +795,6 @@ export default function PageMetricsAuthorizationCodes({
                       />
                     </div>
 
-                    {/* Unit */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">
                         Unit
@@ -807,7 +813,6 @@ export default function PageMetricsAuthorizationCodes({
                       />
                     </div>
 
-                    {/* Quantity */}
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">
                         Quantity *
