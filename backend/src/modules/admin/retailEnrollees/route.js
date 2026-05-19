@@ -1,6 +1,7 @@
 const {
     createRetailEnrollee,
     getRetailEnrollees,
+    lookupRetailEnrollee,
     getRetailEnrolleeById,
     updateRetailEnrollee,
     deleteRetailEnrollee,
@@ -42,6 +43,7 @@ const router = require('express').Router();
 // Retail Enrollee CRUD routes
 router.post('/', createRetailEnrollee);
 router.get('/', getRetailEnrollees);
+router.get('/lookup', lookupRetailEnrollee);
 router.get('/:retailEnrolleeId', getRetailEnrolleeById);
 router.put('/:retailEnrolleeId', updateRetailEnrollee);
 router.delete('/:retailEnrolleeId', deleteRetailEnrollee);

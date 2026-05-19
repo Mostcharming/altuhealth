@@ -15,15 +15,14 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { useRetailEnrolleeDependentStore } from "@/lib/store/retailEnrolleeDependentStore";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 
-interface RetailEnrollee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  policyNumber?: string;
-}
+type RetailEnrolleeLookupStatus =
+  | "idle"
+  | "searching"
+  | "found"
+  | "not-found"
+  | "error";
 
 export default function PageMetricsRetailDependents({
   buttonText,
@@ -58,12 +57,24 @@ export default function PageMetricsRetailDependents({
   >();
   const [preexistingMedicalRecords, setPreexistingMedicalRecords] =
     useState("");
-  const [retailEnrollees, setRetailEnrollees] = useState<any[]>([]);
+  const [retailLookupValue, setRetailLookupValue] = useState("");
+  const [retailLookupStatus, setRetailLookupStatus] =
+    useState<RetailEnrolleeLookupStatus>("idle");
+  const [retailLookupHint, setRetailLookupHint] = useState(
+    "Type policy number or email."
+  );
 
   // form state - bulk upload
   const [bulkRetailEnrolleeId, setBulkRetailEnrolleeId] = useState("");
+  const [bulkRetailLookupValue, setBulkRetailLookupValue] = useState("");
+  const [bulkRetailLookupStatus, setBulkRetailLookupStatus] =
+    useState<RetailEnrolleeLookupStatus>("idle");
+  const [bulkRetailLookupHint, setBulkRetailLookupHint] = useState(
+    "Type policy number or email."
+  );
   const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [bulkRetailEnrollees, setBulkRetailEnrollees] = useState<any[]>([]);
+  const retailLookupRequestIdRef = useRef(0);
+  const bulkRetailLookupRequestIdRef = useRef(0);
 
   const [errorMessage, setErrorMessage] = useState(
     "Failed to save dependent. Please try again."
@@ -90,54 +101,157 @@ export default function PageMetricsRetailDependents({
 
   const handlePhoneChange = (v: string) => setPhoneNumber(v);
 
-  // Fetch retail enrollees on modal open
   useEffect(() => {
-    if (isOpen) {
-      if (isBulkUpload) {
-        fetchBulkRetailEnrollees();
-      } else {
-        fetchRetailEnrollees();
+    if (!isOpen || isBulkUpload) return;
+
+    const searchValue = retailLookupValue.trim();
+    if (!searchValue) {
+      setRetailEnrolleeId("");
+      setRetailLookupStatus("idle");
+      setRetailLookupHint("Type policy number or email.");
+      return;
+    }
+
+    if (searchValue.length < 3) {
+      setRetailEnrolleeId("");
+      setRetailLookupStatus("idle");
+      setRetailLookupHint("Keep typing at least 3 characters.");
+      return;
+    }
+
+    const requestId = ++retailLookupRequestIdRef.current;
+    setRetailLookupStatus("searching");
+    setRetailLookupHint("Checking retail enrollee...");
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await apiClient(
+          `/admin/retail-enrollees/lookup?query=${encodeURIComponent(searchValue)}`,
+          {
+            method: "GET",
+          }
+        );
+
+        if (requestId !== retailLookupRequestIdRef.current) return;
+
+        const enrollee = data?.data?.enrollee;
+        if (enrollee?.id) {
+          setRetailEnrolleeId(String(enrollee.id));
+          setRetailLookupStatus("found");
+          setRetailLookupHint(
+            `Found: ${enrollee.firstName} ${enrollee.lastName} (${enrollee.policyNumber || enrollee.email})`
+          );
+          return;
+        }
+
+        setRetailEnrolleeId("");
+        setRetailLookupStatus("not-found");
+        setRetailLookupHint(
+          "No retail enrollee found for this policy number/email."
+        );
+      } catch (err) {
+        if (requestId !== retailLookupRequestIdRef.current) return;
+
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to validate retail enrollee.";
+
+        setRetailEnrolleeId("");
+
+        if (/not found/i.test(message)) {
+          setRetailLookupStatus("not-found");
+          setRetailLookupHint(
+            "No retail enrollee found for this policy number/email."
+          );
+        } else {
+          setRetailLookupStatus("error");
+          setRetailLookupHint("Unable to validate retail enrollee right now.");
+        }
       }
-    }
-  }, [isOpen, isBulkUpload]);
+    }, 350);
 
-  const fetchRetailEnrollees = async () => {
-    try {
-      const data = await apiClient("/admin/retail-enrollees?limit=all", {
-        method: "GET",
-      });
-      const items: RetailEnrollee[] =
-        data?.data?.enrollees && Array.isArray(data.data.enrollees)
-          ? data.data.enrollees
-          : Array.isArray(data)
-          ? data
-          : [];
+    return () => clearTimeout(timer);
+  }, [retailLookupValue, isOpen, isBulkUpload]);
 
-      setRetailEnrollees(items);
-    } catch (err) {
-      console.warn("Failed to fetch retail enrollees", err);
-    }
-  };
+  useEffect(() => {
+    if (!isOpen || !isBulkUpload) return;
 
-  const fetchBulkRetailEnrollees = async () => {
-    try {
-      const data = await apiClient("/admin/retail-enrollees?limit=all", {
-        method: "GET",
-      });
-      const items: RetailEnrollee[] =
-        data?.data?.enrollees && Array.isArray(data.data.enrollees)
-          ? data.data.enrollees
-          : Array.isArray(data)
-          ? data
-          : [];
-      setBulkRetailEnrollees(items);
-    } catch (err) {
-      console.warn("Failed to fetch retail enrollees", err);
+    const searchValue = bulkRetailLookupValue.trim();
+    if (!searchValue) {
+      setBulkRetailEnrolleeId("");
+      setBulkRetailLookupStatus("idle");
+      setBulkRetailLookupHint("Type policy number or email.");
+      return;
     }
-  };
+
+    if (searchValue.length < 3) {
+      setBulkRetailEnrolleeId("");
+      setBulkRetailLookupStatus("idle");
+      setBulkRetailLookupHint("Keep typing at least 3 characters.");
+      return;
+    }
+
+    const requestId = ++bulkRetailLookupRequestIdRef.current;
+    setBulkRetailLookupStatus("searching");
+    setBulkRetailLookupHint("Checking retail enrollee...");
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await apiClient(
+          `/admin/retail-enrollees/lookup?query=${encodeURIComponent(searchValue)}`,
+          {
+            method: "GET",
+          }
+        );
+
+        if (requestId !== bulkRetailLookupRequestIdRef.current) return;
+
+        const enrollee = data?.data?.enrollee;
+        if (enrollee?.id) {
+          setBulkRetailEnrolleeId(String(enrollee.id));
+          setBulkRetailLookupStatus("found");
+          setBulkRetailLookupHint(
+            `Found: ${enrollee.firstName} ${enrollee.lastName} (${enrollee.policyNumber || enrollee.email})`
+          );
+          return;
+        }
+
+        setBulkRetailEnrolleeId("");
+        setBulkRetailLookupStatus("not-found");
+        setBulkRetailLookupHint(
+          "No retail enrollee found for this policy number/email."
+        );
+      } catch (err) {
+        if (requestId !== bulkRetailLookupRequestIdRef.current) return;
+
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Failed to validate retail enrollee.";
+
+        setBulkRetailEnrolleeId("");
+
+        if (/not found/i.test(message)) {
+          setBulkRetailLookupStatus("not-found");
+          setBulkRetailLookupHint(
+            "No retail enrollee found for this policy number/email."
+          );
+        } else {
+          setBulkRetailLookupStatus("error");
+          setBulkRetailLookupHint("Unable to validate retail enrollee right now.");
+        }
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [bulkRetailLookupValue, isOpen, isBulkUpload]);
 
   const resetForm = () => {
     setRetailEnrolleeId("");
+    setRetailLookupValue("");
+    setRetailLookupStatus("idle");
+    setRetailLookupHint("Type policy number or email.");
     setFirstName("");
     setMiddleName("");
     setLastName("");
@@ -150,7 +264,12 @@ export default function PageMetricsRetailDependents({
     setMaritalStatus("");
     setPreexistingMedicalRecords("");
     setBulkRetailEnrolleeId("");
+    setBulkRetailLookupValue("");
+    setBulkRetailLookupStatus("idle");
+    setBulkRetailLookupHint("Type policy number or email.");
     setBulkFile(null);
+    retailLookupRequestIdRef.current += 1;
+    bulkRetailLookupRequestIdRef.current += 1;
   };
 
   const handleSuccessClose = () => {
@@ -224,7 +343,17 @@ export default function PageMetricsRetailDependents({
   const handleBulkUpload = async () => {
     try {
       if (!bulkRetailEnrolleeId) {
-        setErrorMessage("Retail enrollee is required for bulk upload.");
+        setErrorMessage(
+          "A valid retail enrollee policy number or email is required for bulk upload."
+        );
+        errorModal.openModal();
+        return;
+      }
+
+      if (bulkRetailLookupStatus !== "found") {
+        setErrorMessage(
+          "Please enter a valid retail enrollee policy number or email for bulk upload."
+        );
         errorModal.openModal();
         return;
       }
@@ -272,7 +401,16 @@ export default function PageMetricsRetailDependents({
     try {
       // simple client-side validation
       if (!retailEnrolleeId) {
-        setErrorMessage("Retail enrollee is required.");
+        setErrorMessage(
+          "A valid retail enrollee policy number or email is required."
+        );
+        errorModal.openModal();
+        return;
+      }
+      if (retailLookupStatus !== "found") {
+        setErrorMessage(
+          "Please enter a valid retail enrollee policy number or email."
+        );
         errorModal.openModal();
         return;
       }
@@ -413,17 +551,107 @@ export default function PageMetricsRetailDependents({
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
                   <Label>Retail Enrollee *</Label>
-                  <Select
-                    options={bulkRetailEnrollees.map((e) => ({
-                      value: e.id,
-                      label: `${e.firstName} ${e.lastName} (${e.policyNumber})`,
-                    }))}
-                    placeholder="Select retail enrollee"
-                    onChange={(value) =>
-                      setBulkRetailEnrolleeId(value as string)
-                    }
-                    defaultValue={bulkRetailEnrolleeId}
-                  />
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <Input
+                        type="text"
+                        placeholder="Type policy number or email..."
+                        value={bulkRetailLookupValue}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setBulkRetailLookupValue(e.target.value)
+                        }
+                        success={bulkRetailLookupStatus === "found"}
+                        error={
+                          bulkRetailLookupStatus === "not-found" ||
+                          bulkRetailLookupStatus === "error"
+                        }
+                        hint={bulkRetailLookupHint}
+                      />
+                    </div>
+
+                    <div className="h-11 w-11 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 mt-[1px]">
+                      {bulkRetailLookupStatus === "searching" ? (
+                        <svg
+                          className="h-5 w-5 animate-spin text-gray-500"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            opacity="0.25"
+                          />
+                          <path
+                            d="M22 12a10 10 0 0 0-10-10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : bulkRetailLookupStatus === "found" ? (
+                        <svg
+                          className="h-6 w-6 text-green-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M20 6L9 17L4 12"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : bulkRetailLookupStatus === "not-found" ||
+                        bulkRetailLookupStatus === "error" ? (
+                        <svg
+                          className="h-6 w-6 text-red-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M18 6L6 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M6 6L18 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="h-5 w-5 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="11"
+                            cy="11"
+                            r="7"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M20 20L17 17"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="col-span-2">
@@ -481,17 +709,107 @@ export default function PageMetricsRetailDependents({
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
                   <Label>Retail Enrollee *</Label>
-                  <Select
-                    options={retailEnrollees.map((e) => ({
-                      value: e.id,
-                      label: `${e.firstName} ${e.lastName} (${
-                        e.policyNumber || "N/A"
-                      })`,
-                    }))}
-                    placeholder="Select retail enrollee"
-                    onChange={(value) => setRetailEnrolleeId(value as string)}
-                    defaultValue={retailEnrolleeId}
-                  />
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <Input
+                        type="text"
+                        placeholder="Type policy number or email..."
+                        value={retailLookupValue}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setRetailLookupValue(e.target.value)
+                        }
+                        success={retailLookupStatus === "found"}
+                        error={
+                          retailLookupStatus === "not-found" ||
+                          retailLookupStatus === "error"
+                        }
+                        hint={retailLookupHint}
+                      />
+                    </div>
+
+                    <div className="h-11 w-11 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 mt-[1px]">
+                      {retailLookupStatus === "searching" ? (
+                        <svg
+                          className="h-5 w-5 animate-spin text-gray-500"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            opacity="0.25"
+                          />
+                          <path
+                            d="M22 12a10 10 0 0 0-10-10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : retailLookupStatus === "found" ? (
+                        <svg
+                          className="h-6 w-6 text-green-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M20 6L9 17L4 12"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : retailLookupStatus === "not-found" ||
+                        retailLookupStatus === "error" ? (
+                        <svg
+                          className="h-6 w-6 text-red-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M18 6L6 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M6 6L18 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="h-5 w-5 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="11"
+                            cy="11"
+                            r="7"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M20 20L17 17"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div>

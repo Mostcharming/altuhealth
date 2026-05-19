@@ -15,7 +15,6 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { useEnrolleeDependentStore } from "@/lib/store/enrolleeDependentStore";
-import { Enrollee } from "@/lib/store/enrolleeStore";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 type EnrolleeLookupStatus =
@@ -67,9 +66,15 @@ export default function PageMetricsEnrolleeDependents({
 
   // form state - bulk upload
   const [bulkEnrolleeId, setBulkEnrolleeId] = useState("");
+  const [bulkLookupValue, setBulkLookupValue] = useState("");
+  const [bulkLookupStatus, setBulkLookupStatus] =
+    useState<EnrolleeLookupStatus>("idle");
+  const [bulkLookupHint, setBulkLookupHint] = useState(
+    "Type policy number or email.",
+  );
   const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const [bulkEnrollees, setBulkEnrollees] = useState<any[]>([]);
   const lookupRequestIdRef = useRef(0);
+  const bulkLookupRequestIdRef = useRef(0);
 
   const [errorMessage, setErrorMessage] = useState(
     "Failed to save dependent. Please try again.",
@@ -95,13 +100,6 @@ export default function PageMetricsEnrolleeDependents({
   ];
 
   const handlePhoneChange = (v: string) => setPhoneNumber(v);
-
-  // Fetch enrollees for bulk upload on modal open
-  useEffect(() => {
-    if (isOpen && isBulkUpload) {
-      fetchBulkEnrollees();
-    }
-  }, [isOpen, isBulkUpload]);
 
   useEffect(() => {
     if (!isOpen || isBulkUpload) return;
@@ -148,7 +146,9 @@ export default function PageMetricsEnrolleeDependents({
 
         setEnrolleeId("");
         setEnrolleeLookupStatus("not-found");
-        setEnrolleeLookupHint("No enrollee found for this policy number/email.");
+        setEnrolleeLookupHint(
+          "No enrollee found for this policy number/email.",
+        );
       } catch (err) {
         if (requestId !== lookupRequestIdRef.current) return;
 
@@ -159,7 +159,9 @@ export default function PageMetricsEnrolleeDependents({
 
         if (/not found/i.test(message)) {
           setEnrolleeLookupStatus("not-found");
-          setEnrolleeLookupHint("No enrollee found for this policy number/email.");
+          setEnrolleeLookupHint(
+            "No enrollee found for this policy number/email.",
+          );
         } else {
           setEnrolleeLookupStatus("error");
           setEnrolleeLookupHint("Unable to validate enrollee right now.");
@@ -170,22 +172,72 @@ export default function PageMetricsEnrolleeDependents({
     return () => clearTimeout(timer);
   }, [enrolleeLookupValue, isOpen, isBulkUpload]);
 
-  const fetchBulkEnrollees = async () => {
-    try {
-      const data = await apiClient("/admin/enrollees?limit=all", {
-        method: "GET",
-      });
-      const items: Enrollee[] =
-        data?.data?.enrollees && Array.isArray(data.data.enrollees)
-          ? data.data.enrollees
-          : Array.isArray(data)
-            ? data
-            : [];
-      setBulkEnrollees(items);
-    } catch (err) {
-      console.warn("Failed to fetch enrollees", err);
+  useEffect(() => {
+    if (!isOpen || !isBulkUpload) return;
+
+    const searchValue = bulkLookupValue.trim();
+    if (!searchValue) {
+      setBulkEnrolleeId("");
+      setBulkLookupStatus("idle");
+      setBulkLookupHint("Type policy number or email.");
+      return;
     }
-  };
+
+    if (searchValue.length < 3) {
+      setBulkEnrolleeId("");
+      setBulkLookupStatus("idle");
+      setBulkLookupHint("Keep typing at least 3 characters.");
+      return;
+    }
+
+    const requestId = ++bulkLookupRequestIdRef.current;
+    setBulkLookupStatus("searching");
+    setBulkLookupHint("Checking enrollee...");
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await apiClient(
+          `/admin/enrollees/lookup?query=${encodeURIComponent(searchValue)}`,
+          {
+            method: "GET",
+          },
+        );
+
+        if (requestId !== bulkLookupRequestIdRef.current) return;
+
+        const enrollee = data?.data?.enrollee;
+        if (enrollee?.id) {
+          setBulkEnrolleeId(String(enrollee.id));
+          setBulkLookupStatus("found");
+          setBulkLookupHint(
+            `Found: ${enrollee.firstName} ${enrollee.lastName} (${enrollee.policyNumber})`,
+          );
+          return;
+        }
+
+        setBulkEnrolleeId("");
+        setBulkLookupStatus("not-found");
+        setBulkLookupHint("No enrollee found for this policy number/email.");
+      } catch (err) {
+        if (requestId !== bulkLookupRequestIdRef.current) return;
+
+        const message =
+          err instanceof Error ? err.message : "Failed to validate enrollee.";
+
+        setBulkEnrolleeId("");
+
+        if (/not found/i.test(message)) {
+          setBulkLookupStatus("not-found");
+          setBulkLookupHint("No enrollee found for this policy number/email.");
+        } else {
+          setBulkLookupStatus("error");
+          setBulkLookupHint("Unable to validate enrollee right now.");
+        }
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [bulkLookupValue, isOpen, isBulkUpload]);
 
   const resetForm = () => {
     setEnrolleeId("");
@@ -204,8 +256,12 @@ export default function PageMetricsEnrolleeDependents({
     setMaritalStatus("");
     setPreexistingMedicalRecords("");
     setBulkEnrolleeId("");
+    setBulkLookupValue("");
+    setBulkLookupStatus("idle");
+    setBulkLookupHint("Type policy number or email.");
     setBulkFile(null);
     lookupRequestIdRef.current += 1;
+    bulkLookupRequestIdRef.current += 1;
   };
 
   const handleSuccessClose = () => {
@@ -281,7 +337,17 @@ export default function PageMetricsEnrolleeDependents({
   const handleBulkUpload = async () => {
     try {
       if (!bulkEnrolleeId) {
-        setErrorMessage("Enrollee is required for bulk upload.");
+        setErrorMessage(
+          "A valid enrollee policy number or email is required for bulk upload.",
+        );
+        errorModal.openModal();
+        return;
+      }
+
+      if (bulkLookupStatus !== "found") {
+        setErrorMessage(
+          "Please enter a valid enrollee policy number or email for bulk upload.",
+        );
         errorModal.openModal();
         return;
       }
@@ -326,14 +392,14 @@ export default function PageMetricsEnrolleeDependents({
     try {
       // simple client-side validation
       if (!enrolleeId) {
-        setErrorMessage(
-          "A valid enrollee policy number or email is required.",
-        );
+        setErrorMessage("A valid enrollee policy number or email is required.");
         errorModal.openModal();
         return;
       }
       if (enrolleeLookupStatus !== "found") {
-        setErrorMessage("Please enter a valid enrollee policy number or email.");
+        setErrorMessage(
+          "Please enter a valid enrollee policy number or email.",
+        );
         errorModal.openModal();
         return;
       }
@@ -474,15 +540,107 @@ export default function PageMetricsEnrolleeDependents({
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
                   <Label>Enrollee *</Label>
-                  <Select
-                    options={bulkEnrollees.map((e) => ({
-                      value: e.id,
-                      label: `${e.firstName} ${e.lastName} (${e.policyNumber})`,
-                    }))}
-                    placeholder="Select enrollee"
-                    onChange={(value) => setBulkEnrolleeId(value as string)}
-                    defaultValue={bulkEnrolleeId}
-                  />
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <Input
+                        type="text"
+                        placeholder="Type policy number or email..."
+                        value={bulkLookupValue}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setBulkLookupValue(e.target.value)
+                        }
+                        success={bulkLookupStatus === "found"}
+                        error={
+                          bulkLookupStatus === "not-found" ||
+                          bulkLookupStatus === "error"
+                        }
+                        hint={bulkLookupHint}
+                      />
+                    </div>
+
+                    <div className="h-11 w-11 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 mt-[1px]">
+                      {bulkLookupStatus === "searching" ? (
+                        <svg
+                          className="h-5 w-5 animate-spin text-gray-500"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            opacity="0.25"
+                          />
+                          <path
+                            d="M22 12a10 10 0 0 0-10-10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : bulkLookupStatus === "found" ? (
+                        <svg
+                          className="h-6 w-6 text-green-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M20 6L9 17L4 12"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : bulkLookupStatus === "not-found" ||
+                        bulkLookupStatus === "error" ? (
+                        <svg
+                          className="h-6 w-6 text-red-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M18 6L6 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M6 6L18 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="h-5 w-5 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="11"
+                            cy="11"
+                            r="7"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M20 20L17 17"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="col-span-2">

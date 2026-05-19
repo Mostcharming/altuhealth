@@ -237,6 +237,50 @@ async function getRetailEnrollees(req, res, next) {
     }
 }
 
+async function lookupRetailEnrollee(req, res, next) {
+    try {
+        const { RetailEnrollee } = req.models;
+        const { query = '' } = req.query;
+
+        const searchValue = String(query || '').trim();
+        if (!searchValue) {
+            return res.fail('`query` is required', 400);
+        }
+
+        let enrollee = await RetailEnrollee.findOne({
+            where: {
+                [Op.or]: [
+                    { policyNumber: searchValue },
+                    { email: { [Op.iLike]: searchValue } }
+                ]
+            },
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email']
+        });
+
+        if (!enrollee) {
+            enrollee = await RetailEnrollee.findOne({
+                where: {
+                    [Op.or]: [
+                        { policyNumber: { [Op.iLike]: `%${searchValue}%` } },
+                        { email: { [Op.iLike]: `%${searchValue}%` } }
+                    ]
+                },
+                attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email'],
+                order: [['createdAt', 'DESC']]
+            });
+        }
+
+        if (!enrollee) return res.fail('Retail enrollee not found', 404);
+
+        return res.success(
+            { enrollee },
+            'Retail enrollee lookup successful'
+        );
+    } catch (err) {
+        return next(err);
+    }
+}
+
 async function getRetailEnrolleeById(req, res, next) {
     try {
         const { RetailEnrollee, Plan, Admin } = req.models;
@@ -621,6 +665,7 @@ async function resendVerificationCode(req, res, next) {
 module.exports = {
     createRetailEnrollee,
     getRetailEnrollees,
+    lookupRetailEnrollee,
     getRetailEnrolleeById,
     updateRetailEnrollee,
     deleteRetailEnrollee,
