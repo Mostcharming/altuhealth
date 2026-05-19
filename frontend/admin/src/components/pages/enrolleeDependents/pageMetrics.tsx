@@ -16,7 +16,14 @@ import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { useEnrolleeDependentStore } from "@/lib/store/enrolleeDependentStore";
 import { Enrollee } from "@/lib/store/enrolleeStore";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
+
+type EnrolleeLookupStatus =
+  | "idle"
+  | "searching"
+  | "found"
+  | "not-found"
+  | "error";
 
 export default function PageMetricsEnrolleeDependents({
   buttonText,
@@ -51,15 +58,21 @@ export default function PageMetricsEnrolleeDependents({
   >();
   const [preexistingMedicalRecords, setPreexistingMedicalRecords] =
     useState("");
-  const [enrollees, setEnrollees] = useState<any[]>([]);
+  const [enrolleeLookupValue, setEnrolleeLookupValue] = useState("");
+  const [enrolleeLookupStatus, setEnrolleeLookupStatus] =
+    useState<EnrolleeLookupStatus>("idle");
+  const [enrolleeLookupHint, setEnrolleeLookupHint] = useState(
+    "Type policy number or email.",
+  );
 
   // form state - bulk upload
   const [bulkEnrolleeId, setBulkEnrolleeId] = useState("");
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkEnrollees, setBulkEnrollees] = useState<any[]>([]);
+  const lookupRequestIdRef = useRef(0);
 
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to save dependent. Please try again."
+    "Failed to save dependent. Please try again.",
   );
 
   // countries for PhoneInput
@@ -83,34 +96,79 @@ export default function PageMetricsEnrolleeDependents({
 
   const handlePhoneChange = (v: string) => setPhoneNumber(v);
 
-  // Fetch enrollees on modal open
+  // Fetch enrollees for bulk upload on modal open
   useEffect(() => {
-    if (isOpen) {
-      if (isBulkUpload) {
-        fetchBulkEnrollees();
-      } else {
-        fetchEnrollees();
-      }
+    if (isOpen && isBulkUpload) {
+      fetchBulkEnrollees();
     }
   }, [isOpen, isBulkUpload]);
 
-  const fetchEnrollees = async () => {
-    try {
-      const data = await apiClient("/admin/enrollees?limit=all", {
-        method: "GET",
-      });
-      const items: Enrollee[] =
-        data?.data?.enrollees && Array.isArray(data.data.enrollees)
-          ? data.data.enrollees
-          : Array.isArray(data)
-          ? data
-          : [];
+  useEffect(() => {
+    if (!isOpen || isBulkUpload) return;
 
-      setEnrollees(items);
-    } catch (err) {
-      console.warn("Failed to fetch enrollees", err);
+    const searchValue = enrolleeLookupValue.trim();
+    if (!searchValue) {
+      setEnrolleeId("");
+      setEnrolleeLookupStatus("idle");
+      setEnrolleeLookupHint("Type policy number or email.");
+      return;
     }
-  };
+
+    if (searchValue.length < 3) {
+      setEnrolleeId("");
+      setEnrolleeLookupStatus("idle");
+      setEnrolleeLookupHint("Keep typing at least 3 characters.");
+      return;
+    }
+
+    const requestId = ++lookupRequestIdRef.current;
+    setEnrolleeLookupStatus("searching");
+    setEnrolleeLookupHint("Checking enrollee...");
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await apiClient(
+          `/admin/enrollees/lookup?query=${encodeURIComponent(searchValue)}`,
+          {
+            method: "GET",
+          },
+        );
+
+        if (requestId !== lookupRequestIdRef.current) return;
+
+        const enrollee = data?.data?.enrollee;
+        if (enrollee?.id) {
+          setEnrolleeId(String(enrollee.id));
+          setEnrolleeLookupStatus("found");
+          setEnrolleeLookupHint(
+            `Found: ${enrollee.firstName} ${enrollee.lastName} (${enrollee.policyNumber})`,
+          );
+          return;
+        }
+
+        setEnrolleeId("");
+        setEnrolleeLookupStatus("not-found");
+        setEnrolleeLookupHint("No enrollee found for this policy number/email.");
+      } catch (err) {
+        if (requestId !== lookupRequestIdRef.current) return;
+
+        const message =
+          err instanceof Error ? err.message : "Failed to validate enrollee.";
+
+        setEnrolleeId("");
+
+        if (/not found/i.test(message)) {
+          setEnrolleeLookupStatus("not-found");
+          setEnrolleeLookupHint("No enrollee found for this policy number/email.");
+        } else {
+          setEnrolleeLookupStatus("error");
+          setEnrolleeLookupHint("Unable to validate enrollee right now.");
+        }
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [enrolleeLookupValue, isOpen, isBulkUpload]);
 
   const fetchBulkEnrollees = async () => {
     try {
@@ -121,8 +179,8 @@ export default function PageMetricsEnrolleeDependents({
         data?.data?.enrollees && Array.isArray(data.data.enrollees)
           ? data.data.enrollees
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
       setBulkEnrollees(items);
     } catch (err) {
       console.warn("Failed to fetch enrollees", err);
@@ -131,6 +189,9 @@ export default function PageMetricsEnrolleeDependents({
 
   const resetForm = () => {
     setEnrolleeId("");
+    setEnrolleeLookupValue("");
+    setEnrolleeLookupStatus("idle");
+    setEnrolleeLookupHint("Type policy number or email.");
     setFirstName("");
     setMiddleName("");
     setLastName("");
@@ -144,6 +205,7 @@ export default function PageMetricsEnrolleeDependents({
     setPreexistingMedicalRecords("");
     setBulkEnrolleeId("");
     setBulkFile(null);
+    lookupRequestIdRef.current += 1;
   };
 
   const handleSuccessClose = () => {
@@ -200,7 +262,7 @@ export default function PageMetricsEnrolleeDependents({
               ? `"${value}"`
               : value;
           })
-          .join(",")
+          .join(","),
       ),
     ].join("\n");
 
@@ -252,7 +314,7 @@ export default function PageMetricsEnrolleeDependents({
       resetForm();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -264,7 +326,14 @@ export default function PageMetricsEnrolleeDependents({
     try {
       // simple client-side validation
       if (!enrolleeId) {
-        setErrorMessage("Enrollee is required.");
+        setErrorMessage(
+          "A valid enrollee policy number or email is required.",
+        );
+        errorModal.openModal();
+        return;
+      }
+      if (enrolleeLookupStatus !== "found") {
+        setErrorMessage("Please enter a valid enrollee policy number or email.");
         errorModal.openModal();
         return;
       }
@@ -325,7 +394,7 @@ export default function PageMetricsEnrolleeDependents({
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -471,15 +540,107 @@ export default function PageMetricsEnrolleeDependents({
               <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                 <div>
                   <Label>Enrollee *</Label>
-                  <Select
-                    options={enrollees.map((e) => ({
-                      value: e.id,
-                      label: `${e.firstName} ${e.lastName} (${e.policyNumber})`,
-                    }))}
-                    placeholder="Select enrollee"
-                    onChange={(value) => setEnrolleeId(value as string)}
-                    defaultValue={enrolleeId}
-                  />
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <Input
+                        type="text"
+                        placeholder="Type policy number or email..."
+                        value={enrolleeLookupValue}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          setEnrolleeLookupValue(e.target.value)
+                        }
+                        success={enrolleeLookupStatus === "found"}
+                        error={
+                          enrolleeLookupStatus === "not-found" ||
+                          enrolleeLookupStatus === "error"
+                        }
+                        hint={enrolleeLookupHint}
+                      />
+                    </div>
+
+                    <div className="h-11 w-11 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 mt-[1px]">
+                      {enrolleeLookupStatus === "searching" ? (
+                        <svg
+                          className="h-5 w-5 animate-spin text-gray-500"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            opacity="0.25"
+                          />
+                          <path
+                            d="M22 12a10 10 0 0 0-10-10"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : enrolleeLookupStatus === "found" ? (
+                        <svg
+                          className="h-6 w-6 text-green-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M20 6L9 17L4 12"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : enrolleeLookupStatus === "not-found" ||
+                        enrolleeLookupStatus === "error" ? (
+                        <svg
+                          className="h-6 w-6 text-red-600"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M18 6L6 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M6 6L18 18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="h-5 w-5 text-gray-400"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <circle
+                            cx="11"
+                            cy="11"
+                            r="7"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M20 20L17 17"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -568,7 +729,7 @@ export default function PageMetricsEnrolleeDependents({
                           | "child"
                           | "parent"
                           | "sibling"
-                          | "other"
+                          | "other",
                       )
                     }
                     defaultValue={relationshipToEnrollee}
@@ -629,7 +790,7 @@ export default function PageMetricsEnrolleeDependents({
                           | "divorced"
                           | "widowed"
                           | "separated"
-                          | ""
+                          | "",
                       )
                     }
                     defaultValue={maritalStatus}

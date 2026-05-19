@@ -9,7 +9,7 @@ import {
 } from "@/lib/apis/provider";
 import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
-import { statesByCountry } from "@/lib/data/countries";
+import { lgasByState, statesByCountry } from "@/lib/data/countries";
 import React, { useCallback, useEffect, useState } from "react";
 
 interface Specialization {
@@ -59,6 +59,9 @@ const ProviderListPageClient: React.FC = () => {
 
   // Get Nigerian states
   const nigerianStates = statesByCountry["Nigeria"] || [];
+  const lgasForSelectedState = selectedState
+    ? lgasByState[selectedState] || []
+    : [];
 
   // Fetch provider specializations
   useEffect(() => {
@@ -248,12 +251,7 @@ const ProviderListPageClient: React.FC = () => {
             <Select
               options={
                 selectedState
-                  ? [
-                      { value: "", label: "All LGAs" },
-                      ...(nigerianStates.find((s) => s.value === selectedState)
-                        ? nigerianStates
-                        : []),
-                    ]
+                  ? [{ value: "", label: "All LGAs" }, ...lgasForSelectedState]
                   : [{ value: "", label: "Select state first" }]
               }
               placeholder="Select LGA"

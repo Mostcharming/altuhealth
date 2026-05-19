@@ -1,6 +1,7 @@
 const {
     createEnrollee,
     getEnrollees,
+    lookupEnrollee,
     getEnrolleeById,
     updateEnrollee,
     deleteEnrollee,
@@ -41,6 +42,7 @@ const router = require('express').Router();
 
 // Enrollee routes
 router.get('/', getEnrollees);
+router.get('/lookup', lookupEnrollee);
 router.get('/:enrolleeId', getEnrolleeById);
 router.post('/', createEnrollee);
 router.put('/:enrolleeId', updateEnrollee);

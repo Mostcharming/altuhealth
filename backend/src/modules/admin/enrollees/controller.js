@@ -193,6 +193,51 @@ async function getEnrollees(req, res, next) {
     }
 }
 
+async function lookupEnrollee(req, res, next) {
+    try {
+        const { Enrollee } = req.models;
+        const { query = '' } = req.query;
+
+        const searchValue = String(query || '').trim();
+        if (!searchValue) {
+            return res.fail('`query` is required', 400);
+        }
+
+        let enrollee = await Enrollee.findOne({
+            where: {
+                [Op.or]: [
+                    { policyNumber: searchValue },
+                    { email: { [Op.iLike]: searchValue } }
+                ]
+            },
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email']
+        });
+
+        if (!enrollee) {
+            enrollee = await Enrollee.findOne({
+                where: {
+                    [Op.or]: [
+                        { policyNumber: { [Op.iLike]: `%${searchValue}%` } },
+                        { email: { [Op.iLike]: `%${searchValue}%` } }
+                    ]
+                },
+                attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email'],
+                order: [['createdAt', 'DESC']]
+            });
+        }
+
+        if (!enrollee) return res.fail('Enrollee not found', 404);
+
+        return res.success(
+            { enrollee },
+            'Enrollee lookup successful'
+        );
+    } catch (error) {
+        console.error('Error looking up enrollee:', error);
+        next(error);
+    }
+}
+
 async function getEnrolleeById(req, res, next) {
     try {
         const { Enrollee, Staff, Company, CompanyPlan, EnrolleeMedicalHistory, AuthorizationCode, Provider, Diagnosis } = req.models;
@@ -572,6 +617,7 @@ async function downloadIdCard(req, res, next) {
 module.exports = {
     createEnrollee,
     getEnrollees,
+    lookupEnrollee,
     getEnrolleeById,
     updateEnrollee,
     deleteEnrollee,
