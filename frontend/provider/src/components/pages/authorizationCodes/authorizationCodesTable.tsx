@@ -1,5 +1,6 @@
 "use client";
 
+import Input from "@/components/form/input/InputField";
 import Select from "@/components/form/Select";
 import ConfirmModal from "@/components/modals/confirm";
 import ErrorModal from "@/components/modals/error";
@@ -10,7 +11,13 @@ import { apiClient } from "@/lib/apiClient";
 import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
 import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import EditAuthorizationCode from "./editAuthorizationCode";
 
 interface AuthorizationCode {
@@ -75,19 +82,27 @@ const AuthorizationCodesTable: React.FC = () => {
   const confirmModal = useModal();
 
   const authorizationCodes = useAuthorizationCodeStore(
-    (state) => state.authorizationCodes
+    (state) => state.authorizationCodes,
   );
   const setAuthorizationCodesStore = useAuthorizationCodeStore(
-    (state) => state.setAuthorizationCodes
+    (state) => state.setAuthorizationCodes,
   );
   const removeAuthorizationCode = useAuthorizationCodeStore(
-    (state) => state.removeAuthorizationCode
+    (state) => state.removeAuthorizationCode,
   );
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
   const [selectedEnrolleeId, setSelectedEnrolleeId] = useState<string>("");
+  const [enrolleeLookupValue, setEnrolleeLookupValue] = useState<string>("");
+  const [enrolleeLookupStatus, setEnrolleeLookupStatus] = useState<
+    "idle" | "searching" | "found" | "not-found" | "error"
+  >("idle");
+  const [enrolleeLookupHint, setEnrolleeLookupHint] = useState(
+    "Type policy number or email.",
+  );
+  const enrolleeLookupRequestIdRef = useRef(0);
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
@@ -101,10 +116,10 @@ const AuthorizationCodesTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const [selectedCodeId, setSelectedCodeId] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState<AuthorizationCode | null>(
-    null
+    null,
   );
   const [errorMessage, setErrorMessage] = useState(
-    "Failed to delete authorization code. Please try again."
+    "Failed to delete authorization code. Please try again.",
   );
 
   type Header = {
@@ -158,8 +173,8 @@ const AuthorizationCodesTable: React.FC = () => {
           Array.isArray(enrolleesData.data.enrollees)
             ? enrolleesData.data.enrollees
             : Array.isArray(enrolleesData)
-            ? enrolleesData
-            : [];
+              ? enrolleesData
+              : [];
         setEnrollees(enrolleesList);
 
         // const providersList: Provider[] =
@@ -174,8 +189,8 @@ const AuthorizationCodesTable: React.FC = () => {
           companiesData?.data?.list && Array.isArray(companiesData.data.list)
             ? companiesData.data.list
             : Array.isArray(companiesData)
-            ? companiesData
-            : [];
+              ? companiesData
+              : [];
         setCompanies(companiesList);
       } catch (err) {
         console.warn("Failed to fetch initial data", err);
@@ -208,8 +223,8 @@ const AuthorizationCodesTable: React.FC = () => {
         data?.data?.list && Array.isArray(data.data.list)
           ? data.data.list
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
 
       setAuthorizationCodesStore(items);
       setTotalItems(data?.data?.count ?? 0);
@@ -249,6 +264,77 @@ const AuthorizationCodesTable: React.FC = () => {
     }
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [currentPage, totalPages]);
+
+  // Debounced enrollee lookup
+  useEffect(() => {
+    const searchValue = enrolleeLookupValue.trim();
+    if (!searchValue) {
+      setSelectedEnrolleeId("");
+      setEnrolleeLookupStatus("idle");
+      setEnrolleeLookupHint("Type policy number or email.");
+      return;
+    }
+
+    if (searchValue.length < 3) {
+      setSelectedEnrolleeId("");
+      setEnrolleeLookupStatus("idle");
+      setEnrolleeLookupHint("Keep typing at least 3 characters.");
+      return;
+    }
+
+    const requestId = ++enrolleeLookupRequestIdRef.current;
+    setEnrolleeLookupStatus("searching");
+    setEnrolleeLookupHint("Checking enrollee...");
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await apiClient(
+          `/provider/enrollee-lookup?query=${encodeURIComponent(searchValue)}`,
+          {
+            method: "GET",
+          },
+        );
+
+        if (requestId !== enrolleeLookupRequestIdRef.current) return;
+
+        const enrollee = data?.data?.enrollee;
+        if (enrollee?.id) {
+          setSelectedEnrolleeId(String(enrollee.id));
+          setEnrolleeLookupStatus("found");
+          setEnrolleeLookupHint(
+            `Found: ${enrollee.firstName} ${enrollee.lastName} (${enrollee.policyNumber || enrollee.email})`,
+          );
+          setCurrentPage(1);
+          return;
+        }
+
+        setSelectedEnrolleeId("");
+        setEnrolleeLookupStatus("not-found");
+        setEnrolleeLookupHint(
+          "No enrollee found for this policy number/email.",
+        );
+      } catch (err) {
+        if (requestId !== enrolleeLookupRequestIdRef.current) return;
+
+        const message =
+          err instanceof Error ? err.message : "Failed to validate enrollee.";
+
+        setSelectedEnrolleeId("");
+
+        if (/not found/i.test(message)) {
+          setEnrolleeLookupStatus("not-found");
+          setEnrolleeLookupHint(
+            "No enrollee found for this policy number/email.",
+          );
+        } else {
+          setEnrolleeLookupStatus("error");
+          setEnrolleeLookupHint("Unable to validate enrollee right now.");
+        }
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [enrolleeLookupValue]);
 
   const goToPage = (page: number): void => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
@@ -298,7 +384,7 @@ const AuthorizationCodesTable: React.FC = () => {
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       errorModal.openModal();
     } finally {
@@ -361,23 +447,108 @@ const AuthorizationCodesTable: React.FC = () => {
 
         <div className="flex gap-3.5">
           <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
-            {/* Enrollee Filter */}
+            {/* Enrollee Lookup Filter */}
             <div>
-              <Select
-                options={[
-                  { value: "", label: "All Enrollees" },
-                  ...enrollees.map((e) => ({
-                    value: e.id,
-                    label: `${e.firstName} ${e.lastName}`,
-                  })),
-                ]}
-                placeholder="Select enrollee"
-                onChange={(value) => {
-                  setSelectedEnrolleeId(value as string);
-                  setCurrentPage(1);
-                }}
-                defaultValue={selectedEnrolleeId}
-              />
+              <div className="flex items-start gap-2">
+                <div className="flex-1 w-64">
+                  <Input
+                    type="text"
+                    placeholder="Policy number or email..."
+                    value={enrolleeLookupValue}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setEnrolleeLookupValue(e.target.value)
+                    }
+                    success={enrolleeLookupStatus === "found"}
+                    error={
+                      enrolleeLookupStatus === "not-found" ||
+                      enrolleeLookupStatus === "error"
+                    }
+                    hint={enrolleeLookupHint}
+                  />
+                </div>
+                <div className="h-11 w-11 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-700 mt-[1px]">
+                  {enrolleeLookupStatus === "searching" ? (
+                    <svg
+                      className="h-5 w-5 animate-spin text-gray-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        opacity="0.25"
+                      />
+                      <path
+                        d="M22 12a10 10 0 0 0-10-10"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  ) : enrolleeLookupStatus === "found" ? (
+                    <svg
+                      className="h-6 w-6 text-green-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M20 6L9 17L4 12"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  ) : enrolleeLookupStatus === "not-found" ||
+                    enrolleeLookupStatus === "error" ? (
+                    <svg
+                      className="h-6 w-6 text-red-600"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M18 6L6 18"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M6 6L18 18"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  ) : (
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <circle
+                        cx="11"
+                        cy="11"
+                        r="7"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      />
+                      <path
+                        d="M20 20L17 17"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Provider Filter */}
@@ -542,7 +713,7 @@ const AuthorizationCodesTable: React.FC = () => {
                     <td className="p-4 whitespace-nowrap">
                       <span
                         className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${getStatusBadgeColor(
-                          code.status
+                          code.status,
                         )}`}
                       >
                         {capitalizeWords(code.status)}
