@@ -7,8 +7,8 @@ export default function About() {
           <h2>Healthcare Coverage Reimagined.</h2>
           <p>
             We combine healthcare expertise with digital innovation to provide
-            reliable medical coverage solutions built for today's fast-moving
-            world.
+            reliable medical coverage solutions built for today&apos;s
+            fast-moving world.
           </p>
         </div>
 
@@ -17,7 +17,7 @@ export default function About() {
             <h3>Our Vision</h3>
 
             <p>
-              To become Africa's most trusted technology-driven healthcare
+              To become Africa&apos;s most trusted technology-driven healthcare
               organization, delivering accessible, affordable, and innovative
               healthcare coverage solutions that improve lives and transform
               healthcare experiences globally.

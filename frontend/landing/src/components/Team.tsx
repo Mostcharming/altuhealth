@@ -24,8 +24,8 @@ export default function Team() {
           <span>Management Team</span>
           <h2>Leadership Built On Vision & Innovation.</h2>
           <p>
-            Meet the experienced professionals driving AltuHealth's mission to
-            transform healthcare access.
+            Meet the experienced professionals driving AltuHealth&apos;s mission
+            to transform healthcare access.
           </p>
         </div>
 
