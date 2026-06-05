@@ -40,6 +40,11 @@ module.exports = (sequelize, DataTypes) => {
             unique: true,
             field: 'referral_code'
         },
+        passwordHash: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'password_hash'
+        },
         status: {
             type: DataTypes.ENUM('active', 'inactive', 'suspended'),
             allowNull: false,
