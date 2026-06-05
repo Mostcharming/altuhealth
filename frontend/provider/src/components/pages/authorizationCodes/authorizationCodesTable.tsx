@@ -53,13 +53,6 @@ interface AuthorizationCode {
   amountAuthorized?: number;
 }
 
-interface Enrollee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  policyNumber: string;
-}
-
 // interface Provider {
 //   id: string;
 //   name: string;
@@ -106,7 +99,6 @@ const AuthorizationCodesTable: React.FC = () => {
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
-  const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
   // const [providers, setProviders] = useState<Provider[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -157,25 +149,15 @@ const AuthorizationCodesTable: React.FC = () => {
     // { key: "actions", label: "Actions" },
   ];
   const user = useAuthStore((s) => s.user);
-  // Fetch enrollees, providers, companies on mount
+  // Fetch filter data on mount
   useEffect(() => {
     setSelectedProviderId(user?.id || "");
     const fetchInitialData = async () => {
       try {
-        const [enrolleesData, companiesData] = await Promise.all([
-          apiClient("/admin/enrollees?limit=all", { method: "GET" }),
-          apiClient("/admin/providers/list?limit=all", { method: "GET" }),
-          apiClient("/admin/companies/list?limit=all", { method: "GET" }),
-        ]);
-
-        const enrolleesList: Enrollee[] =
-          enrolleesData?.data?.enrollees &&
-          Array.isArray(enrolleesData.data.enrollees)
-            ? enrolleesData.data.enrollees
-            : Array.isArray(enrolleesData)
-              ? enrolleesData
-              : [];
-        setEnrollees(enrolleesList);
+        const companiesData = await apiClient(
+          "/admin/companies/list?limit=all",
+          { method: "GET" },
+        );
 
         // const providersList: Provider[] =
         //   providersData?.data?.list && Array.isArray(providersData.data.list)
