@@ -1,14 +1,107 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
+import Button from "@/components/ui/button/Button";
+import Notification from "@/components/ui/notification/Notification";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
+import { apiClient } from "@/lib/apiClient";
+import { useAuthStore } from "@/lib/authStore";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isChecked, setIsChecked] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState<{
+    variant: "success" | "info" | "warning" | "error";
+    title: string;
+    description?: string;
+  } | null>(null);
+
+  const login = useAuthStore((state) => state.login);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!firstName || !lastName || !email || !phoneNumber || !password) {
+      setToast({
+        variant: "error",
+        title: "Missing Fields",
+        description: "Please fill in all required fields.",
+      });
+      return;
+    }
+
+    if (!isChecked) {
+      setToast({
+        variant: "error",
+        title: "Terms Required",
+        description: "Please agree to the terms and privacy policy.",
+      });
+      return;
+    }
+
+    try {
+      const data = await apiClient("/referrer/auth/signup", {
+        method: "POST",
+        body: {
+          firstName,
+          lastName,
+          email,
+          phoneNumber,
+          password,
+        },
+        onLoading: setIsLoading,
+      });
+
+      const resp = data && typeof data === "object" ? data : {};
+      const user = (resp as any).user ?? (resp as any).data?.user ?? null;
+      const token =
+        (resp as any).token ??
+        (resp as any).data?.token ??
+        (resp as any).accessToken ??
+        null;
+
+      if (!user || !token) {
+        throw new Error("Invalid response from server");
+      }
+
+      login(user, token);
+      router.push("/overview");
+
+      setToast({
+        variant: "success",
+        title: "Account created successfully",
+        description: `Your referral code is ${(user as any).referralCode}.`,
+      });
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      setToast({
+        variant: "error",
+        title: "Sign up failed",
+        description: err.message || "Please check your details and try again.",
+      });
+      console.error("Sign up error:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -21,8 +114,19 @@ export default function SignUpForm() {
               Enter your email and password to sign up!
             </p>
           </div>
+
+          {toast && (
+            <div className="fixed top-4 right-4 z-50 animate-slide-in">
+              <Notification
+                variant={toast.variant}
+                title={toast.title}
+                description={toast.description}
+              />
+            </div>
+          )}
+
           <div>
-            <form>
+            <form onSubmit={handleSubmit}>
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   {/* <!-- First Name --> */}
@@ -35,6 +139,8 @@ export default function SignUpForm() {
                       id="fname"
                       name="fname"
                       placeholder="Enter your first name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
                     />
                   </div>
                   {/* <!-- Last Name --> */}
@@ -47,6 +153,8 @@ export default function SignUpForm() {
                       id="lname"
                       name="lname"
                       placeholder="Enter your last name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
                     />
                   </div>
                 </div>
@@ -60,6 +168,21 @@ export default function SignUpForm() {
                     id="email"
                     name="email"
                     placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>
+                    Phone Number<span className="text-error-500">*</span>
+                  </Label>
+                  <Input
+                    type="tel"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    placeholder="Enter your phone number"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
                   />
                 </div>
                 {/* <!-- Password --> */}
@@ -71,6 +194,8 @@ export default function SignUpForm() {
                     <Input
                       placeholder="Enter your password"
                       type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                     />
                     <span
                       onClick={() => setShowPassword(!showPassword)}
@@ -104,9 +229,15 @@ export default function SignUpForm() {
                 </div>
                 {/* <!-- Button --> */}
                 <div>
-                  <button className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600">
+                  <Button
+                    className="w-full"
+                    size="sm"
+                    loading={isLoading}
+                    loadingSize={20}
+                    loadingClassName="text-white"
+                  >
                     Sign Up
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>

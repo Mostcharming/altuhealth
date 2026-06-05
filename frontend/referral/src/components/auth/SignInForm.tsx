@@ -122,10 +122,10 @@ export default function SignInForm() {
       if (isEmail) {
         bodyPayload.email = identifier;
       } else {
-        bodyPayload.policyNumber = identifier;
+        bodyPayload.phoneNumber = identifier;
       }
 
-      const data = await apiClient("/admin/auth/login", {
+      const data = await apiClient("/referrer/auth/login", {
         method: "POST",
         body: bodyPayload,
         onLoading: setIsLoading,
@@ -162,10 +162,7 @@ export default function SignInForm() {
       setToast({
         variant: "error",
         title: "Sign in failed",
-        description:
-          "Network Error: Please check your connection and try again.",
-
-        // description: err.message || "An unexpected error occurred",
+        description: err.message || "Please check your details and try again.",
       });
       console.error("Sign in error:", err);
     }
@@ -205,11 +202,11 @@ export default function SignInForm() {
             <div className="space-y-6">
               <div>
                 <Label>
-                  Email or Policy Number{" "}
+                  Email or Phone Number{" "}
                   <span className="text-error-500">*</span>
                 </Label>
                 <Input
-                  placeholder="Email or Policy Number"
+                  placeholder="Email or Phone Number"
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}

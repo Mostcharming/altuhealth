@@ -9,6 +9,10 @@ interface User {
   role?: string;
   picture?: string;
   phoneNumber?: string;
+  referralCode?: string;
+  totalEarning?: number;
+  availableBalance?: number;
+  totalWithdrawn?: number;
   status?: string;
   rolePrivileges?: string[];
 }
