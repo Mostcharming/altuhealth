@@ -1,5 +1,5 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
+import TariffTable from "@/components/pages/tariff/TariffTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -11,7 +11,7 @@ export default function Services() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Services" />
-      <SpinnerThree />
+      <TariffTable type="services" />
     </div>
   );
 }

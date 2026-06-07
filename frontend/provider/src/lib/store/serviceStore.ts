@@ -13,7 +13,12 @@ export interface Service {
   code: string;
   description?: string | null;
   requiresPreauthorization: boolean;
-  price: number;
+  price?: number | string | null;
+  priceType?: "fixed" | "rate";
+  fixedPrice?: number | string | null;
+  rateType?: string | null;
+  rateAmount?: number | string | null;
+  currency?: string;
   status: "active" | "inactive" | "pending";
   isDeleted?: boolean;
   providerId: string;
