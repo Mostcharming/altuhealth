@@ -1,9 +1,10 @@
 "use client";
 
 import Select from "@/components/form/Select";
+import EditRetailEnrolleeModal from "@/components/pages/retailEnrollee/editRetailEnrolleeModal";
 import Notification from "@/components/ui/notification/Notification";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
-import { CopyIcon, EyeIcon } from "@/icons";
+import { CopyIcon, EyeIcon, PencilIcon } from "@/icons";
 import { fetchRetailEnrollees } from "@/lib/apis/retailEnrollee";
 import capitalizeWords, { capitalizeAllWords } from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
@@ -72,6 +73,12 @@ const RetailEnrolleeTable: React.FC = () => {
   const setRetailEnrollees = useRetailEnrolleeStore(
     (s) => s.setRetailEnrollees,
   );
+  const updateRetailEnrolleeInStore = useRetailEnrolleeStore(
+    (s) => s.updateRetailEnrollee,
+  );
+  const [selectedRetailEnrollee, setSelectedRetailEnrollee] =
+    useState<RetailEnrollee | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const plans = usePlanStore((s) => s.plans);
 
   type Header = {
@@ -174,6 +181,11 @@ const RetailEnrolleeTable: React.FC = () => {
 
   const handlenavigate = (retailEnrollee: RetailEnrollee) => {
     router.push(`/retail-enrollees/${retailEnrollee.id}`);
+  };
+
+  const handleEdit = (retailEnrollee: RetailEnrollee) => {
+    setSelectedRetailEnrollee(retailEnrollee);
+    setIsEditOpen(true);
   };
 
   return (
@@ -359,8 +371,16 @@ const RetailEnrolleeTable: React.FC = () => {
                         <button
                           onClick={() => handlenavigate(enrollee)}
                           className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                          title="View retail enrollee"
                         >
                           <EyeIcon />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(enrollee)}
+                          className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                          title="Edit retail enrollee"
+                        >
+                          <PencilIcon />
                         </button>
                       </div>
                     </td>
@@ -484,6 +504,14 @@ const RetailEnrolleeTable: React.FC = () => {
           </div>
         </div>
       </div>
+      <EditRetailEnrolleeModal
+        enrollee={selectedRetailEnrollee}
+        isOpen={isEditOpen}
+        closeModal={() => setIsEditOpen(false)}
+        onSuccess={(updated) =>
+          updateRetailEnrolleeInStore(updated.id, updated)
+        }
+      />
     </>
   );
 };

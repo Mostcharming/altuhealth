@@ -2,9 +2,10 @@
 
 import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
+import EditDependentModal from "@/components/pages/shared/editDependentModal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { EyeIcon } from "@/icons";
+import { EyeIcon, PencilIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import {
   EnrolleeDependent,
@@ -35,6 +36,10 @@ const EnrolleeDependentsTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const dependents = useEnrolleeDependentStore((s) => s.dependents);
   const setDependents = useEnrolleeDependentStore((s) => s.setDependents);
+  const updateDependent = useEnrolleeDependentStore((s) => s.updateDependent);
+  const [selectedDependent, setSelectedDependent] =
+    useState<EnrolleeDependent | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [errorMessage] = useState(
     "Failed to load dependents. Please try again."
   );
@@ -158,6 +163,11 @@ const EnrolleeDependentsTable: React.FC = () => {
 
   const handleViewDependent = (dependentId: string) => {
     router.push(`/enrollee-dependents/${dependentId}`);
+  };
+
+  const handleEditDependent = (dependent: EnrolleeDependent) => {
+    setSelectedDependent(dependent);
+    setIsEditOpen(true);
   };
 
   const capitalize = (str: string): string => {
@@ -303,6 +313,13 @@ const EnrolleeDependentsTable: React.FC = () => {
                       >
                         <EyeIcon />
                       </button>
+                      <button
+                        onClick={() => handleEditDependent(dependent)}
+                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                        title="Edit dependent"
+                      >
+                        <PencilIcon />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -425,6 +442,14 @@ const EnrolleeDependentsTable: React.FC = () => {
         message={errorMessage}
         errorModal={errorModal}
         handleErrorClose={() => errorModal.closeModal()}
+      />
+      <EditDependentModal
+        dependent={selectedDependent}
+        isOpen={isEditOpen}
+        closeModal={() => setIsEditOpen(false)}
+        endpoint="/admin/enrollee-dependents"
+        title="Edit Dependent Details"
+        onSuccess={(updated) => updateDependent(updated.id, updated)}
       />
     </div>
   );

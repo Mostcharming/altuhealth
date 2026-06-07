@@ -385,6 +385,64 @@ async function updateRetailEnrollee(req, res, next) {
     }
 }
 
+async function updateRetailEnrolleeBasicDetails(req, res, next) {
+    try {
+        const { RetailEnrollee } = req.models;
+        const { retailEnrolleeId } = req.params;
+        const updates = req.body || {};
+
+        const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
+        if (!enrollee) return res.fail('Retail enrollee not found', 404);
+
+        if (updates.email && updates.email !== enrollee.email) {
+            return res.fail('Reach out to system admin to change the email', 400);
+        }
+
+        if (updates.phoneNumber && updates.phoneNumber !== enrollee.phoneNumber) {
+            const existingPhone = await RetailEnrollee.findOne({ where: { phoneNumber: updates.phoneNumber } });
+            if (existingPhone) return res.fail('Phone number already exists', 400);
+        }
+
+        const allowedFields = [
+            'firstName',
+            'middleName',
+            'lastName',
+            'phoneNumber',
+            'dateOfBirth',
+            'country',
+            'state',
+            'lga',
+            'maxDependents'
+        ];
+
+        const payload = {};
+        allowedFields.forEach((field) => {
+            if (Object.prototype.hasOwnProperty.call(updates, field)) {
+                payload[field] = updates[field];
+            }
+        });
+
+        if (Object.prototype.hasOwnProperty.call(payload, 'firstName') && !payload.firstName) return res.fail('`firstName` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'lastName') && !payload.lastName) return res.fail('`lastName` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'phoneNumber') && !payload.phoneNumber) return res.fail('`phoneNumber` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'dateOfBirth') && !payload.dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
+
+        await enrollee.update(payload);
+
+        await addAuditLog(req.models, {
+            action: 'retail_enrollee.basicDetailsUpdated',
+            message: `Updated basic details for retail enrollee ${enrollee.firstName} ${enrollee.lastName}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { enrolleeId: enrollee.id }
+        });
+
+        return res.success({ enrollee }, 'Retail enrollee basic details updated');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 async function deleteRetailEnrollee(req, res, next) {
     try {
         const { RetailEnrollee } = req.models;
@@ -668,6 +726,7 @@ module.exports = {
     lookupRetailEnrollee,
     getRetailEnrolleeById,
     updateRetailEnrollee,
+    updateRetailEnrolleeBasicDetails,
     deleteRetailEnrollee,
     createRetailEnrolleeSubscription,
     updateRetailEnrolleeSubscription,

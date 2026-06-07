@@ -52,6 +52,19 @@ export async function updateRetailEnrollee(
   });
 }
 
+export async function updateRetailEnrolleeBasicDetails(
+  id: string,
+  data: Partial<RetailEnrollee>
+) {
+  return apiClient(`/admin/retail-enrollees/${id}/basic-details`, {
+    method: "PUT",
+    body: data,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
 export async function deleteRetailEnrollee(id: string) {
   return apiClient(`/admin/retail-enrollees/${id}`, {
     method: "DELETE",

@@ -58,7 +58,10 @@ export default function SingleRetailEnrolleeDependent() {
             currentTitle={pageTitle}
           />
           <div className="space-y-6 mt-6">
-            <RetailEnrolleeDependentPHeader data={dependent} />
+            <RetailEnrolleeDependentPHeader
+              data={dependent}
+              onUpdated={setDependent}
+            />
             <div>
               <RetailEnrolleeDependentDetails data={dependent} />
             </div>

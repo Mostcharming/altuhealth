@@ -42,6 +42,7 @@ router.get('/relationship-options', RetailEnrolleeDependent.getRelationshipOptio
 // CRUD for retail enrollee dependents
 router.post('/', RetailEnrolleeDependent.createRetailEnrolleeDependent);
 router.get('/', RetailEnrolleeDependent.listRetailEnrolleeDependents);
+router.put('/:id/basic-details', RetailEnrolleeDependent.updateRetailEnrolleeDependentBasicDetails);
 router.get('/:id', RetailEnrolleeDependent.getRetailEnrolleeDependent);
 router.put('/:id', RetailEnrolleeDependent.updateRetailEnrolleeDependent);
 router.delete('/:id', RetailEnrolleeDependent.deleteRetailEnrolleeDependent);

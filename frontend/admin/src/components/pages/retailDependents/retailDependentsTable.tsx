@@ -2,9 +2,10 @@
 
 import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
+import EditDependentModal from "@/components/pages/shared/editDependentModal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { EyeIcon } from "@/icons";
+import { EyeIcon, PencilIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import {
   RetailEnrolleeDependent,
@@ -36,6 +37,12 @@ const RetailDependentsTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const dependents = useRetailEnrolleeDependentStore((s) => s.dependents);
   const setDependents = useRetailEnrolleeDependentStore((s) => s.setDependents);
+  const updateDependent = useRetailEnrolleeDependentStore(
+    (s) => s.updateDependent,
+  );
+  const [selectedDependent, setSelectedDependent] =
+    useState<RetailEnrolleeDependent | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [errorMessage] = useState(
     "Failed to load dependents. Please try again."
   );
@@ -160,6 +167,11 @@ const RetailDependentsTable: React.FC = () => {
 
   const handleViewDependent = (dependentId: string) => {
     router.push(`/retail-dependents/${dependentId}`);
+  };
+
+  const handleEditDependent = (dependent: RetailEnrolleeDependent) => {
+    setSelectedDependent(dependent);
+    setIsEditOpen(true);
   };
 
   const capitalize = (str: string): string => {
@@ -305,6 +317,13 @@ const RetailDependentsTable: React.FC = () => {
                       >
                         <EyeIcon />
                       </button>
+                      <button
+                        onClick={() => handleEditDependent(dependent)}
+                        className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                        title="Edit dependent"
+                      >
+                        <PencilIcon />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -427,6 +446,15 @@ const RetailDependentsTable: React.FC = () => {
         message={errorMessage}
         errorModal={errorModal}
         handleErrorClose={() => errorModal.closeModal()}
+      />
+      <EditDependentModal
+        dependent={selectedDependent}
+        isOpen={isEditOpen}
+        closeModal={() => setIsEditOpen(false)}
+        endpoint="/admin/retail-enrollee-dependents"
+        title="Edit Retail Dependent Details"
+        includeLocation
+        onSuccess={(updated) => updateDependent(updated.id, updated)}
       />
     </div>
   );

@@ -56,7 +56,7 @@ export default function SingleEnrolleeDependent() {
             currentTitle={pageTitle}
           />
           <div className="space-y-6 mt-6">
-            <EnrolleeDependentPHeader data={dependent} />
+            <EnrolleeDependentPHeader data={dependent} onUpdated={setDependent} />
             <div>
               <EnrolleeDependentDetails data={dependent} />
             </div>

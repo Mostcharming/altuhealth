@@ -179,6 +179,61 @@ async function updateEnrolleeDependent(req, res, next) {
     }
 }
 
+async function updateEnrolleeDependentBasicDetails(req, res, next) {
+    try {
+        const { EnrolleeDependent } = req.models;
+        const { id } = req.params;
+        const updates = req.body || {};
+
+        const dependent = await EnrolleeDependent.findByPk(id);
+        if (!dependent) return res.fail('Enrollee dependent not found', 404);
+
+        if (updates.email && updates.email !== dependent.email) {
+            return res.fail('Reach out to system admin to change the email', 400);
+        }
+
+        const allowedFields = [
+            'firstName',
+            'middleName',
+            'lastName',
+            'dateOfBirth',
+            'gender',
+            'relationshipToEnrollee',
+            'phoneNumber',
+            'occupation',
+            'maritalStatus',
+            'preexistingMedicalRecords'
+        ];
+
+        const payload = {};
+        allowedFields.forEach((field) => {
+            if (Object.prototype.hasOwnProperty.call(updates, field)) {
+                payload[field] = updates[field];
+            }
+        });
+
+        if (Object.prototype.hasOwnProperty.call(payload, 'firstName') && !payload.firstName) return res.fail('`firstName` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'lastName') && !payload.lastName) return res.fail('`lastName` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'dateOfBirth') && !payload.dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'gender') && !payload.gender) return res.fail('`gender` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'relationshipToEnrollee') && !payload.relationshipToEnrollee) return res.fail('`relationshipToEnrollee` is required', 400);
+
+        await dependent.update(payload);
+
+        await addAuditLog(req.models, {
+            action: 'enrollee_dependent.basicDetailsUpdated',
+            message: `Updated basic details for dependent ${dependent.firstName} ${dependent.lastName}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { dependentId: dependent.id }
+        });
+
+        return res.success({ dependent }, 'Enrollee dependent basic details updated');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 async function deleteEnrolleeDependent(req, res, next) {
     try {
         const { EnrolleeDependent } = req.models;
@@ -619,6 +674,7 @@ async function resendVerificationCode(req, res, next) {
 module.exports = {
     createEnrolleeDependent,
     updateEnrolleeDependent,
+    updateEnrolleeDependentBasicDetails,
     deleteEnrolleeDependent,
     listEnrolleeDependents,
     getEnrolleeDependent,

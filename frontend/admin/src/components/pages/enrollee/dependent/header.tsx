@@ -3,17 +3,26 @@
 import ErrorModal from "@/components/modals/error";
 import IdCardModal from "@/components/modals/idCardModal";
 import SuccessModal from "@/components/modals/success";
+import EditDependentModal from "@/components/pages/shared/editDependentModal";
 import { useModal } from "@/hooks/useModal";
+import { PencilIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import Image from "next/image";
 import { useState } from "react";
 
-export default function EnrolleeDependentPHeader({ data }: { data: any }) {
+export default function EnrolleeDependentPHeader({
+  data,
+  onUpdated,
+}: {
+  data: any;
+  onUpdated?: (dependent: any) => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showIdCard, setShowIdCard] = useState(false);
   const successModal = useModal();
   const errorModal = useModal();
+  const editModal = useModal();
 
   const getButtonClasses = (status: string) => {
     const baseClasses =
@@ -93,6 +102,15 @@ export default function EnrolleeDependentPHeader({ data }: { data: any }) {
         </div>
         <div className="flex gap-3">
           <button
+            onClick={editModal.openModal}
+            disabled={loading}
+            className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-50"
+          >
+            <PencilIcon />
+            Edit
+          </button>
+
+          <button
             onClick={handleViewIdCard}
             disabled={loading}
             className={getButtonClasses("not")}
@@ -136,6 +154,15 @@ export default function EnrolleeDependentPHeader({ data }: { data: any }) {
           pictureUrl: data?.pictureUrl,
           plan: data?.CompanyPlan?.name || "",
         }}
+      />
+
+      <EditDependentModal
+        dependent={data}
+        isOpen={editModal.isOpen}
+        closeModal={editModal.closeModal}
+        endpoint="/admin/enrollee-dependents"
+        title="Edit Dependent Details"
+        onSuccess={onUpdated}
       />
     </>
   );

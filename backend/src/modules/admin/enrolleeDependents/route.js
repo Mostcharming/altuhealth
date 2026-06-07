@@ -47,6 +47,7 @@ router.post('/bulk/verify', EnrolleeDependent.bulkVerifyEnrolleeDependents);
 // CRUD for enrollee dependents
 router.post('/', uploadProfileImage('picture'), EnrolleeDependent.createEnrolleeDependent);
 router.get('/', EnrolleeDependent.listEnrolleeDependents);
+router.put('/:id/basic-details', EnrolleeDependent.updateEnrolleeDependentBasicDetails);
 router.get('/:id', EnrolleeDependent.getEnrolleeDependent);
 router.put('/:id', EnrolleeDependent.updateEnrolleeDependent);
 router.delete('/:id', EnrolleeDependent.deleteEnrolleeDependent);

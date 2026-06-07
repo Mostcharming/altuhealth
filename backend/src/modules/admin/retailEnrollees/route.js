@@ -4,6 +4,7 @@ const {
     lookupRetailEnrollee,
     getRetailEnrolleeById,
     updateRetailEnrollee,
+    updateRetailEnrolleeBasicDetails,
     deleteRetailEnrollee,
     downloadIdCard,
     resendVerificationCode
@@ -44,6 +45,7 @@ const router = require('express').Router();
 router.post('/', createRetailEnrollee);
 router.get('/', getRetailEnrollees);
 router.get('/lookup', lookupRetailEnrollee);
+router.put('/:retailEnrolleeId/basic-details', updateRetailEnrolleeBasicDetails);
 router.get('/:retailEnrolleeId', getRetailEnrolleeById);
 router.put('/:retailEnrolleeId', updateRetailEnrollee);
 router.delete('/:retailEnrolleeId', deleteRetailEnrollee);

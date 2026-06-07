@@ -178,6 +178,65 @@ async function updateRetailEnrolleeDependent(req, res, next) {
     }
 }
 
+async function updateRetailEnrolleeDependentBasicDetails(req, res, next) {
+    try {
+        const { RetailEnrolleeDependent } = req.models;
+        const { id } = req.params;
+        const updates = req.body || {};
+
+        const dependent = await RetailEnrolleeDependent.findByPk(id);
+        if (!dependent) return res.fail('Retail enrollee dependent not found', 404);
+
+        if (updates.email && updates.email !== dependent.email) {
+            return res.fail('Reach out to system admin to change the email', 400);
+        }
+
+        const payload = {};
+        const fieldMap = {
+            firstName: 'firstName',
+            middleName: 'middleName',
+            lastName: 'lastName',
+            dateOfBirth: 'dateOfBirth',
+            gender: 'gender',
+            relationshipToEnrollee: 'relationship',
+            phoneNumber: 'phoneNumber',
+            country: 'country',
+            state: 'state',
+            lga: 'lga',
+            address: 'address'
+        };
+
+        Object.entries(fieldMap).forEach(([requestField, modelField]) => {
+            if (Object.prototype.hasOwnProperty.call(updates, requestField)) {
+                payload[modelField] = updates[requestField];
+            }
+        });
+
+        if (Object.prototype.hasOwnProperty.call(payload, 'firstName') && !payload.firstName) return res.fail('`firstName` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'lastName') && !payload.lastName) return res.fail('`lastName` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'dateOfBirth') && !payload.dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'gender') && !payload.gender) return res.fail('`gender` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'relationship') && !payload.relationship) return res.fail('`relationshipToEnrollee` is required', 400);
+
+        await dependent.update(payload);
+
+        await addAuditLog(req.models, {
+            action: 'retail_enrollee_dependent.basicDetailsUpdated',
+            message: `Updated basic details for retail dependent ${dependent.firstName} ${dependent.lastName}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { dependentId: dependent.id }
+        });
+
+        const responseDependent = dependent.toJSON();
+        responseDependent.relationshipToEnrollee = responseDependent.relationship;
+
+        return res.success({ dependent: responseDependent }, 'Retail enrollee dependent basic details updated');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 async function deleteRetailEnrolleeDependent(req, res, next) {
     try {
         const { RetailEnrolleeDependent } = req.models;
@@ -415,6 +474,7 @@ const authorizationCodeController = require('./authorizationCodeController');
 module.exports = {
     createRetailEnrolleeDependent,
     updateRetailEnrolleeDependent,
+    updateRetailEnrolleeDependentBasicDetails,
     deleteRetailEnrolleeDependent,
     listRetailEnrolleeDependents,
     getRetailEnrolleeDependent,

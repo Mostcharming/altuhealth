@@ -4,21 +4,26 @@
 import ErrorModal from "@/components/modals/error";
 import IdCardModal from "@/components/modals/idCardModal";
 import SuccessModal from "@/components/modals/success";
+import EditDependentModal from "@/components/pages/shared/editDependentModal";
 import { useModal } from "@/hooks/useModal";
+import { PencilIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import Image from "next/image";
 import { useState } from "react";
 
 export default function RetailEnrolleeDependentPHeader({
   data,
+  onUpdated,
 }: {
   data: any;
+  onUpdated?: (dependent: any) => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showIdCard, setShowIdCard] = useState(false);
   const successModal = useModal();
   const errorModal = useModal();
+  const editModal = useModal();
 
   const getButtonClasses = (status: string) => {
     const baseClasses =
@@ -98,6 +103,15 @@ export default function RetailEnrolleeDependentPHeader({
         </div>
         <div className="flex gap-3">
           <button
+            onClick={editModal.openModal}
+            disabled={loading}
+            className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-50"
+          >
+            <PencilIcon />
+            Edit
+          </button>
+
+          <button
             onClick={handleViewIdCard}
             disabled={loading}
             className={getButtonClasses("not")}
@@ -141,6 +155,16 @@ export default function RetailEnrolleeDependentPHeader({
           pictureUrl: data?.pictureUrl,
           plan: data?.RetailEnrollee?.name || "",
         }}
+      />
+
+      <EditDependentModal
+        dependent={data}
+        isOpen={editModal.isOpen}
+        closeModal={editModal.closeModal}
+        endpoint="/admin/retail-enrollee-dependents"
+        title="Edit Retail Dependent Details"
+        includeLocation
+        onSuccess={onUpdated}
       />
     </>
   );

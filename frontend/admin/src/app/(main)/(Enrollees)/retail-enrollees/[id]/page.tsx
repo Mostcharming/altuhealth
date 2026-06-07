@@ -56,7 +56,7 @@ export default function SingleRetailEnrollee() {
             currentTitle={pageTitle}
           />
           <div className="space-y-6 mt-6">
-            <RetailEnrolleePHeader data={enrollee} />
+            <RetailEnrolleePHeader data={enrollee} onUpdated={setEnrollee} />
             <div>
               <RetailEnrolleeDetails data={enrollee} />
             </div>
