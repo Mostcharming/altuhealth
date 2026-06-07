@@ -60,6 +60,11 @@ export default function Hero() {
               <h3>Fast</h3>
               <p>Claims</p>
             </div>
+
+            <div>
+              <h3>Digital</h3>
+              <p>Access</p>
+            </div>
           </div>
         </div>
 

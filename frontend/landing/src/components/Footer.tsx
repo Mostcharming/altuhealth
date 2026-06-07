@@ -4,27 +4,27 @@ export default function Footer() {
       <div className="container">
         <div className="footer-grid">
           <div>
-            <h3>AltuHealth</h3>
+            <h3>ALTUHEALTH</h3>
             <p>
-              Transforming healthcare coverage through technology and
-              innovation.
+              Technology-driven healthcare coverage built for modern
+              individuals, families, and enterprises.
             </p>
           </div>
 
           <div>
-            <h4>Quick Links</h4>
+            <h4>Company</h4>
             <ul>
               <li>
-                <a href="#home">Home</a>
+                <a href="#about">About Us</a>
               </li>
               <li>
-                <a href="#about">About</a>
+                <a href="#plans">Healthcare Plans</a>
               </li>
               <li>
-                <a href="#plans">Plans</a>
+                Providers
               </li>
               <li>
-                <a href="#services">Services</a>
+                Careers
               </li>
             </ul>
           </div>
@@ -36,22 +36,28 @@ export default function Footer() {
                 <a href="#services">Telemedicine</a>
               </li>
               <li>
-                <a href="#services">Health Insurance</a>
+                <a href="#services">Digital Claims</a>
               </li>
               <li>
-                <a href="#services">Claims Management</a>
+                <a href="#plans">Corporate Healthcare</a>
               </li>
               <li>
-                <a href="#services">Corporate Solutions</a>
+                <a href="#services">Health Analytics</a>
               </li>
             </ul>
           </div>
 
           <div>
             <h4>Contact</h4>
-            <p>Email: info@altuhealth.com</p>
-            <p>Phone: +234 906 123 4567</p>
-            <p>Support: Available 24/7</p>
+            <ul>
+              <li>support@altuhealth.com</li>
+              <li>+234 810 759 9978</li>
+              <li>
+                AltuHealth Place, 4 Irewole Street, Opp. New Apostolic Church,
+                Opebi, Ikeja, Lagos, Nigeria
+              </li>
+              <li>Operating Nationwide</li>
+            </ul>
           </div>
         </div>
 

@@ -6,14 +6,14 @@ export default function Services() {
         "Speak with licensed medical professionals remotely through our secure healthcare platform.",
     },
     {
-      name: "Digital Enrolment",
+      name: "Digital Claims",
       description:
-        "Sign up for healthcare coverage in minutes through our user-friendly mobile and web platforms.",
+        "Fast and transparent claims processing powered by intelligent healthcare systems.",
     },
     {
-      name: "Claims Processing",
+      name: "Healthcare Analytics",
       description:
-        "Fast and transparent claim processing with real-time tracking and support.",
+        "Data-driven healthcare insights helping organizations optimize employee wellbeing.",
     },
   ];
 

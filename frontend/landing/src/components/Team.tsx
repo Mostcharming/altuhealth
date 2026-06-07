@@ -1,19 +1,19 @@
 export default function Team() {
   const team = [
     {
-      name: "Leadership Team Member",
-      position: "Director",
-      bio: "Bringing years of healthcare and technology experience to drive innovation.",
+      name: "Emmanuel Omoleye",
+      position: "Managing Director / CEO",
+      bio: "Leading AltuHealth's vision of transforming healthcare access through innovation and digital healthcare infrastructure.",
     },
     {
-      name: "Management Team Member",
-      position: "Manager",
-      bio: "Dedicated to delivering excellent customer service and operational excellence.",
+      name: "Gideon Ola",
+      position: "Head of Operations",
+      bio: "Driving organizational growth, strategic partnerships, customer excellence, and operational efficiency.",
     },
     {
-      name: "Operations Team Member",
-      position: "Lead",
-      bio: "Committed to building scalable systems that serve millions.",
+      name: "Medical Advisory Team",
+      position: "Clinical Operations",
+      bio: "Ensuring healthcare quality standards, provider coordination, compliance, and healthcare excellence.",
     },
   ];
 
@@ -24,8 +24,8 @@ export default function Team() {
           <span>Management Team</span>
           <h2>Leadership Built On Vision & Innovation.</h2>
           <p>
-            Meet the experienced professionals driving AltuHealth&apos;s mission
-            to transform healthcare access.
+            Our management team combines healthcare expertise, technology
+            innovation, operational excellence, and customer-focused leadership.
           </p>
         </div>
 
