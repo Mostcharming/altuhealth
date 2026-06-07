@@ -421,6 +421,115 @@ async function getEnrollmentStatusOptions(req, res, next) {
     }
 }
 
+async function downloadCompanyEnrollees(req, res, next) {
+    try {
+        const { Staff, Enrollee, Company, CompanyPlan } = req.models;
+        const { companyId } = req.params;
+
+        if (!companyId) return res.fail('`companyId` is required', 400);
+
+        const company = await Company.findByPk(companyId, {
+            attributes: ['id', 'name'],
+            raw: true
+        });
+        if (!company) return res.fail('Company not found', 404);
+
+        const staffs = await Staff.findAll({
+            where: { companyId },
+            attributes: ['id'],
+            raw: true
+        });
+
+        const staffIds = staffs.map((staff) => staff.id);
+        if (staffIds.length === 0) {
+            return res.fail('No staff found for this company', 404);
+        }
+
+        const enrollees = await Enrollee.findAll({
+            where: { staffId: { [Op.in]: staffIds } },
+            include: [
+                {
+                    model: Staff,
+                    attributes: ['id', 'firstName', 'lastName', 'staffId', 'email', 'phoneNumber'],
+                    required: false
+                },
+                {
+                    model: Company,
+                    attributes: ['id', 'name'],
+                    required: false
+                },
+                {
+                    model: CompanyPlan,
+                    as: 'companyPlan',
+                    attributes: ['id', 'name'],
+                    required: false
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        const rows = enrollees.map((enrollee, index) => {
+            const item = enrollee.toJSON();
+            return {
+                'S/N': index + 1,
+                'Policy Number': item.policyNumber || '',
+                'First Name': item.firstName || '',
+                'Middle Name': item.middleName || '',
+                'Last Name': item.lastName || '',
+                Email: item.email || '',
+                'Phone Number': item.phoneNumber || '',
+                Gender: item.gender || '',
+                'Date of Birth': item.dateOfBirth ? new Date(item.dateOfBirth).toISOString().split('T')[0] : '',
+                Country: item.country || '',
+                State: item.state || '',
+                LGA: item.lga || '',
+                Address: item.address || '',
+                Occupation: item.occupation || '',
+                'Marital Status': item.maritalStatus || '',
+                'Company': item.Company?.name || company.name || '',
+                'Company Plan': item.companyPlan?.name || '',
+                'Staff ID': item.Staff?.staffId || '',
+                'Staff Name': [item.Staff?.firstName, item.Staff?.lastName].filter(Boolean).join(' '),
+                'Max Dependents': item.maxDependents ?? '',
+                'Pre-existing Medical Records': item.preexistingMedicalRecords || '',
+                Status: item.isActive ? 'Active' : 'Inactive',
+                Verified: item.isVerified ? 'Yes' : 'No',
+                'Created At': item.createdAt ? new Date(item.createdAt).toISOString().split('T')[0] : ''
+            };
+        });
+
+        const XLSX = require('xlsx');
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Enrollees');
+
+        const buffer = XLSX.write(workbook, {
+            bookType: 'xlsx',
+            type: 'buffer'
+        });
+
+        const safeCompanyName = String(company.name || 'company')
+            .replace(/[^a-z0-9]+/gi, '-')
+            .replace(/^-+|-+$/g, '')
+            .toLowerCase();
+        const filename = `${safeCompanyName || 'company'}-enrollees.xlsx`;
+
+        await addAuditLog(req.models, {
+            action: 'staff.company_enrollees_download',
+            message: `Downloaded enrollee list for company ${company.name}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { companyId, enrolleeCount: enrollees.length }
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        return res.send(buffer);
+    } catch (err) {
+        return next(err);
+    }
+}
+
 async function bulkNotifyStaffs(req, res, next) {
     try {
         const { Staff } = req.models;
@@ -867,6 +976,7 @@ module.exports = {
     listStaffs,
     getStaff,
     getEnrollmentStatusOptions,
+    downloadCompanyEnrollees,
     bulkNotifyStaffs,
     bulkEnrollStaffs,
     bulkCreateStaffs,

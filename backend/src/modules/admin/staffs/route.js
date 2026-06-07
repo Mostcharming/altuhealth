@@ -38,6 +38,7 @@ const upload = multer({
 router.post('/', Staff.createStaff);
 router.get('/list', Staff.listStaffs);
 router.get('/enrollment-status-options', Staff.getEnrollmentStatusOptions);
+router.get('/company/:companyId/enrollees/download', Staff.downloadCompanyEnrollees);
 router.get('/:id', Staff.getStaff);
 router.put('/:id', Staff.updateStaff);
 router.delete('/:id', Staff.deleteStaff);
