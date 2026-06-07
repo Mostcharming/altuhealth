@@ -10,6 +10,7 @@ export interface Enrollee {
   companyId: string;
   companyPlanId: string;
   dateOfBirth: string;
+  country?: string | null;
   state?: string | null;
   lga?: string | null;
   address?: string | null;

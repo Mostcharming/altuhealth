@@ -69,6 +69,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             field: 'date_of_birth'
         },
+        country: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'country'
+        },
         state: {
             type: DataTypes.STRING,
             allowNull: true,

@@ -56,7 +56,7 @@ export default function SingleEnrollee() {
             currentTitle={pageTitle}
           />
           <div className="space-y-6 mt-6">
-            <EnrolleePHeader data={enrollee} />
+            <EnrolleePHeader data={enrollee} onUpdated={setEnrollee} />
             <div>
               <EnrolleeDetails data={enrollee} />
             </div>

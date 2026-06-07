@@ -4,6 +4,7 @@ const {
     lookupEnrollee,
     getEnrolleeById,
     updateEnrollee,
+    updateEnrolleeBasicDetails,
     deleteEnrollee,
     sendVerificationCode,
     verifyEnrollee,
@@ -45,6 +46,7 @@ router.get('/', getEnrollees);
 router.get('/lookup', lookupEnrollee);
 router.get('/:enrolleeId', getEnrolleeById);
 router.post('/', createEnrollee);
+router.put('/:enrolleeId/basic/details', updateEnrolleeBasicDetails);
 router.put('/:enrolleeId', updateEnrollee);
 router.delete('/:enrolleeId', deleteEnrollee);
 

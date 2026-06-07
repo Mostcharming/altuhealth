@@ -18,6 +18,7 @@ async function createEnrollee(req, res, next) {
             companyId,
             companyPlanId,
             dateOfBirth,
+            country,
             state,
             lga,
             address,
@@ -83,6 +84,7 @@ async function createEnrollee(req, res, next) {
             companyId,
             companyPlanId,
             dateOfBirth,
+            country: country || null,
             state: state || null,
             lga: lga || null,
             address: address || null,
@@ -327,6 +329,76 @@ async function updateEnrollee(req, res, next) {
         );
     } catch (error) {
         console.error('Error updating enrollee:', error);
+        next(error);
+    }
+}
+
+async function updateEnrolleeBasicDetails(req, res, next) {
+    try {
+        const { Enrollee } = req.models;
+        const { enrolleeId } = req.params;
+        const updates = req.body || {};
+
+        if (!enrolleeId) return res.fail('`enrolleeId` is required', 400);
+
+        const enrollee = await Enrollee.findByPk(enrolleeId);
+        if (!enrollee) return res.fail('Enrollee not found', 404);
+
+        if (updates.email && updates.email !== enrollee.email) {
+            return res.fail('Reach out to system admin to change the email', 400);
+        }
+
+        const allowedFields = [
+            'firstName',
+            'middleName',
+            'lastName',
+            'dateOfBirth',
+            'country',
+            'state',
+            'lga',
+            'address',
+            'occupation',
+            'maritalStatus',
+            'gender',
+            'phoneNumber',
+            'maxDependents',
+            'preexistingMedicalRecords'
+        ];
+
+        const payload = {};
+        allowedFields.forEach((field) => {
+            if (Object.prototype.hasOwnProperty.call(updates, field)) {
+                payload[field] = updates[field];
+            }
+        });
+
+        if (Object.prototype.hasOwnProperty.call(payload, 'firstName') && !payload.firstName) return res.fail('`firstName` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'lastName') && !payload.lastName) return res.fail('`lastName` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'dateOfBirth') && !payload.dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'gender') && !payload.gender) return res.fail('`gender` is required', 400);
+        if (Object.prototype.hasOwnProperty.call(payload, 'phoneNumber') && !payload.phoneNumber) return res.fail('`phoneNumber` is required', 400);
+
+        if (!payload.firstName && !enrollee.firstName) return res.fail('`firstName` is required', 400);
+        if (!payload.lastName && !enrollee.lastName) return res.fail('`lastName` is required', 400);
+        if (!payload.dateOfBirth && !enrollee.dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
+        if (!payload.gender && !enrollee.gender) return res.fail('`gender` is required', 400);
+        if (!payload.phoneNumber && !enrollee.phoneNumber) return res.fail('`phoneNumber` is required', 400);
+
+        await enrollee.update(payload);
+
+        await addAuditLog(req.models, {
+            action: 'enrollee.basicDetailsUpdated',
+            message: `Updated basic details for enrollee with policy number ${enrollee.policyNumber}`,
+            userId: req.user?.id,
+            userType: 'admin'
+        });
+
+        return res.success(
+            { enrollee },
+            'Enrollee basic details updated successfully'
+        );
+    } catch (error) {
+        console.error('Error updating enrollee basic details:', error);
         next(error);
     }
 }
@@ -620,6 +692,7 @@ module.exports = {
     lookupEnrollee,
     getEnrolleeById,
     updateEnrollee,
+    updateEnrolleeBasicDetails,
     deleteEnrollee,
     sendVerificationCode,
     verifyEnrollee,

@@ -1,8 +1,9 @@
 "use client";
 import Select from "@/components/form/Select";
+import EditEnrolleeModal from "@/components/pages/enrollee/editEnrolleeModal";
 import Notification from "@/components/ui/notification/Notification";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
-import { CopyIcon, EyeIcon } from "@/icons";
+import { CopyIcon, EyeIcon, PencilIcon } from "@/icons";
 import { fetchCompanies } from "@/lib/apis/company";
 import { fetchEnrollees } from "@/lib/apis/enrollee";
 import capitalizeWords from "@/lib/capitalize";
@@ -68,6 +69,11 @@ const EnrolleeTable: React.FC = () => {
   const setEnrollees = useEnrolleeStore((s) => s.setEnrollees);
   const companies = useCompanyStore((s) => s.companies);
   const setCompanies = useCompanyStore((s) => s.setCompanies);
+  const updateEnrolleeInStore = useEnrolleeStore((s) => s.updateEnrollee);
+  const [selectedEnrollee, setSelectedEnrollee] = useState<Enrollee | null>(
+    null,
+  );
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   type Header = {
     key: keyof Enrollee | "actions";
@@ -186,6 +192,11 @@ const EnrolleeTable: React.FC = () => {
 
   const handlenavigate = (enrollee: Enrollee) => {
     router.push(`/enrollees/${enrollee.id}`);
+  };
+
+  const handleEdit = (enrollee: Enrollee) => {
+    setSelectedEnrollee(enrollee);
+    setIsEditOpen(true);
   };
 
   return (
@@ -364,8 +375,16 @@ const EnrolleeTable: React.FC = () => {
                         <button
                           onClick={() => handlenavigate(enrollee)}
                           className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                          title="View enrollee"
                         >
                           <EyeIcon />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(enrollee)}
+                          className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                          title="Edit enrollee"
+                        >
+                          <PencilIcon />
                         </button>
                       </div>
                     </td>
@@ -489,6 +508,12 @@ const EnrolleeTable: React.FC = () => {
           </div>
         </div>
       </div>
+      <EditEnrolleeModal
+        enrollee={selectedEnrollee}
+        isOpen={isEditOpen}
+        closeModal={() => setIsEditOpen(false)}
+        onSuccess={(updated) => updateEnrolleeInStore(updated.id, updated)}
+      />
     </>
   );
 };

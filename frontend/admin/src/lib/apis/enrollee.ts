@@ -40,6 +40,19 @@ export async function updateEnrollee(id: string, data: Partial<Enrollee>) {
   });
 }
 
+export async function updateEnrolleeBasicDetails(
+  id: string,
+  data: Partial<Enrollee>,
+) {
+  return apiClient(`/admin/enrollees/${id}/basic/details`, {
+    method: "PUT",
+    body: data,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
 export async function deleteEnrollee(id: string) {
   return apiClient(`/admin/enrollees/${id}`, {
     method: "DELETE",
