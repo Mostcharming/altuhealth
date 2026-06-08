@@ -6,7 +6,8 @@ import { useState } from "react";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     message: "",
@@ -26,11 +27,22 @@ export default function ContactPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Handle form submission here (e.g., send to API)
-    console.log("Form submitted:", formData);
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+    const subject = encodeURIComponent(`Landing page inquiry from ${fullName}`);
+    const body = encodeURIComponent(
+      `First Name: ${formData.firstName}\nLast Name: ${formData.lastName}\nEmail: ${formData.email}\nPhone: ${formData.phone}\n\n${formData.message}`,
+    );
+
+    window.location.href = `mailto:info@altuhealth.com?subject=${subject}&body=${body}`;
     setSubmitted(true);
     setTimeout(() => {
-      setFormData({ name: "", email: "", phone: "", message: "" });
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        message: "",
+      });
       setSubmitted(false);
     }, 2000);
   };
@@ -70,9 +82,25 @@ export default function ContactPage() {
           >
             <input
               type="text"
-              name="name"
-              placeholder="Full Name"
-              value={formData.name}
+              name="firstName"
+              placeholder="First Name"
+              value={formData.firstName}
+              onChange={handleChange}
+              required
+              style={{
+                padding: "18px",
+                borderRadius: "10px",
+                border: "1px solid #ddd",
+                fontSize: "16px",
+                fontFamily: "inherit",
+              }}
+            />
+
+            <input
+              type="text"
+              name="lastName"
+              placeholder="Last Name"
+              value={formData.lastName}
               onChange={handleChange}
               required
               style={{

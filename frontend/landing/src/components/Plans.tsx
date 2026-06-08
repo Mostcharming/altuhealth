@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 
 const plans = [
@@ -71,6 +73,15 @@ type IpLocation = {
 
 export default function Plans() {
   const [currency, setCurrency] = useState<"NGN" | "USD">("USD");
+  const [selectedPlan, setSelectedPlan] = useState<(typeof plans)[number] | null>(
+    null,
+  );
+  const [planForm, setPlanForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -112,6 +123,16 @@ export default function Plans() {
     }
 
     return { symbol: "$", amount: price.replace("$", ""), code: "USD" };
+  };
+
+  const handlePlanInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setPlanForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const closePlanModal = () => {
+    setSelectedPlan(null);
+    setPlanForm({ firstName: "", lastName: "", email: "", phone: "" });
   };
 
   return (
@@ -174,19 +195,91 @@ export default function Plans() {
                   </li>
                 </ul>
 
-                <a
-                  href={plan.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="buy-btn"
-                >
-                  Register <span>→</span>
-                </a>
+                {plan.priceNgn === "Custom" ? (
+                  <Link href="/contact" className="buy-btn">
+                    Contact Us <span>→</span>
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="buy-btn"
+                    onClick={() => setSelectedPlan(plan)}
+                  >
+                    Register <span>→</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {selectedPlan && (
+        <div className="plan-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="plan-modal">
+            <button
+              type="button"
+              className="plan-modal-close"
+              onClick={closePlanModal}
+              aria-label="Close plan registration"
+            >
+              ×
+            </button>
+
+            <div className="plan-modal-header">
+              <span>Plan Registration</span>
+              <h3>{selectedPlan.name}</h3>
+              <p>
+                Enter your basic details. We will send plan details and next
+                steps to your email.
+              </p>
+            </div>
+
+            <form className="plan-modal-form">
+              <input
+                type="text"
+                name="firstName"
+                placeholder="First Name"
+                value={planForm.firstName}
+                onChange={handlePlanInputChange}
+              />
+              <input
+                type="text"
+                name="lastName"
+                placeholder="Last Name"
+                value={planForm.lastName}
+                onChange={handlePlanInputChange}
+              />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                value={planForm.email}
+                onChange={handlePlanInputChange}
+              />
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone Number"
+                value={planForm.phone}
+                onChange={handlePlanInputChange}
+              />
+
+              <div className="plan-modal-instructions">
+                <strong>What happens next?</strong>
+                <p>
+                  You will receive plan details via email. Review the details,
+                  then proceed to payment when ready.
+                </p>
+              </div>
+
+              <button type="button" className="buy-btn">
+                Proceed to Pay <span>→</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
