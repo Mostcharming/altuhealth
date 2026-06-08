@@ -296,6 +296,14 @@ function defineModels(sequelize) {
   Admin.hasMany(AuthorizationCode, { foreignKey: "approvedBy", as: 'approvedAuthorizationCodes', constraints: false });
   AuthorizationCode.belongsTo(Admin, { foreignKey: "approvedBy", as: 'approver', constraints: false });
 
+  // AuthorizationCode <-> rendered drugs/services
+  AuthorizationCode.hasMany(AuthorizationCodeRendered, { foreignKey: "authorizationCodeId", as: 'renderedItems' });
+  AuthorizationCodeRendered.belongsTo(AuthorizationCode, { foreignKey: "authorizationCodeId" });
+  Drug.hasMany(AuthorizationCodeRendered, { foreignKey: "drugId", as: 'authorizationRenderedItems' });
+  AuthorizationCodeRendered.belongsTo(Drug, { foreignKey: "drugId" });
+  Service.hasMany(AuthorizationCodeRendered, { foreignKey: "serviceId", as: 'authorizationRenderedItems' });
+  AuthorizationCodeRendered.belongsTo(Service, { foreignKey: "serviceId" });
+
   // EnrolleeDependent <-> Enrollee one-to-many
   Enrollee.hasMany(EnrolleeDependent, { foreignKey: "enrolleeId", as: 'dependents' });
   EnrolleeDependent.belongsTo(Enrollee, { foreignKey: "enrolleeId" });

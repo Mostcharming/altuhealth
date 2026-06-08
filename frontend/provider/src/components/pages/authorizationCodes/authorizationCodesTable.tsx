@@ -271,7 +271,7 @@ const AuthorizationCodesTable: React.FC = () => {
     const timer = setTimeout(async () => {
       try {
         const data = await apiClient(
-          `/provider/enrollee-lookup?query=${encodeURIComponent(searchValue)}`,
+          `/provider/search/enrollee-lookup?query=${encodeURIComponent(searchValue)}`,
           {
             method: "GET",
           },
@@ -533,27 +533,8 @@ const AuthorizationCodesTable: React.FC = () => {
               </div>
             </div>
 
-            {/* Provider Filter */}
-            {/* <div>
-              <Select
-                options={[
-                  { value: "", label: "All Providers" },
-                  ...providers.map((p) => ({
-                    value: p.id,
-                    label: p.name,
-                  })),
-                ]}
-                placeholder="Select provider"
-                onChange={(value) => {
-                  setSelectedProviderId(value as string);
-                  setCurrentPage(1);
-                }}
-                defaultValue={selectedProviderId}
-              />
-            </div> */}
-
             {/* Company Filter */}
-            <div>
+            {/* <div>
               <Select
                 options={[
                   { value: "", label: "All Companies" },
@@ -569,7 +550,7 @@ const AuthorizationCodesTable: React.FC = () => {
                 }}
                 defaultValue={selectedCompanyId}
               />
-            </div>
+            </div> */}
 
             {/* Status Filter */}
             <div>

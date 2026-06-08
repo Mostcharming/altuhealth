@@ -42,15 +42,36 @@ module.exports = (sequelize, DataTypes) => {
             onDelete: 'SET NULL',
             field: 'service_id'
         },
+        itemName: {
+            type: DataTypes.STRING,
+            allowNull: true,
+            field: 'item_name'
+        },
         unit: {
             type: DataTypes.STRING,
             allowNull: true,
             field: 'unit'
         },
+        unitPrice: {
+            type: DataTypes.DECIMAL(12, 2),
+            allowNull: true,
+            field: 'unit_price'
+        },
         quantityRendered: {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: true,
             field: 'quantity_rendered'
+        },
+        lineAmount: {
+            type: DataTypes.DECIMAL(12, 2),
+            allowNull: true,
+            field: 'line_amount'
+        },
+        status: {
+            type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+            allowNull: false,
+            defaultValue: 'pending',
+            field: 'status'
         },
         notes: {
             type: DataTypes.TEXT,

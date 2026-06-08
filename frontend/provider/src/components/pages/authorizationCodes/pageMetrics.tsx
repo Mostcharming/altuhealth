@@ -8,7 +8,11 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
+import { fetchProviderDrugs, fetchProviderServices } from "@/lib/apis/tariff";
 import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
+import { Drug } from "@/lib/store/drugStore";
+import { Service } from "@/lib/store/serviceStore";
+import { TrashBinIcon } from "@/icons";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 type EnrolleeLookupStatus =
@@ -25,10 +29,7 @@ interface Diagnosis {
 }
 interface ClaimDetail {
   enrolleeId?: string;
-  retailEnrolleeId?: string;
-  companyId?: string;
   serviceDate: string;
-  dischargeDate?: string;
   serviceType:
     | "outpatient"
     | "inpatient"
@@ -42,12 +43,6 @@ interface ClaimDetail {
     | "optical";
   description?: string;
   amountSubmitted: number;
-  quantity?: number;
-  unitPrice?: number;
-  procedureCode?: string;
-  procedureName?: string;
-  authorizationCode?: string;
-  diagnosisId?: string;
   items?: ClaimDetailItem[];
 }
 
@@ -60,6 +55,12 @@ interface ClaimDetailItem {
   unit?: string;
   description?: string;
 }
+
+type MemberType =
+  | "enrollee"
+  | "dependent"
+  | "retail_enrollee"
+  | "retail_dependent";
 
 const serviceTypeOptions = [
   { value: "outpatient", label: "Outpatient" },
@@ -95,34 +96,25 @@ export default function PageMetricsAuthorizationCodes({
 
   // Form state
   const [enrolleeId, setEnrolleeId] = useState("");
+  const [memberType, setMemberType] = useState<MemberType>("enrollee");
   const [enrolleeLookupValue, setEnrolleeLookupValue] = useState("");
   const [enrolleeLookupStatus, setEnrolleeLookupStatus] =
     useState<EnrolleeLookupStatus>("idle");
   const [enrolleeLookupHint, setEnrolleeLookupHint] = useState(
     "Type policy number or email.",
   );
-  const [providerId, setProviderId] = useState("");
   const [diagnosisId, setDiagnosisId] = useState("");
-  const [companyId, setCompanyId] = useState("");
-  const [companyPlanId, setCompanyPlanId] = useState("");
   const [authorizationType, setAuthorizationType] = useState<
     "inpatient" | "outpatient" | "procedure" | "medication" | "diagnostic"
   >("inpatient");
-  const [validFrom, setValidFrom] = useState("");
-  const [validTo, setValidTo] = useState("");
-  const [amountAuthorized, setAmountAuthorized] = useState("");
-  const [reasonForCode, setReasonForCode] = useState("");
-  const [approvalNote, setApprovalNote] = useState("");
   const [notes, setNotes] = useState("");
 
   // Fetch data
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
+  const [drugs, setDrugs] = useState<Drug[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const enrolleeLookupRequestIdRef = useRef(0);
 
-  const [claimDetails, setClaimDetails] = useState<ClaimDetail[]>([]);
-  const [currentDetailIndex, setCurrentDetailIndex] = useState<number | null>(
-    null,
-  );
   const [currentDetail, setCurrentDetail] = useState<ClaimDetail>({
     enrolleeId: "",
     serviceDate: "",
@@ -153,6 +145,7 @@ export default function PageMetricsAuthorizationCodes({
   useEffect(() => {
     if (isOpen) {
       fetchDiagnoses();
+      fetchTariffItems();
     }
   }, [isOpen]);
 
@@ -181,7 +174,7 @@ export default function PageMetricsAuthorizationCodes({
     const timer = setTimeout(async () => {
       try {
         const data = await apiClient(
-          `/provider/enrollee-lookup?query=${encodeURIComponent(searchValue)}`,
+          `/provider/search/enrollee-lookup?query=${encodeURIComponent(searchValue)}`,
           {
             method: "GET",
           },
@@ -189,12 +182,15 @@ export default function PageMetricsAuthorizationCodes({
 
         if (requestId !== enrolleeLookupRequestIdRef.current) return;
 
-        const enrollee = data?.data?.enrollee;
-        if (enrollee?.id) {
-          setEnrolleeId(String(enrollee.id));
+        const member = data?.data?.enrollee || data?.data?.dependent;
+        if (member?.id) {
+          const resultType = (data?.data?.resultType ||
+            "enrollee") as MemberType;
+          setEnrolleeId(String(member.id));
+          setMemberType(resultType);
           setEnrolleeLookupStatus("found");
           setEnrolleeLookupHint(
-            `Found: ${enrollee.firstName} ${enrollee.lastName} (${enrollee.policyNumber || enrollee.email})`,
+            `Found: ${member.firstName} ${member.lastName} (${member.policyNumber || member.email})`,
           );
           return;
         }
@@ -244,6 +240,29 @@ export default function PageMetricsAuthorizationCodes({
     }
   };
 
+  const fetchTariffItems = async () => {
+    try {
+      const [drugsData, servicesData] = await Promise.all([
+        fetchProviderDrugs({ limit: 1000, status: "active" }),
+        fetchProviderServices({ limit: 1000, status: "active" }),
+      ]);
+
+      const drugItems: Drug[] =
+        drugsData?.data?.list && Array.isArray(drugsData.data.list)
+          ? drugsData.data.list
+          : [];
+      const serviceItems: Service[] =
+        servicesData?.data?.list && Array.isArray(servicesData.data.list)
+          ? servicesData.data.list
+          : [];
+
+      setDrugs(drugItems);
+      setServices(serviceItems);
+    } catch (err) {
+      console.warn("Failed to fetch provider tariffs", err);
+    }
+  };
+
   const totalItemsAmount =
     currentDetail.items?.reduce(
       (sum, item) => sum + item.quantity * item.unitPrice,
@@ -252,20 +271,27 @@ export default function PageMetricsAuthorizationCodes({
 
   const resetForm = () => {
     setEnrolleeId("");
+    setMemberType("enrollee");
     setEnrolleeLookupValue("");
     setEnrolleeLookupStatus("idle");
     setEnrolleeLookupHint("Type policy number or email.");
-    setProviderId("");
     setDiagnosisId("");
-    setCompanyId("");
-    setCompanyPlanId("");
     setAuthorizationType("inpatient");
-    setValidFrom("");
-    setValidTo("");
-    setAmountAuthorized("");
-    setReasonForCode("");
-    setApprovalNote("");
     setNotes("");
+    setCurrentDetail({
+      enrolleeId: "",
+      serviceDate: "",
+      serviceType: "outpatient",
+      amountSubmitted: 0,
+      items: [],
+    });
+    setCurrentItem({
+      itemType: "drug",
+      itemId: "",
+      itemName: "",
+      quantity: 1,
+      unitPrice: 0,
+    });
     enrolleeLookupRequestIdRef.current += 1;
   };
 
@@ -283,78 +309,30 @@ export default function PageMetricsAuthorizationCodes({
     setCurrentDetail({ ...currentDetail, items });
   };
 
-  const calculateDetailAmount = (detail: ClaimDetail): number => {
-    if (detail.items && detail.items.length > 0) {
-      return detail.items.reduce(
-        (sum, item) => sum + item.quantity * item.unitPrice,
-        0,
-      );
-    }
-    return detail.amountSubmitted || 0;
-  };
+  const getServicePrice = (service: Service) =>
+    Number(service.price || service.fixedPrice || service.rateAmount || 0);
 
-  const handleAddDetail = () => {
-    if (!currentDetail.enrolleeId || !currentDetail.serviceDate) {
-      setErrorMessage("Enrollee and Service Date are required");
-      errorModal.openModal();
-      return;
-    }
-
-    const detailAmount = calculateDetailAmount(currentDetail);
-    if (detailAmount <= 0) {
-      setErrorMessage("Detail amount must be greater than 0");
-      errorModal.openModal();
-      return;
-    }
-
-    if (currentDetailIndex !== null) {
-      const details = [...claimDetails];
-      details[currentDetailIndex] = {
-        ...currentDetail,
-        amountSubmitted: detailAmount,
-      };
-      setClaimDetails(details);
-    } else {
-      setClaimDetails([
-        ...claimDetails,
-        { ...currentDetail, amountSubmitted: detailAmount },
-      ]);
-    }
-
-    setCurrentDetail({
-      enrolleeId: "",
-      serviceDate: "",
-      serviceType: "outpatient",
-      amountSubmitted: 0,
-      items: [],
-    });
-    setCurrentDetailIndex(null);
-  };
-
-  const handleEditDetail = (index: number) => {
-    setCurrentDetail(claimDetails[index]);
-    setCurrentDetailIndex(index);
-  };
-
-  const handleRemoveDetail = (index: number) => {
-    setClaimDetails(claimDetails.filter((_, i) => i !== index));
-    if (currentDetailIndex === index) {
-      setCurrentDetailIndex(null);
-      setCurrentDetail({
-        enrolleeId: "",
-        serviceDate: "",
-        serviceType: "outpatient",
-        amountSubmitted: 0,
-        items: [],
+  const selectTariffItem = (itemId: string) => {
+    if (currentItem.itemType === "drug") {
+      const drug = drugs.find((item) => item.id === itemId);
+      setCurrentItem({
+        ...currentItem,
+        itemId,
+        itemName: drug?.name || "",
+        unit: drug?.unit || "",
+        unitPrice: Number(drug?.price || 0),
       });
+      return;
     }
-  };
 
-  const calculateTotalAmount = (): number => {
-    return claimDetails.reduce(
-      (sum, detail) => sum + (detail.amountSubmitted || 0),
-      0,
-    );
+    const service = services.find((item) => item.id === itemId);
+    setCurrentItem({
+      ...currentItem,
+      itemId,
+      itemName: service?.name || "",
+      unit: service?.rateType || service?.priceType || "service",
+      unitPrice: service ? getServicePrice(service) : 0,
+    });
   };
 
   const handleSubmit = async () => {
@@ -371,23 +349,18 @@ export default function PageMetricsAuthorizationCodes({
         errorModal.openModal();
         return;
       }
-      if (!companyId) {
-        setErrorMessage("`companyId` is required");
-        errorModal.openModal();
-        return;
-      }
       if (!authorizationType) {
         setErrorMessage("`authorizationType` is required");
         errorModal.openModal();
         return;
       }
-      if (!validFrom) {
-        setErrorMessage("`validFrom` is required");
+      if (!currentDetail.serviceDate) {
+        setErrorMessage("Authorization date is required");
         errorModal.openModal();
         return;
       }
-      if (!validTo) {
-        setErrorMessage("`validTo` is required");
+      if (!currentDetail.items?.length) {
+        setErrorMessage("Add at least one service encounter item");
         errorModal.openModal();
         return;
       }
@@ -395,23 +368,21 @@ export default function PageMetricsAuthorizationCodes({
       setLoading(true);
 
       const payload = {
-        enrolleeId,
-        providerId: providerId || undefined,
+        memberId: enrolleeId,
+        resultType: memberType,
         diagnosisId: diagnosisId || undefined,
-        companyId,
-        companyPlanId: companyPlanId || undefined,
         authorizationType,
-        validFrom,
-        validTo,
-        amountAuthorized: amountAuthorized
-          ? Number(amountAuthorized)
-          : undefined,
-        reasonForCode: reasonForCode || undefined,
-        approvalNote: approvalNote || undefined,
+        date: currentDetail.serviceDate,
         notes: notes || undefined,
+        items: currentDetail.items.map((item) => ({
+          itemType: item.itemType,
+          itemId: item.itemId,
+          quantity: item.quantity,
+          notes: item.description || undefined,
+        })),
       };
 
-      const data = await apiClient("/admin/authorization-codes", {
+      const data = await apiClient("/provider/authorization-codes", {
         method: "POST",
         body: payload,
         onLoading: (l: boolean) => setLoading(l),
@@ -432,20 +403,22 @@ export default function PageMetricsAuthorizationCodes({
   };
   const handleAddItem = () => {
     if (!currentItem.itemId || !currentItem.itemName) {
-      setErrorMessage("Item ID and Item Name are required");
+      setErrorMessage("Select a drug or service");
       errorModal.openModal();
       return;
     }
 
-    const items = currentDetail.items || [];
-    items.push({ ...currentItem });
-    setCurrentDetail({ ...currentDetail, items });
+    setCurrentDetail({
+      ...currentDetail,
+      items: [...(currentDetail.items || []), { ...currentItem }],
+    });
     setCurrentItem({
-      itemType: "drug",
+      itemType: currentItem.itemType,
       itemId: "",
       itemName: "",
       quantity: 1,
       unitPrice: 0,
+      unit: "",
     });
   };
   return (
@@ -480,19 +453,23 @@ export default function PageMetricsAuthorizationCodes({
       <Modal
         isOpen={isOpen}
         onClose={closeModal}
-        className="max-w-[900px] p-5 lg:p-10 m-4"
+        className="max-w-[960px] p-0 m-4"
       >
-        <div className="px-2">
-          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Create Authorization Code
-          </h4>
-          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the details to create a new authorization code.
-          </p>
+        <div className="border-b border-gray-200 px-5 py-4 dark:border-gray-800 lg:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h4 className="text-xl font-semibold text-gray-800 dark:text-white/90">
+                Create Authorization Code
+              </h4>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Select the member, request details, and provider-rendered items.
+              </p>
+            </div>
+          </div>
         </div>
 
         <form className="flex flex-col">
-          <div className="custom-scrollbar h-[350px] sm:h-[450px] overflow-y-auto px-2">
+          <div className="custom-scrollbar h-[420px] sm:h-[560px] overflow-y-auto px-5 py-5 lg:px-6">
             <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
@@ -637,20 +614,6 @@ export default function PageMetricsAuthorizationCodes({
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={amountAuthorized}
-                  onChange={(e) => setAmountAuthorized(e.target.value)}
-                  disabled
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-                />
-              </div>
-
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Notes
@@ -665,12 +628,18 @@ export default function PageMetricsAuthorizationCodes({
               </div>
             </div>
 
-            <div className="mb-8">
-              <h5 className="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">
-                Service Encounters
-              </h5>
+            <div className="mt-6">
+              <div className="mb-3 flex items-center justify-between">
+                <h5 className="text-base font-semibold text-gray-800 dark:text-white/90">
+                  Service Encounter
+                </h5>
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                  {currentDetail.items?.length || 0} item
+                  {(currentDetail.items?.length || 0) === 1 ? "" : "s"}
+                </span>
+              </div>
 
-              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900/30 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/30">
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2 mb-4">
                   <div>
                     <DatePicker
@@ -736,8 +705,8 @@ export default function PageMetricsAuthorizationCodes({
                   />
                 </div>
 
-                <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                  <h6 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                <div className="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/60">
+                  <h6 className="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
                     Service Items
                   </h6>
 
@@ -751,8 +720,12 @@ export default function PageMetricsAuthorizationCodes({
                         placeholder="Select type"
                         onChange={(value) =>
                           setCurrentItem({
-                            ...currentItem,
                             itemType: value as "drug" | "service",
+                            itemId: "",
+                            itemName: "",
+                            quantity: 1,
+                            unitPrice: 0,
+                            unit: "",
                           })
                         }
                         defaultValue={currentItem.itemType}
@@ -761,19 +734,23 @@ export default function PageMetricsAuthorizationCodes({
 
                     <div>
                       <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">
-                        Item ID *
+                        {currentItem.itemType === "drug" ? "Drug" : "Service"} *
                       </label>
-                      <input
-                        type="text"
-                        placeholder="Item ID"
-                        value={currentItem.itemId}
-                        onChange={(e) =>
-                          setCurrentItem({
-                            ...currentItem,
-                            itemId: e.target.value,
-                          })
+                      <Select
+                        options={
+                          currentItem.itemType === "drug"
+                            ? drugs.map((drug) => ({
+                                value: drug.id,
+                                label: `${drug.name} - ${drug.unit}`,
+                              }))
+                            : services.map((service) => ({
+                                value: service.id,
+                                label: `${service.name} - ${service.code}`,
+                              }))
                         }
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                        placeholder={`Select ${currentItem.itemType}`}
+                        onChange={(value) => selectTariffItem(value as string)}
+                        defaultValue={currentItem.itemId}
                       />
                     </div>
 
@@ -785,13 +762,9 @@ export default function PageMetricsAuthorizationCodes({
                         type="text"
                         placeholder="Item name"
                         value={currentItem.itemName}
-                        onChange={(e) =>
-                          setCurrentItem({
-                            ...currentItem,
-                            itemName: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                        onChange={() => undefined}
+                        disabled
+                        className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-xs text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                       />
                     </div>
 
@@ -801,15 +774,11 @@ export default function PageMetricsAuthorizationCodes({
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g., tablet, bottle"
+                        placeholder="Unit"
                         value={currentItem.unit || ""}
-                        onChange={(e) =>
-                          setCurrentItem({
-                            ...currentItem,
-                            unit: e.target.value,
-                          })
-                        }
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                        onChange={() => undefined}
+                        disabled
+                        className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-xs text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                       />
                     </div>
 
@@ -843,13 +812,23 @@ export default function PageMetricsAuthorizationCodes({
                         step="0.01"
                         placeholder="0.00"
                         value={currentItem.unitPrice}
-                        onChange={(e) =>
-                          setCurrentItem({
-                            ...currentItem,
-                            unitPrice: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                        onChange={() => undefined}
+                        disabled
+                        className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-xs text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-500 mb-1">
+                        Line Amount
+                      </label>
+                      <input
+                        type="number"
+                        value={(
+                          currentItem.quantity * currentItem.unitPrice
+                        ).toFixed(2)}
+                        onChange={() => undefined}
+                        disabled
+                        className="w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 text-xs text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                       />
                     </div>
                   </div>
@@ -857,102 +836,54 @@ export default function PageMetricsAuthorizationCodes({
                   {/* Items List */}
                   {currentDetail.items && currentDetail.items.length > 0 && (
                     <div className="mb-3">
-                      <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
                         {currentDetail.items.map((item, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between p-2 border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                            className="grid grid-cols-[1fr_auto] gap-3 border-b border-gray-200 p-3 last:border-b-0 dark:border-gray-700"
                           >
-                            <div className="text-xs">
+                            <div className="min-w-0 text-xs">
                               <p className="font-medium text-gray-800 dark:text-white">
                                 {item.itemName}
                               </p>
-                              <p className="text-gray-500 dark:text-gray-400">
-                                {item.quantity} × {item.unitPrice} ={" "}
-                                {(item.quantity * item.unitPrice).toFixed(2)}
+                              <p className="mt-1 text-gray-500 dark:text-gray-400">
+                                {item.itemType} • {item.quantity} × ₦
+                                {Number(item.unitPrice).toFixed(2)}
                               </p>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(idx)}
-                              className="text-red-500 hover:text-red-700 text-sm"
-                            >
-                              Remove
-                            </button>
+                            <div className="flex items-center gap-3">
+                              <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                                ₦{(item.quantity * item.unitPrice).toFixed(2)}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveItem(idx)}
+                                aria-label={`Remove ${item.itemName}`}
+                                title="Remove item"
+                                className="flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                              >
+                                <TrashBinIcon />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mt-2">
-                        Total: ₦{totalItemsAmount.toFixed(2)}
-                      </p>
                     </div>
                   )}
 
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="w-full text-sm bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-white py-2 rounded transition"
+                    className="w-full rounded-lg bg-gray-100 py-2.5 text-sm font-medium text-gray-800 transition hover:bg-gray-200 dark:bg-gray-900 dark:text-white dark:hover:bg-gray-700"
                   >
                     + Add Item
                   </button>
                 </div>
-
-                {/* Add/Update Detail Button */}
-                <button
-                  type="button"
-                  onClick={handleAddDetail}
-                  className="w-full text-sm bg-brand-500 hover:bg-brand-600 text-white py-2 rounded transition font-medium"
-                >
-                  {currentDetailIndex !== null ? "Update Detail" : "Add Detail"}
-                </button>
               </div>
-
-              {/* Details List */}
-              {claimDetails.length > 0 && (
-                <div className="space-y-2">
-                  {claimDetails.map((detail, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700 rounded flex items-center justify-between"
-                    >
-                      <div className="flex-1 text-sm">
-                        <p className="font-medium text-gray-800 dark:text-white">
-                          Detail {idx + 1} - ₦
-                          {detail.amountSubmitted?.toFixed(2) || "0.00"}
-                        </p>
-                        <p className="text-gray-500 dark:text-gray-400 text-xs">
-                          {detail.serviceType} • {detail.serviceDate}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEditDetail(idx)}
-                          className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveDetail(idx)}
-                          className="px-3 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/50"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="mt-4 p-3 bg-brand-50 dark:bg-brand-900/10 border border-brand-200 dark:border-brand-900/30 rounded">
-                    <p className="text-sm font-semibold text-brand-900 dark:text-brand-400">
-                      Total Claim Amount: ₦{calculateTotalAmount().toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end mt-6 px-2 border-t border-gray-200 dark:border-gray-700 pt-4">
+          <div className="flex gap-3 justify-end border-t border-gray-200 px-5 py-4 dark:border-gray-700 lg:px-6">
             <button
               type="button"
               onClick={closeModal}
