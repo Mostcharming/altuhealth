@@ -12,8 +12,8 @@ export default function About() {
           </p>
         </div>
 
-        <div className="mission-grid">
-          <div className="mission-box">
+        <div className="about-layout">
+          <div className="about-copy">
             <h3>Our Vision</h3>
 
             <p>
@@ -22,9 +22,7 @@ export default function About() {
               healthcare coverage solutions that improve lives and transform
               healthcare experiences globally.
             </p>
-          </div>
 
-          <div className="mission-box">
             <h3>Our Mission</h3>
 
             <p>
@@ -33,6 +31,25 @@ export default function About() {
               healthcare management systems that empower individuals, families,
               and organizations.
             </p>
+          </div>
+
+          <div className="about-panel">
+            <img src="/images/cards/card-03.png" alt="Healthcare coverage" />
+
+            <div className="about-metrics">
+              <div>
+                <strong>1,500+</strong>
+                <span>Hospitals</span>
+              </div>
+              <div>
+                <strong>2,500+</strong>
+                <span>Pharmacies</span>
+              </div>
+              <div>
+                <strong>24/7</strong>
+                <span>Support</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

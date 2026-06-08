@@ -3,11 +3,11 @@ export default function Hero() {
     <section className="hero" id="home">
       <div className="container hero-grid">
         <div>
-          <div className="badge">Technology-Driven Healthcare Coverage</div>
+          <div className="badge">Built on trust and secure access</div>
 
           <h2>
-            Restoring Trust In
-            <span> Healthcare Access.</span>
+            Healthcare Coverage For
+            <span> Modern Families.</span>
           </h2>
 
           <p>
@@ -39,62 +39,40 @@ export default function Hero() {
               Talk To A Doctor
             </a>
           </div>
-
-          <div className="hero-stats">
-            <div>
-              <h3>1,500+</h3>
-              <p>Hospitals</p>
-            </div>
-
-            <div>
-              <h3>2,500+</h3>
-              <p>Pharmacies</p>
-            </div>
-
-            <div>
-              <h3>24/7</h3>
-              <p>Support</p>
-            </div>
-
-            <div>
-              <h3>Fast</h3>
-              <p>Claims</p>
-            </div>
-
-            <div>
-              <h3>Digital</h3>
-              <p>Access</p>
-            </div>
-          </div>
         </div>
 
-        <div className="hero-card">
-          <div className="hero-card-top">
-            <p>Healthcare Innovation</p>
-            <h3>Smart Healthcare For Modern Living.</h3>
+        <div className="hero-visual" aria-label="AltuHealth care overview">
+          <img src="/images/cards/card-01.jpg" alt="Healthcare professional" />
+          <div className="hero-visual-card hero-visual-card-top">
+            <strong>24/7</strong>
+            <span>Support Available</span>
           </div>
-
-          <div className="hero-card-bottom">
-            <div className="hero-item">
-              <div className="dot"></div>
-              Affordable healthcare plans
-            </div>
-
-            <div className="hero-item">
-              <div className="dot"></div>
-              Digital enrolment systems
-            </div>
-
-            <div className="hero-item">
-              <div className="dot"></div>
-              Telemedicine access
-            </div>
-
-            <div className="hero-item">
-              <div className="dot"></div>
-              Nationwide provider network
-            </div>
+          <div className="hero-visual-card hero-visual-card-bottom">
+            <strong>Fast</strong>
+            <span>Digital Claims</span>
           </div>
+        </div>
+      </div>
+
+      <div className="container hero-stats">
+        <div>
+          <h3>1,500+</h3>
+          <p>Hospitals</p>
+        </div>
+
+        <div>
+          <h3>2,500+</h3>
+          <p>Pharmacies</p>
+        </div>
+
+        <div>
+          <h3>24/7</h3>
+          <p>Support</p>
+        </div>
+
+        <div>
+          <h3>Digital</h3>
+          <p>Access</p>
         </div>
       </div>
     </section>

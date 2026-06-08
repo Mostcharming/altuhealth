@@ -6,6 +6,7 @@ const plans = [
   {
     name: "Individual Plan",
     description: "Affordable healthcare for individuals.",
+    image: "/images/cards/card-01.jpg",
     priceNgn: "₦15k",
     priceUsd: "$10",
     features: [
@@ -19,6 +20,7 @@ const plans = [
   {
     name: "Family Plan",
     description: "Comprehensive family healthcare.",
+    image: "/images/cards/card-02.jpg",
     priceNgn: "₦50k",
     priceUsd: "$35",
     features: [
@@ -32,6 +34,7 @@ const plans = [
   {
     name: "SME Plan",
     description: "Healthcare for growing businesses.",
+    image: "/images/cards/card-03.jpg",
     priceNgn: "₦120k",
     priceUsd: "$80",
     features: [
@@ -45,6 +48,7 @@ const plans = [
   {
     name: "Corporate Plan",
     description: "Enterprise healthcare management.",
+    image: "/images/product/product-01.jpg",
     priceNgn: "Custom",
     priceUsd: "Custom",
     features: [
@@ -98,8 +102,8 @@ export default function Plans() {
     <section className="plans" id="plans">
       <div className="container">
         <div className="section-title">
-          <span>Healthcare Plans</span>
-          <h2>Flexible Coverage For Everyone.</h2>
+          <span>Our Plans</span>
+          <h2>Choose A Health Plan That Fits Your Needs.</h2>
           <p>
             Explore healthcare plans tailored to individuals, families, SMEs,
             and enterprise organizations.
@@ -109,27 +113,33 @@ export default function Plans() {
         <div className="plan-grid">
           {plans.map((plan, index) => (
             <div key={index} className="plan-card">
-              <h3>{plan.name}</h3>
-              <p>{plan.description}</p>
-
-              <div className="price">
-                {currency === "NGN" ? plan.priceNgn : plan.priceUsd}
+              <div className="plan-image">
+                <img src={plan.image} alt={`${plan.name} healthcare plan`} />
               </div>
 
-              <ul>
-                {plan.features.map((feature, idx) => (
-                  <li key={idx}>{feature}</li>
-                ))}
-              </ul>
+              <div className="plan-content">
+                <h3>{plan.name}</h3>
+                <p>{plan.description}</p>
 
-              <a
-                href={plan.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="buy-btn"
-              >
-                Buy Plan
-              </a>
+                <div className="price">
+                  {currency === "NGN" ? plan.priceNgn : plan.priceUsd}
+                </div>
+
+                <ul>
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx}>{feature.replace("✔ ", "")}</li>
+                  ))}
+                </ul>
+
+                <a
+                  href={plan.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="buy-btn"
+                >
+                  View Plan Details
+                </a>
+              </div>
             </div>
           ))}
         </div>

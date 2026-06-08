@@ -263,12 +263,6 @@ export default function PageMetricsAuthorizationCodes({
     }
   };
 
-  const totalItemsAmount =
-    currentDetail.items?.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0,
-    ) || 0;
-
   const resetForm = () => {
     setEnrolleeId("");
     setMemberType("enrollee");

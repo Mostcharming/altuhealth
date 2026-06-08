@@ -67,16 +67,20 @@ const AdmissionTrackerTable: React.FC = () => {
     { key: "actions", label: "Actions" },
   ];
   const user = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    setSelectedProviderId(user?.id || "");
+  }, [user?.id]);
+
   const fetch = useCallback(async () => {
     try {
-      setSelectedProviderId(user?.id || "");
       setLoading(true);
 
       const data = await fetchAdmissions({
         limit,
         page: currentPage,
         q: search,
-        providerId: selectedProviderId || undefined,
+        providerId: selectedProviderId || user?.id || undefined,
         status: selectedStatus || undefined,
       });
 
@@ -104,6 +108,7 @@ const AdmissionTrackerTable: React.FC = () => {
     selectedProviderId,
     selectedStatus,
     setAdmissions,
+    user?.id,
   ]);
 
   useEffect(() => {

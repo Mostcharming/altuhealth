@@ -61,11 +61,6 @@ interface AuthorizationCode {
 //   code: string;
 // }
 
-interface Company {
-  id: string;
-  name: string;
-}
-
 const AuthorizationCodesTable: React.FC = () => {
   const {
     isOpen,
@@ -99,10 +94,8 @@ const AuthorizationCodesTable: React.FC = () => {
   );
   const enrolleeLookupRequestIdRef = useRef(0);
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   // const [providers, setProviders] = useState<Provider[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
@@ -154,34 +147,7 @@ const AuthorizationCodesTable: React.FC = () => {
   // Fetch filter data on mount
   useEffect(() => {
     setSelectedProviderId(user?.id || "");
-    const fetchInitialData = async () => {
-      try {
-        const companiesData = await apiClient(
-          "/admin/companies/list?limit=all",
-          { method: "GET" },
-        );
-
-        // const providersList: Provider[] =
-        //   providersData?.data?.list && Array.isArray(providersData.data.list)
-        //     ? providersData.data.list
-        //     : Array.isArray(providersData)
-        //     ? providersData
-        //     : [];
-        // setProviders(providersList);
-
-        const companiesList: Company[] =
-          companiesData?.data?.list && Array.isArray(companiesData.data.list)
-            ? companiesData.data.list
-            : Array.isArray(companiesData)
-              ? companiesData
-              : [];
-        setCompanies(companiesList);
-      } catch (err) {
-        console.warn("Failed to fetch initial data", err);
-      }
-    };
-    fetchInitialData();
-  }, []);
+  }, [user?.id]);
 
   const fetch = useCallback(async () => {
     try {
@@ -193,7 +159,6 @@ const AuthorizationCodesTable: React.FC = () => {
       if (search) params.append("q", search);
       if (selectedEnrolleeId) params.append("enrolleeId", selectedEnrolleeId);
       if (selectedProviderId) params.append("providerId", selectedProviderId);
-      if (selectedCompanyId) params.append("companyId", selectedCompanyId);
       if (selectedStatus) params.append("status", selectedStatus);
 
       const url = `/admin/authorization-codes?${params.toString()}`;
@@ -226,7 +191,6 @@ const AuthorizationCodesTable: React.FC = () => {
     search,
     selectedEnrolleeId,
     selectedProviderId,
-    selectedCompanyId,
     selectedStatus,
     setAuthorizationCodesStore,
   ]);

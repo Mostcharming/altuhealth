@@ -28,6 +28,7 @@ export default function ClaimDetail() {
   const [errorMessage, setErrorMessage] = useState(
     "Failed to load claim details. Please try again."
   );
+  const { openModal: openErrorModal } = errorModal;
 
   useEffect(() => {
     const fetchClaim = async () => {
@@ -46,7 +47,7 @@ export default function ClaimDetail() {
             ? error.message
             : "Failed to fetch claim. Please try again."
         );
-        errorModal.openModal();
+        openErrorModal();
         setLoading(false);
       }
     };
@@ -54,7 +55,7 @@ export default function ClaimDetail() {
     if (id) {
       fetchClaim();
     }
-  }, [id]);
+  }, [id, openErrorModal]);
 
   useEffect(() => {
     document.title = "AltuHealth Provider Claim Details";
