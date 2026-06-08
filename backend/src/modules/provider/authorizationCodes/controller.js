@@ -1,7 +1,9 @@
 'use strict';
 
 const authorizationCodeGenerator = require('../../../utils/authorizationCodeGenerator');
-const { addAuditLog } = require('../../../utils/addAdminNotification');
+const config = require('../../../config');
+const { addAdminNotification, addAuditLog } = require('../../../utils/addAdminNotification');
+const { addProviderNotification } = require('../../../utils/addNotifications');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -211,6 +213,25 @@ async function createAuthorizationCode(req, res, next) {
             include: [{ model: AuthorizationCodeRendered, as: 'renderedItems' }]
         });
 
+        const providerAuthUrl = `${String(config.providerUrl || '').replace(/\/+$/, '')}/authorization-codes/${authorizationCode.id}`;
+        const adminAuthUrl = `${String(config.adminUrl || '').replace(/\/+$/, '')}/authorization-codes/${authorizationCode.id}`;
+        const notificationTitle = `Authorization request ${authorizationCode.authorizationCode} created`;
+        const notificationMessage = `Authorization request ${authorizationCode.authorizationCode} was submitted for ${resolvedMember.label} and is pending admin approval.`;
+
+        await Promise.all([
+            addAdminNotification(req.models, {
+                title: `New authorization request from ${provider.name || 'provider'}: ${authorizationCode.authorizationCode}`,
+                clickUrl: adminAuthUrl
+            }),
+            addProviderNotification(req.models, {
+                providerId,
+                title: notificationTitle,
+                message: notificationMessage,
+                clickUrl: providerAuthUrl,
+                notificationType: 'authorization_code'
+            })
+        ]);
+
         await addAuditLog(req.models, {
             action: 'provider_authorization_code.create',
             message: `Provider ${providerId} requested authorization code ${authorizationCode.authorizationCode} for ${resolvedMember.label}`,
@@ -234,6 +255,85 @@ async function createAuthorizationCode(req, res, next) {
     }
 }
 
+async function getAuthorizationCode(req, res, next) {
+    try {
+        const {
+            AuthorizationCode,
+            AuthorizationCodeRendered,
+            Drug,
+            Service,
+            Enrollee,
+            EnrolleeDependent,
+            RetailEnrollee,
+            RetailEnrolleeDependent,
+            Provider,
+            Diagnosis,
+            Company,
+            CompanyPlan
+        } = req.models;
+        const providerId = req.user?.id;
+        const { id } = req.params;
+
+        if (!providerId) return res.fail('Provider ID is required', 400);
+
+        const authorizationCode = await AuthorizationCode.findOne({
+            where: { id, providerId },
+            include: [
+                { model: Provider, attributes: ['id', 'name', 'code', 'email'], required: false },
+                { model: Diagnosis, attributes: ['id', 'name', 'severity'], required: false },
+                { model: Company, attributes: ['id', 'name'], required: false },
+                { model: CompanyPlan, attributes: ['id', 'name', 'planId'], required: false },
+                {
+                    model: AuthorizationCodeRendered,
+                    as: 'renderedItems',
+                    required: false,
+                    include: [
+                        { model: Drug, attributes: ['id', 'name', 'unit', 'strength', 'price', 'currency'], required: false },
+                        { model: Service, attributes: ['id', 'name', 'code', 'price', 'priceType', 'fixedPrice', 'rateType', 'rateAmount', 'currency'], required: false }
+                    ]
+                }
+            ],
+            order: [[{ model: AuthorizationCodeRendered, as: 'renderedItems' }, 'createdAt', 'ASC']]
+        });
+
+        if (!authorizationCode) return res.fail('Authorization code not found', 404);
+
+        const data = authorizationCode.toJSON();
+        let member = null;
+        let memberType = null;
+
+        if (data.enrolleeId) {
+            member = await Enrollee.findByPk(data.enrolleeId, {
+                attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber']
+            });
+            memberType = 'enrollee';
+        } else if (data.enrolleeDependentId) {
+            member = await EnrolleeDependent.findByPk(data.enrolleeDependentId, {
+                attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber', 'enrolleeId']
+            });
+            memberType = 'dependent';
+        } else if (data.retailEnrolleeId) {
+            member = await RetailEnrollee.findByPk(data.retailEnrolleeId, {
+                attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber']
+            });
+            memberType = 'retail_enrollee';
+        } else if (data.retailEnrolleeDependentId) {
+            member = await RetailEnrolleeDependent.findByPk(data.retailEnrolleeDependentId, {
+                attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber', 'retailEnrolleeId']
+            });
+            memberType = 'retail_dependent';
+        }
+
+        data.member = member ? member.toJSON() : null;
+        data.memberType = memberType;
+
+        return res.success({ authorizationCode: data }, 'Authorization code retrieved');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
-    createAuthorizationCode
+    createAuthorizationCode,
+    getAuthorizationCode
 };

@@ -11,6 +11,8 @@ import { apiClient } from "@/lib/apiClient";
 import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
 import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
+import { EyeIcon } from "@/icons";
+import Link from "next/link";
 import React, {
   ChangeEvent,
   useCallback,
@@ -146,7 +148,7 @@ const AuthorizationCodesTable: React.FC = () => {
     { key: "authorizationType", label: "Type" },
     { key: "status", label: "Status" },
     { key: "validFrom", label: "Valid From" },
-    // { key: "actions", label: "Actions" },
+    { key: "actions", label: "Actions" },
   ];
   const user = useAuthStore((s) => s.user);
   // Fetch filter data on mount
@@ -687,22 +689,17 @@ const AuthorizationCodesTable: React.FC = () => {
                         {formatDate(code.validFrom)}
                       </p>
                     </td>
-                    {/* <td className="p-4 whitespace-nowrap">
+                    <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => handleView(code)}
+                        <Link
+                          href={`/authorization-codes/${code.id}`}
+                          title="View authorization code"
                           className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
                         >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteModal(code.id)}
-                          className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
-                        >
-                          <TrashBinIcon />
-                        </button>
+                          <EyeIcon />
+                        </Link>
                       </div>
-                    </td> */}
+                    </td>
                   </tr>
                 ))
               ) : (

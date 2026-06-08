@@ -299,6 +299,7 @@ export default function PageMetricsAuthorizationCodes({
     successModal.closeModal();
     resetForm();
     closeModal();
+    window.location.reload();
   };
 
   const handleErrorClose = () => {
