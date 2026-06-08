@@ -4,6 +4,7 @@ const authorizationCodeGenerator = require('../../../utils/authorizationCodeGene
 const config = require('../../../config');
 const { addAdminNotification, addAuditLog } = require('../../../utils/addAdminNotification');
 const { addProviderNotification } = require('../../../utils/addNotifications');
+const { createMedicalHistoryForAuthorization } = require('../../../utils/createMedicalHistoryForAuthorization');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -205,6 +206,8 @@ async function createAuthorizationCode(req, res, next) {
                 })),
                 { transaction }
             );
+
+            await createMedicalHistoryForAuthorization(req.models, created, { transaction });
 
             return created;
         });
