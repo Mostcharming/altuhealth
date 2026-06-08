@@ -6,7 +6,8 @@ const plans = [
   {
     name: "Individual Plan",
     description: "Affordable healthcare for individuals.",
-    image: "/images/cards/card-01.jpg",
+    audience: "0-65 years of age",
+    billing: "per individual, per year",
     priceNgn: "₦15k",
     priceUsd: "$10",
     features: [
@@ -20,7 +21,8 @@ const plans = [
   {
     name: "Family Plan",
     description: "Comprehensive family healthcare.",
-    image: "/images/cards/card-02.jpg",
+    audience: "Household coverage",
+    billing: "per family, per year",
     priceNgn: "₦50k",
     priceUsd: "$35",
     features: [
@@ -34,7 +36,8 @@ const plans = [
   {
     name: "SME Plan",
     description: "Healthcare for growing businesses.",
-    image: "/images/cards/card-03.jpg",
+    audience: "Teams and growing businesses",
+    billing: "per team, per year",
     priceNgn: "₦120k",
     priceUsd: "$80",
     features: [
@@ -48,7 +51,8 @@ const plans = [
   {
     name: "Corporate Plan",
     description: "Enterprise healthcare management.",
-    image: "/images/product/product-01.jpg",
+    audience: "Custom workforce coverage",
+    billing: "tailored to your organization",
     priceNgn: "Custom",
     priceUsd: "Custom",
     features: [
@@ -98,6 +102,18 @@ export default function Plans() {
     };
   }, []);
 
+  const formatPrice = (price: string) => {
+    if (price === "Custom") {
+      return { symbol: "", amount: "Custom", code: "" };
+    }
+
+    if (price.startsWith("₦")) {
+      return { symbol: "₦", amount: price.replace("₦", ""), code: "NGN" };
+    }
+
+    return { symbol: "$", amount: price.replace("$", ""), code: "USD" };
+  };
+
   return (
     <section className="plans" id="plans">
       <div className="container">
@@ -113,22 +129,49 @@ export default function Plans() {
         <div className="plan-grid">
           {plans.map((plan, index) => (
             <div key={index} className="plan-card">
-              <div className="plan-image">
-                <img src={plan.image} alt={`${plan.name} healthcare plan`} />
+              <div className="plan-card-header">
+                <div>
+                  <h3>{plan.name}</h3>
+                  <div className="plan-audience">
+                    <span></span>
+                    <p>{plan.audience}</p>
+                  </div>
+                </div>
               </div>
 
+              <div className="plan-price-panel">
+                {(() => {
+                  const price = formatPrice(
+                    currency === "NGN" ? plan.priceNgn : plan.priceUsd,
+                  );
+
+                  return (
+                    <>
+                      <div className="price">
+                        {price.symbol && <span>{price.symbol}</span>}
+                        <strong>{price.amount}</strong>
+                        {price.code && <em>{price.code}</em>}
+                      </div>
+                      <p>{plan.billing}</p>
+                    </>
+                  );
+                })()}
+              </div>
+
+              <div className="plan-divider"></div>
+
               <div className="plan-content">
-                <h3>{plan.name}</h3>
-                <p>{plan.description}</p>
-
-                <div className="price">
-                  {currency === "NGN" ? plan.priceNgn : plan.priceUsd}
-                </div>
-
                 <ul>
                   {plan.features.map((feature, idx) => (
-                    <li key={idx}>{feature.replace("✔ ", "")}</li>
+                    <li key={idx}>
+                      <span className="plan-check">✓</span>
+                      <span>{feature.replace("✔ ", "")}</span>
+                    </li>
                   ))}
+                  <li className="more-benefits">
+                    <span className="plan-check">+</span>
+                    <span>More Benefits</span>
+                  </li>
                 </ul>
 
                 <a
@@ -137,7 +180,7 @@ export default function Plans() {
                   rel="noopener noreferrer"
                   className="buy-btn"
                 >
-                  View Plan Details
+                  Register <span>→</span>
                 </a>
               </div>
             </div>

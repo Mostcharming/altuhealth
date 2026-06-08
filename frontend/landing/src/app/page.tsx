@@ -5,7 +5,6 @@ import Plans from "@/components/Plans";
 import Services from "@/components/Services";
 import Team from "@/components/Team";
 import CTA from "@/components/CTA";
-import Chatbox from "@/components/Chatbox";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -18,7 +17,6 @@ export default function Home() {
       <Services />
       <Team />
       <CTA />
-      <Chatbox />
       <Footer />
     </>
   );

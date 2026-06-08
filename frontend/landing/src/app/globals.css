@@ -37,7 +37,7 @@ header {
   z-index: 1000;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(10, 56, 179, 0.08);
+  border-bottom: 1px solid rgba(30, 99, 233, 0.08);
 }
 
 nav {
@@ -73,11 +73,11 @@ nav {
 }
 
 .nav-links a:hover {
-  color: #0284c7;
+  color: #1e63e9;
 }
 
 .nav-btn {
-  background: #0a38b3;
+  background: #1e63e9;
   color: white;
   padding: 13px 24px;
   border: none;
@@ -109,8 +109,8 @@ nav {
   inset: 86px 4% auto auto;
   width: 44%;
   height: 340px;
-  background-image: linear-gradient(rgba(10, 56, 179, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(10, 56, 179, 0.08) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(30, 99, 233, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 99, 233, 0.08) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
   z-index: 0;
@@ -130,13 +130,13 @@ nav {
   align-items: center;
   padding: 10px 16px;
   background: #ffffff;
-  color: #0a38b3;
+  color: #1e63e9;
   border: 1px solid #d8e6ff;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 26px;
-  box-shadow: 0 10px 30px rgba(10, 56, 179, 0.08);
+  box-shadow: 0 10px 30px rgba(30, 99, 233, 0.08);
 }
 
 .hero h2 {
@@ -148,7 +148,7 @@ nav {
 }
 
 .hero h2 span {
-  color: #0a38b3;
+  color: #1e63e9;
 }
 
 .hero p {
@@ -177,9 +177,9 @@ nav {
 }
 
 .btn-primary {
-  background: #0a38b3;
+  background: #1e63e9;
   color: white;
-  box-shadow: 0 14px 28px rgba(10, 56, 179, 0.22);
+  box-shadow: 0 14px 28px rgba(30, 99, 233, 0.22);
 }
 
 .btn-primary:hover {
@@ -193,8 +193,8 @@ nav {
 }
 
 .btn-outline:hover {
-  border-color: #0a38b3;
-  color: #0a38b3;
+  border-color: #1e63e9;
+  color: #1e63e9;
 }
 
 .hero-stats {
@@ -256,7 +256,7 @@ nav {
 .hero-visual-card strong {
   display: block;
   font-size: 26px;
-  color: #0a38b3;
+  color: #1e63e9;
 }
 
 .hero-visual-card span {
@@ -287,7 +287,7 @@ section {
 }
 
 .section-title span {
-  color: #0a38b3;
+  color: #1e63e9;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 5px;
@@ -380,7 +380,7 @@ section {
 
 .about-metrics strong {
   display: block;
-  color: #0a38b3;
+  color: #1e63e9;
   font-size: 24px;
 }
 
@@ -398,18 +398,19 @@ section {
 
 .plan-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 24px;
 }
 
 .plan-card {
   background: white;
-  border-radius: 22px;
-  padding: 0;
+  border-radius: 20px;
+  padding: 22px;
   border: 1px solid #deebff;
   transition: 0.3s;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 16px 45px rgba(15, 23, 42, 0.05);
 }
 
 .plan-card:hover {
@@ -417,80 +418,157 @@ section {
   box-shadow: 0 25px 50px rgba(15, 23, 42, 0.08);
 }
 
-.plan-image {
-  height: 190px;
-  background: #dbeafe;
-}
-
-.plan-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.plan-content {
-  padding: 28px;
+.plan-card-header {
+  display: block;
+  min-height: 58px;
 }
 
 .plan-card h3 {
-  font-size: 24px;
-  margin-bottom: 12px;
+  font-size: 19px;
+  margin-bottom: 10px;
   color: #0f172a;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
-.plan-card p {
+.plan-audience {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.plan-audience span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4f8cff;
+  flex-shrink: 0;
+}
+
+.plan-audience p {
   color: #64748b;
-  margin-bottom: 20px;
+  margin-bottom: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.plan-price-panel {
+  background: #f8fbff;
+  border: 1px solid #deebff;
+  border-radius: 18px;
+  padding: 24px 18px;
+  margin-top: 12px;
+  text-align: center;
 }
 
 .price {
-  font-size: 36px;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+  color: #0f172a;
+  margin: 0;
+}
+
+.price span {
+  color: #1e63e9;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.price strong {
+  font-size: 42px;
+  line-height: 0.95;
   font-weight: 900;
-  color: #0a38b3;
-  margin: 22px 0;
+}
+
+.price em {
+  color: #64748b;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.plan-price-panel p {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.plan-divider {
+  height: 1px;
+  background: #e5efff;
+  margin: 22px -22px 0;
+}
+
+.plan-content {
+  padding-top: 22px;
 }
 
 .plan-card ul {
-  margin: 30px 0;
+  display: grid;
+  gap: 13px;
+  margin: 0;
   list-style: none;
 }
 
 .plan-card li {
-  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 0;
   color: #475569;
-  padding-left: 22px;
-  position: relative;
   line-height: 1.5;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.plan-card li::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  background: #0a38b3;
+.plan-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #1e63e9;
   border-radius: 50%;
-  position: absolute;
-  left: 0;
-  top: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.more-benefits {
+  color: #1e63e9;
+}
+
+.more-benefits .plan-check {
+  background: #eef6ff;
+  color: #1e63e9;
 }
 
 .buy-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
   text-align: center;
-  background: #0a38b3;
+  background: #1e63e9;
   color: white;
-  padding: 18px;
+  padding: 16px 18px;
   border-radius: 12px;
-  font-weight: 700;
+  font-weight: 800;
   border: none;
   cursor: pointer;
-  margin-top: 20px;
+  margin-top: 28px;
 }
 
 .buy-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(10, 56, 179, 0.25);
+  box-shadow: 0 10px 25px rgba(30, 99, 233, 0.25);
 }
 
 /* SERVICES */
@@ -582,7 +660,7 @@ section {
 .team-image {
   width: 120px;
   height: 120px;
-  background: #0a38b3;
+  background: #1e63e9;
   border-radius: 50%;
   margin: auto;
   margin-bottom: 25px;
@@ -609,7 +687,7 @@ section {
 /* CTA */
 
 .cta {
-  background: linear-gradient(135deg, #0a38b3, #245bd6);
+  background: linear-gradient(135deg, #1e63e9, #4f8cff);
   border-radius: 28px;
   padding: 88px 50px;
   text-align: center;
@@ -640,7 +718,7 @@ section {
 
 .btn-white {
   background: white;
-  color: #0a38b3;
+  color: #1e63e9;
 }
 
 .btn-white:hover {
@@ -693,7 +771,7 @@ footer {
 }
 
 .footer-grid a:hover {
-  color: #8ab4ff;
+  color: #93c5fd;
 }
 
 .bottom {
@@ -726,64 +804,6 @@ footer {
 
 .whatsapp:hover {
   transform: scale(1.1);
-}
-
-.chatbox {
-  position: fixed;
-  bottom: 110px;
-  right: 30px;
-  width: 320px;
-  background: white;
-  border-radius: 25px;
-  overflow: hidden;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
-  z-index: 999;
-}
-
-.chat-header {
-  background: #0a38b3;
-  color: white;
-  padding: 18px;
-  font-weight: 700;
-}
-
-.chat-body {
-  padding: 20px;
-  height: 250px;
-  overflow-y: auto;
-  background: #f8fafc;
-}
-
-.chat-msg {
-  background: white;
-  padding: 14px;
-  border-radius: 16px;
-  margin-bottom: 15px;
-  line-height: 1.6;
-  color: #334155;
-  font-size: 14px;
-}
-
-.chat-input {
-  display: flex;
-  border-top: 1px solid #e2e8f0;
-}
-
-.chat-input input {
-  flex: 1;
-  padding: 16px;
-  border: none;
-  outline: none;
-  font-family: inherit;
-}
-
-.chat-input button {
-  background: #0a38b3;
-  color: white;
-  border: none;
-  padding: 0 25px;
-  cursor: pointer;
-  font-weight: 700;
 }
 
 /* HEALTHCARE PROVIDERS */
@@ -840,7 +860,7 @@ footer {
 
 .providers-summary strong {
   display: block;
-  color: #0a38b3;
+  color: #1e63e9;
   font-size: 34px;
   font-weight: 900;
 }
@@ -893,8 +913,8 @@ footer {
 }
 
 .provider-filter select:focus {
-  border-color: #0a38b3;
-  box-shadow: 0 0 0 4px rgba(10, 56, 179, 0.1);
+  border-color: #1e63e9;
+  box-shadow: 0 0 0 4px rgba(30, 99, 233, 0.1);
 }
 
 .provider-results-heading {
@@ -902,7 +922,7 @@ footer {
 }
 
 .provider-results-heading span {
-  color: #0a38b3;
+  color: #1e63e9;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -931,7 +951,7 @@ footer {
 
 .provider-card > span {
   display: inline-flex;
-  color: #0a38b3;
+  color: #1e63e9;
   background: #eef6ff;
   border-radius: 999px;
   padding: 8px 12px;
@@ -965,7 +985,7 @@ footer {
 }
 
 .provider-meta a {
-  color: #0a38b3;
+  color: #1e63e9;
   font-weight: 800;
 }
 
@@ -1081,11 +1101,6 @@ footer {
   .service-card img {
     width: 78px;
     height: 78px;
-  }
-
-  .chatbox {
-    width: 90%;
-    right: 5%;
   }
 
   .whatsapp {

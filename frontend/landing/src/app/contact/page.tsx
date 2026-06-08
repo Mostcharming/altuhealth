@@ -160,17 +160,17 @@ export default function ContactPage() {
             </h3>
 
             <div style={{ marginBottom: "25px" }}>
-              <h4 style={{ color: "#0284c7", marginBottom: "10px" }}>Email</h4>
+              <h4 style={{ color: "#1e63e9", marginBottom: "10px" }}>Email</h4>
               <p style={{ color: "#475569" }}>info@altuhealth.com</p>
             </div>
 
             <div style={{ marginBottom: "25px" }}>
-              <h4 style={{ color: "#0284c7", marginBottom: "10px" }}>Phone</h4>
+              <h4 style={{ color: "#1e63e9", marginBottom: "10px" }}>Phone</h4>
               <p style={{ color: "#475569" }}>+234 906 123 4567</p>
             </div>
 
             <div>
-              <h4 style={{ color: "#0284c7", marginBottom: "10px" }}>
+              <h4 style={{ color: "#1e63e9", marginBottom: "10px" }}>
                 WhatsApp
               </h4>
               <a
@@ -178,7 +178,7 @@ export default function ContactPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  color: "#0284c7",
+                  color: "#1e63e9",
                   textDecoration: "underline",
                   fontWeight: 600,
                 }}
