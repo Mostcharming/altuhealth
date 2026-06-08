@@ -24,7 +24,9 @@ export default function Header() {
       <div className="container">
         <nav>
           <div className="logo">
-            <Link href="/">AltuHealth</Link>
+            <Link href="/" aria-label="AltuHealth home">
+              <img src="/images/main/Darkversion.svg" alt="AltuHealth" />
+            </Link>
           </div>
 
           <div className="nav-links">
