@@ -4,13 +4,13 @@ export default function Team() {
       name: "Emmanuel Omoleye",
       position: "Managing Director / CEO",
       bio: "Leading AltuHealth's vision of transforming healthcare access through innovation and digital healthcare infrastructure.",
-      image: "/images/team/emmanuel-omoleye.jpg",
+      image: "/images/team/gideon-ola.jpg",
     },
     {
       name: "Gideon Ola",
       position: "Head of Operations",
       bio: "Driving organizational growth, strategic partnerships, customer excellence, and operational efficiency.",
-      image: "/images/team/gideon-ola.jpg",
+      image: "/images/team/emmanuel-omoleye.jpg",
     },
   ];
 
