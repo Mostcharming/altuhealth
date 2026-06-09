@@ -34,7 +34,10 @@ export default function About() {
           </div>
 
           <div className="about-panel">
-            <img src="/images/cards/card-03.png" alt="Healthcare coverage" />
+            <img
+              src="/images/altuhealth/about-care-operations.png"
+              alt="Healthcare operations team coordinating coverage and provider support"
+            />
 
             <div className="about-metrics">
               <div>

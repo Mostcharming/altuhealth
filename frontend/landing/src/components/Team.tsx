@@ -4,16 +4,13 @@ export default function Team() {
       name: "Emmanuel Omoleye",
       position: "Managing Director / CEO",
       bio: "Leading AltuHealth's vision of transforming healthcare access through innovation and digital healthcare infrastructure.",
+      image: "/images/team/emmanuel-omoleye.jpg",
     },
     {
       name: "Gideon Ola",
       position: "Head of Operations",
       bio: "Driving organizational growth, strategic partnerships, customer excellence, and operational efficiency.",
-    },
-    {
-      name: "Medical Advisory Team",
-      position: "Clinical Operations",
-      bio: "Ensuring healthcare quality standards, provider coordination, compliance, and healthcare excellence.",
+      image: "/images/team/gideon-ola.jpg",
     },
   ];
 
@@ -32,7 +29,11 @@ export default function Team() {
         <div className="team-grid">
           {team.map((member, index) => (
             <div key={index} className="team-card">
-              <div className="team-image"></div>
+              <img
+                className="team-image"
+                src={member.image}
+                alt={`${member.name}, ${member.position}`}
+              />
               <h3>{member.name}</h3>
               <span>{member.position}</span>
               <p>{member.bio}</p>

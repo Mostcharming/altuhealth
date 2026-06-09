@@ -42,7 +42,10 @@ export default function Hero() {
         </div>
 
         <div className="hero-visual" aria-label="AltuHealth care overview">
-          <img src="/images/cards/card-01.jpg" alt="Healthcare professional" />
+          <img
+            src="/images/altuhealth/hero-care-access.png"
+            alt="Care coordinator helping a family access healthcare coverage"
+          />
           <div className="hero-visual-card hero-visual-card-top">
             <strong>24/7</strong>
             <span>Support Available</span>

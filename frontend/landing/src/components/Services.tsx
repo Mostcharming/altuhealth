@@ -4,19 +4,19 @@ export default function Services() {
       name: "Telemedicine",
       description:
         "Speak with licensed medical professionals remotely through our secure healthcare platform.",
-      image: "/images/cards/card-02.jpg",
+      image: "/images/altuhealth/service-telemedicine.png",
     },
     {
       name: "Digital Claims",
       description:
         "Fast and transparent claims processing powered by intelligent healthcare systems.",
-      image: "/images/cards/card-03.jpg",
+      image: "/images/altuhealth/service-digital-claims.png",
     },
     {
       name: "Healthcare Analytics",
       description:
         "Data-driven healthcare insights helping organizations optimize employee wellbeing.",
-      image: "/images/product/product-02.jpg",
+      image: "/images/altuhealth/service-healthcare-analytics.png",
     },
   ];
 
@@ -34,7 +34,10 @@ export default function Services() {
 
         <div className="feature-layout">
           <div className="feature-image">
-            <img src="/images/cards/card-02.png" alt="Healthcare support" />
+            <img
+              src="/images/altuhealth/services-telemedicine-care.png"
+              alt="Patient using telemedicine services from home"
+            />
           </div>
 
           <div className="service-grid">
