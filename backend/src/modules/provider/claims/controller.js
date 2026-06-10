@@ -149,7 +149,7 @@ async function searchApprovedAuthorizationCodes(req, res, next) {
         const where = {
             providerId,
             status: 'active',
-            dateTimeGiven: { [Op.ne]: null }
+            // dateTimeGiven: { [Op.ne]: null }
         };
 
         if (q) {
@@ -184,10 +184,14 @@ async function searchApprovedAuthorizationCodes(req, res, next) {
 }
 
 async function createClaimFromAuthorization(req, res, next) {
-    const { sequelize, AuthorizationCode, AuthorizationCodeRendered, Claim, ClaimDetail, ClaimDetailItem, Provider } = req.models;
-    const transaction = await sequelize.transaction();
+    const { AuthorizationCode, AuthorizationCodeRendered, Claim, ClaimDetail, ClaimDetailItem, Provider } = req.models;
+    let transaction;
 
     try {
+        const sequelize = req.db || Claim.sequelize;
+        if (!sequelize) return res.fail('Database connection not available', 500);
+
+        transaction = await sequelize.transaction();
         const providerId = req.user?.id;
         const { authorizationCodeId, authorizationCode, notes, saveAsDraft = false } = req.body || {};
 
@@ -211,10 +215,9 @@ async function createClaimFromAuthorization(req, res, next) {
             where: {
                 providerId,
                 status: 'active',
-                dateTimeGiven: { [Op.ne]: null },
+                // dateTimeGiven: { [Op.ne]: null },
                 ...(authorizationCodeId ? { id: authorizationCodeId } : { authorizationCode })
             },
-            include: [{ model: AuthorizationCodeRendered, as: 'renderedItems', required: false }],
             transaction,
             lock: transaction.LOCK.UPDATE
         });
@@ -224,7 +227,12 @@ async function createClaimFromAuthorization(req, res, next) {
             return res.fail('Approved authorization code not found for this provider', 404);
         }
 
-        const renderedItems = auth.renderedItems || [];
+        const renderedItems = await AuthorizationCodeRendered.findAll({
+            where: { authorizationCodeId: auth.id },
+            transaction,
+            order: [['createdAt', 'ASC']]
+        });
+
         if (!renderedItems.length) {
             await transaction.rollback();
             return res.fail('Authorization code has no line items to bill', 400);
@@ -302,6 +310,13 @@ async function createClaimFromAuthorization(req, res, next) {
 
         await ClaimDetailItem.bulkCreate(claimItems, { transaction });
 
+        await auth.update({
+            status: 'used',
+            isUsed: true,
+            usedAt: new Date(),
+            usedAmount: amountSubmitted
+        }, { transaction });
+
         if (!saveAsDraft) {
             try {
                 await createAdminApproval(req.models, {
@@ -339,7 +354,7 @@ async function createClaimFromAuthorization(req, res, next) {
         const created = await Claim.findByPk(claim.id, { include: buildClaimInclude(req.models) });
         return res.success({ claim: created }, saveAsDraft ? 'Bill saved as draft' : 'Bill submitted successfully', 201);
     } catch (err) {
-        await transaction.rollback();
+        if (transaction) await transaction.rollback();
         return next(err);
     }
 }
