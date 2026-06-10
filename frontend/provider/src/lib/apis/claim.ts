@@ -19,30 +19,67 @@ export async function fetchClaims(params: {
   if (params.year) queryParams.append("year", String(params.year));
   if (params.month) queryParams.append("month", String(params.month));
 
-  return apiClient(`/admin/claims/list?${queryParams.toString()}`, {
+  return apiClient(`/provider/claims/list?${queryParams.toString()}`, {
     method: "GET",
   });
 }
 
 export async function getClaimById(id: string) {
-  return apiClient(`/admin/claims/${id}`, {
+  return apiClient(`/provider/claims/${id}`, {
+    method: "GET",
+  });
+}
+
+export interface ClaimAuthorizationCode {
+  id: string;
+  authorizationCode: string;
+  authorizationType: string;
+  amountAuthorized?: number | string | null;
+  validFrom: string;
+  validTo: string;
+  memberName?: string | null;
+  policyNumber?: string | null;
+  member?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    policyNumber?: string;
+  } | null;
+  Diagnosis?: {
+    id: string;
+    name: string;
+  } | null;
+  renderedItems?: Array<{
+    id: string;
+    itemName?: string | null;
+    unit?: string | null;
+    unitPrice?: number | string | null;
+    quantityRendered?: number | string | null;
+    lineAmount?: number | string | null;
+    status: "pending" | "approved" | "rejected";
+  }>;
+}
+
+export async function fetchApprovedAuthorizationCodes(params: {
+  q?: string;
+  limit?: number;
+}) {
+  const queryParams = new URLSearchParams();
+  if (params.q) queryParams.append("q", params.q);
+  if (params.limit) queryParams.append("limit", String(params.limit));
+
+  return apiClient(`/provider/claims/authorization-codes?${queryParams.toString()}`, {
     method: "GET",
   });
 }
 
 export async function createClaim(data: {
-  providerId: string;
-  numberOfEncounters: number;
-  amountSubmitted: number;
-  year: number;
-  month: number;
-  bankUsedForPayment?: string;
-  bankAccountNumber?: string;
-  accountName?: string;
-  description?: string;
-  attachmentUrl?: string;
+  authorizationCodeId?: string;
+  authorizationCode?: string;
+  notes?: string;
+  saveAsDraft?: boolean;
 }) {
-  return apiClient("/admin/claims", {
+  return apiClient("/provider/claims", {
     method: "POST",
     body: data,
     headers: {
@@ -52,7 +89,7 @@ export async function createClaim(data: {
 }
 
 export async function updateClaim(id: string, data: Partial<Claim>) {
-  return apiClient(`/admin/claims/${id}`, {
+  return apiClient(`/provider/claims/${id}`, {
     method: "PUT",
     body: data,
     headers: {
@@ -62,13 +99,13 @@ export async function updateClaim(id: string, data: Partial<Claim>) {
 }
 
 export async function deleteClaim(id: string) {
-  return apiClient(`/admin/claims/${id}`, {
+  return apiClient(`/provider/claims/${id}`, {
     method: "DELETE",
   });
 }
 
 export async function submitClaim(id: string) {
-  return apiClient(`/admin/claims/${id}/submit`, {
+  return apiClient(`/provider/claims/${id}/submit`, {
     method: "POST",
   });
 }

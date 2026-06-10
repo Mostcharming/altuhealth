@@ -1,65 +1,86 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import Select from "@/components/form/Select";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
-import { apiClient } from "@/lib/apiClient";
+import {
+  ClaimAuthorizationCode,
+  createClaim,
+  fetchApprovedAuthorizationCodes,
+} from "@/lib/apis/claim";
+import { formatDate, formatPrice } from "@/lib/formatDate";
 import { useClaimStore } from "@/lib/store/claimStore";
-import { useEffect, useState } from "react";
-
-interface Enrollee {
-  id: string;
-  firstName: string;
-  lastName: string;
-  policyNumber: string;
-}
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function PageMetricsClaimsCreate() {
   const { isOpen, openModal, closeModal } = useModal();
   const [loading, setLoading] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
   const addClaim = useClaimStore((state) => state.addClaim);
 
   const errorModal = useModal();
   const successModal = useModal();
 
   // Form state
-  const [authCode, setAuthCode] = useState("");
+  const [authCodeQuery, setAuthCodeQuery] = useState("");
+  const [selectedAuthorization, setSelectedAuthorization] =
+    useState<ClaimAuthorizationCode | null>(null);
   const [notes, setNotes] = useState("");
-
-  // Fetch data
-  const [enrollees, setEnrollees] = useState<Enrollee[]>([]);
+  const [authorizationCodes, setAuthorizationCodes] = useState<
+    ClaimAuthorizationCode[]
+  >([]);
   const [errorMessage, setErrorMessage] = useState(
     "Failed to create claim. Please try again.",
   );
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchEnrollees();
-    }
-  }, [isOpen]);
-
-  const fetchEnrollees = async () => {
+  const fetchAuthorizationCodes = useCallback(async (q: string) => {
     try {
-      const data = await apiClient("/admin/enrollees?limit=all", {
-        method: "GET",
-      });
-      const items: Enrollee[] =
-        data?.data?.enrollees && Array.isArray(data.data.enrollees)
-          ? data.data.enrollees
+      setLookupLoading(true);
+      const data = await fetchApprovedAuthorizationCodes({ q, limit: 20 });
+      const items: ClaimAuthorizationCode[] =
+        data?.data?.authorizationCodes &&
+        Array.isArray(data.data.authorizationCodes)
+          ? data.data.authorizationCodes
           : Array.isArray(data)
             ? data
             : [];
-      setEnrollees(items);
+      setAuthorizationCodes(items);
     } catch (err) {
-      console.warn("Failed to fetch enrollees", err);
+      console.warn("Failed to fetch authorization codes", err);
+    } finally {
+      setLookupLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAuthorizationCodes("");
+    }
+  }, [fetchAuthorizationCodes, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const timeout = window.setTimeout(() => {
+      fetchAuthorizationCodes(authCodeQuery);
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [authCodeQuery, fetchAuthorizationCodes, isOpen]);
+
+  const approvedLineItems = useMemo(
+    () =>
+      selectedAuthorization?.renderedItems?.filter(
+        (item) => item.status === "approved",
+      ) || [],
+    [selectedAuthorization],
+  );
 
   const resetForm = () => {
-    setAuthCode("");
+    setAuthCodeQuery("");
+    setSelectedAuthorization(null);
+    setAuthorizationCodes([]);
     setNotes("");
   };
 
@@ -73,10 +94,14 @@ export default function PageMetricsClaimsCreate() {
     closeModal();
   };
 
-  const handleSubmit = async () => {
+  const selectAuthorization = (authorization: ClaimAuthorizationCode) => {
+    setSelectedAuthorization(authorization);
+    setAuthCodeQuery(authorization.authorizationCode);
+  };
+
+  const handleSubmit = async (saveAsDraft: boolean) => {
     try {
-      // Validation
-      if (!authCode) {
+      if (!selectedAuthorization) {
         setErrorMessage("Auth code is required");
         errorModal.openModal();
         return;
@@ -84,24 +109,10 @@ export default function PageMetricsClaimsCreate() {
 
       setLoading(true);
 
-      // Get provider ID from localStorage or context
-      const providerId = localStorage.getItem("providerId");
-      if (!providerId) {
-        setErrorMessage("Provider ID not found. Please login again.");
-        errorModal.openModal();
-        return;
-      }
-
-      const payload = {
-        providerId,
-        authorizationCode: authCode,
+      const data = await createClaim({
+        authorizationCodeId: selectedAuthorization.id,
         notes: notes || undefined,
-      };
-
-      const data = await apiClient("/admin/claims/with-details", {
-        method: "POST",
-        body: payload,
-        onLoading: (l: boolean) => setLoading(l),
+        saveAsDraft,
       });
 
       if (data?.data?.claim) {
@@ -157,7 +168,7 @@ export default function PageMetricsClaimsCreate() {
             Create Claim
           </h4>
           <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-            Fill in the claim details and add service encounters below.
+            Select an approved authorization code to create a provider bill.
           </p>
         </div>
 
@@ -165,21 +176,117 @@ export default function PageMetricsClaimsCreate() {
           <div className="custom-scrollbar max-h-[600px] overflow-y-auto px-2">
             {/* Auth Code and Notes */}
             <div className="grid grid-cols-1 gap-x-6 gap-y-5">
-              {/* Select Auth Code */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
-                  Select Auth Code *
+                  Authorization Code *
                 </label>
-                <Select
-                  options={enrollees.map((e) => ({
-                    value: "",
-                    label: `${e.firstName} ${e.lastName} (${e.policyNumber})`,
-                  }))}
-                  placeholder="Select auth code"
-                  onChange={(value) => setAuthCode(value as string)}
-                  defaultValue={authCode || ""}
+                <input
+                  value={authCodeQuery}
+                  onChange={(event) => {
+                    setAuthCodeQuery(event.target.value);
+                    setSelectedAuthorization(null);
+                  }}
+                  placeholder="Type authorization code"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-300 focus:ring-brand-500/10 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                 />
+                <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+                  {lookupLoading ? (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      Searching...
+                    </div>
+                  ) : authorizationCodes.length > 0 ? (
+                    authorizationCodes.map((authorization) => (
+                      <button
+                        type="button"
+                        key={authorization.id}
+                        onClick={() => selectAuthorization(authorization)}
+                        className={`block w-full px-4 py-3 text-left text-sm transition hover:bg-gray-50 dark:hover:bg-white/[0.03] ${
+                          selectedAuthorization?.id === authorization.id
+                            ? "bg-brand-50 dark:bg-brand-500/10"
+                            : ""
+                        }`}
+                      >
+                        <span className="font-medium text-gray-800 dark:text-white/90">
+                          {authorization.authorizationCode}
+                        </span>
+                        <span className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
+                          {authorization.memberName || "Member"}{" "}
+                          {authorization.policyNumber
+                            ? `(${authorization.policyNumber})`
+                            : ""}
+                          {" · "}
+                          {authorization.Diagnosis?.name || "No diagnosis"}
+                          {" · "}
+                          {formatPrice(Number(authorization.amountAuthorized || 0))}
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      No approved authorization codes found.
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {selectedAuthorization && (
+                <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+                  <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+                    <div>
+                      <span className="block text-gray-500 dark:text-gray-400">
+                        Member
+                      </span>
+                      <span className="font-medium text-gray-800 dark:text-white/90">
+                        {selectedAuthorization.memberName || "-"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="block text-gray-500 dark:text-gray-400">
+                        Validity
+                      </span>
+                      <span className="font-medium text-gray-800 dark:text-white/90">
+                        {formatDate(selectedAuthorization.validFrom)} -{" "}
+                        {formatDate(selectedAuthorization.validTo)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200 dark:border-gray-800">
+                          <th className="py-2 font-medium text-gray-500">
+                            Line Item
+                          </th>
+                          <th className="py-2 font-medium text-gray-500">
+                            Qty
+                          </th>
+                          <th className="py-2 font-medium text-gray-500">
+                            Amount
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {approvedLineItems.map((item) => (
+                          <tr
+                            key={item.id}
+                            className="border-b border-gray-100 dark:border-gray-800"
+                          >
+                            <td className="py-2 text-gray-700 dark:text-gray-300">
+                              {item.itemName || "Authorized item"}
+                            </td>
+                            <td className="py-2 text-gray-700 dark:text-gray-300">
+                              {item.quantityRendered || 1} {item.unit || ""}
+                            </td>
+                            <td className="py-2 text-gray-700 dark:text-gray-300">
+                              {formatPrice(Number(item.lineAmount || 0))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* Notes Text Area */}
               <div>
@@ -207,12 +314,20 @@ export default function PageMetricsClaimsCreate() {
               Cancel
             </button>
             <button
-              disabled={loading || !authCode}
-              onClick={handleSubmit}
+              disabled={loading || !selectedAuthorization}
+              onClick={() => handleSubmit(true)}
+              type="button"
+              className="flex justify-center rounded-lg border border-brand-500 bg-white px-4 py-2.5 text-sm font-medium text-brand-500 hover:bg-brand-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-900"
+            >
+              {loading ? "Saving..." : "Save Draft"}
+            </button>
+            <button
+              disabled={loading || !selectedAuthorization}
+              onClick={() => handleSubmit(false)}
               type="button"
               className="flex justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Creating..." : "Create Claim"}
+              {loading ? "Submitting..." : "Submit Bill"}
             </button>
           </div>
         </form>

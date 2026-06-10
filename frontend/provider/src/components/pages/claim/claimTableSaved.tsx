@@ -3,12 +3,10 @@
 import Select from "@/components/form/Select";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { EyeIcon } from "@/icons";
-import { fetchClaims, fetchProviders } from "@/lib/apis/claim";
-import { useAuthStore } from "@/lib/authStore";
+import { fetchClaims } from "@/lib/apis/claim";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate, formatPrice, getMonthName } from "@/lib/formatDate";
 import { Claim, useClaimStore } from "@/lib/store/claimStore";
-import { Provider, useProviderStore } from "@/lib/store/providerStore";
 import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 
@@ -17,8 +15,6 @@ const ClaimTable: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
-  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
@@ -26,8 +22,6 @@ const ClaimTable: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number>(1);
   const claims = useClaimStore((s) => s.claims);
   const setClaims = useClaimStore((s) => s.setClaims);
-  // const providers = useProviderStore((s) => s.providers);
-  const setProviders = useProviderStore((s) => s.setProviders);
 
   type Header = {
     key: keyof Claim | "actions";
@@ -53,19 +47,15 @@ const ClaimTable: React.FC = () => {
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
-  const user = useAuthStore((s) => s.user);
   const fetch = useCallback(async () => {
     try {
-      setSelectedProviderId(user?.id || "");
-      setSelectedStatus("draft");
       setLoading(true);
 
       const data = await fetchClaims({
         limit,
         page: currentPage,
         q: search,
-        providerId: selectedProviderId || undefined,
-        status: selectedStatus || undefined,
+        status: "draft",
       });
 
       const items: Claim[] =
@@ -85,37 +75,11 @@ const ClaimTable: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [
-    user?.id,
-    limit,
-    currentPage,
-    search,
-    selectedProviderId,
-    selectedStatus,
-    setClaims,
-  ]);
+  }, [limit, currentPage, search, setClaims]);
 
   useEffect(() => {
     fetch();
   }, [fetch]);
-
-  // Fetch providers on component mount
-  useEffect(() => {
-    const fetchProviderList = async () => {
-      try {
-        const data = await fetchProviders({ limit: 100 });
-        const items: Provider[] =
-          data?.data?.list && Array.isArray(data.data.list)
-            ? data.data.list
-            : [];
-        setProviders(items);
-      } catch (err) {
-        console.warn("Providers fetch failed", err);
-      }
-    };
-
-    fetchProviderList();
-  }, [setProviders]);
 
   const startEntry: number =
     totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
@@ -162,7 +126,7 @@ const ClaimTable: React.FC = () => {
   }
 
   const handleNavigate = (claim: Claim) => {
-    router.push(`/bills/${claim.id}`);
+    router.push(`/saved-bills/${claim.id}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -173,7 +137,7 @@ const ClaimTable: React.FC = () => {
         return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
       case "pending_vetting":
         return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-      case "Under_review":
+      case "under_review":
         return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400";
       case "awaiting_payment":
         return "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";

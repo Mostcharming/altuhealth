@@ -41,6 +41,23 @@ export interface Claim {
     email: string;
     phoneNumber: string;
   };
+  claimDetails?: Array<{
+    id: string;
+    authorizationCode?: string | null;
+    serviceType: string;
+    amountSubmitted: number;
+    serviceDate: string;
+    items?: Array<{
+      id: string;
+      itemType: "drug" | "service";
+      itemName: string;
+      quantity: number;
+      unitPrice: number;
+      totalAmount: number;
+      unit?: string | null;
+      description?: string | null;
+    }>;
+  }>;
 }
 
 type ClaimState = {
