@@ -384,6 +384,9 @@ const AuthorizationCodesTable: React.FC = () => {
     }
   };
 
+  const getAuthorizationCodeDisplay = (code: AuthorizationCode) =>
+    code.status?.toLowerCase() === "pending" ? "*****" : code.authorizationCode;
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
@@ -599,7 +602,7 @@ const AuthorizationCodesTable: React.FC = () => {
                   >
                     <td className="p-4 whitespace-nowrap">
                       <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
-                        {code.authorizationCode}
+                        {getAuthorizationCodeDisplay(code)}
                       </p>
                     </td>
                     <td className="p-4 whitespace-nowrap">

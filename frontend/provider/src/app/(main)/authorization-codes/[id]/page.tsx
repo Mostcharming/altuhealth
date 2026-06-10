@@ -92,6 +92,10 @@ function statusClass(status?: string) {
   }
 }
 
+function getAuthorizationCodeDisplay(code: AuthorizationCode) {
+  return code.status?.toLowerCase() === "pending" ? "*****" : code.authorizationCode;
+}
+
 function Field({ label, value }: { label: string; value?: string | number | null }) {
   return (
     <div>
@@ -133,7 +137,9 @@ export default function SingleAuthorizationCode() {
     if (id) fetchAuthorizationCode();
   }, [id]);
 
-  const pageTitle = authorizationCode?.authorizationCode || "Authorization Code";
+  const pageTitle = authorizationCode
+    ? getAuthorizationCodeDisplay(authorizationCode)
+    : "Authorization Code";
   const memberName = useMemo(() => {
     const member = authorizationCode?.member;
     if (!member) return "-";
@@ -163,7 +169,7 @@ export default function SingleAuthorizationCode() {
                   Authorization Code
                 </p>
                 <h1 className="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">
-                  {authorizationCode.authorizationCode}
+                  {getAuthorizationCodeDisplay(authorizationCode)}
                 </h1>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span
