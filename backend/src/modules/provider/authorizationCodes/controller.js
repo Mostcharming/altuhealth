@@ -247,8 +247,10 @@ async function createAuthorizationCode(req, res, next) {
 
         const providerAuthUrl = `${String(config.providerUrl || '').replace(/\/+$/, '')}/authorization-codes/${authorizationCode.id}`;
         const adminAuthUrl = `${String(config.adminUrl || '').replace(/\/+$/, '')}/authorization-codes/${authorizationCode.id}`;
-        const notificationTitle = `Authorization request ${authorizationCode.authorizationCode} created`;
-        const notificationMessage = `Authorization request ${authorizationCode.authorizationCode} was submitted for ${resolvedMember.label} and is pending admin approval.`;
+        // const notificationTitle = `Authorization request ${authorizationCode.authorizationCode} created`;
+        // const notificationMessage = `Authorization request ${authorizationCode.authorizationCode} was submitted for ${resolvedMember.label} and is pending admin approval.`;
+        const notificationTitle = `Authorization request  created`;
+        const notificationMessage = `Authorization request  was submitted for ${resolvedMember.label} and is pending admin approval.`;
 
         await Promise.all([
             addAdminNotification(req.models, {
