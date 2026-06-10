@@ -104,6 +104,9 @@ export default function PageMetricsAuthorizationCodes({
     "Type policy number or email.",
   );
   const [diagnosisId, setDiagnosisId] = useState("");
+  const [diagnosisSearch, setDiagnosisSearch] = useState("");
+  const [showDiagnosisSuggestions, setShowDiagnosisSuggestions] =
+    useState(false);
   const [authorizationType, setAuthorizationType] = useState<
     "inpatient" | "outpatient" | "procedure" | "medication" | "diagnostic"
   >("inpatient");
@@ -141,6 +144,12 @@ export default function PageMetricsAuthorizationCodes({
     { value: "medication", label: "Medication" },
     { value: "diagnostic", label: "Diagnostic" },
   ];
+
+  const diagnosisSuggestions = diagnoses
+    .filter((diagnosis) =>
+      diagnosis.name.toLowerCase().includes(diagnosisSearch.trim().toLowerCase()),
+    )
+    .slice(0, 8);
 
   useEffect(() => {
     if (isOpen) {
@@ -270,6 +279,8 @@ export default function PageMetricsAuthorizationCodes({
     setEnrolleeLookupStatus("idle");
     setEnrolleeLookupHint("Type policy number or email.");
     setDiagnosisId("");
+    setDiagnosisSearch("");
+    setShowDiagnosisSuggestions(false);
     setAuthorizationType("inpatient");
     setNotes("");
     setCurrentDetail({
@@ -366,6 +377,10 @@ export default function PageMetricsAuthorizationCodes({
         memberId: enrolleeId,
         resultType: memberType,
         diagnosisId: diagnosisId || undefined,
+        diagnosisName:
+          !diagnosisId && diagnosisSearch.trim()
+            ? diagnosisSearch.trim()
+            : undefined,
         authorizationType,
         date: currentDetail.serviceDate,
         notes: notes || undefined,
@@ -577,15 +592,47 @@ export default function PageMetricsAuthorizationCodes({
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">
                   Diagnosis
                 </label>
-                <Select
-                  options={diagnoses.map((d) => ({
-                    value: d.id,
-                    label: `${d.name} `,
-                  }))}
-                  placeholder="Select diagnosis"
-                  onChange={(value) => setDiagnosisId(value as string)}
-                  defaultValue={diagnosisId}
-                />
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search or enter diagnosis..."
+                    value={diagnosisSearch}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      setDiagnosisSearch(e.target.value);
+                      setDiagnosisId("");
+                      setShowDiagnosisSuggestions(true);
+                    }}
+                    onFocus={() => setShowDiagnosisSuggestions(true)}
+                    onBlur={() => {
+                      setTimeout(() => setShowDiagnosisSuggestions(false), 150);
+                    }}
+                  />
+                  {showDiagnosisSuggestions && diagnosisSearch.trim() ? (
+                    <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                      {diagnosisSuggestions.length ? (
+                        diagnosisSuggestions.map((diagnosis) => (
+                          <button
+                            key={diagnosis.id}
+                            type="button"
+                            className="block w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              setDiagnosisId(diagnosis.id);
+                              setDiagnosisSearch(diagnosis.name);
+                              setShowDiagnosisSuggestions(false);
+                            }}
+                          >
+                            {diagnosis.name}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2.5 text-sm text-gray-500 dark:text-gray-400">
+                          No matching diagnosis. This will be created on submit.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <div>

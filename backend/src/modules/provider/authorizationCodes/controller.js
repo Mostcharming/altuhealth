@@ -140,6 +140,7 @@ async function createAuthorizationCode(req, res, next) {
         const providerId = req.user?.id;
         const {
             diagnosisId,
+            diagnosisName,
             authorizationType,
             date,
             validFrom,
@@ -157,6 +158,7 @@ async function createAuthorizationCode(req, res, next) {
         const provider = await Provider.findByPk(providerId);
         if (!provider) return res.fail('Provider not found', 404);
 
+        const normalizedDiagnosisName = typeof diagnosisName === 'string' ? diagnosisName.trim() : '';
         if (diagnosisId) {
             const diagnosis = await Diagnosis.findByPk(diagnosisId);
             if (!diagnosis) return res.fail('Diagnosis not found', 404);
@@ -184,12 +186,39 @@ async function createAuthorizationCode(req, res, next) {
         }
 
         const authorizationCode = await AuthorizationCode.sequelize.transaction(async (transaction) => {
+            let resolvedDiagnosisId = diagnosisId || null;
+
+            if (!resolvedDiagnosisId && normalizedDiagnosisName) {
+                const existingDiagnosis = await Diagnosis.findOne({
+                    where: Diagnosis.sequelize.where(
+                        Diagnosis.sequelize.fn('LOWER', Diagnosis.sequelize.col('name')),
+                        normalizedDiagnosisName.toLowerCase()
+                    ),
+                    transaction
+                });
+
+                if (existingDiagnosis) {
+                    resolvedDiagnosisId = existingDiagnosis.id;
+                } else {
+                    const createdDiagnosis = await Diagnosis.create({
+                        name: normalizedDiagnosisName,
+                        description: null,
+                        severity: null,
+                        symptoms: null,
+                        treatment: null,
+                        isChronicCondition: false
+                    }, { transaction });
+
+                    resolvedDiagnosisId = createdDiagnosis.id;
+                }
+            }
+
             const authCode = await authorizationCodeGenerator.getUniqueAuthorizationCode(AuthorizationCode);
             const created = await AuthorizationCode.create({
                 authorizationCode: authCode,
                 ...resolvedMember.fields,
                 providerId,
-                diagnosisId: diagnosisId || null,
+                diagnosisId: resolvedDiagnosisId,
                 authorizationType,
                 validFrom: startDate,
                 validTo: endDate,
