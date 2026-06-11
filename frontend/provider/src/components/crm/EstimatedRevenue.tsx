@@ -13,6 +13,7 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 
 interface BillsData {
   totalBilled: string;
+  totalBilledAmount: number;
   billsPaid: string;
   billsPaidPercentage: number;
   billsDraft: string;
@@ -26,6 +27,7 @@ interface EstimatedRevenueProps {
 
 const defaultData: BillsData = {
   totalBilled: "0",
+  totalBilledAmount: 0,
   billsPaid: "NGN 0.00",
   billsPaidPercentage: 0,
   billsDraft: "NGN 0.00",
@@ -78,9 +80,7 @@ export default function EstimatedRevenue({
             fontWeight: "600",
             offsetY: -25,
             color: "#1D2939",
-            formatter: function (val) {
-              return "NGN " + val;
-            },
+            formatter: () => billsData.totalBilled,
           },
         },
       },
@@ -94,7 +94,7 @@ export default function EstimatedRevenue({
     },
     labels: ["Bill Submitted"],
   };
-  const series = [0];
+  const series = [billsData.totalBilledAmount > 0 ? 100 : 0];
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
       <div className="flex justify-between">
@@ -142,7 +142,7 @@ export default function EstimatedRevenue({
           />
         </div>
         <span className="absolute left-1/2 top-[60%] -translate-x-1/2 -translate-y-[60%] text-xs font-normal text-gray-500 dark:text-gray-400">
-          Bill Submitted
+          {billsData.totalBilled}
         </span>
       </div>
 

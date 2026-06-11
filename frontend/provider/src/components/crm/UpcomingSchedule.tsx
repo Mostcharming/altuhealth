@@ -5,7 +5,7 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
 interface Appointment {
-  id: number;
+  id: string;
   title: string;
   date: string;
   time: string;

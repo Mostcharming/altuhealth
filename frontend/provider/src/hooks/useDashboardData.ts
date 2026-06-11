@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiClient } from "@/lib/apiClient";
 
 export interface ProviderMetricItem {
   id: number;
@@ -10,7 +11,7 @@ export interface ProviderMetricItem {
 }
 
 export interface ProviderAppointment {
-  id: number;
+  id: string;
   title: string;
   date: string;
   time: string;
@@ -31,6 +32,7 @@ export interface ProviderDashboardData {
   };
   bills: {
     totalBilled: string;
+    totalBilledAmount: number;
     billsPaid: string;
     billsPaidPercentage: number;
     billsDraft: string;
@@ -87,6 +89,7 @@ const mockProviderDashboardData: ProviderDashboardData = {
   },
   bills: {
     totalBilled: "0",
+    totalBilledAmount: 0,
     billsPaid: "NGN 0.00",
     billsPaidPercentage: 0,
     billsDraft: "NGN 0.00",
@@ -109,27 +112,21 @@ export function useProviderDashboardData() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate API call with delay
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // In a real app, you would call:
-        // const response = await apiClient("/provider/dashboard");
-        // const data = await response.data;
-
-        setData(mockProviderDashboardData);
+        const response = await apiClient("/provider/dashboard/overview");
+        setData(response?.data ?? mockProviderDashboardData);
         setError(null);
       } catch (err) {
         console.warn(
           "[useProviderDashboardData] Failed to fetch dashboard data:",
           err,
         );
-        // Use mock data as fallback
         setData(mockProviderDashboardData);
-        setError(null);
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch dashboard data",
+        );
       } finally {
         setIsLoading(false);
       }
