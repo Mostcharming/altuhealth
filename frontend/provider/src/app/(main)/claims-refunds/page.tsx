@@ -1,17 +1,17 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
+import ClaimsRefundsTable from "@/components/pages/claims-refunds/ClaimsRefundsTable";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Provider Services",
-  description: "View services created for your provider account.",
+  title: "AltuHealth Provider Payments & Refunds",
+  description: "View payments and refunds made to your provider account.",
 };
 
-export default function Services() {
+export default function ClaimsRefunds() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Services" />
-      <SpinnerThree />
+      <PageBreadcrumb pageTitle="Payments & Refunds" />
+      <ClaimsRefundsTable />
     </div>
   );
 }

@@ -79,7 +79,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    name: "Claims & Refunds",
+    name: "Payments & Refunds",
     icon: <TruckDelivery />,
     path: "/claims-refunds",
   },

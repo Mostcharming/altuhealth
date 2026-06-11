@@ -12,6 +12,13 @@ export interface PaymentAdvice {
     phoneNumber?: string;
   };
   paymentBatchId?: string | null;
+  paymentBatch?: {
+    id: string;
+    title: string;
+    status?: string;
+    paymentDate?: string | null;
+    dueDate?: string | null;
+  };
   totalAmount: number;
   numberOfClaims: number;
   paymentDate: string;
