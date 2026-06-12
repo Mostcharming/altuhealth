@@ -3,6 +3,80 @@ const { addAuditLog } = require('../../../utils/addAdminNotification');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
 
+function toMoney(value) {
+    const amount = Number(value || 0);
+    return Number.isFinite(amount) ? amount : 0;
+}
+
+function memberName(member) {
+    if (!member) return null;
+    return [member.firstName, member.lastName].filter(Boolean).join(' ').trim() || null;
+}
+
+async function attachMember(models, data) {
+    const { Enrollee, EnrolleeDependent, RetailEnrollee, RetailEnrolleeDependent } = models;
+    let member = null;
+    let memberType = null;
+
+    if (data.enrolleeId) {
+        member = await Enrollee.findByPk(data.enrolleeId, {
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber']
+        });
+        memberType = 'enrollee';
+    } else if (data.enrolleeDependentId) {
+        member = await EnrolleeDependent.findByPk(data.enrolleeDependentId, {
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber', 'enrolleeId']
+        });
+        memberType = 'dependent';
+    } else if (data.retailEnrolleeId) {
+        member = await RetailEnrollee.findByPk(data.retailEnrolleeId, {
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber']
+        });
+        memberType = 'retail_enrollee';
+    } else if (data.retailEnrolleeDependentId) {
+        member = await RetailEnrolleeDependent.findByPk(data.retailEnrolleeDependentId, {
+            attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email', 'phoneNumber', 'retailEnrolleeId']
+        });
+        memberType = 'retail_dependent';
+    }
+
+    data.member = member ? member.toJSON() : null;
+    data.memberName = memberName(data.member);
+    data.memberType = memberType;
+    return data;
+}
+
+async function syncAuthorizationCodeReviewState(models, authorizationCodeId, transaction) {
+    const { AuthorizationCode, AuthorizationCodeRendered } = models;
+    const items = await AuthorizationCodeRendered.findAll({
+        where: { authorizationCodeId },
+        transaction
+    });
+
+    if (!items.length) return;
+
+    const reviewedItems = items.filter((item) => item.status !== 'pending');
+    const acceptedItems = items.filter((item) => ['approved', 'partial'].includes(item.status));
+    const amountAuthorized = acceptedItems.reduce((sum, item) => {
+        const amount = item.status === 'partial' ? item.approvedAmount : item.lineAmount;
+        return sum + toMoney(amount);
+    }, 0);
+
+    const update = { amountAuthorized };
+
+    if (reviewedItems.length === items.length) {
+        update.status = acceptedItems.length ? 'active' : 'cancelled';
+        update.dateTimeGiven = acceptedItems.length ? new Date() : null;
+    } else {
+        update.status = 'pending';
+    }
+
+    await AuthorizationCode.update(update, {
+        where: { id: authorizationCodeId },
+        transaction
+    });
+}
+
 async function createAuthorizationCode(req, res, next) {
     try {
         const { AuthorizationCode, Enrollee, Provider, Diagnosis, Company, CompanyPlan, Admin } = req.models;
@@ -329,34 +403,39 @@ async function listAuthorizationCodes(req, res, next) {
 
 async function getAuthorizationCode(req, res, next) {
     try {
-        const { AuthorizationCode, Enrollee, Provider, Diagnosis, Company, CompanyPlan, Admin } = req.models;
+        const {
+            AuthorizationCode,
+            AuthorizationCodeRendered,
+            Drug,
+            Service,
+            Provider,
+            Diagnosis,
+            Company,
+            CompanyPlan,
+            Admin
+        } = req.models;
         const { id } = req.params;
 
         const authCode = await AuthorizationCode.findByPk(id, {
             include: [
                 {
-                    model: Enrollee,
-                    attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email'],
-                    required: false
-                },
-                {
                     model: Provider,
-                    attributes: ['id', 'name', 'code', 'email'],
+                    attributes: ['id', 'name', 'code', 'email', 'phoneNumber'],
                     required: false
                 },
                 {
                     model: Diagnosis,
-                    attributes: ['id', 'diagnosisName', 'diagnosisCode'],
+                    attributes: ['id', 'name', 'severity'],
                     required: false
                 },
                 {
                     model: Company,
-                    attributes: ['id', 'companyName', 'companyCode'],
+                    attributes: ['id', 'name'],
                     required: false
                 },
                 {
                     model: CompanyPlan,
-                    attributes: ['id', 'planName', 'planCode'],
+                    attributes: ['id', 'name', 'planId'],
                     required: false
                 },
                 {
@@ -364,14 +443,127 @@ async function getAuthorizationCode(req, res, next) {
                     attributes: ['id', 'firstName', 'lastName', 'email'],
                     as: 'approver',
                     required: false
+                },
+                {
+                    model: AuthorizationCodeRendered,
+                    as: 'renderedItems',
+                    required: false,
+                    include: [
+                        { model: Drug, attributes: ['id', 'name', 'unit', 'strength', 'price', 'currency'], required: false },
+                        { model: Service, attributes: ['id', 'name', 'code', 'price', 'priceType', 'fixedPrice', 'rateType', 'rateAmount', 'currency'], required: false }
+                    ]
                 }
-            ]
+            ],
+            order: [[{ model: AuthorizationCodeRendered, as: 'renderedItems' }, 'createdAt', 'ASC']]
         });
 
         if (!authCode) return res.fail('Authorization code not found', 404);
 
-        return res.success(authCode.toJSON());
+        const data = await attachMember(req.models, authCode.toJSON());
+        return res.success({ authorizationCode: data }, 'Authorization code retrieved');
     } catch (err) {
+        return next(err);
+    }
+}
+
+async function reviewRenderedItem(req, res, next) {
+    let transaction;
+
+    try {
+        const { AuthorizationCode, AuthorizationCodeRendered } = req.models;
+        const { id, itemId } = req.params;
+        const { action, approvedAmount, adminComment } = req.body || {};
+
+        const validActions = ['approve', 'decline', 'partial'];
+        if (!validActions.includes(action)) {
+            return res.fail(`\`action\` must be one of: ${validActions.join(', ')}`, 400);
+        }
+
+        if (['decline', 'partial'].includes(action) && !adminComment) {
+            return res.fail('`adminComment` is required for declined and partially approved items', 400);
+        }
+
+        const sequelize = AuthorizationCodeRendered.sequelize;
+        transaction = await sequelize.transaction();
+
+        const authCode = await AuthorizationCode.findByPk(id, { transaction });
+        if (!authCode) {
+            await transaction.rollback();
+            transaction = null;
+            return res.fail('Authorization code not found', 404);
+        }
+
+        const item = await AuthorizationCodeRendered.findOne({
+            where: { id: itemId, authorizationCodeId: id },
+            transaction,
+            lock: transaction.LOCK.UPDATE
+        });
+
+        if (!item) {
+            await transaction.rollback();
+            transaction = null;
+            return res.fail('Authorization code line item not found', 404);
+        }
+
+        const updates = {
+            adminComment: adminComment || null,
+            reviewedBy: req.user?.id || null,
+            reviewedAt: new Date()
+        };
+
+        if (action === 'approve') {
+            updates.status = 'approved';
+            updates.approvedAmount = item.lineAmount;
+        }
+
+        if (action === 'decline') {
+            updates.status = 'rejected';
+            updates.approvedAmount = 0;
+        }
+
+        if (action === 'partial') {
+            const amount = toMoney(approvedAmount);
+            if (amount <= 0) {
+                await transaction.rollback();
+                transaction = null;
+                return res.fail('`approvedAmount` must be greater than 0 for partial approval', 400);
+            }
+
+            if (amount >= toMoney(item.lineAmount)) {
+                await transaction.rollback();
+                transaction = null;
+                return res.fail('`approvedAmount` must be less than the requested line amount for partial approval', 400);
+            }
+
+            updates.status = 'partial';
+            updates.approvedAmount = amount;
+        }
+
+        await item.update(updates, { transaction });
+        await syncAuthorizationCodeReviewState(req.models, id, transaction);
+        await transaction.commit();
+        transaction = null;
+
+        await addAuditLog(req.models, {
+            action: `authorization_code.line_item.${action}`,
+            message: `Authorization code ${authCode.authorizationCode} line item reviewed`,
+            userId: req.user?.id || null,
+            userType: req.user?.type || null,
+            meta: {
+                authorizationCodeId: id,
+                authorizationCodeRenderedId: itemId,
+                action,
+                approvedAmount: updates.approvedAmount
+            }
+        });
+
+        const refreshed = await AuthorizationCode.findByPk(id, {
+            include: [{ model: AuthorizationCodeRendered, as: 'renderedItems' }]
+        });
+
+        return res.success({ authorizationCode: refreshed }, 'Authorization code line item reviewed');
+    } catch (err) {
+        if (transaction) await transaction.rollback();
         return next(err);
     }
 }
@@ -465,6 +657,7 @@ module.exports = {
     getAuthorizationCode,
     approveAuthorizationCode,
     rejectAuthorizationCode,
+    reviewRenderedItem,
     getAuthorizationTypeOptions,
     getAuthorizationStatusOptions
 };

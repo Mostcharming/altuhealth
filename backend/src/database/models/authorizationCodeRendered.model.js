@@ -67,8 +67,34 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
             field: 'line_amount'
         },
+        approvedAmount: {
+            type: DataTypes.DECIMAL(12, 2),
+            allowNull: true,
+            field: 'approved_amount'
+        },
+        adminComment: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            field: 'admin_comment'
+        },
+        reviewedBy: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'admins',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'SET NULL',
+            field: 'reviewed_by'
+        },
+        reviewedAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            field: 'reviewed_at'
+        },
         status: {
-            type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+            type: DataTypes.ENUM('pending', 'approved', 'rejected', 'partial'),
             allowNull: false,
             defaultValue: 'pending',
             field: 'status'

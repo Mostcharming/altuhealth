@@ -238,7 +238,7 @@ async function createClaimFromAuthorization(req, res, next) {
             return res.fail('Authorization code has no line items to bill', 400);
         }
 
-        const approvedItems = renderedItems.filter((item) => item.status === 'approved');
+        const approvedItems = renderedItems.filter((item) => ['approved', 'partial'].includes(item.status));
         if (!approvedItems.length) {
             await transaction.rollback();
             return res.fail('Authorization code has no approved line items to bill', 400);
@@ -253,7 +253,10 @@ async function createClaimFromAuthorization(req, res, next) {
         const amountSubmitted = approvedItems.reduce((sum, item) => {
             const quantity = toMoney(item.quantityRendered) || 1;
             const unitPrice = toMoney(item.unitPrice);
-            return sum + (toMoney(item.lineAmount) || quantity * unitPrice);
+            const lineAmount = item.status === 'partial'
+                ? toMoney(item.approvedAmount)
+                : (toMoney(item.lineAmount) || quantity * unitPrice);
+            return sum + lineAmount;
         }, 0);
 
         const claimReference = generateClaimReference();
@@ -295,6 +298,10 @@ async function createClaimFromAuthorization(req, res, next) {
         const claimItems = approvedItems.map((item) => {
             const quantity = toMoney(item.quantityRendered) || 1;
             const unitPrice = toMoney(item.unitPrice);
+            const totalAmount = item.status === 'partial'
+                ? toMoney(item.approvedAmount)
+                : (toMoney(item.lineAmount) || quantity * unitPrice);
+
             return {
                 claimDetailId: claimDetail.id,
                 itemType: item.drugId ? 'drug' : 'service',
@@ -302,9 +309,9 @@ async function createClaimFromAuthorization(req, res, next) {
                 itemName: item.itemName || 'Authorized item',
                 quantity: toPositiveInt(quantity, 1),
                 unitPrice,
-                totalAmount: toMoney(item.lineAmount) || quantity * unitPrice,
+                totalAmount,
                 unit: item.unit || null,
-                description: item.notes || null
+                description: item.adminComment || item.notes || null
             };
         });
 

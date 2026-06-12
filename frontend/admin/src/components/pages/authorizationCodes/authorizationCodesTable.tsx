@@ -6,9 +6,11 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
+import { EyeIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
+import { useRouter } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 import EditAuthorizationCode from "./editAuthorizationCode";
 
@@ -65,6 +67,7 @@ interface Provider {
 // }
 
 const AuthorizationCodesTable: React.FC = () => {
+  const router = useRouter();
   const {
     isOpen,
     // openModal,
@@ -139,7 +142,7 @@ const AuthorizationCodesTable: React.FC = () => {
     { key: "authorizationType", label: "Type" },
     { key: "status", label: "Status" },
     { key: "dateTimeRequested", label: "Date Requested" },
-    // { key: "actions", label: "Actions" },
+    { key: "actions", label: "Actions" },
   ];
 
   // Fetch enrollees, providers, companies on mount
@@ -559,22 +562,19 @@ const AuthorizationCodesTable: React.FC = () => {
                         {formatDate(code.dateTimeRequested ?? "")}
                       </p>
                     </td>
-                    {/* <td className="p-4 whitespace-nowrap">
+                    <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => handleView(code)}
+                          onClick={() =>
+                            router.push(`/authorization-codes/${code.id}`)
+                          }
                           className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white/90"
+                          aria-label="View authorization code"
                         >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteModal(code.id)}
-                          className="text-gray-500 hover:text-error-500 dark:text-gray-400 dark:hover:text-error-500"
-                        >
-                          <TrashBinIcon />
+                          <EyeIcon />
                         </button>
                       </div>
-                    </td> */}
+                    </td>
                   </tr>
                 ))
               ) : (

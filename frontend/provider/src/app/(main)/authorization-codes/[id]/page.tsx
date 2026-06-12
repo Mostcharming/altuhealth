@@ -15,6 +15,8 @@ type RenderedItem = {
   unitPrice?: number | string;
   quantityRendered?: number | string;
   lineAmount?: number | string;
+  approvedAmount?: number | string | null;
+  adminComment?: string | null;
   status?: string;
   notes?: string | null;
   drugId?: string | null;
@@ -68,10 +70,13 @@ function formatDateTime(value?: string) {
 
 function money(value?: number | string, currency = "NGN") {
   const amount = Number(value || 0);
-  return `${currency === "NGN" ? "₦" : currency} ${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return `${currency === "NGN" ? "₦" : currency} ${amount.toLocaleString(
+    "en-US",
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    },
+  )}`;
 }
 
 function statusClass(status?: string) {
@@ -79,6 +84,8 @@ function statusClass(status?: string) {
     case "active":
     case "approved":
       return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+    case "partial":
+      return "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400";
     case "pending":
       return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
     case "used":
@@ -93,10 +100,18 @@ function statusClass(status?: string) {
 }
 
 function getAuthorizationCodeDisplay(code: AuthorizationCode) {
-  return code.status?.toLowerCase() === "pending" ? "*****" : code.authorizationCode;
+  return code.status?.toLowerCase() === "pending"
+    ? "*****"
+    : code.authorizationCode;
 }
 
-function Field({ label, value }: { label: string; value?: string | number | null }) {
+function Field({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | null;
+}) {
   return (
     <div>
       <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -186,7 +201,7 @@ export default function SingleAuthorizationCode() {
               </div>
               <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-right dark:border-brand-900/30 dark:bg-brand-900/10">
                 <p className="text-xs font-medium uppercase text-brand-700 dark:text-brand-300">
-                  Amount Authorized
+                  Amount
                 </p>
                 <p className="mt-1 text-2xl font-semibold text-brand-900 dark:text-brand-200">
                   {money(
@@ -209,7 +224,9 @@ export default function SingleAuthorizationCode() {
                   label="Member Type"
                   value={
                     authorizationCode.memberType
-                      ? capitalizeWords(authorizationCode.memberType.replace(/_/g, " "))
+                      ? capitalizeWords(
+                          authorizationCode.memberType.replace(/_/g, " "),
+                        )
                       : "-"
                   }
                 />
@@ -218,7 +235,10 @@ export default function SingleAuthorizationCode() {
                   value={authorizationCode.member?.policyNumber}
                 />
                 <Field label="Email" value={authorizationCode.member?.email} />
-                <Field label="Phone" value={authorizationCode.member?.phoneNumber} />
+                <Field
+                  label="Phone"
+                  value={authorizationCode.member?.phoneNumber}
+                />
               </div>
             </div>
 
@@ -227,10 +247,22 @@ export default function SingleAuthorizationCode() {
                 Provider & Plan
               </h2>
               <div className="space-y-4">
-                <Field label="Provider" value={authorizationCode.Provider?.name} />
-                <Field label="Provider Code" value={authorizationCode.Provider?.code} />
-                <Field label="Company" value={authorizationCode.Company?.name} />
-                <Field label="Plan" value={authorizationCode.CompanyPlan?.name} />
+                <Field
+                  label="Provider"
+                  value={authorizationCode.Provider?.name}
+                />
+                <Field
+                  label="Provider Code"
+                  value={authorizationCode.Provider?.code}
+                />
+                <Field
+                  label="Company"
+                  value={authorizationCode.Company?.name}
+                />
+                <Field
+                  label="Plan"
+                  value={authorizationCode.CompanyPlan?.name}
+                />
               </div>
             </div>
 
@@ -239,10 +271,22 @@ export default function SingleAuthorizationCode() {
                 Request
               </h2>
               <div className="space-y-4">
-                <Field label="Diagnosis" value={authorizationCode.Diagnosis?.name} />
-                <Field label="Valid From" value={formatDate(authorizationCode.validFrom)} />
-                <Field label="Valid To" value={formatDate(authorizationCode.validTo)} />
-                <Field label="Created" value={formatDateTime(authorizationCode.createdAt)} />
+                <Field
+                  label="Diagnosis"
+                  value={authorizationCode.Diagnosis?.name}
+                />
+                <Field
+                  label="Valid From"
+                  value={formatDate(authorizationCode.validFrom)}
+                />
+                <Field
+                  label="Valid To"
+                  value={formatDate(authorizationCode.validTo)}
+                />
+                <Field
+                  label="Created"
+                  value={formatDateTime(authorizationCode.createdAt)}
+                />
               </div>
             </div>
           </div>
@@ -254,7 +298,10 @@ export default function SingleAuthorizationCode() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <Field label="Provider Notes" value={authorizationCode.notes} />
               <Field label="Reason" value={authorizationCode.reasonForCode} />
-              <Field label="Approval Note" value={authorizationCode.approvalNote} />
+              <Field
+                label="Approval Note"
+                value={authorizationCode.approvalNote}
+              />
             </div>
           </div>
 
@@ -268,16 +315,24 @@ export default function SingleAuthorizationCode() {
               <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-800">
-                    {["Item", "Type", "Unit", "Qty", "Unit Price", "Amount", "Status"].map(
-                      (heading) => (
-                        <th
-                          key={heading}
-                          className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
-                        >
-                          {heading}
-                        </th>
-                      ),
-                    )}
+                    {[
+                      "Item",
+                      "Type",
+                      "Unit",
+                      "Qty",
+                      "Unit Price",
+                      "Requested",
+                      "Approved",
+                      "Status",
+                      "Admin Comment",
+                    ].map((heading) => (
+                      <th
+                        key={heading}
+                        className="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400"
+                      >
+                        {heading}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
@@ -288,7 +343,10 @@ export default function SingleAuthorizationCode() {
                         <tr key={item.id}>
                           <td className="p-4">
                             <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                              {item.itemName || item.Drug?.name || item.Service?.name || "-"}
+                              {item.itemName ||
+                                item.Drug?.name ||
+                                item.Service?.name ||
+                                "-"}
                             </p>
                             {item.notes && (
                               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -306,10 +364,25 @@ export default function SingleAuthorizationCode() {
                             {Number(item.quantityRendered || 0)}
                           </td>
                           <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
-                            {money(item.unitPrice, authorizationCode.currency || "NGN")}
+                            {money(
+                              item.unitPrice,
+                              authorizationCode.currency || "NGN",
+                            )}
                           </td>
                           <td className="p-4 text-sm font-semibold text-gray-800 dark:text-white/90">
-                            {money(item.lineAmount, authorizationCode.currency || "NGN")}
+                            {money(
+                              item.lineAmount,
+                              authorizationCode.currency || "NGN",
+                            )}
+                          </td>
+                          <td className="p-4 text-sm font-semibold text-gray-800 dark:text-white/90">
+                            {item.approvedAmount !== null &&
+                            item.approvedAmount !== undefined
+                              ? money(
+                                  item.approvedAmount,
+                                  authorizationCode.currency || "NGN",
+                                )
+                              : "-"}
                           </td>
                           <td className="p-4">
                             <span
@@ -320,13 +393,16 @@ export default function SingleAuthorizationCode() {
                               {capitalizeWords(item.status || "pending")}
                             </span>
                           </td>
+                          <td className="p-4 text-sm text-gray-700 dark:text-gray-400">
+                            {item.adminComment || "-"}
+                          </td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
                       <td
-                        colSpan={7}
+                        colSpan={9}
                         className="p-4 text-center text-sm text-gray-500 dark:text-gray-400"
                       >
                         No line items found.

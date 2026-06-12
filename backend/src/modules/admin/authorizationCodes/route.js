@@ -12,6 +12,7 @@ router.put('/:id', AuthorizationCode.updateAuthorizationCode);
 router.delete('/:id', AuthorizationCode.deleteAuthorizationCode);
 
 // Approval operations
+router.put('/:id/rendered-items/:itemId/review', AuthorizationCode.reviewRenderedItem);
 router.post('/:id/approve', AuthorizationCode.approveAuthorizationCode);
 router.post('/:id/reject', AuthorizationCode.rejectAuthorizationCode);
 
