@@ -27,6 +27,7 @@ router.use('/diagnosis', require('./diagnosis/route'));
 router.use('/provider-specializations', require('./providerSpecializations/route'));
 router.use('/providers', require('./providers/route'));
 router.use('/services', require('./services/route'));
+router.use('/currency-rates', require('./currencyRates/route'));
 router.use('/drugs', require('./drugs/route'));
 router.use('/companies', require('./companies/route'));
 router.use('/company-subsidiaries', require('./companySubsidiaries/route'));

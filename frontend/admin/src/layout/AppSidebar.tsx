@@ -129,6 +129,7 @@ const navItems: NavItem[] = [
       { name: "Roles", path: "/roles" },
       { name: "Diagnosis Setup", path: "/diagnosis" },
       { name: "Exclusions", path: "/exclude" },
+      { name: "Rates", path: "/currency-rates" },
       { name: "Benefit Categories", path: "/benefits" },
       { name: "Benefit Listing", path: "/benefit-listing" },
     ],
