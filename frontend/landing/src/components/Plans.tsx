@@ -81,6 +81,7 @@ export default function Plans() {
     lastName: "",
     email: "",
     phone: "",
+    referralCode: "",
   });
 
   useEffect(() => {
@@ -132,7 +133,13 @@ export default function Plans() {
 
   const closePlanModal = () => {
     setSelectedPlan(null);
-    setPlanForm({ firstName: "", lastName: "", email: "", phone: "" });
+    setPlanForm({
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      referralCode: "",
+    });
   };
 
   return (
@@ -262,6 +269,13 @@ export default function Plans() {
                 name="phone"
                 placeholder="Phone Number"
                 value={planForm.phone}
+                onChange={handlePlanInputChange}
+              />
+              <input
+                type="text"
+                name="referralCode"
+                placeholder="Referral Code (Optional)"
+                value={planForm.referralCode}
                 onChange={handlePlanInputChange}
               />
 
