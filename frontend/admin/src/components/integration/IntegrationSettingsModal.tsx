@@ -38,6 +38,7 @@ export default function IntegrationSettingsModal({
     api_secret: "",
     webhook_url: "",
     webhook_secret: "",
+    additional_config: "",
   });
 
   useEffect(() => {
@@ -51,6 +52,9 @@ export default function IntegrationSettingsModal({
         api_secret: integrationData.api_secret || "",
         webhook_url: integrationData.webhook_url || "",
         webhook_secret: integrationData.webhook_secret || "",
+        additional_config: integrationData.additional_config
+          ? JSON.stringify(integrationData.additional_config, null, 2)
+          : "",
       });
     }
   }, [integrationData]);
@@ -71,7 +75,22 @@ export default function IntegrationSettingsModal({
 
     setIsSaving(true);
     try {
-      await updateIntegration(integrationId, formData);
+      let parsedAdditionalConfig = undefined;
+      if (formData.additional_config.trim()) {
+        try {
+          parsedAdditionalConfig = JSON.parse(formData.additional_config);
+        } catch {
+          setErrorMessage("Additional config must be valid JSON");
+          setErrorModal({ isOpen: true });
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      await updateIntegration(integrationId, {
+        ...formData,
+        additional_config: parsedAdditionalConfig,
+      });
       setSuccessModal({ isOpen: true });
       setTimeout(() => {
         settingsModal.closeModal();
@@ -216,6 +235,18 @@ export default function IntegrationSettingsModal({
                   onChange={(e) =>
                     handleInputChange("webhook_secret", e.target.value)
                   }
+                />
+              </div>
+              <div>
+                <Label>Additional Config (JSON)</Label>
+                <textarea
+                  rows={6}
+                  placeholder='{"providerId":"..."}'
+                  value={formData.additional_config}
+                  onChange={(e) =>
+                    handleInputChange("additional_config", e.target.value)
+                  }
+                  className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-3 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 />
               </div>
             </div>

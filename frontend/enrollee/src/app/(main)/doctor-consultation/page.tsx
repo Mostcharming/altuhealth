@@ -1,5 +1,5 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import DoctorConsultationChat from "@/components/doctor-consultation/DoctorConsultationChat";
+import HealaConsultationLauncher from "@/components/doctor-consultation/HealaConsultationLauncher";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export default function DoctorConsultation() {
       <PageBreadcrumb pageTitle="Consult a Doctor" />
       <div className="h-[calc(100vh-150px)] overflow-hidden sm:h-[calc(100vh-174px)]">
         <div className="flex flex-col h-full gap-6 xl:flex-row xl:gap-5">
-          <DoctorConsultationChat />
+          <HealaConsultationLauncher />
         </div>
       </div>
     </div>

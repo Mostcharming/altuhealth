@@ -43,6 +43,7 @@ export default function IntegrationDetailsModal({
     { label: "API Secret", key: "api_secret" },
     { label: "Webhook URL", key: "webhook_url" },
     { label: "Webhook Secret", key: "webhook_secret" },
+    { label: "Additional Config", key: "additional_config" },
     {
       label: "Created At",
       key: "created_at",

@@ -1,6 +1,6 @@
 "use client";
 
-import { PayPalIcon, StripeIcon } from "@/components/integration/icon";
+import { HealaIcon, PayPalIcon, StripeIcon } from "@/components/integration/icon";
 import IntegrationBreadcrumb from "@/components/integration/IntegrationBreadcrumb";
 import IntegrationCard from "@/components/integration/IntegrationCard";
 import ErrorModal from "@/components/modals/error";
@@ -46,6 +46,12 @@ const integrationDefaults = {
       "Connect your PayPal Sandbox account for testing payments and development purposes.",
     icon: <PayPalIcon />,
   },
+  "heala-staging": {
+    title: "Heala Staging",
+    description:
+      "Connect Heala staging virtual health platform for enrollee doctor consultations.",
+    icon: <HealaIcon />,
+  },
 };
 
 export default function IntegrationsPage() {
@@ -69,8 +75,20 @@ export default function IntegrationsPage() {
       const formattedIntegrations: IntegrationData[] = integrationsList.map(
         (integration: Integration) => ({
           id: integration.id,
-          title: integration.name,
-          description: integration.description || "",
+          title:
+            integrationDefaults[
+              integration.name
+                .toLowerCase()
+                .replace(/\s+/g, "-") as keyof typeof integrationDefaults
+            ]?.title || integration.name,
+          description:
+            integration.description ||
+            integrationDefaults[
+              integration.name
+                .toLowerCase()
+                .replace(/\s+/g, "-") as keyof typeof integrationDefaults
+            ]?.description ||
+            "",
           icon: integrationDefaults[
             integration.name
               .toLowerCase()
