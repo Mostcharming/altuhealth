@@ -33,6 +33,7 @@ router.use('/company-subsidiaries', require('./companySubsidiaries/route'));
 router.use('/company-plans', require('./companyPlans/route'));
 router.use('/subscriptions', require('./subscriptions/route'));
 router.use('/utilization-reviews', require('./utilizationReviews/route'));
+router.use('/utilization-reports', require('./utilizationReports/route'));
 router.use('/staffs', require('./staffs/route'));
 router.use('/enrollees', require('./enrollees/route'));
 router.use('/enrollee-dependents', require('./enrolleeDependents/route'));

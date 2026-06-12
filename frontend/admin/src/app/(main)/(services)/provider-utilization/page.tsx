@@ -1,19 +1,21 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import PageMetricsProviders from "@/components/pages/providerUtilization/pageMetrics";
-import ProviderTable from "@/components/pages/providerUtilization/unitTable";
+import UtilizationReportDashboard from "@/components/pages/utilizationReports/UtilizationReportDashboard";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Providers Utilization",
-  description: "Manage Providers within the AltuHealth admin panel.",
+  title: "AltuHealth Admin Provider Utilization Reports",
+  description: "Provider rendered services, claims, authorization, and payout utilization reports.",
 };
 
 export default function ProvidersUtilization() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Providers Utilization" />
-      <PageMetricsProviders buttonText="Add New Provider" />
-      <ProviderTable />
+      <PageBreadcrumb pageTitle="Provider Utilization Reports" />
+      <UtilizationReportDashboard
+        type="provider"
+        title="Provider Utilization"
+        description="Reports on services rendered, drugs and service items, claims submitted, authorizations, and payment advice volume by provider."
+      />
     </div>
   );
 }

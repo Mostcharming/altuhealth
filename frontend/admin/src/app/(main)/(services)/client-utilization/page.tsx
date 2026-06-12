@@ -1,19 +1,21 @@
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
-import CompanyTable from "@/components/pages/compaanyUtilization/companyTable";
-import PageMetricsCompanies from "@/components/pages/compaanyUtilization/pageMetrics";
+import UtilizationReportDashboard from "@/components/pages/utilizationReports/UtilizationReportDashboard";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Companies",
-  description: "Manage companies within the AltuHealth admin panel.",
+  title: "AltuHealth Admin Retail Utilization Reports",
+  description: "Retail enrollee, dependent, subscription, and utilization reports.",
 };
 
 export default function Companies() {
   return (
     <div>
-      <PageBreadcrumb pageTitle="Companies Utilization" />
-      <PageMetricsCompanies buttonText="Create a company" />
-      <CompanyTable />
+      <PageBreadcrumb pageTitle="Retail Enrollee Utilization Reports" />
+      <UtilizationReportDashboard
+        type="retail"
+        title="Retail Enrollee Utilization"
+        description="Reports on retail enrollees, dependents, subscription expiry, claims, authorization activity, and paid subscription value."
+      />
     </div>
   );
 }
