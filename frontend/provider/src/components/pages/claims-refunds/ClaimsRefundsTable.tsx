@@ -47,8 +47,8 @@ const ClaimsRefundsTable: React.FC = () => {
         data?.data?.paymentAdvices && Array.isArray(data.data.paymentAdvices)
           ? data.data.paymentAdvices
           : Array.isArray(data)
-          ? data
-          : [];
+            ? data
+            : [];
       const pagination = data?.data?.pagination;
 
       setPaymentAdvices(items);
@@ -96,7 +96,7 @@ const ClaimsRefundsTable: React.FC = () => {
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mt-4">
       <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-800 xl:flex-row xl:items-center xl:justify-between">
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
           Payments & Refunds
@@ -182,7 +182,7 @@ const ClaimsRefundsTable: React.FC = () => {
                   <td className="p-4">
                     <span
                       className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeColor(
-                        advice.status
+                        advice.status,
                       )}`}
                     >
                       {capitalizeWords(advice.status.replace(/_/g, " "))}
@@ -191,7 +191,9 @@ const ClaimsRefundsTable: React.FC = () => {
                   <td className="p-4">
                     <button
                       className="text-gray-500 hover:text-brand-500 dark:text-gray-400"
-                      onClick={() => router.push(`/claims-refunds/${advice.id}`)}
+                      onClick={() =>
+                        router.push(`/claims-refunds/${advice.id}`)
+                      }
                       aria-label="View payment advice"
                     >
                       <EyeIcon />
@@ -254,7 +256,9 @@ const ClaimsRefundsTable: React.FC = () => {
             </button>
           ))}
           <button
-            onClick={() => setCurrentPage((page) => (hasNextPage ? page + 1 : page))}
+            onClick={() =>
+              setCurrentPage((page) => (hasNextPage ? page + 1 : page))
+            }
             disabled={!hasNextPage}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-gray-700 dark:text-gray-300"
           >
