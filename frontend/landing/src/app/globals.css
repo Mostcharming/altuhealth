@@ -640,11 +640,17 @@ section {
 
 .plan-modal {
   position: relative;
-  width: min(100%, 520px);
-  border-radius: 18px;
+  width: min(100%, 460px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  border-radius: 16px;
   background: #ffffff;
-  padding: 28px;
+  padding: 24px;
   box-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
+}
+
+.plan-modal-small {
+  width: min(100%, 400px);
 }
 
 .plan-modal-close {
@@ -679,7 +685,7 @@ section {
 .plan-modal-header h3 {
   margin-bottom: 10px;
   color: #0f172a;
-  font-size: 26px;
+  font-size: 22px;
 }
 
 .plan-modal-header p,
@@ -690,15 +696,15 @@ section {
 
 .plan-modal-form {
   display: grid;
-  gap: 14px;
-  margin-top: 24px;
+  gap: 12px;
+  margin-top: 18px;
 }
 
 .plan-modal-form input {
   width: 100%;
   border: 1px solid #dbe7ff;
   border-radius: 12px;
-  padding: 15px 16px;
+  padding: 12px 14px;
   color: #0f172a;
   font: inherit;
   outline: none;
@@ -720,6 +726,61 @@ section {
   display: block;
   margin-bottom: 6px;
   color: #0f172a;
+}
+
+.plan-choice-group {
+  display: grid;
+  gap: 10px;
+}
+
+.plan-choice-group > strong {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.plan-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.plan-choice-grid button {
+  border: 1px solid #dbe7ff;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 12px;
+  text-align: left;
+}
+
+.plan-choice-grid button.active {
+  border-color: #1e63e9;
+  background: #eef6ff;
+  box-shadow: 0 0 0 3px rgba(30, 99, 233, 0.1);
+}
+
+.plan-choice-grid button span {
+  display: block;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.plan-choice-grid button strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.plan-modal-error {
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 /* SERVICES */

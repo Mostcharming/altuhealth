@@ -8,8 +8,12 @@ import {
   listCurrencyRates,
   updateCurrencyRate,
 } from "@/lib/apis/currencyRate";
+import Checkbox from "@/components/form/input/Checkbox";
 import { CURRENCY_CODES, getCurrencyByCode } from "@/lib/currencies";
 import { formatDate } from "@/lib/formatDate";
+import Input from "@/components/form/input/InputField";
+import Label from "@/components/form/Label";
+import Select from "@/components/form/Select";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type FormState = {
@@ -38,6 +42,19 @@ const formatNumber = (value?: number | string | null, maximumFractionDigits = 8)
   }).format(numeric);
 };
 
+const currencyDisplayNames =
+  typeof Intl !== "undefined" && "DisplayNames" in Intl
+    ? new Intl.DisplayNames(["en"], { type: "currency" })
+    : null;
+
+const getDisplayCurrencyName = (rate: CurrencyRate) => {
+  const code = rate.currencyCode?.toUpperCase();
+  const localCurrency = getCurrencyByCode(code);
+  if (localCurrency?.code === code && localCurrency.name) return localCurrency.name;
+  if (rate.currencyName && rate.currencyName !== code) return rate.currencyName;
+  return currencyDisplayNames?.of(code) || rate.currencyName || code;
+};
+
 export default function CurrencyRatesPage() {
   const [rates, setRates] = useState<CurrencyRate[]>([]);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -51,6 +68,14 @@ export default function CurrencyRatesPage() {
   const activeCount = useMemo(
     () => rates.filter((rate) => rate.isActive).length,
     [rates]
+  );
+  const currencyOptions = useMemo(
+    () =>
+      CURRENCY_CODES.map((currency) => ({
+        value: currency.code,
+        label: `${currency.code} - ${currency.name}`,
+      })),
+    []
   );
 
   const fetchRates = useCallback(async () => {
@@ -199,7 +224,7 @@ export default function CurrencyRatesPage() {
             type="button"
             onClick={handleFetchLatest}
             disabled={syncing}
-            className="inline-flex items-center justify-center rounded-md bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {syncing ? "Fetching..." : "Fetch latest rates"}
           </button>
@@ -219,75 +244,57 @@ export default function CurrencyRatesPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="mb-6 grid grid-cols-1 gap-4 rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-900/40 md:grid-cols-6"
+          className="mb-6 grid grid-cols-1 gap-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] md:grid-cols-6"
         >
           <div className="md:col-span-2">
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Currency
-            </label>
-            <select
-              value={form.currencyCode}
-              onChange={(event) => handleCodeChange(event.target.value)}
-              className="h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-            >
-              {CURRENCY_CODES.map((currency) => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.code} - {currency.name}
-                </option>
-              ))}
-            </select>
+            <Label>Currency</Label>
+            <Select
+              options={currencyOptions}
+              placeholder="Select currency"
+              onChange={handleCodeChange}
+              defaultValue={form.currencyCode}
+            />
           </div>
           <div className="md:col-span-2">
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Rate to NGN
-            </label>
-            <input
+            <Label>Rate to NGN</Label>
+            <Input
               type="number"
               min="0"
-              step="0.00000001"
+              step={0.00000001}
               value={form.rateToNgn}
               onChange={(event) =>
                 setForm((current) => ({ ...current, rateToNgn: event.target.value }))
               }
               placeholder="e.g. 1500"
-              required
-              className="h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
           </div>
           <div className="md:col-span-2">
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Status
-            </label>
-            <label className="flex h-11 items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-              <input
-                type="checkbox"
+            <Label>Status</Label>
+            <div className="flex h-11 items-center rounded-lg border border-gray-300 bg-transparent px-4 shadow-theme-xs dark:border-gray-700 dark:bg-gray-900">
+              <Checkbox
+                label="Active"
                 checked={form.isActive}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, isActive: event.target.checked }))
+                onChange={(checked) =>
+                  setForm((current) => ({ ...current, isActive: checked }))
                 }
-                className="h-4 w-4 rounded border-gray-300 text-brand-500"
               />
-              Active
-            </label>
+            </div>
           </div>
           <div className="md:col-span-4">
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Notes
-            </label>
-            <input
+            <Label>Notes</Label>
+            <Input
               type="text"
               value={form.notes}
               onChange={(event) =>
                 setForm((current) => ({ ...current, notes: event.target.value }))
               }
-              className="h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             />
           </div>
           <div className="flex items-end gap-2 md:col-span-2">
             <button
               type="submit"
               disabled={saving}
-              className="h-11 flex-1 rounded-md bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-900"
+              className="flex h-11 flex-1 items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? "Saving..." : form.id ? "Update rate" : "Save rate"}
             </button>
@@ -295,7 +302,7 @@ export default function CurrencyRatesPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="h-11 rounded-md border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                className="flex h-11 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]"
               >
                 Cancel
               </button>
@@ -304,12 +311,12 @@ export default function CurrencyRatesPage() {
         </form>
 
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <input
+          <Input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search currency code or name"
-            className="h-11 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white sm:max-w-sm"
+            className="sm:max-w-sm"
           />
           <p className="text-xs text-gray-500 dark:text-gray-400">
             Source requires attribution when using open.er-api.com data.
@@ -364,7 +371,7 @@ export default function CurrencyRatesPage() {
                         {rate.currencyCode}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {rate.currencyName}
+                        {getDisplayCurrencyName(rate)}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">

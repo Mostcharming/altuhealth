@@ -23,9 +23,14 @@ type DisplayPlan = {
   name: string;
   description: string;
   audience: string;
-  rows: { label: string; price: string }[];
+  rows: { label: string; price: string; planId?: string }[];
   features: string[];
   sources?: PublicPlan[];
+};
+
+type PaymentGateway = {
+  provider: "paypal" | "stripe";
+  label: string;
 };
 
 type SelectedPlanPricing = {
@@ -44,6 +49,30 @@ type PlanVariantDefinition = {
 type PlansResponse = {
   data?: {
     list?: PublicPlan[];
+  };
+};
+
+type GatewaysResponse = {
+  data?: {
+    gateways?: PaymentGateway[];
+  };
+};
+
+type CheckoutResponse = {
+  data?: {
+    gateway: "paypal" | "stripe";
+    checkoutUrl: string;
+    checkoutReference: string;
+  };
+};
+
+type CompletePurchaseResponse = {
+  data?: {
+    loginLink?: string;
+    enrollee?: {
+      email: string;
+      policyNumber: string;
+    };
   };
 };
 
@@ -319,6 +348,7 @@ function mapPublicPlans(plans: PublicPlan[], market: Market): DisplayPlan[] {
         rows: orderedPlans.map(({ plan, definition }) => ({
           label: definition.label,
           price: formatPlanPrice(plan),
+          planId: plan.id,
         })),
         features: [
           firstPlan?.planCycle
@@ -344,13 +374,24 @@ export default function Plans() {
   const [backendPlans, setBackendPlans] = useState<PublicPlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<DisplayPlan | null>(null);
+  const [selectedVariantPlanId, setSelectedVariantPlanId] = useState("");
+  const [gateways, setGateways] = useState<PaymentGateway[]>([]);
+  const [selectedGateway, setSelectedGateway] = useState<"paypal" | "stripe" | "">("");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [modalSuccess, setModalSuccess] = useState("");
   const [planForm, setPlanForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
+    dateOfBirth: "",
     referralCode: "",
   });
+
+  const selectedVariant = selectedPlan?.rows.find(
+    (row) => row.planId === selectedVariantPlanId,
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -379,6 +420,97 @@ export default function Plans() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get("payment_status");
+    if (!paymentStatus) {
+      return;
+    }
+
+    const completePurchase = async () => {
+      if (paymentStatus === "cancelled") {
+        setModalError("Payment was cancelled. No account was created.");
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+
+      const pendingRaw = window.localStorage.getItem("altu_pending_purchase");
+      if (!pendingRaw) {
+        setModalError("We could not find your pending registration details.");
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+
+      try {
+        setIsProcessingPayment(true);
+        const pending = JSON.parse(pendingRaw) as {
+          planId: string;
+          gateway: "paypal" | "stripe";
+          checkoutReference: string;
+          form: typeof planForm;
+        };
+        const checkoutReference =
+          pending.gateway === "stripe"
+            ? params.get("session_id") || pending.checkoutReference
+            : params.get("token") || pending.checkoutReference;
+
+        const response = (await apiClient("/public/purchases/complete", {
+          method: "POST",
+          body: {
+            planId: pending.planId,
+            gateway: pending.gateway,
+            checkoutReference,
+            firstName: pending.form.firstName,
+            lastName: pending.form.lastName,
+            email: pending.form.email,
+            phoneNumber: pending.form.phone,
+            dateOfBirth: pending.form.dateOfBirth,
+            referralCode: pending.form.referralCode,
+          },
+        })) as CompletePurchaseResponse;
+
+        window.localStorage.removeItem("altu_pending_purchase");
+        setModalSuccess(
+          `Payment confirmed. Your login details have been emailed. Login at ${
+            response.data?.loginLink || "https://enrollee.altuhealth.com/signin"
+          }.`,
+        );
+      } catch (err) {
+        setModalError(
+          err instanceof Error ? err.message : "Payment completed, but account setup failed.",
+        );
+      } finally {
+        setIsProcessingPayment(false);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    };
+
+    completePurchase();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPlan || market === "NGN") {
+      return;
+    }
+
+    const fetchGateways = async () => {
+      try {
+        const response = (await apiClient(
+          `/public/purchases/gateways?market=${market}`,
+        )) as GatewaysResponse;
+        const availableGateways = response.data?.gateways || [];
+        setGateways(availableGateways);
+        setSelectedGateway(availableGateways[0]?.provider || "");
+      } catch (err) {
+        setModalError(
+          err instanceof Error ? err.message : "Unable to fetch payment gateways.",
+        );
+      }
+    };
+
+    fetchGateways();
+  }, [selectedPlan, market]);
 
   useEffect(() => {
     let isMounted = true;
@@ -420,13 +552,79 @@ export default function Plans() {
 
   const closePlanModal = () => {
     setSelectedPlan(null);
+    setSelectedVariantPlanId("");
+    setSelectedGateway("");
+    setGateways([]);
+    setModalError("");
     setPlanForm({
       firstName: "",
       lastName: "",
       email: "",
       phone: "",
+      dateOfBirth: "",
       referralCode: "",
     });
+  };
+
+  const openPlanModal = (plan: DisplayPlan) => {
+    if (market === "NGN") {
+      setModalError("No payment gateway available for Nigeria at the moment.");
+      return;
+    }
+
+    setSelectedPlan(plan);
+    setSelectedVariantPlanId(plan.rows[0]?.planId || "");
+    setModalError("");
+    setModalSuccess("");
+  };
+
+  const handleProceedToPayment = async () => {
+    if (!selectedVariantPlanId) {
+      setModalError("Select a plan option before choosing a payment gateway.");
+      return;
+    }
+    if (!selectedGateway) {
+      setModalError("Select a payment gateway.");
+      return;
+    }
+    if (!planForm.firstName || !planForm.lastName || !planForm.email || !planForm.phone || !planForm.dateOfBirth) {
+      setModalError("Fill in your name, email, phone number, and date of birth.");
+      return;
+    }
+
+    try {
+      setIsProcessingPayment(true);
+      setModalError("");
+      const response = (await apiClient("/public/purchases/checkout", {
+        method: "POST",
+        body: {
+          planId: selectedVariantPlanId,
+          gateway: selectedGateway,
+          email: planForm.email,
+          phoneNumber: planForm.phone,
+        },
+      })) as CheckoutResponse;
+
+      if (!response.data?.checkoutUrl || !response.data.checkoutReference) {
+        throw new Error("Payment gateway did not return a checkout URL.");
+      }
+
+      window.localStorage.setItem(
+        "altu_pending_purchase",
+        JSON.stringify({
+          planId: selectedVariantPlanId,
+          gateway: response.data.gateway,
+          checkoutReference: response.data.checkoutReference,
+          form: planForm,
+        }),
+      );
+      window.location.assign(response.data.checkoutUrl);
+    } catch (err) {
+      setModalError(
+        err instanceof Error ? err.message : "Unable to start payment.",
+      );
+      setIsProcessingPayment(false);
+    }
   };
 
   return (
@@ -495,7 +693,7 @@ export default function Plans() {
                 <button
                   type="button"
                   className="buy-btn"
-                  onClick={() => setSelectedPlan(plan)}
+                  onClick={() => openPlanModal(plan)}
                   disabled={isLoadingPlans}
                 >
                   {isLoadingPlans ? "Loading" : "Register"} <span>→</span>
@@ -505,6 +703,46 @@ export default function Plans() {
           ))}
         </div>
       </div>
+
+      {modalError && !selectedPlan && (
+        <div className="plan-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="plan-modal plan-modal-small">
+            <button
+              type="button"
+              className="plan-modal-close"
+              onClick={() => setModalError("")}
+              aria-label="Close message"
+            >
+              ×
+            </button>
+            <div className="plan-modal-header">
+              <span>Payment Gateway</span>
+              <h3>Unavailable</h3>
+              <p>{modalError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalSuccess && (
+        <div className="plan-modal-backdrop" role="dialog" aria-modal="true">
+          <div className="plan-modal plan-modal-small">
+            <button
+              type="button"
+              className="plan-modal-close"
+              onClick={() => setModalSuccess("")}
+              aria-label="Close message"
+            >
+              ×
+            </button>
+            <div className="plan-modal-header">
+              <span>Account Created</span>
+              <h3>Registration Complete</h3>
+              <p>{modalSuccess}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedPlan && (
         <div className="plan-modal-backdrop" role="dialog" aria-modal="true">
@@ -531,11 +769,24 @@ export default function Plans() {
               <input
                 type="hidden"
                 name="planId"
-                value={
-                  selectedPlan.sources?.map((plan) => plan.id).join(",") ||
-                  selectedPlan.id
-                }
+                value={selectedVariantPlanId || selectedPlan.id}
               />
+              <div className="plan-choice-group">
+                <strong>Select plan option</strong>
+                <div className="plan-choice-grid">
+                  {selectedPlan.rows.map((row) => (
+                    <button
+                      type="button"
+                      className={row.planId === selectedVariantPlanId ? "active" : ""}
+                      key={row.label}
+                      onClick={() => setSelectedVariantPlanId(row.planId || "")}
+                    >
+                      <span>{row.label}</span>
+                      <strong>{row.price}</strong>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <input
                 type="text"
                 name="firstName"
@@ -565,6 +816,13 @@ export default function Plans() {
                 onChange={handlePlanInputChange}
               />
               <input
+                type="date"
+                name="dateOfBirth"
+                placeholder="Date of Birth"
+                value={planForm.dateOfBirth}
+                onChange={handlePlanInputChange}
+              />
+              <input
                 type="text"
                 name="referralCode"
                 placeholder="Referral Code (Optional)"
@@ -572,16 +830,52 @@ export default function Plans() {
                 onChange={handlePlanInputChange}
               />
 
+              <div className="plan-choice-group">
+                <strong>Select payment gateway</strong>
+                <div className="plan-choice-grid">
+                  {gateways.map((gateway) => (
+                    <button
+                      type="button"
+                      className={gateway.provider === selectedGateway ? "active" : ""}
+                      key={gateway.provider}
+                      onClick={() => setSelectedGateway(gateway.provider)}
+                    >
+                      <span>{gateway.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {selectedVariant && (
+                <div className="plan-modal-instructions">
+                  <strong>Selected option</strong>
+                  <p>
+                    {selectedVariant.label} - {selectedVariant.price}
+                  </p>
+                </div>
+              )}
+
+              {modalError && (
+                <div className="plan-modal-error">
+                  {modalError}
+                </div>
+              )}
+
               <div className="plan-modal-instructions">
                 <strong>What happens next?</strong>
                 <p>
-                  You will receive plan details via email. Review the details,
-                  then proceed to payment when ready.
+                  After payment, we will create your retail enrollee account and
+                  email your login details for enrollee.altuhealth.com.
                 </p>
               </div>
 
-              <button type="button" className="buy-btn">
-                Proceed to Pay <span>→</span>
+              <button
+                type="button"
+                className="buy-btn"
+                onClick={handleProceedToPayment}
+                disabled={isProcessingPayment}
+              >
+                {isProcessingPayment ? "Processing..." : "Proceed to Pay"} <span>→</span>
               </button>
             </form>
           </div>

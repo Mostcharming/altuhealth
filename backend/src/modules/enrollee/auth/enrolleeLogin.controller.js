@@ -8,9 +8,11 @@ const enrolleeLogin = async (req, res, next) => {
         if (!email && !policyNumber) return res.fail('Provide email or policy number', 400);
 
         const EnrolleeModel = req.models && req.models['Enrollee'];
-        if (!EnrolleeModel) return res.fail('Server configuration error (models missing)', 500);
+        const RetailEnrolleeModel = req.models && req.models['RetailEnrollee'];
+        if (!EnrolleeModel || !RetailEnrolleeModel) return res.fail('Server configuration error (models missing)', 500);
 
         let enrollee = null;
+        let userType = 'Enrollee';
         if (email) {
             const lookupValue = (typeof email === 'string') ? email.toLowerCase() : email;
             try {
@@ -20,9 +22,23 @@ const enrolleeLogin = async (req, res, next) => {
             } catch (e) {
                 enrollee = await EnrolleeModel.findOne({ where: { email: lookupValue } });
             }
+            if (!enrollee) {
+                try {
+                    enrollee = await RetailEnrolleeModel.findOne({
+                        where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupValue)
+                    });
+                } catch (e) {
+                    enrollee = await RetailEnrolleeModel.findOne({ where: { email: lookupValue } });
+                }
+                if (enrollee) userType = 'RetailEnrollee';
+            }
         } else if (policyNumber) {
             const lookupPolicyNumber = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
             enrollee = await EnrolleeModel.findOne({ where: { policyNumber: lookupPolicyNumber } });
+            if (!enrollee) {
+                enrollee = await RetailEnrolleeModel.findOne({ where: { policyNumber: lookupPolicyNumber } });
+                if (enrollee) userType = 'RetailEnrollee';
+            }
         }
 
         if (!enrollee) return res.fail('Invalid credentials', 401);
@@ -48,7 +64,8 @@ const enrolleeLogin = async (req, res, next) => {
                 if (enrollee && typeof enrollee.update === 'function') {
                     await enrollee.update(updates);
                 } else {
-                    if (EnrolleeModel) await EnrolleeModel.update(updates, { where: { id: enrollee.id } });
+                    const Model = userType === 'RetailEnrollee' ? RetailEnrolleeModel : EnrolleeModel;
+                    if (Model) await Model.update(updates, { where: { id: enrollee.id } });
                 }
                 if (enrollee && typeof enrollee.reload === 'function') await enrollee.reload();
             } catch (e) {
@@ -64,7 +81,7 @@ const enrolleeLogin = async (req, res, next) => {
             phoneNumber: enrollee.phoneNumber || null,
             policyNumber: enrollee.policyNumber,
             status: enrollee.status || 'active',
-            type: 'Enrollee',
+            type: userType,
         };
 
         let signedToken;
