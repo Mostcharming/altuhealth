@@ -385,7 +385,6 @@ export default function Plans() {
     lastName: "",
     email: "",
     phone: "",
-    dateOfBirth: "",
     referralCode: "",
   });
 
@@ -465,7 +464,6 @@ export default function Plans() {
             lastName: pending.form.lastName,
             email: pending.form.email,
             phoneNumber: pending.form.phone,
-            dateOfBirth: pending.form.dateOfBirth,
             referralCode: pending.form.referralCode,
           },
         })) as CompletePurchaseResponse;
@@ -561,7 +559,6 @@ export default function Plans() {
       lastName: "",
       email: "",
       phone: "",
-      dateOfBirth: "",
       referralCode: "",
     });
   };
@@ -587,8 +584,8 @@ export default function Plans() {
       setModalError("Select a payment gateway.");
       return;
     }
-    if (!planForm.firstName || !planForm.lastName || !planForm.email || !planForm.phone || !planForm.dateOfBirth) {
-      setModalError("Fill in your name, email, phone number, and date of birth.");
+    if (!planForm.firstName || !planForm.lastName || !planForm.email || !planForm.phone) {
+      setModalError("Fill in your name, email, and phone number.");
       return;
     }
 
@@ -779,7 +776,11 @@ export default function Plans() {
                       type="button"
                       className={row.planId === selectedVariantPlanId ? "active" : ""}
                       key={row.label}
-                      onClick={() => setSelectedVariantPlanId(row.planId || "")}
+                      onClick={() =>
+                        setSelectedVariantPlanId((current) =>
+                          current === row.planId ? "" : row.planId || "",
+                        )
+                      }
                     >
                       <span>{row.label}</span>
                       <strong>{row.price}</strong>
@@ -816,13 +817,6 @@ export default function Plans() {
                 onChange={handlePlanInputChange}
               />
               <input
-                type="date"
-                name="dateOfBirth"
-                placeholder="Date of Birth"
-                value={planForm.dateOfBirth}
-                onChange={handlePlanInputChange}
-              />
-              <input
                 type="text"
                 name="referralCode"
                 placeholder="Referral Code (Optional)"
@@ -838,7 +832,11 @@ export default function Plans() {
                       type="button"
                       className={gateway.provider === selectedGateway ? "active" : ""}
                       key={gateway.provider}
-                      onClick={() => setSelectedGateway(gateway.provider)}
+                      onClick={() =>
+                        setSelectedGateway((current) =>
+                          current === gateway.provider ? "" : gateway.provider,
+                        )
+                      }
                     >
                       <span>{gateway.label}</span>
                     </button>

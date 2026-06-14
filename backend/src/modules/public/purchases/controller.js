@@ -266,7 +266,6 @@ async function completePurchase(req, res, next) {
             lastName,
             phoneNumber,
             email,
-            dateOfBirth,
             referralCode
         } = req.body || {};
 
@@ -277,7 +276,6 @@ async function completePurchase(req, res, next) {
         if (!lastName) return res.fail('`lastName` is required', 400);
         if (!phoneNumber) return res.fail('`phoneNumber` is required', 400);
         if (!email) return res.fail('`email` is required', 400);
-        if (!dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
 
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
@@ -314,7 +312,7 @@ async function completePurchase(req, res, next) {
                 policyNumber,
                 phoneNumber,
                 email,
-                dateOfBirth,
+                dateOfBirth: new Date('1900-01-01'),
                 state: null,
                 lga: null,
                 country: plan.currency === 'GBP' ? 'United Kingdom' : null,
