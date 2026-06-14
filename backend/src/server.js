@@ -43,7 +43,7 @@ app.use(helmet({
   xssFilter: true,
 }));
 app.use(cors({
-  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://provider.altuhealth.com', 'https://admin.altuhealth.com', 'https://enrollee.altuhealth.com', 'https://retail.altuhealth.com', 'https://referral.altuhealth.com', 'https://doctors.altuhealth.com', 'https://landing.altuhealth.com', 'http://localhost:3003', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3007', 'http://localhost:3008', 'http://192.168.1.147:3001', 'http://192.168.1.147:3002', 'http://192.168.1.147:3007', 'http://192.168.43.84:3001', 'http://192.168.43.84:3002', 'http://192.168.43.84:3007', 'http://192.168.1.165:3001', 'http://192.168.1.165:3002', 'http://192.168.1.165:3003', 'http://192.168.1.165:3007', 'http://192.168.1.165:3008'],
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['https://altuhealth.com', 'https://provider.altuhealth.com', 'https://admin.altuhealth.com', 'https://enrollee.altuhealth.com', 'https://retail.altuhealth.com', 'https://referral.altuhealth.com', 'https://doctors.altuhealth.com', 'https://landing.altuhealth.com', 'http://localhost:3003', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3007', 'http://localhost:3008', 'http://192.168.1.147:3001', 'http://192.168.1.147:3002', 'http://192.168.1.147:3007', 'http://192.168.43.84:3001', 'http://192.168.43.84:3002', 'http://192.168.43.84:3007', 'http://192.168.1.165:3001', 'http://192.168.1.165:3002', 'http://192.168.1.165:3003', 'http://192.168.1.165:3007', 'http://192.168.1.165:3008'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
