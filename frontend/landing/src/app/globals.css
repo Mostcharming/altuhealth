@@ -638,6 +638,17 @@ section {
   background: rgba(15, 23, 42, 0.58);
 }
 
+.doctor-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
 .plan-modal {
   position: relative;
   width: min(100%, 680px);
@@ -647,6 +658,26 @@ section {
   background: #ffffff;
   padding: 22px 24px;
   box-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
+}
+
+.doctor-modal {
+  position: relative;
+  width: min(100%, 460px);
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 24px;
+  box-shadow: 0 30px 90px rgba(15, 23, 42, 0.28);
+}
+
+.doctor-modal .plan-modal-header p {
+  color: #0f3f99;
+}
+
+.doctor-modal-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
 }
 
 .plan-modal-small {

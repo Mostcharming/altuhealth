@@ -1,3 +1,5 @@
+import TalkToDoctorPrompt from "@/components/TalkToDoctorPrompt";
+
 export default function CTA() {
   return (
     <section>
@@ -16,14 +18,7 @@ export default function CTA() {
               Get Started
             </a>
 
-            <a
-              href="https://yourtelemedicineportal.com"
-              className="btn btn-glass"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Talk To A Doctor
-            </a>
+            <TalkToDoctorPrompt className="btn btn-glass" />
           </div>
         </div>
       </div>

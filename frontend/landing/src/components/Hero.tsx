@@ -1,3 +1,5 @@
+import TalkToDoctorPrompt from "@/components/TalkToDoctorPrompt";
+
 export default function Hero() {
   return (
     <section className="hero" id="home">
@@ -11,9 +13,9 @@ export default function Hero() {
           </h2>
 
           <p>
-            AltuHealth delivers affordable, reliable, and technology-powered
-            healthcare coverage solutions for individuals, families, SMEs, and
-            enterprises across Nigeria.
+            AltuHealth delivers trusted, excellent, reliable, affordable and
+            technology-powered healthcare coverage solutions for individuals,
+            families, SMEs, and enterprises across Nigeria.
           </p>
 
           <div className="hero-buttons">
@@ -30,14 +32,7 @@ export default function Hero() {
               WhatsApp Us
             </a>
 
-            <a
-              href="https://yourtelemedicineportal.com"
-              className="btn btn-outline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Talk To A Doctor
-            </a>
+            <TalkToDoctorPrompt className="btn btn-outline" />
           </div>
         </div>
 
