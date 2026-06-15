@@ -6,8 +6,8 @@ export default function Hero() {
           <div className="badge">Built on trust and secure access</div>
 
           <h2>
-            Healthcare Coverage For
-            <span> Modern Families.</span>
+            Building Trust in Healthcare Coverage
+            <span> Across Nigeria.</span>
           </h2>
 
           <p>
