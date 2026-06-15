@@ -635,21 +635,11 @@ export default function Plans() {
           </p>
         </div>
 
-        <div className="plan-market-toggle" aria-label="Plan market selector">
-          <button
-            type="button"
-            className={market === "NGN" ? "active" : ""}
-            onClick={() => setMarket("NGN")}
-          >
-            Nigeria
-          </button>
-          <button
-            type="button"
-            className={market === "GBP" ? "active" : ""}
-            onClick={() => setMarket("GBP")}
-          >
+        <div className="plan-market-toggle" aria-label="Detected plan market">
+          <span className={market === "NGN" ? "active" : ""}>Nigeria</span>
+          <span className={market === "GBP" ? "active" : ""}>
             International
-          </button>
+          </span>
         </div>
 
         <div className="plan-grid">

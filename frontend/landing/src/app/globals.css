@@ -409,7 +409,7 @@ section {
   margin: -18px 0 28px;
 }
 
-.plan-market-toggle button {
+.plan-market-toggle span {
   border: 1px solid #bfdbfe;
   background: #ffffff;
   color: #1e3a8a;
@@ -417,10 +417,9 @@ section {
   padding: 10px 18px;
   font-size: 14px;
   font-weight: 800;
-  cursor: pointer;
 }
 
-.plan-market-toggle button.active {
+.plan-market-toggle span.active {
   background: #1e63e9;
   border-color: #1e63e9;
   color: #ffffff;
