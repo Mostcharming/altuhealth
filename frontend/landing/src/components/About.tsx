@@ -17,19 +17,18 @@ export default function About() {
             <h3>Our Vision</h3>
 
             <p>
-              To become Africa&apos;s most trusted technology-driven healthcare
-              organization, delivering accessible, affordable, and innovative
-              healthcare coverage solutions that improve lives and transform
-              healthcare experiences globally.
+              To provide dependable, technology-driven healthcare solutions
+              through strong provider networks, exceptional customer service,
+              and transparent operations; ensuring every enrolee receives
+              timely, affordable, and high-quality care across Nigeria.
             </p>
 
-            <h3>Our Mission</h3>
+            <h3>Core Values</h3>
 
             <p>
-              To simplify healthcare access through technology, strategic
-              partnerships, customer-centered innovation, and reliable
-              healthcare management systems that empower individuals, families,
-              and organizations.
+              At ALTU HEALTH, our core values guide every decision and action
+              as we strive to restore trust in healthcare coverage across
+              Nigeria. Accountability, Leadership, Trust, Universal.
             </p>
           </div>
 
