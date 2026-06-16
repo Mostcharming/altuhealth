@@ -41,31 +41,37 @@ export const moreFeatures = [
   {
     title: "Dependents",
     description: "Manage family members on your plan.",
+    route: "/dependents",
     icon: UserRoundPlus,
   },
   {
     title: "Hospital list",
     description: "Find approved care providers.",
+    route: "/hospital-list",
     icon: Hospital,
   },
   {
     title: "Women's health",
     description: "Access dedicated women's health support.",
+    route: "/womens-health",
     icon: HeartPulse,
   },
   {
     title: "Consult a doctor",
     description: "Start a consultation request.",
+    route: "/doctor-consultation",
     icon: Stethoscope,
   },
   {
     title: "Support messages",
     description: "Track conversations with support.",
+    route: "/support-messages",
     icon: MessageCircle,
   },
   {
     title: "Help center",
     description: "Get answers about your enrollee account.",
+    route: "/support-messages",
     icon: CircleHelp,
   },
 ];

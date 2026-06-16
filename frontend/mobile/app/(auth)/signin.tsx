@@ -9,7 +9,16 @@ import {
 import { HStack } from "@/components/ui/hstack";
 import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
-import { Eye, EyeOff } from "lucide-react-native";
+import {
+  authenticateWithBiometrics,
+  canUseBiometrics,
+  saveBiometricSession,
+} from "@/lib/biometricAuth";
+import { apiClient } from "@/lib/apiClient";
+import { useAuthStore } from "@/lib/authStore";
+import * as Location from "expo-location";
+import { router } from "expo-router";
+import { Eye, EyeOff, Fingerprint } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -23,11 +32,47 @@ async function getCoordinates(timeoutMs = 8000): Promise<{
   lat: number;
   lon: number;
 } | null> {
-  return new Promise((resolve) => {
-    // For React Native, you'd use expo-location
-    // This is a placeholder - implement with expo-location if needed
-    resolve(null);
-  });
+  try {
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== Location.PermissionStatus.GRANTED) {
+      return null;
+    }
+
+    const position = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+      timeInterval: timeoutMs,
+    });
+
+    return {
+      lat: position.coords.latitude,
+      lon: position.coords.longitude,
+    };
+  } catch (err) {
+    console.warn("Geolocation error:", err);
+    return null;
+  }
+}
+
+async function getLocationName(
+  lat: number,
+  lon: number
+): Promise<string | null> {
+  try {
+    const places = await Location.reverseGeocodeAsync({
+      latitude: lat,
+      longitude: lon,
+    });
+    const place = places[0];
+
+    if (!place) {
+      return null;
+    }
+
+    return [place.region, place.country].filter(Boolean).join(", ") || null;
+  } catch (err) {
+    console.warn("Reverse geocoding failed:", err);
+    return null;
+  }
 }
 
 export default function SignInScreen() {
@@ -36,8 +81,31 @@ export default function SignInScreen() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
+  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const login = useAuthStore((state) => state.login);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    canUseBiometrics()
+      .then((available) => {
+        if (isMounted) {
+          setIsBiometricAvailable(available);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setIsBiometricAvailable(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async () => {
     setError(null);
@@ -50,11 +118,85 @@ export default function SignInScreen() {
       return;
     }
 
-    // Show network error
-    setTimeout(() => {
-      setError("Network not enabled. Please check your internet connection.");
+    try {
+      const coords = await getCoordinates();
+      const currentLocation = coords
+        ? await getLocationName(coords.lat, coords.lon)
+        : null;
+      const isEmail = /\S+@\S+\.\S+/.test(identifier.trim());
+      const bodyPayload: Record<string, unknown> = {
+        password,
+        remember: isChecked,
+        location: {
+          lat: coords?.lat || null,
+          lon: coords?.lon || null,
+          currentLocation,
+        },
+      };
+
+      if (isEmail) {
+        bodyPayload.email = identifier.trim();
+      } else {
+        bodyPayload.policyNumber = identifier.trim();
+      }
+
+      const response = await apiClient("/enrollee/auth/login", {
+        method: "POST",
+        body: bodyPayload,
+      });
+      const payload = response && typeof response === "object" ? response : {};
+      const user = (payload as any).user ?? (payload as any).data?.user ?? null;
+      const token =
+        (payload as any).token ??
+        (payload as any).data?.token ??
+        (payload as any).accessToken ??
+        null;
+
+      if (!user || !token) {
+        throw new Error("Invalid response from server");
+      }
+
+      login(user, token);
+      await saveBiometricSession({ user, token });
+      setSuccess(
+        `Welcome back, ${user.firstName || user.email || "enrollee"}.`
+      );
+      setIdentifier("");
+      setPassword("");
+      router.replace("/");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      setError(message);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    setError(null);
+    setSuccess(null);
+
+    if (!isBiometricAvailable) {
+      setError(
+        "Biometric login is not available on this device. Add fingerprint or Face ID in your device settings, then try again."
+      );
+      return;
+    }
+
+    setIsBiometricLoading(true);
+
+    try {
+      const session = await authenticateWithBiometrics();
+      login(session.user as any, session.token);
+      router.replace("/");
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unable to sign in with biometrics";
+      setError(message);
+    } finally {
+      setIsBiometricLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -178,19 +320,34 @@ export default function SignInScreen() {
             </HStack>
 
             {/* Sign In Button */}
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={isLoading}
-              className="bg-blue-500 rounded-lg py-3 items-center mt-4"
-            >
-              {isLoading ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text className="text-white font-semibold text-base">
-                  Sign in
-                </Text>
-              )}
-            </TouchableOpacity>
+            <HStack space="sm" className="mt-4">
+              <TouchableOpacity
+                onPress={handleSubmit}
+                disabled={isLoading}
+                className="flex-1 bg-blue-500 rounded-lg py-3 items-center justify-center"
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text className="text-white font-semibold text-base">
+                    Sign in
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleBiometricLogin}
+                disabled={isBiometricLoading || isLoading}
+                accessibilityLabel="Sign in with biometrics"
+                className="h-12 w-12 border border-blue-500 rounded-lg items-center justify-center"
+              >
+                {isBiometricLoading ? (
+                  <ActivityIndicator color="#3b82f6" size="small" />
+                ) : (
+                  <Fingerprint size={22} color="#3b82f6" />
+                )}
+              </TouchableOpacity>
+            </HStack>
           </VStack>
         </Center>
       </ScrollView>
