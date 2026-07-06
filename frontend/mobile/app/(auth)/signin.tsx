@@ -22,6 +22,7 @@ import { Eye, EyeOff, Fingerprint } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   TextInput as RNTextInput,
   ScrollView,
   TouchableOpacity,
@@ -86,6 +87,11 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const login = useAuthStore((state) => state.login);
+
+  const handleForgotPassword = () => {
+    Keyboard.dismiss();
+    router.push("/forgot-password");
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -212,6 +218,7 @@ export default function SignInScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }} className="bg-white">
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ flexGrow: 1 }}
         className="flex-1 px-6 py-8"
       >
@@ -310,8 +317,9 @@ export default function SignInScreen() {
                 </Text>
               </HStack>
               <TouchableOpacity
-                onPress={() => router.push("/forgot-password")}
+                onPress={handleForgotPassword}
                 disabled={isLoading}
+                hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
               >
                 <Text className="text-sm text-blue-500">
                   Forgot password?
