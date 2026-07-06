@@ -310,7 +310,7 @@ export default function SignInScreen() {
                 </Text>
               </HStack>
               <TouchableOpacity
-                // onPress={() => router.push("/")}
+                onPress={() => router.push("/forgot-password")}
                 disabled={isLoading}
               >
                 <Text className="text-sm text-blue-500">

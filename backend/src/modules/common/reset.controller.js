@@ -1,6 +1,19 @@
 const bcrypt = require('bcrypt');
 const notify = require('../../utils/notify');
 
+const getModelAttributes = (model) => {
+    if (!model) return {};
+    if (typeof model.getAttributes === 'function') return model.getAttributes();
+    return model.rawAttributes || {};
+};
+
+const getPasswordField = (model) => {
+    const attributes = getModelAttributes(model);
+    if (attributes.passwordHash) return 'passwordHash';
+    if (attributes.password) return 'password';
+    return 'passwordHash';
+};
+
 const makeResetPassword = (modelOrKey, opts = {}) => {
     const policyModelKey = opts.policyModelKey || 'PolicyNumber';
     const userType = opts.userType || (typeof modelOrKey === 'string' ? modelOrKey : 'Admin');
@@ -45,13 +58,13 @@ const makeResetPassword = (modelOrKey, opts = {}) => {
 
             const saltRounds = 10;
             const passwordHash = await bcrypt.hash(password, saltRounds);
+            const passwordField = getPasswordField(UserModel);
 
             try {
                 if (user && typeof user.update === 'function') {
-                    await user.update({ passwordHash });
+                    await user.update({ [passwordField]: passwordHash });
                 } else {
-                    const { [typeof modelOrKey === 'string' ? modelOrKey : 'User']: UserModelFromReq } = req.models || {};
-                    if (UserModelFromReq) await UserModelFromReq.update({ passwordHash }, { where: { id: user.id } });
+                    await UserModel.update({ [passwordField]: passwordHash }, { where: { id: user.id } });
                 }
 
                 await resetEntry.update({ isUsed: true });

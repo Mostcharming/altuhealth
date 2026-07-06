@@ -1,8 +1,8 @@
 "use client";
 
+import { apiClient } from "@/lib/apiClient";
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { apiClient } from "@/lib/apiClient";
 
 type Market = "NGN" | "GBP";
 
@@ -80,7 +80,10 @@ type IpLocation = {
   country_code?: string;
 };
 
-const selectedPlanPrices: Record<Market, Record<string, SelectedPlanPricing>> = {
+const selectedPlanPrices: Record<
+  Market,
+  Record<string, SelectedPlanPricing>
+> = {
   GBP: {
     "senior basic": {
       order: 1,
@@ -259,11 +262,9 @@ const planVariantDefinitions: Record<string, PlanVariantDefinition> = {
 };
 
 const fallbackPlans: Record<Market, DisplayPlan[]> = {
-  GBP: [
-    "Senior Basic",
-    "Senior Standard",
-    "Senior Elite",
-  ].map((name) => buildFallbackPlan(name, "GBP")),
+  GBP: ["Senior Basic", "Senior Standard", "Senior Elite"].map((name) =>
+    buildFallbackPlan(name, "GBP"),
+  ),
   NGN: [
     "Vital Basic",
     "Vital Lite",
@@ -376,7 +377,9 @@ export default function Plans() {
   const [selectedPlan, setSelectedPlan] = useState<DisplayPlan | null>(null);
   const [selectedVariantPlanId, setSelectedVariantPlanId] = useState("");
   const [gateways, setGateways] = useState<PaymentGateway[]>([]);
-  const [selectedGateway, setSelectedGateway] = useState<"paypal" | "stripe" | "">("");
+  const [selectedGateway, setSelectedGateway] = useState<
+    "paypal" | "stripe" | ""
+  >("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [modalError, setModalError] = useState("");
   const [modalSuccess, setModalSuccess] = useState("");
@@ -476,7 +479,9 @@ export default function Plans() {
         );
       } catch (err) {
         setModalError(
-          err instanceof Error ? err.message : "Payment completed, but account setup failed.",
+          err instanceof Error
+            ? err.message
+            : "Payment completed, but account setup failed.",
         );
       } finally {
         setIsProcessingPayment(false);
@@ -502,7 +507,9 @@ export default function Plans() {
         setSelectedGateway(availableGateways[0]?.provider || "");
       } catch (err) {
         setModalError(
-          err instanceof Error ? err.message : "Unable to fetch payment gateways.",
+          err instanceof Error
+            ? err.message
+            : "Unable to fetch payment gateways.",
         );
       }
     };
@@ -584,7 +591,12 @@ export default function Plans() {
       setModalError("Select a payment gateway.");
       return;
     }
-    if (!planForm.firstName || !planForm.lastName || !planForm.email || !planForm.phone) {
+    if (
+      !planForm.firstName ||
+      !planForm.lastName ||
+      !planForm.email ||
+      !planForm.phone
+    ) {
       setModalError("Fill in your name, email, and phone number.");
       return;
     }
@@ -630,9 +642,7 @@ export default function Plans() {
         <div className="section-title">
           <span>Our Plans</span>
           <h2>Choose A Health Plan That Fits Your Needs.</h2>
-          <p>
-            Explore selected healthcare plans tailored to your market.
-          </p>
+          <p>Explore selected healthcare plans tailored to your market.</p>
         </div>
 
         <div className="plan-market-toggle" aria-label="Detected plan market">
@@ -764,7 +774,9 @@ export default function Plans() {
                   {selectedPlan.rows.map((row) => (
                     <button
                       type="button"
-                      className={row.planId === selectedVariantPlanId ? "active" : ""}
+                      className={
+                        row.planId === selectedVariantPlanId ? "active" : ""
+                      }
                       key={row.label}
                       onClick={() =>
                         setSelectedVariantPlanId((current) =>
@@ -820,7 +832,9 @@ export default function Plans() {
                   {gateways.map((gateway) => (
                     <button
                       type="button"
-                      className={gateway.provider === selectedGateway ? "active" : ""}
+                      className={
+                        gateway.provider === selectedGateway ? "active" : ""
+                      }
                       key={gateway.provider}
                       onClick={() =>
                         setSelectedGateway((current) =>
@@ -844,9 +858,7 @@ export default function Plans() {
               )}
 
               {modalError && (
-                <div className="plan-modal-error">
-                  {modalError}
-                </div>
+                <div className="plan-modal-error">{modalError}</div>
               )}
 
               <div className="plan-modal-instructions">
@@ -863,7 +875,8 @@ export default function Plans() {
                 onClick={handleProceedToPayment}
                 disabled={isProcessingPayment}
               >
-                {isProcessingPayment ? "Processing..." : "Proceed to Pay"} <span>→</span>
+                {isProcessingPayment ? "Processing..." : "Proceed to Pay"}{" "}
+                <span>→</span>
               </button>
             </form>
           </div>

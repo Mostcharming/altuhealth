@@ -67,3 +67,12 @@ ecosystem.config.js
 /mobile
 mobile/
 mobile
+!frontend/mobile/
+frontend/mobile/*
+!frontend/mobile/app/
+frontend/mobile/app/*
+!frontend/mobile/app/(auth)/
+frontend/mobile/app/(auth)/*
+!frontend/mobile/app/(auth)/_layout.tsx
+!frontend/mobile/app/(auth)/forgot-password.tsx
+!frontend/mobile/app/(auth)/verify.tsx
