@@ -6,9 +6,11 @@ import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import { PencilIcon, TrashBinIcon } from "@/icons";
+import { DownloadIcon, PencilIcon, TrashBinIcon } from "@/icons";
 import { apiClient } from "@/lib/apiClient";
+import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
+import { APP_CONFIG } from "@/lib/config";
 import { Staff, useStaffStore } from "@/lib/store/staffStore";
 import React, { useCallback, useEffect, useState } from "react";
 import EditStaff from "./editStaff";
@@ -28,6 +30,7 @@ const StaffsTable: React.FC = () => {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [downloading, setDownloading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
   const [hasPreviousPage, setHasPreviousPage] = useState<boolean>(false);
@@ -38,6 +41,7 @@ const StaffsTable: React.FC = () => {
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const removeStaff = useStaffStore((s) => s.removeStaff);
+  const token = useAuthStore((s) => s.token);
   const [errorMessage, setErrorMessage] = useState(
     "Failed to delete staff. Please try again."
   );
@@ -82,7 +86,7 @@ const StaffsTable: React.FC = () => {
     fetchCompanies();
   }, []);
 
-  const fetch = useCallback(async () => {
+  const fetchStaffs = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -119,8 +123,8 @@ const StaffsTable: React.FC = () => {
   }, [limit, currentPage, search, selectedCompanyId, setStaffs]);
 
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    fetchStaffs();
+  }, [fetchStaffs]);
 
   const startEntry: number =
     totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
@@ -137,6 +141,11 @@ const StaffsTable: React.FC = () => {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }, [currentPage, totalPages]);
 
+  const selectedCompany = React.useMemo(
+    () => companies.find((company) => company.id === selectedCompanyId),
+    [companies, selectedCompanyId]
+  );
+
   const goToPage = (page: number): void => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
@@ -152,6 +161,63 @@ const StaffsTable: React.FC = () => {
   const handleSelectChange = (value: string) => {
     setLimit(Number(value));
     setCurrentPage(1);
+  };
+
+  const handleDownloadStaffList = async () => {
+    if (!selectedCompanyId) {
+      setErrorMessage("Select a company before downloading the staff list.");
+      errorModal.openModal();
+      return;
+    }
+
+    try {
+      setDownloading(true);
+      const response = await fetch(
+        `${APP_CONFIG.API_BASE_URL}/admin/staffs/company/${selectedCompanyId}/download`,
+        {
+          method: "GET",
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        let message = "Failed to download staff list.";
+
+        if (contentType?.includes("application/json")) {
+          const data = await response.json();
+          message = data?.message || message;
+        } else {
+          const text = await response.text();
+          message = text || message;
+        }
+
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const safeName = String(selectedCompany?.name || "company")
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "")
+        .toLowerCase();
+
+      link.href = url;
+      link.download = `${safeName || "company"}-staff-list.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      setErrorMessage(err.message || "Failed to download staff list.");
+      errorModal.openModal();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleDeleteModal = (id: string) => {
@@ -211,7 +277,37 @@ const StaffsTable: React.FC = () => {
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-      <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+      <div className="border-b border-gray-200 bg-gray-50 px-5 py-4 dark:border-gray-800 dark:bg-white/[0.02]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-white">
+              <DownloadIcon />
+            </span>
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                Staff export available
+              </h4>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {selectedCompanyId
+                  ? `Download ${
+                      selectedCompany?.name || "the selected company"
+                    } staff list with enrollee policy numbers.`
+                  : "Select a company to download an Excel staff list with enrollee policy numbers."}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleDownloadStaffList}
+            disabled={!selectedCompanyId || downloading}
+            className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <DownloadIcon />
+            {downloading ? "Downloading..." : "Download Staff List"}
+          </button>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
             Staff Listing
@@ -219,7 +315,7 @@ const StaffsTable: React.FC = () => {
         </div>
 
         <div className="flex gap-3.5">
-          <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div>
               <Select
                 options={[

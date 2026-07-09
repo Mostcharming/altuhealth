@@ -530,6 +530,134 @@ async function downloadCompanyEnrollees(req, res, next) {
     }
 }
 
+async function downloadCompanyStaffs(req, res, next) {
+    try {
+        const { Staff, Enrollee, Company, CompanySubsidiary, Subscription } = req.models;
+        const { companyId } = req.params;
+
+        if (!companyId) return res.fail('`companyId` is required', 400);
+
+        const company = await Company.findByPk(companyId, {
+            attributes: ['id', 'name'],
+            raw: true
+        });
+        if (!company) return res.fail('Company not found', 404);
+
+        const staffs = await Staff.findAll({
+            where: { companyId },
+            attributes: [
+                'id',
+                'firstName',
+                'middleName',
+                'lastName',
+                'email',
+                'phoneNumber',
+                'staffId',
+                'dateOfBirth',
+                'maxDependents',
+                'preexistingMedicalRecords',
+                'enrollmentStatus',
+                'isNotified',
+                'notifiedAt',
+                'isActive',
+                'createdAt'
+            ],
+            include: [
+                {
+                    model: Enrollee,
+                    as: 'enrollee',
+                    attributes: ['id', 'policyNumber', 'gender', 'isActive', 'createdAt'],
+                    required: false
+                },
+                {
+                    model: Company,
+                    attributes: ['id', 'name'],
+                    required: false
+                },
+                {
+                    model: CompanySubsidiary,
+                    attributes: ['id', 'name'],
+                    required: false
+                },
+                {
+                    model: Subscription,
+                    attributes: ['id', 'code', 'status', 'startDate', 'endDate'],
+                    required: false
+                }
+            ],
+            order: [
+                ['lastName', 'ASC'],
+                ['firstName', 'ASC']
+            ]
+        });
+
+        if (staffs.length === 0) {
+            return res.fail('No staff found for this company', 404);
+        }
+
+        const formatDate = (value) => value ? new Date(value).toISOString().split('T')[0] : '';
+        const rows = staffs.map((staff, index) => {
+            const item = staff.toJSON();
+            return {
+                'S/N': index + 1,
+                'Policy Number': item.enrollee?.policyNumber || '',
+                'First Name': item.firstName || '',
+                'Middle Name': item.middleName || '',
+                'Last Name': item.lastName || '',
+                Email: item.email || '',
+                'Phone Number': item.phoneNumber || '',
+                'Staff ID': item.staffId || '',
+                Company: item.Company?.name || company.name || '',
+                Subsidiary: item.CompanySubsidiary?.name || '',
+                Subscription: item.Subscription?.code || '',
+                'Subscription Status': item.Subscription?.status || '',
+                'Subscription Start Date': formatDate(item.Subscription?.startDate),
+                'Subscription End Date': formatDate(item.Subscription?.endDate),
+                'Date of Birth': formatDate(item.dateOfBirth),
+                Gender: item.enrollee?.gender || '',
+                'Max Dependents': item.maxDependents ?? '',
+                'Pre-existing Medical Records': item.preexistingMedicalRecords || '',
+                'Enrollment Status': item.enrollmentStatus || '',
+                Notified: item.isNotified ? 'Yes' : 'No',
+                'Notified At': formatDate(item.notifiedAt),
+                Status: item.isActive ? 'Active' : 'Inactive',
+                'Enrollee Status': item.enrollee ? (item.enrollee.isActive ? 'Active' : 'Inactive') : '',
+                'Created At': formatDate(item.createdAt)
+            };
+        });
+
+        const XLSX = require('xlsx');
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff List');
+
+        const buffer = XLSX.write(workbook, {
+            bookType: 'xlsx',
+            type: 'buffer'
+        });
+
+        const safeCompanyName = String(company.name || 'company')
+            .replace(/[^a-z0-9]+/gi, '-')
+            .replace(/^-+|-+$/g, '')
+            .toLowerCase();
+        const filename = `${safeCompanyName || 'company'}-staff-list.xlsx`;
+
+        await addAuditLog(req.models, {
+            action: 'staff.company_staffs_download',
+            message: `Downloaded staff list for company ${company.name}`,
+            userId: (req.user && req.user.id) ? req.user.id : null,
+            userType: (req.user && req.user.type) ? req.user.type : null,
+            meta: { companyId, staffCount: staffs.length }
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        return res.send(buffer);
+    } catch (err) {
+        return next(err);
+    }
+}
+
 async function bulkNotifyStaffs(req, res, next) {
     try {
         const { Staff } = req.models;
@@ -976,6 +1104,7 @@ module.exports = {
     listStaffs,
     getStaff,
     getEnrollmentStatusOptions,
+    downloadCompanyStaffs,
     downloadCompanyEnrollees,
     bulkNotifyStaffs,
     bulkEnrollStaffs,
