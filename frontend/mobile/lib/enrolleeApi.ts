@@ -23,6 +23,7 @@ export type DashboardData = {
   metrics?: DashboardMetric[];
   healthPlan?: {
     daysUntilRenewal?: number;
+    name?: string | null;
     status?: string;
   };
   benefits?: {

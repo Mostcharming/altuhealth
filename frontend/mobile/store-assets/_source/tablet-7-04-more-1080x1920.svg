@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920">
+<defs>
+<linearGradient id="hero" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" stop-color="#0F766E"/>
+<stop offset="52%" stop-color="#2563EB"/>
+<stop offset="100%" stop-color="#16A34A"/>
+</linearGradient>
+<linearGradient id="pageGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" stop-color="#F6FAFD"/>
+<stop offset="100%" stop-color="#EAF5F2"/>
+</linearGradient>
+
+</defs>
+<rect x="0.0" y="0.0" width="1080.0" height="1920.0" rx="0.0" fill="#F4F8FB"/>
+<rect x="0.0" y="0.0" width="226.8" height="1920.0" rx="0.0" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.9"/>
+<rect x="30.6" y="43.2" width="52.2" height="52.2" rx="11.5" fill="#0F766E"/>
+<circle cx="68.2" cy="57.8" r="8.4" fill="#FFFFFF" opacity="0.22"/>
+<text x="56.7" y="77.7" font-size="24.0" font-family="Arial" font-weight="700" text-anchor="middle" fill="#FFFFFF">A</text>
+<text x="95.4" y="77.4" font-size="22.5" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F766E">AltuHealth</text>
+<rect x="21.6" y="154.8" width="183.6" height="48.6" rx="16.2" fill="#FFFFFF"/>
+<text x="48.6" y="187.2" font-size="18.0" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Home</text>
+<rect x="21.6" y="219.6" width="183.6" height="48.6" rx="16.2" fill="#FFFFFF"/>
+<text x="48.6" y="252.0" font-size="18.0" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">History</text>
+<rect x="21.6" y="284.4" width="183.6" height="48.6" rx="16.2" fill="#FFFFFF"/>
+<text x="48.6" y="316.8" font-size="18.0" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Visits</text>
+<rect x="21.6" y="349.2" width="183.6" height="48.6" rx="16.2" fill="#FFFFFF"/>
+<text x="48.6" y="381.6" font-size="18.0" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Benefits</text>
+<rect x="21.6" y="414.0" width="183.6" height="48.6" rx="16.2" fill="#DDF5EF"/>
+<text x="48.6" y="446.4" font-size="18.0" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F766E">More</text>
+<text x="30.6" y="1855.2" font-size="16.2" font-family="Arial" font-weight="600" text-anchor="start" fill="#64748B">Member app</text>
+<text x="273.6" y="113.4" font-size="41.4" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">More</text>
+<text x="273.6" y="153.0" font-size="19.8" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Manage profile, family members, support and settings</text>
+<rect x="273.6" y="201.6" width="440.6" height="158.4" rx="27.0" fill="#0F766E"/>
+<circle cx="342.0" cy="280.8" r="39.6" fill="#FFFFFF" opacity="0.22"/>
+<text x="342.0" y="291.6" font-size="25.2" font-family="Arial" font-weight="700" text-anchor="middle" fill="#FFFFFF">AM</text>
+<text x="401.4" y="271.8" font-size="27.0" font-family="Arial" font-weight="700" text-anchor="start" fill="#FFFFFF">Amina Member</text>
+<text x="401.4" y="309.6" font-size="20.7" font-family="Arial" font-weight="500" text-anchor="start" fill="#E6FFFA">Gold HMO Plan • Active</text>
+<rect x="273.6" y="397.8" width="440.6" height="99.0" rx="21.6" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<circle cx="320.4" cy="447.3" r="23.4" fill="#0F766E" opacity="0.15"/>
+<text x="358.2" y="441.0" font-size="22.5" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">Profile</text>
+<text x="358.2" y="471.6" font-size="17.1" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Personal details and member ID</text>
+<text x="676.4" y="460.8" font-size="30.6" font-family="Arial" font-weight="700" text-anchor="middle" fill="#64748B">&gt;</text>
+<rect x="273.6" y="518.4" width="440.6" height="99.0" rx="21.6" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<circle cx="320.4" cy="567.9" r="23.4" fill="#2563EB" opacity="0.15"/>
+<text x="358.2" y="561.6" font-size="22.5" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">Dependents</text>
+<text x="358.2" y="592.2" font-size="17.1" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Manage covered family members</text>
+<text x="676.4" y="581.4" font-size="30.6" font-family="Arial" font-weight="700" text-anchor="middle" fill="#64748B">&gt;</text>
+<rect x="273.6" y="639.0" width="440.6" height="99.0" rx="21.6" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<circle cx="320.4" cy="688.5" r="23.4" fill="#F59E0B" opacity="0.15"/>
+<text x="358.2" y="682.2" font-size="22.5" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">Support tickets</text>
+<text x="358.2" y="712.8" font-size="17.1" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Track help requests</text>
+<text x="676.4" y="702.0" font-size="30.6" font-family="Arial" font-weight="700" text-anchor="middle" fill="#64748B">&gt;</text>
+<rect x="273.6" y="759.6" width="440.6" height="99.0" rx="21.6" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<circle cx="320.4" cy="809.1" r="23.4" fill="#16A34A" opacity="0.15"/>
+<text x="358.2" y="802.8" font-size="22.5" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">Documents</text>
+<text x="358.2" y="833.4" font-size="17.1" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Policy documents and claims</text>
+<text x="676.4" y="822.6" font-size="30.6" font-family="Arial" font-weight="700" text-anchor="middle" fill="#64748B">&gt;</text>
+<rect x="273.6" y="880.2" width="440.6" height="99.0" rx="21.6" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<circle cx="320.4" cy="929.7" r="23.4" fill="#06B6D4" opacity="0.15"/>
+<text x="358.2" y="923.4" font-size="22.5" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">Settings</text>
+<text x="358.2" y="954.0" font-size="17.1" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Security and notifications</text>
+<text x="676.4" y="943.2" font-size="30.6" font-family="Arial" font-weight="700" text-anchor="middle" fill="#64748B">&gt;</text>
+<text x="739.4" y="203.4" font-size="23.4" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">Summary</text>
+<rect x="739.4" y="232.2" width="293.8" height="135.0" rx="21.6" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<circle cx="777.2" cy="273.6" r="16.2" fill="#0F766E" opacity="0.16"/>
+<text x="764.6" y="318.6" font-size="34.2" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">Gold HMO</text>
+<text x="764.6" y="351.0" font-size="19.8" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Active plan</text>
+<rect x="739.4" y="385.2" width="293.8" height="135.0" rx="21.6" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<circle cx="777.2" cy="426.6" r="16.2" fill="#2563EB" opacity="0.16"/>
+<text x="764.6" y="471.6" font-size="34.2" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">42 clinics</text>
+<text x="764.6" y="504.0" font-size="19.8" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Provider network</text>
+<rect x="739.4" y="538.2" width="293.8" height="135.0" rx="21.6" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<circle cx="777.2" cy="579.6" r="16.2" fill="#16A34A" opacity="0.16"/>
+<text x="764.6" y="624.6" font-size="34.2" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">24/7</text>
+<text x="764.6" y="657.0" font-size="19.8" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">Support</text>
+<rect x="739.4" y="711.0" width="293.8" height="208.8" rx="25.2" fill="#FFFFFF" stroke="#D5E3EA" stroke-width="1.26"/>
+<text x="764.6" y="759.6" font-size="21.6" font-family="Arial" font-weight="700" text-anchor="start" fill="#0F172A">Today</text>
+<text x="764.6" y="799.2" font-size="19.8" font-family="Arial" font-weight="600" text-anchor="start" fill="#64748B">General consultation</text>
+<text x="764.6" y="833.4" font-size="18.0" font-family="Arial" font-weight="500" text-anchor="start" fill="#64748B">10:30 AM • Mainland Care Clinic</text>
+<rect x="764.6" y="867.6" width="243.4" height="37.8" rx="18.9" fill="#EAF7F3"/>
+<text x="886.3" y="892.8" font-size="16.2" font-family="Arial" font-weight="700" text-anchor="middle" fill="#0F766E">Ready for check-in</text>
+</svg>

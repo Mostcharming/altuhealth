@@ -69,6 +69,11 @@ mobile/
 mobile
 !frontend/mobile/
 frontend/mobile/*
+!frontend/mobile/STORE_BUILD_NOTES.md
+!frontend/mobile/scripts/
+!frontend/mobile/scripts/generate_store_assets.py
+!frontend/mobile/store-assets/
+!frontend/mobile/store-assets/**
 !frontend/mobile/app/
 frontend/mobile/app/*
 !frontend/mobile/app/(auth)/

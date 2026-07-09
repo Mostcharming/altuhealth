@@ -1,72 +1,110 @@
-const { Enrollee, Appointment, Benefit, CompanyPlanBenefit } = require('../../../database/models');
-
 /**
  * Get dashboard data for enrollee
  * Returns metrics, statistics, health plan, benefits, and appointments
  */
 exports.getDashboardData = async (req, res, next) => {
     try {
+        const {
+            Enrollee,
+            Appointment,
+            Provider,
+            CompanyPlan,
+            PlanBenefit,
+            CompanyPlanBenefit,
+        } = req.models || {};
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) {
-            return res.status(401).json({
-                success: false,
-                message: 'Unauthorized access',
-            });
+            return res.fail('Unauthorized access', 401);
+        }
+
+        if (!Enrollee || !Appointment || !CompanyPlan || !PlanBenefit || !CompanyPlanBenefit) {
+            throw new Error('Database models are not available');
         }
 
         // Fetch enrollee data
         const enrollee = await Enrollee.findByPk(enrolleeId, {
-            attributes: ['id', 'firstName', 'lastName', 'planId', 'enrollmentDate', 'status'],
+            attributes: [
+                'id',
+                'firstName',
+                'lastName',
+                'policyNumber',
+                'companyPlanId',
+                'enrollmentDate',
+                'expirationDate',
+                'isActive',
+            ],
+            include: [
+                {
+                    model: CompanyPlan,
+                    as: 'companyPlan',
+                    attributes: ['id', 'name', 'planType', 'planId', 'currency'],
+                    required: false,
+                },
+            ],
         });
 
         if (!enrollee) {
-            return res.status(404).json({
-                success: false,
-                message: 'Enrollee not found',
-            });
+            return res.fail('Enrollee not found', 404);
         }
 
-        // Calculate days until renewal (assuming 1-year renewal)
-        const enrollmentDate = new Date(enrollee.enrollmentDate);
-        const renewalDate = new Date(enrollmentDate.getFullYear() + 1, enrollmentDate.getMonth(), enrollmentDate.getDate());
+        const enrolleeJson = enrollee.toJSON();
+        const renewalDate = enrollee.expirationDate
+            ? new Date(enrollee.expirationDate)
+            : new Date(
+                new Date(enrollee.enrollmentDate).getFullYear() + 1,
+                new Date(enrollee.enrollmentDate).getMonth(),
+                new Date(enrollee.enrollmentDate).getDate()
+            );
         const today = new Date();
-        const daysUntilRenewal = Math.max(0, Math.ceil((renewalDate - today) / (1000 * 60 * 60 * 24)));
+        const daysUntilRenewal = Number.isNaN(renewalDate.getTime())
+            ? 0
+            : Math.max(0, Math.ceil((renewalDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 
         // Fetch appointments
         const appointments = await Appointment.findAll({
             where: { enrolleeId },
-            attributes: ['id', 'title', 'appointmentDate', 'appointmentTime', 'doctorName'],
-            order: [['appointmentDate', 'ASC']],
+            attributes: ['id', 'complaint', 'appointmentDateTime', 'status'],
+            include: Provider
+                ? [
+                    {
+                        model: Provider,
+                        attributes: ['id', 'name'],
+                        required: false,
+                    },
+                ]
+                : [],
+            order: [['appointmentDateTime', 'ASC']],
             limit: 5,
         });
 
         // Fetch benefits data
-        const benefits = await CompanyPlanBenefit.findAll({
-            where: { companyPlanId: enrollee.planId },
-            attributes: ['id', 'limitAmount', 'usedAmount'],
-            limit: 10,
-        });
+        const companyPlan = enrolleeJson.companyPlan;
+        const totalBenefits = companyPlan?.planType === 'standard' && companyPlan?.planId
+            ? await PlanBenefit.count({ where: { planId: companyPlan.planId } })
+            : await CompanyPlanBenefit.count({ where: { companyPlanId: enrollee.companyPlanId } });
 
-        // Calculate benefits statistics
-        const totalAvailable = benefits.reduce((sum, b) => sum + (b.limitAmount || 0), 0);
-        const totalUsed = benefits.reduce((sum, b) => sum + (b.usedAmount || 0), 0);
-        const totalRemaining = Math.max(0, totalAvailable - totalUsed);
+        const usedPercentage = 0;
+        const remainingPercentage = totalBenefits > 0 ? 100 : 0;
+        const availablePercentage = totalBenefits > 0 ? 100 : 0;
 
-        const availablePercentage = totalAvailable > 0 ? Math.round((totalAvailable / (totalAvailable + totalRemaining)) * 100) : 0;
-        const usedPercentage = totalAvailable > 0 ? Math.round((totalUsed / totalAvailable) * 100) : 0;
-        const remainingPercentage = 100 - usedPercentage;
+        const appointmentCount = await Appointment.count({ where: { enrolleeId } });
 
         // Build response data
         const dashboardData = {
+            enrollee: {
+                firstName: enrollee.firstName,
+                lastName: enrollee.lastName,
+                policyNumber: enrollee.policyNumber,
+            },
             metrics: [
                 {
                     id: 1,
                     title: 'Medical Visits',
-                    value: '0',
+                    value: String(appointmentCount),
                     change: '+0%',
                     direction: 'up',
-                    comparisonText: 'this month',
+                    comparisonText: 'total',
                 },
                 {
                     id: 2,
@@ -97,27 +135,37 @@ exports.getDashboardData = async (req, res, next) => {
             },
             healthPlan: {
                 daysUntilRenewal,
-                status: enrollee.status || 'Active',
+                status: enrollee.isActive ? 'Active' : 'Inactive',
+                name: companyPlan?.name || null,
             },
             benefits: {
                 availablePercentage,
                 usedPercentage,
                 remainingPercentage,
-                totalBenefits: totalAvailable.toLocaleString(),
+                totalBenefits: totalBenefits.toLocaleString(),
             },
-            appointments: appointments.map((apt) => ({
-                id: apt.id,
-                title: apt.title,
-                date: apt.appointmentDate,
-                time: apt.appointmentTime,
-                doctor: apt.doctorName,
-            })),
+            appointments: appointments.map((apt) => {
+                const appointmentJson = apt.toJSON();
+                const appointmentDate = appointmentJson.appointmentDateTime
+                    ? new Date(appointmentJson.appointmentDateTime)
+                    : null;
+
+                return {
+                    id: appointmentJson.id,
+                    title: appointmentJson.complaint || 'Appointment',
+                    date: appointmentDate && !Number.isNaN(appointmentDate.getTime())
+                        ? appointmentDate.toISOString().slice(0, 10)
+                        : null,
+                    time: appointmentDate && !Number.isNaN(appointmentDate.getTime())
+                        ? appointmentDate.toTimeString().slice(0, 5)
+                        : null,
+                    status: appointmentJson.status,
+                    doctor: appointmentJson.Provider?.name || null,
+                };
+            }),
         };
 
-        return res.status(200).json({
-            success: true,
-            data: dashboardData,
-        });
+        return res.success(dashboardData, 'Dashboard data fetched successfully');
     } catch (error) {
         next(error);
     }

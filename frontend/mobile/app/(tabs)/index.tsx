@@ -52,10 +52,16 @@ export default function Home() {
       return enrolleeStats;
     }
 
+    const planName = dashboard.healthPlan?.name?.trim();
+    const planStatus = dashboard.healthPlan?.status?.trim();
+    const planValue = planName
+      ? [planName, planStatus].filter(Boolean).join(" - ")
+      : planStatus || "Not available";
+
     return [
       {
-        label: "Plan status",
-        value: dashboard.healthPlan?.status || "Active",
+        label: "Plan",
+        value: planValue,
       },
       {
         label: "Renewal",

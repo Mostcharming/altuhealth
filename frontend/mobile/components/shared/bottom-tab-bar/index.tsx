@@ -5,7 +5,12 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { HStack } from "@/components/ui/hstack";
 import { Box } from "@/components/ui/box";
 import { BlurView } from "expo-blur";
-import { Animated, Dimensions, Platform, StyleSheet } from "react-native";
+import {
+  Animated,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+} from "react-native";
 import { Icon } from "@/components/ui/icon";
 import {
   CalendarDays,
@@ -15,7 +20,7 @@ import {
   Menu,
   ShieldCheck,
 } from "lucide-react-native";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 interface TabItem {
   name: string;
@@ -105,7 +110,7 @@ function LiquidTabItem({
         />
         <Text
           size="xs"
-          className={`mt-1 font-medium ${
+          className={`mt-1 text-center font-medium ${
             isActive ? "text-primary-800" : "text-background-500"
           }`}
         >
@@ -118,17 +123,20 @@ function LiquidTabItem({
 
 function BottomTabBar(props: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const screenWidth = Dimensions.get("window").width;
-  const horizontalPadding = 16;
-  const tabWidth = useMemo(
-    () => (screenWidth - horizontalPadding * 2) / tabItems.length,
-    [screenWidth]
-  );
+  const { width: screenWidth } = useWindowDimensions();
+  const outerHorizontalPadding = 12;
+  const barHorizontalPadding = 16;
+  const indicatorInset = 4;
+  const tabWidth =
+    (screenWidth - outerHorizontalPadding * 2 - barHorizontalPadding * 2) /
+    tabItems.length;
+  const indicatorWidth = Math.max(58, tabWidth - indicatorInset * 2);
+  const indicatorLeft = barHorizontalPadding + (tabWidth - indicatorWidth) / 2;
   const activeIndex = Math.max(
     0,
     tabItems.findIndex(
-      (item) => props.state.routeNames[props.state.index] === item.path
-    )
+      (item) => props.state.routeNames[props.state.index] === item.path,
+    ),
   );
   const activePosition = useRef(new Animated.Value(activeIndex)).current;
 
@@ -154,17 +162,14 @@ function BottomTabBar(props: BottomTabBarProps) {
           paddingBottom: Platform.OS === "ios" ? insets.bottom : 16,
           boxShadow: "0px -18px 34px 0px rgba(37, 99, 235, 0.14)",
         }}
-        space="xs"
       >
-        <BlurView
-          intensity={42}
-          tint="light"
-          style={StyleSheet.absoluteFill}
-        />
+        <BlurView intensity={42} tint="light" style={StyleSheet.absoluteFill} />
         <Animated.View
           pointerEvents="none"
+          className="absolute top-3 h-[58px] rounded-[26px] border border-white/80 bg-primary-0/80"
           style={{
-            width: tabWidth - 8,
+            left: indicatorLeft,
+            width: indicatorWidth,
             transform: [{ translateX }],
             shadowColor: "#3b82f6",
             shadowOffset: { width: 0, height: 10 },
@@ -172,7 +177,6 @@ function BottomTabBar(props: BottomTabBarProps) {
             shadowRadius: 18,
             elevation: 5,
           }}
-          className="absolute left-4 top-3 h-[58px] rounded-[26px] border border-white/80 bg-primary-0/80"
         >
           <Box className="absolute left-2 top-1 h-4 w-10 rounded-full bg-white/80" />
         </Animated.View>
