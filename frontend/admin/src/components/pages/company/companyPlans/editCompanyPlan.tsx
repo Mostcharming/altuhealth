@@ -1,6 +1,7 @@
 "use client";
 
 import Checkbox from "@/components/form/input/Checkbox";
+import DependentAgeLimitFields from "@/components/form/DependentAgeLimitFields";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
@@ -11,6 +12,10 @@ import { useModal } from "@/hooks/useModal";
 import { createCompanyPlan, updateCompanyPlan } from "@/lib/apis/companyPlan";
 import { fetchPlans, Plan } from "@/lib/apis/plan";
 import { getCurrencyOptions } from "@/lib/currencies";
+import {
+  DependentAgeLimits,
+  hydrateDependentAgeLimits,
+} from "@/lib/dependentAgeLimits";
 import { CompanyPlan, useCompanyPlanStore } from "@/lib/store/companyPlanStore";
 import { ChangeEvent, useEffect, useState } from "react";
 
@@ -41,9 +46,8 @@ export default function EditCompanyPlan({
     number | undefined
   >();
   const [ageLimit, setAgeLimit] = useState<number | undefined>();
-  const [dependentAgeLimit, setDependentAgeLimit] = useState<
-    number | undefined
-  >();
+  const [dependentAgeLimits, setDependentAgeLimits] =
+    useState<DependentAgeLimits>({});
   const [maxNumberOfDependents, setMaxNumberOfDependents] = useState<
     number | undefined
   >();
@@ -111,7 +115,12 @@ export default function EditCompanyPlan({
       setPlanCycle(plan.planCycle ?? "");
       setAnnualPremiumPrice(plan.annualPremiumPrice);
       setAgeLimit(plan.ageLimit);
-      setDependentAgeLimit(plan.dependentAgeLimit);
+      setDependentAgeLimits(
+        hydrateDependentAgeLimits(
+          plan.dependentAgeLimits,
+          plan.dependentAgeLimit
+        )
+      );
       setMaxNumberOfDependents(plan.maxNumberOfDependents);
       setDiscountPerEnrolee(plan.discountPerEnrolee);
       setDescription(plan.description ?? "");
@@ -128,7 +137,7 @@ export default function EditCompanyPlan({
       setPlanCycle("");
       setAnnualPremiumPrice(0);
       setAgeLimit(undefined);
-      setDependentAgeLimit(undefined);
+      setDependentAgeLimits({});
       setMaxNumberOfDependents(undefined);
       setDiscountPerEnrolee(undefined);
       setDescription("");
@@ -196,7 +205,7 @@ export default function EditCompanyPlan({
               planCycle,
               annualPremiumPrice: Number(annualPremiumPrice),
               ageLimit,
-              dependentAgeLimit,
+              dependentAgeLimits,
               maxNumberOfDependents,
               discountPerEnrolee,
               description: description.trim(),
@@ -354,19 +363,25 @@ export default function EditCompanyPlan({
                     />
                   </div>
 
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Dependent Age Limit</Label>
-                    <Input
-                      type="number"
-                      value={dependentAgeLimit || ""}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setDependentAgeLimit(
-                          e.target.value ? Number(e.target.value) : undefined
-                        )
-                      }
-                      placeholder="Enter dependent age limit"
-                    />
+                  <div className="col-span-2">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        label="Allow Dependent Enrollee"
+                        checked={allowDependentEnrolee}
+                        onChange={(checked) =>
+                          setAllowDependentEnrolee(checked)
+                        }
+                      />
+                    </div>
                   </div>
+
+                  {allowDependentEnrolee && (
+                    <DependentAgeLimitFields
+                      className="col-span-2 rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+                      value={dependentAgeLimits}
+                      onChange={setDependentAgeLimits}
+                    />
+                  )}
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Max Number of Dependents</Label>
@@ -419,17 +434,6 @@ export default function EditCompanyPlan({
                     />
                   </div>
 
-                  <div className="col-span-2 lg:col-span-1">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        label="Allow Dependent Enrollee"
-                        checked={allowDependentEnrolee}
-                        onChange={(checked) =>
-                          setAllowDependentEnrolee(checked)
-                        }
-                      />
-                    </div>
-                  </div>
                 </>
               )}
 

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { DependentAgeLimits } from "@/lib/dependentAgeLimits";
 
 export interface Plan {
   id: string;
@@ -13,7 +14,8 @@ export interface CompanyPlan {
   name: string;
   planType: string;
   ageLimit?: number;
-  dependentAgeLimit?: number;
+  dependentAgeLimits?: DependentAgeLimits | null;
+  dependentAgeLimit?: number | null;
   maxNumberOfDependents?: number;
   discountPerEnrolee?: number;
   planCycle: string;

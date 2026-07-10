@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { DependentAgeLimits } from "@/lib/dependentAgeLimits";
 
 export interface BenefitCategory {
   id: string;
@@ -24,7 +25,8 @@ export interface Plan {
   isActive?: boolean;
   isApproved?: boolean;
   ageLimit?: number;
-  dependentAgeLimit?: number;
+  dependentAgeLimits?: DependentAgeLimits | null;
+  dependentAgeLimit?: number | null;
   maxNumberOfDependents?: number;
   discountPerEnrolee?: number;
   planCycle?: string;

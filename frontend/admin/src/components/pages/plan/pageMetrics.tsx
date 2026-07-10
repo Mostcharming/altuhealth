@@ -1,6 +1,7 @@
 "use client";
 
 import Checkbox from "@/components/form/input/Checkbox";
+import DependentAgeLimitFields from "@/components/form/DependentAgeLimitFields";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
@@ -10,6 +11,7 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { getCurrencyOptions } from "@/lib/currencies";
+import type { DependentAgeLimits } from "@/lib/dependentAgeLimits";
 import { usePlanStore } from "@/lib/store/planStore";
 import { ChangeEvent, useState } from "react";
 
@@ -36,9 +38,8 @@ export default function PageMetricsUnits({
     number | undefined
   >();
   const [ageLimit, setAgeLimit] = useState<number | undefined>();
-  const [dependentAgeLimit, setDependentAgeLimit] = useState<
-    number | undefined
-  >();
+  const [dependentAgeLimits, setDependentAgeLimits] =
+    useState<DependentAgeLimits>({});
   const [maxNumberOfDependents, setMaxNumberOfDependents] = useState<
     number | undefined
   >();
@@ -64,7 +65,7 @@ export default function PageMetricsUnits({
     setPlanCycle("");
     setAnnualPremiumPrice(undefined);
     setAgeLimit(undefined);
-    setDependentAgeLimit(undefined);
+    setDependentAgeLimits({});
     setMaxNumberOfDependents(undefined);
     setDiscountPerEnrolee(undefined);
     setAllowDependentEnrolee(true);
@@ -115,7 +116,7 @@ export default function PageMetricsUnits({
           ? Number(annualPremiumPrice)
           : undefined,
         ageLimit,
-        dependentAgeLimit,
+        dependentAgeLimits,
         maxNumberOfDependents,
         discountPerEnrolee,
         allowDependentEnrolee,
@@ -138,7 +139,7 @@ export default function PageMetricsUnits({
           planCycle,
           annualPremiumPrice,
           ageLimit,
-          dependentAgeLimit,
+          dependentAgeLimits,
           maxNumberOfDependents,
           discountPerEnrolee,
           allowDependentEnrolee,
@@ -283,19 +284,23 @@ export default function PageMetricsUnits({
                 />
               </div>
 
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Dependent Age Limit</Label>
-                <Input
-                  type="number"
-                  value={dependentAgeLimit || ""}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setDependentAgeLimit(
-                      e.target.value ? Number(e.target.value) : undefined
-                    )
-                  }
-                  placeholder="Enter dependent age limit"
-                />
+              <div className="col-span-2">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    label="Allow Dependent Enrollee"
+                    checked={allowDependentEnrolee}
+                    onChange={(checked) => setAllowDependentEnrolee(checked)}
+                  />
+                </div>
               </div>
+
+              {allowDependentEnrolee && (
+                <DependentAgeLimitFields
+                  className="col-span-2 rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+                  value={dependentAgeLimits}
+                  onChange={setDependentAgeLimits}
+                />
+              )}
 
               <div className="col-span-2 lg:col-span-1">
                 <Label>Max Number of Dependents</Label>
@@ -338,15 +343,6 @@ export default function PageMetricsUnits({
                 />
               </div>
 
-              <div className="col-span-2 lg:col-span-1">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    label="Allow Dependent Enrollee"
-                    checked={allowDependentEnrolee}
-                    onChange={(checked) => setAllowDependentEnrolee(checked)}
-                  />
-                </div>
-              </div>
             </div>
           </div>
 

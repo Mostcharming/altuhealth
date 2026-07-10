@@ -1,4 +1,5 @@
 import { apiClient } from "@/lib/apiClient";
+import type { DependentAgeLimits } from "@/lib/dependentAgeLimits";
 
 export interface Plan {
   id: string;
@@ -8,6 +9,15 @@ export interface Plan {
   status: string;
   isActive: boolean;
   isApproved: boolean;
+  ageLimit?: number | null;
+  dependentAgeLimits?: DependentAgeLimits | null;
+  dependentAgeLimit?: number | null;
+  maxNumberOfDependents?: number | null;
+  discountPerEnrolee?: number | null;
+  planCycle?: string | null;
+  annualPremiumPrice?: number | null;
+  allowDependentEnrolee?: boolean;
+  currency?: string;
   createdAt?: string;
   updatedAt?: string;
   benefitCategories?: BenefitCategory[];

@@ -1,6 +1,7 @@
 "use client";
 
 import Checkbox from "@/components/form/input/Checkbox";
+import DependentAgeLimitFields from "@/components/form/DependentAgeLimitFields";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
@@ -10,6 +11,10 @@ import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
 import { getCurrencyOptions } from "@/lib/currencies";
+import {
+  DependentAgeLimits,
+  hydrateDependentAgeLimits,
+} from "@/lib/dependentAgeLimits";
 import { Plan, usePlanStore } from "@/lib/store/planStore";
 import { ChangeEvent, useEffect, useState } from "react";
 
@@ -33,9 +38,8 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
     number | undefined
   >();
   const [ageLimit, setAgeLimit] = useState<number | undefined>();
-  const [dependentAgeLimit, setDependentAgeLimit] = useState<
-    number | undefined
-  >();
+  const [dependentAgeLimits, setDependentAgeLimits] =
+    useState<DependentAgeLimits>({});
   const [maxNumberOfDependents, setMaxNumberOfDependents] = useState<
     number | undefined
   >();
@@ -77,7 +81,12 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       setPlanCycle(unit.planCycle ?? "");
       setAnnualPremiumPrice(unit.annualPremiumPrice);
       setAgeLimit(unit.ageLimit);
-      setDependentAgeLimit(unit.dependentAgeLimit);
+      setDependentAgeLimits(
+        hydrateDependentAgeLimits(
+          unit.dependentAgeLimits,
+          unit.dependentAgeLimit
+        )
+      );
       setMaxNumberOfDependents(unit.maxNumberOfDependents);
       setDiscountPerEnrolee(unit.discountPerEnrolee);
       setAllowDependentEnrolee(unit.allowDependentEnrolee ?? true);
@@ -93,7 +102,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
       setPlanCycle("");
       setAnnualPremiumPrice(undefined);
       setAgeLimit(undefined);
-      setDependentAgeLimit(undefined);
+      setDependentAgeLimits({});
       setMaxNumberOfDependents(undefined);
       setDiscountPerEnrolee(undefined);
       setAllowDependentEnrolee(true);
@@ -133,7 +142,7 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
           ? Number(annualPremiumPrice)
           : undefined,
         ageLimit,
-        dependentAgeLimit,
+        dependentAgeLimits,
         maxNumberOfDependents,
         discountPerEnrolee,
         allowDependentEnrolee,
@@ -254,19 +263,23 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                 />
               </div>
 
-              <div className="col-span-2 lg:col-span-1">
-                <Label>Dependent Age Limit</Label>
-                <Input
-                  type="number"
-                  value={dependentAgeLimit || ""}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                    setDependentAgeLimit(
-                      e.target.value ? Number(e.target.value) : undefined
-                    )
-                  }
-                  placeholder="Enter dependent age limit"
-                />
+              <div className="col-span-2">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    label="Allow Dependent Enrollee"
+                    checked={allowDependentEnrolee}
+                    onChange={(checked) => setAllowDependentEnrolee(checked)}
+                  />
+                </div>
               </div>
+
+              {allowDependentEnrolee && (
+                <DependentAgeLimitFields
+                  className="col-span-2 rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+                  value={dependentAgeLimits}
+                  onChange={setDependentAgeLimits}
+                />
+              )}
 
               <div className="col-span-2 lg:col-span-1">
                 <Label>Max Number of Dependents</Label>
@@ -307,16 +320,6 @@ export default function EditUnit({ isOpen, closeModal, unit }: EditUnitProps) {
                   className="w-full rounded-lg border border-gray-300 bg-transparent py-2.5 px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                   rows={3}
                 />
-              </div>
-
-              <div className="col-span-2 lg:col-span-1">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    label="Allow Dependent Enrollee"
-                    checked={allowDependentEnrolee}
-                    onChange={(checked) => setAllowDependentEnrolee(checked)}
-                  />
-                </div>
               </div>
 
               <div className="col-span-2 lg:col-span-1">

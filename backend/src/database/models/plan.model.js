@@ -1,5 +1,10 @@
 'use strict';
 
+const {
+    getEffectiveDependentAgeLimits,
+    validateStoredDependentAgeLimits
+} = require('../../utils/dependentAgeLimits');
+
 module.exports = (sequelize, DataTypes) => {
     const Plan = sequelize.define('Plan', {
         id: {
@@ -52,6 +57,23 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: true,
             field: 'dependent_age_limit'
+        },
+        dependentAgeLimits: {
+            type: DataTypes.JSONB,
+            allowNull: false,
+            defaultValue: {},
+            field: 'dependent_age_limits',
+            get() {
+                return getEffectiveDependentAgeLimits(
+                    this.getDataValue('dependentAgeLimits'),
+                    this.getDataValue('dependentAgeLimit')
+                );
+            },
+            validate: {
+                isValidDependentAgeLimits(value) {
+                    validateStoredDependentAgeLimits(value);
+                }
+            }
         },
         maxNumberOfDependents: {
             type: DataTypes.INTEGER,

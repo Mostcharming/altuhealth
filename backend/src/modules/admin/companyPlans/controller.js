@@ -2,6 +2,29 @@
 
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
+const {
+    getRawDependentAgeLimits,
+    getEffectiveDependentAgeLimitsFromRecord,
+    normalizeDependentAgeLimitPayload,
+    isDependentAgeLimitValidationError
+} = require('../../../utils/dependentAgeLimits');
+
+const getStandardPlanSnapshot = (plan) => ({
+    planId: plan.id,
+    name: plan.name,
+    ageLimit: plan.ageLimit,
+    dependentAgeLimit: plan.dependentAgeLimit,
+    dependentAgeLimits: { ...getEffectiveDependentAgeLimitsFromRecord(plan) },
+    maxNumberOfDependents: plan.maxNumberOfDependents,
+    discountPerEnrolee: plan.discountPerEnrolee,
+    planCycle: plan.planCycle,
+    annualPremiumPrice: plan.annualPremiumPrice,
+    currency: plan.currency || 'NGN',
+    description: plan.description,
+    allowDependentEnrolee: plan.allowDependentEnrolee !== undefined
+        ? plan.allowDependentEnrolee
+        : true
+});
 
 async function createCompanyPlan(req, res, next) {
     try {
@@ -12,7 +35,6 @@ async function createCompanyPlan(req, res, next) {
             planType = 'custom',
             name,
             ageLimit,
-            dependentAgeLimit,
             maxNumberOfDependents,
             discountPerEnrolee,
             planCycle,
@@ -39,17 +61,7 @@ async function createCompanyPlan(req, res, next) {
 
             planData = {
                 ...planData,
-                planId,
-                name: plan.name,
-                ageLimit: plan.ageLimit,
-                dependentAgeLimit: plan.dependentAgeLimit,
-                maxNumberOfDependents: plan.maxNumberOfDependents,
-                discountPerEnrolee: plan.discountPerEnrolee,
-                planCycle: plan.planCycle,
-                annualPremiumPrice: plan.annualPremiumPrice,
-                currency: currency || plan.currency || 'NGN',
-                description: plan.description,
-                allowDependentEnrolee: plan.allowDependentEnrolee !== undefined ? plan.allowDependentEnrolee : true
+                ...getStandardPlanSnapshot(plan)
             };
         } else if (planType === 'custom') {
             if (!name) return res.fail('`name` is required', 400);
@@ -58,12 +70,20 @@ async function createCompanyPlan(req, res, next) {
                 return res.fail('`annualPremiumPrice` is required', 400);
             }
 
+            let dependentAgeLimitData;
+            try {
+                dependentAgeLimitData = normalizeDependentAgeLimitPayload(req.body || {});
+            } catch (error) {
+                if (isDependentAgeLimitValidationError(error)) return res.fail(error.message, 400);
+                throw error;
+            }
+
             planData = {
                 ...planData,
                 planId: null,
                 name,
                 ageLimit,
-                dependentAgeLimit,
+                ...dependentAgeLimitData,
                 maxNumberOfDependents,
                 discountPerEnrolee,
                 planCycle,
@@ -98,7 +118,6 @@ async function updateCompanyPlan(req, res, next) {
             planType,
             name,
             ageLimit,
-            dependentAgeLimit,
             maxNumberOfDependents,
             discountPerEnrolee,
             planCycle,
@@ -114,34 +133,61 @@ async function updateCompanyPlan(req, res, next) {
 
         const updates = {};
 
+        if (planType !== undefined && !['standard', 'custom'].includes(planType)) {
+            return res.fail('`planType` must be either standard or custom', 400);
+        }
+
         if (planType === 'standard' && !planId) {
             return res.fail('`planId` is required when changing to standard plan type', 400);
         }
 
-        if (planType !== undefined) {
-            updates.planType = planType;
-            if (planType === 'standard') {
-                if (!planId) return res.fail('`planId` is required for standard plan type', 400);
-                updates.planId = planId;
-            } else if (planType === 'custom') {
-                updates.planId = null;
+        const targetPlanType = planType || companyPlan.planType;
+        const isChangingStandardSource = targetPlanType === 'standard'
+            && planId !== undefined
+            && String(planId) !== String(companyPlan.planId || '');
+        const isTransitioningToStandard = planType === 'standard'
+            && companyPlan.planType !== 'standard';
+        const shouldSnapshotStandardPlan = targetPlanType === 'standard'
+            && (isTransitioningToStandard || isChangingStandardSource);
+
+        if (shouldSnapshotStandardPlan) {
+            const sourcePlan = await Plan.findByPk(planId);
+            if (!sourcePlan) return res.fail('Plan not found', 404);
+
+            Object.assign(updates, {
+                planType: 'standard',
+                ...getStandardPlanSnapshot(sourcePlan)
+            });
+        } else {
+            if (planType !== undefined) {
+                updates.planType = planType;
+                if (planType === 'custom') updates.planId = null;
             }
+            if (planId !== undefined && targetPlanType === 'standard') updates.planId = planId;
+
+            let dependentAgeLimitData;
+            try {
+                dependentAgeLimitData = normalizeDependentAgeLimitPayload(req.body || {}, {
+                    partial: true,
+                    existingDependentAgeLimits: getRawDependentAgeLimits(companyPlan)
+                });
+            } catch (error) {
+                if (isDependentAgeLimitValidationError(error)) return res.fail(error.message, 400);
+                throw error;
+            }
+
+            if (name !== undefined) updates.name = name;
+            if (ageLimit !== undefined) updates.ageLimit = ageLimit;
+            Object.assign(updates, dependentAgeLimitData);
+            if (maxNumberOfDependents !== undefined) updates.maxNumberOfDependents = maxNumberOfDependents;
+            if (discountPerEnrolee !== undefined) updates.discountPerEnrolee = discountPerEnrolee;
+            if (planCycle !== undefined) updates.planCycle = planCycle;
+            if (annualPremiumPrice !== undefined) updates.annualPremiumPrice = annualPremiumPrice;
+            if (currency !== undefined) updates.currency = currency;
+            if (description !== undefined) updates.description = description;
+            if (allowDependentEnrolee !== undefined) updates.allowDependentEnrolee = allowDependentEnrolee;
         }
 
-        if (planId !== undefined && planType !== 'custom') {
-            updates.planId = planId;
-        }
-
-        if (name !== undefined) updates.name = name;
-        if (ageLimit !== undefined) updates.ageLimit = ageLimit;
-        if (dependentAgeLimit !== undefined) updates.dependentAgeLimit = dependentAgeLimit;
-        if (maxNumberOfDependents !== undefined) updates.maxNumberOfDependents = maxNumberOfDependents;
-        if (discountPerEnrolee !== undefined) updates.discountPerEnrolee = discountPerEnrolee;
-        if (planCycle !== undefined) updates.planCycle = planCycle;
-        if (annualPremiumPrice !== undefined) updates.annualPremiumPrice = annualPremiumPrice;
-        if (currency !== undefined) updates.currency = currency;
-        if (description !== undefined) updates.description = description;
-        if (allowDependentEnrolee !== undefined) updates.allowDependentEnrolee = allowDependentEnrolee;
         if (isActive !== undefined) updates.isActive = isActive;
 
         await companyPlan.update(updates);

@@ -2,8 +2,11 @@
 
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
-const { createAdminApproval } = require('../../../utils/adminApproval');
-const notify = require('../../../utils/notify');
+const {
+    getRawDependentAgeLimits,
+    normalizeDependentAgeLimitPayload,
+    isDependentAgeLimitValidationError
+} = require('../../../utils/dependentAgeLimits');
 
 async function createPlan(req, res, next) {
     try {
@@ -13,7 +16,6 @@ async function createPlan(req, res, next) {
             code,
             description,
             ageLimit,
-            dependentAgeLimit,
             maxNumberOfDependents,
             discountPerEnrolee,
             planCycle,
@@ -27,6 +29,14 @@ async function createPlan(req, res, next) {
         if (!name) return res.fail('`name` is required', 400);
         if (!code) return res.fail('`code` is required', 400);
 
+        let dependentAgeLimitData;
+        try {
+            dependentAgeLimitData = normalizeDependentAgeLimitPayload(req.body || {});
+        } catch (error) {
+            if (isDependentAgeLimitValidationError(error)) return res.fail(error.message, 400);
+            throw error;
+        }
+
         // ensure unique code
         const existing = await Plan.findOne({ where: { code: codeUpper } });
         if (existing) return res.fail('`code` must be unique', 400);
@@ -37,7 +47,7 @@ async function createPlan(req, res, next) {
             code: codeUpper,
             description,
             ageLimit,
-            dependentAgeLimit,
+            ...dependentAgeLimitData,
             maxNumberOfDependents,
             discountPerEnrolee,
             planCycle,
@@ -96,7 +106,6 @@ async function updatePlan(req, res, next) {
             isActive,
             isApproved,
             ageLimit,
-            dependentAgeLimit,
             maxNumberOfDependents,
             discountPerEnrolee,
             planCycle,
@@ -110,6 +119,17 @@ async function updatePlan(req, res, next) {
         const plan = await Plan.findByPk(id);
         if (!plan) return res.fail('Plan not found', 404);
 
+        let dependentAgeLimitData;
+        try {
+            dependentAgeLimitData = normalizeDependentAgeLimitPayload(req.body || {}, {
+                partial: true,
+                existingDependentAgeLimits: getRawDependentAgeLimits(plan)
+            });
+        } catch (error) {
+            if (isDependentAgeLimitValidationError(error)) return res.fail(error.message, 400);
+            throw error;
+        }
+
         const updates = {};
         if (name !== undefined) updates.name = name;
         if (description !== undefined) updates.description = description;
@@ -117,7 +137,7 @@ async function updatePlan(req, res, next) {
         if (isActive !== undefined) updates.isActive = isActive;
         if (isApproved !== undefined) updates.isApproved = isApproved;
         if (ageLimit !== undefined) updates.ageLimit = ageLimit;
-        if (dependentAgeLimit !== undefined) updates.dependentAgeLimit = dependentAgeLimit;
+        Object.assign(updates, dependentAgeLimitData);
         if (maxNumberOfDependents !== undefined) updates.maxNumberOfDependents = maxNumberOfDependents;
         if (discountPerEnrolee !== undefined) updates.discountPerEnrolee = discountPerEnrolee;
         if (planCycle !== undefined) updates.planCycle = planCycle;

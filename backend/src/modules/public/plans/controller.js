@@ -79,6 +79,7 @@ async function listPublicPlans(req, res, next) {
                     'allowDependentEnrolee',
                     'ageLimit',
                     'dependentAgeLimit',
+                    'dependentAgeLimits',
                     'maxNumberOfDependents'
                 ],
                 where: {
