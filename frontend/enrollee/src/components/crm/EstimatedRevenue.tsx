@@ -13,7 +13,10 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 
 interface HealthPlanData {
   daysUntilRenewal: number;
+  renewalDate: string | null;
   status: string;
+  name: string | null;
+  currency: string | null;
 }
 
 interface EstimatedRevenueProps {
@@ -24,6 +27,9 @@ interface EstimatedRevenueProps {
 const defaultData: HealthPlanData = {
   daysUntilRenewal: 0,
   status: "Inactive",
+  renewalDate: null,
+  name: null,
+  currency: null,
 };
 
 export default function EstimatedRevenue({
@@ -41,9 +47,12 @@ export default function EstimatedRevenue({
     setIsOpen(false);
   }
 
-  // Dummy data - replace with actual API data
   const daysUntilRenewal = planData.daysUntilRenewal;
-  const renewalProgressPercent = (daysUntilRenewal / 365) * 100;
+  const renewalProgressPercent = Math.min(
+    100,
+    Math.max(0, (daysUntilRenewal / 365) * 100),
+  );
+  const isActive = planData.status.toLowerCase() === "active";
   const options: ApexOptions = {
     colors: ["#10B981"],
     chart: {
@@ -75,8 +84,8 @@ export default function EstimatedRevenue({
             fontWeight: "600",
             offsetY: -25,
             color: "#1D2939",
-            formatter: function (val) {
-              return Math.round(val) + " days";
+            formatter: function () {
+              return `${daysUntilRenewal} days`;
             },
           },
         },
@@ -100,7 +109,7 @@ export default function EstimatedRevenue({
             Health Plan Status
           </h3>
           <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
-            Your coverage status and renewal details
+            {planData.name || "Your coverage status and renewal details"}
           </p>
         </div>
 
@@ -151,15 +160,25 @@ export default function EstimatedRevenue({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div>
-                <p className="text-base font-semibold text-green-600 dark:text-green-400">
-                  Active
+                <p
+                  className={`text-base font-semibold ${
+                    isActive
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-error-600 dark:text-error-400"
+                  }`}
+                >
+                  {planData.status}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-green-500"></div>
+              <div
+                className={`h-2 w-2 rounded-full ${
+                  isActive ? "bg-green-500" : "bg-error-500"
+                }`}
+              ></div>
               <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                Active
+                {planData.status}
               </p>
             </div>
           </div>
@@ -173,9 +192,9 @@ export default function EstimatedRevenue({
             <div className="flex items-center gap-4">
               <div>
                 <p className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  {new Date(
-                    Date.now() + daysUntilRenewal * 24 * 60 * 60 * 1000,
-                  ).toLocaleDateString()}
+                  {planData.renewalDate
+                    ? new Date(planData.renewalDate).toLocaleDateString()
+                    : "Not available"}
                 </p>
               </div>
             </div>

@@ -5,11 +5,12 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
 interface Appointment {
-  id: number;
+  id: string;
   title: string;
   date: string;
   time: string;
   doctor: string;
+  status: string;
 }
 
 interface UpcomingScheduleProps {
@@ -96,7 +97,7 @@ export default function UpcomingSchedule({
                         {new Date(appointment.date).toLocaleDateString()}
                       </p>
                       <p className="text-theme-xs text-gray-500 dark:text-gray-400">
-                        {appointment.time}
+                        {appointment.time} · {appointment.status}
                       </p>
                     </div>
                   </div>

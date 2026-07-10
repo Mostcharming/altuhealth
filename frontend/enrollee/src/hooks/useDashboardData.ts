@@ -20,6 +20,11 @@ export interface RecentProvidersData {
 }
 
 export interface DashboardData {
+  enrollee: {
+    firstName: string;
+    lastName: string;
+    policyNumber: string;
+  };
   metrics: MetricItem[];
   statisticsChart: {
     medicationsClaimed: number;
@@ -33,73 +38,28 @@ export interface DashboardData {
   };
   healthPlan: {
     daysUntilRenewal: number;
+    renewalDate: string | null;
     status: string;
+    name: string | null;
+    currency: string | null;
   };
   benefits: {
-    availablePercentage: number;
+    totalBenefits: number;
+    authorizationRequests: number;
+    usedAuthorizations: number;
+    activeAuthorizations: number;
     usedPercentage: number;
     remainingPercentage: number;
-    totalBenefits: string;
   };
   appointments: Array<{
-    id: number;
+    id: string;
     title: string;
     date: string;
     time: string;
     doctor: string;
+    status: string;
   }>;
 }
-
-// Simulate API call with fake data
-const mockDashboardData: DashboardData = {
-  metrics: [
-    {
-      id: 1,
-      title: "Medical Visits",
-      value: "0",
-      change: "+0%",
-      direction: "up",
-      comparisonText: "this month",
-    },
-    {
-      id: 2,
-      title: "Medications Used",
-      value: "0",
-      change: "+0%",
-      direction: "up",
-      comparisonText: "this month",
-    },
-    {
-      id: 3,
-      title: "Healthcare Services",
-      value: "0",
-      change: "+0%",
-      direction: "up",
-      comparisonText: "this month",
-    },
-  ],
-  statisticsChart: {
-    medicationsClaimed: 0,
-    medicationsPercentage: 0,
-    visitsCompleted: 0,
-    visitsPercentage: 0,
-    monthlyData: {
-      medications: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      visits: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    },
-  },
-  healthPlan: {
-    daysUntilRenewal: 0,
-    status: "Active",
-  },
-  benefits: {
-    availablePercentage: 0,
-    usedPercentage: 0,
-    remainingPercentage: 0,
-    totalBenefits: "0",
-  },
-  appointments: [],
-};
 
 export function useDashboardData() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -110,25 +70,23 @@ export function useDashboardData() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        // Call the actual API endpoint
         const response = await apiClient("/enrollee/dashboard", {
           method: "GET",
         });
 
-        if (response?.data) {
-          setData(response.data);
-        } else {
-          setData(mockDashboardData);
+        if (!response?.data) {
+          throw new Error("The dashboard response did not contain any data.");
         }
+
+        setData(response.data);
         setError(null);
       } catch (err) {
-        console.warn(
-          "[useDashboardData] Failed to fetch dashboard data, using mock data:",
-          err,
+        setData(null);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load dashboard data.",
         );
-        // Use mock data as fallback
-        setData(mockDashboardData);
-        setError(null);
       } finally {
         setIsLoading(false);
       }

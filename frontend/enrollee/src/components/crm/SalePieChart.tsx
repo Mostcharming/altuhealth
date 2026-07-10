@@ -12,10 +12,12 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 });
 
 interface BenefitsData {
-  availablePercentage: number;
+  totalBenefits: number;
+  authorizationRequests: number;
+  usedAuthorizations: number;
+  activeAuthorizations: number;
   usedPercentage: number;
   remainingPercentage: number;
-  totalBenefits: string;
 }
 
 interface SalePieChartProps {
@@ -24,10 +26,12 @@ interface SalePieChartProps {
 }
 
 const defaultData: BenefitsData = {
-  availablePercentage: 0,
+  totalBenefits: 0,
+  authorizationRequests: 0,
+  usedAuthorizations: 0,
+  activeAuthorizations: 0,
   usedPercentage: 0,
   remainingPercentage: 0,
-  totalBenefits: "0",
 };
 
 export default function SalePieChart({
@@ -38,7 +42,7 @@ export default function SalePieChart({
   // ApexCharts configuration
   const options: ApexOptions = {
     colors: ["#3641f5", "#7592ff", "#dde9ff"],
-    labels: ["Benefits Available", "Benefits Used"],
+    labels: ["Used authorizations", "Unused requests"],
     chart: {
       fontFamily: "Outfit, sans-serif",
       type: "donut",
@@ -63,14 +67,14 @@ export default function SalePieChart({
               fontSize: "12px",
               fontWeight: "normal",
               // text: "",
-              formatter: () => benefitsData.totalBenefits,
+              formatter: () => String(benefitsData.totalBenefits),
             },
             value: {
               show: true,
               offsetY: 10,
               color: "#667085",
               fontSize: "14px",
-              formatter: () => "Available Coverage",
+              formatter: () => "Plan Benefits",
             },
             total: {
               show: true,
@@ -131,8 +135,8 @@ export default function SalePieChart({
   };
 
   const series = [
-    benefitsData.availablePercentage,
     benefitsData.usedPercentage,
+    benefitsData.remainingPercentage,
   ];
 
   const [isOpen, setIsOpen] = useState(false);
@@ -188,15 +192,15 @@ export default function SalePieChart({
             <div className="mt-1.5 h-2 w-2 rounded-full bg-brand-500"></div>
             <div>
               <h5 className="mb-1 font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                Available
+                Plan Benefits
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  {benefitsData.availablePercentage}%
+                  {benefitsData.totalBenefits}
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  NGN {benefitsData.totalBenefits}
+                  included in your plan
                 </p>
               </div>
             </div>
@@ -206,15 +210,15 @@ export default function SalePieChart({
             <div className="mt-1.5 h-2 w-2 rounded-full bg-brand-500"></div>
             <div>
               <h5 className="mb-1 font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                Used
+                Authorization Requests
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  {benefitsData.usedPercentage}%
+                  {benefitsData.authorizationRequests}
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-400 text-theme-sm dark:text-gray-400">
-                  NGN {benefitsData.totalBenefits}
+                  {benefitsData.usedPercentage}% used
                 </p>
               </div>
             </div>
@@ -224,15 +228,15 @@ export default function SalePieChart({
             <div className="mt-1.5 h-2 w-2 rounded-full bg-brand-300"></div>
             <div>
               <h5 className="mb-1 font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                Remaining
+                Used / Active
               </h5>
               <div className="flex items-center gap-2">
                 <p className="font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-                  {benefitsData.remainingPercentage}%
+                  {benefitsData.usedAuthorizations} used
                 </p>
                 <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
                 <p className="text-gray-500 text-theme-sm dark:text-gray-400">
-                  NGN {benefitsData.totalBenefits}
+                  {benefitsData.activeAuthorizations} active
                 </p>
               </div>
             </div>

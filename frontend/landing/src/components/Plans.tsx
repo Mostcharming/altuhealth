@@ -34,7 +34,7 @@ type DisplayPlanRow = {
   label: string;
   price: string;
   sourcePrice: string;
-  billingCurrency: string;
+  paymentCurrency: string;
   converted: boolean;
   planId?: string;
 };
@@ -420,7 +420,7 @@ function buildDisplayPlans(
             label: getVariantLabel(plan),
             price: formatCurrency(display.amount, display.currency),
             sourcePrice: formatCurrency(amount, sourceCurrency),
-            billingCurrency: sourceCurrency,
+            paymentCurrency: display.currency,
             converted: display.converted,
             planId: plan.id,
           };
@@ -480,6 +480,7 @@ export default function Plans() {
   const [selectedGateway, setSelectedGateway] = useState<PaymentProvider | "">(
     "",
   );
+  const [isLoadingGateways, setIsLoadingGateways] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [modalError, setModalError] = useState("");
   const [modalSuccess, setModalSuccess] = useState("");
@@ -651,28 +652,49 @@ export default function Plans() {
   }, []);
 
   useEffect(() => {
+    setGateways([]);
+    setSelectedGateway("");
+
     if (!selectedPlan || !selectedVariant) {
+      setIsLoadingGateways(false);
       return;
     }
 
+    let isCurrentRequest = true;
+
     const fetchGateways = async () => {
+      setIsLoadingGateways(true);
+
       try {
         const response = (await apiClient(
-          `/public/purchases/gateways?currency=${selectedVariant.billingCurrency}`,
+          `/public/purchases/gateways?currency=${encodeURIComponent(selectedVariant.paymentCurrency)}`,
         )) as GatewaysResponse;
         const availableGateways = response.data?.gateways || [];
-        setGateways(availableGateways);
-        setSelectedGateway(availableGateways[0]?.provider || "");
+
+        if (isCurrentRequest) {
+          setGateways(availableGateways);
+          setSelectedGateway(availableGateways[0]?.provider || "");
+        }
       } catch (err) {
-        setModalError(
-          err instanceof Error
-            ? err.message
-            : "Unable to fetch payment gateways.",
-        );
+        if (isCurrentRequest) {
+          setModalError(
+            err instanceof Error
+              ? err.message
+              : "Unable to fetch payment gateways.",
+          );
+        }
+      } finally {
+        if (isCurrentRequest) {
+          setIsLoadingGateways(false);
+        }
       }
     };
 
     fetchGateways();
+
+    return () => {
+      isCurrentRequest = false;
+    };
   }, [selectedPlan, selectedVariant]);
 
   const handleCategoryChange = (category: PlanCategory) => {
@@ -693,6 +715,7 @@ export default function Plans() {
     setSelectedVariantPlanId("");
     setSelectedGateway("");
     setGateways([]);
+    setIsLoadingGateways(false);
     setModalError("");
     setPlanForm({
       firstName: "",
@@ -716,7 +739,11 @@ export default function Plans() {
       return;
     }
     if (!selectedGateway) {
-      setModalError("Select a payment gateway.");
+      setModalError(
+        selectedVariant?.paymentCurrency === "NGN" && gateways.length === 0
+          ? "Paystack is not available yet for Naira payments."
+          : "Select a payment gateway.",
+      );
       return;
     }
     if (
@@ -981,6 +1008,11 @@ export default function Plans() {
               <div className="plan-choice-group">
                 <strong>Select payment gateway</strong>
                 <div className="plan-choice-grid">
+                  {isLoadingGateways && (
+                    <button type="button" className="unavailable" disabled>
+                      <span>Loading payment options...</span>
+                    </button>
+                  )}
                   {gateways.map((gateway) => (
                     <button
                       type="button"
@@ -997,6 +1029,22 @@ export default function Plans() {
                       <span>{gateway.label}</span>
                     </button>
                   ))}
+                  {!isLoadingGateways &&
+                    gateways.length === 0 &&
+                    selectedVariant?.paymentCurrency === "NGN" && (
+                      <button type="button" className="unavailable" disabled>
+                        <span>Paystack</span>
+                        <small>Not available yet</small>
+                      </button>
+                    )}
+                  {!isLoadingGateways &&
+                    gateways.length === 0 &&
+                    selectedVariant?.paymentCurrency !== "NGN" && (
+                      <p className="plan-gateway-unavailable">
+                        No payment gateway is currently available for this
+                        currency.
+                      </p>
+                    )}
                 </div>
               </div>
 
@@ -1006,7 +1054,7 @@ export default function Plans() {
                   <p>
                     {selectedVariant.label} - {selectedVariant.price}
                     {selectedVariant.converted
-                      ? ` (${selectedVariant.sourcePrice} billed in ${selectedVariant.billingCurrency})`
+                      ? ` (converted from ${selectedVariant.sourcePrice})`
                       : ""}
                   </p>
                 </div>
@@ -1028,7 +1076,9 @@ export default function Plans() {
                 type="button"
                 className="buy-btn"
                 onClick={handleProceedToPayment}
-                disabled={isProcessingPayment || gateways.length === 0}
+                disabled={
+                  isProcessingPayment || isLoadingGateways || gateways.length === 0
+                }
               >
                 {isProcessingPayment ? "Processing..." : "Proceed to Pay"}{" "}
                 <span>→</span>
