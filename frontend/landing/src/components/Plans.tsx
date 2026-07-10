@@ -4,7 +4,8 @@ import { apiClient } from "@/lib/apiClient";
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
-type Market = "NGN" | "GBP";
+type PlanCategory = "general" | "retail" | "diaspora" | "geriatric" | "corporate";
+type PaymentProvider = "paystack" | "paypal" | "stripe";
 
 type PublicPlan = {
   id: string;
@@ -16,39 +17,50 @@ type PublicPlan = {
   planCycle?: string | null;
   allowDependentEnrolee?: boolean;
   ageLimit?: number | null;
+  dependentAgeLimit?: number | null;
+  maxNumberOfDependents?: number | null;
+};
+
+type CurrencyRate = {
+  currencyCode: string;
+  currencyName?: string;
+  rateToNgn: number;
+  ngnToCurrencyRate: number;
+};
+
+type CurrencyRates = Record<string, CurrencyRate>;
+
+type DisplayPlanRow = {
+  label: string;
+  price: string;
+  sourcePrice: string;
+  billingCurrency: string;
+  converted: boolean;
+  planId?: string;
 };
 
 type DisplayPlan = {
   id: string;
   name: string;
   description: string;
+  category: PlanCategory;
   audience: string;
-  rows: { label: string; price: string; planId?: string }[];
+  cycleLabel: string;
+  rows: DisplayPlanRow[];
   features: string[];
-  sources?: PublicPlan[];
+  sources: PublicPlan[];
 };
 
 type PaymentGateway = {
-  provider: "paypal" | "stripe";
+  provider: PaymentProvider;
   label: string;
-};
-
-type SelectedPlanPricing = {
-  order: number;
-  rows: { label: string; price: string }[];
-};
-
-type PlanVariantDefinition = {
-  market: Market;
-  group: string;
-  label: string;
-  order: number;
-  rowOrder: number;
 };
 
 type PlansResponse = {
   data?: {
     list?: PublicPlan[];
+    displayCurrency?: string;
+    currencyRates?: CurrencyRates;
   };
 };
 
@@ -60,7 +72,7 @@ type GatewaysResponse = {
 
 type CheckoutResponse = {
   data?: {
-    gateway: "paypal" | "stripe";
+    gateway: PaymentProvider;
     checkoutUrl: string;
     checkoutReference: string;
   };
@@ -80,180 +92,133 @@ type IpLocation = {
   country_code?: string;
 };
 
-const selectedPlanPrices: Record<
-  Market,
-  Record<string, SelectedPlanPricing>
-> = {
-  GBP: {
-    "senior basic": {
-      order: 1,
-      rows: [
-        { label: "Single Parent", price: "£25" },
-        { label: "Couple", price: "£48" },
-      ],
-    },
-    "senior standard": {
-      order: 2,
-      rows: [
-        { label: "Single Parent", price: "£35" },
-        { label: "Couple", price: "£68" },
-      ],
-    },
-    "senior elite": {
-      order: 3,
-      rows: [
-        { label: "Single Parent", price: "£55" },
-        { label: "Couple", price: "£105" },
-      ],
-    },
-  },
-  NGN: {
-    "vital basic": {
-      order: 1,
-      rows: [
-        { label: "Individual", price: "N100,000" },
-        { label: "Family", price: "N500,000" },
-      ],
-    },
-    "vital lite": {
-      order: 2,
-      rows: [
-        { label: "Individual", price: "N155,000" },
-        { label: "Family", price: "N837,000" },
-      ],
-    },
-    "vital groove": {
-      order: 3,
-      rows: [
-        { label: "Individual", price: "N305,000" },
-        { label: "Family", price: "N1,647,000" },
-      ],
-    },
-    "vital plus": {
-      order: 4,
-      rows: [
-        { label: "Individual", price: "N510,000" },
-        { label: "Family", price: "N2,754,000" },
-      ],
-    },
-    "vital max": {
-      order: 5,
-      rows: [
-        { label: "Individual", price: "N720,000" },
-        { label: "Family", price: "N3,888,000" },
-      ],
-    },
-  },
+const planCategories: { key: PlanCategory; label: string }[] = [
+  { key: "general", label: "General" },
+  { key: "retail", label: "Retail" },
+  { key: "diaspora", label: "Diaspora" },
+  { key: "geriatric", label: "Geriatric" },
+  { key: "corporate", label: "Corporate" },
+];
+
+const countryCurrencyMap: Record<string, string> = {
+  AE: "AED",
+  AU: "AUD",
+  BR: "BRL",
+  CA: "CAD",
+  CH: "CHF",
+  CN: "CNY",
+  DE: "EUR",
+  DK: "DKK",
+  ES: "EUR",
+  FR: "EUR",
+  GB: "GBP",
+  GH: "GHS",
+  HK: "HKD",
+  IE: "EUR",
+  IN: "INR",
+  JP: "JPY",
+  KE: "KES",
+  NG: "NGN",
+  NO: "NOK",
+  NZ: "NZD",
+  SE: "SEK",
+  SG: "SGD",
+  US: "USD",
+  ZA: "ZAR",
 };
 
-const planVariantDefinitions: Record<string, PlanVariantDefinition> = {
+const planVariantLabels: Record<string, { group: string; label: string; order: number; rowOrder: number }> = {
   SENIOR_BASIC_SINGLE_PARENT: {
-    market: "GBP",
     group: "senior basic",
     label: "Single Parent",
     order: 1,
     rowOrder: 1,
   },
   SENIOR_BASIC_COUPLE: {
-    market: "GBP",
     group: "senior basic",
     label: "Couple",
     order: 1,
     rowOrder: 2,
   },
   SENIOR_STANDARD_SINGLE_PARENT: {
-    market: "GBP",
     group: "senior standard",
     label: "Single Parent",
     order: 2,
     rowOrder: 1,
   },
   SENIOR_STANDARD_COUPLE: {
-    market: "GBP",
     group: "senior standard",
     label: "Couple",
     order: 2,
     rowOrder: 2,
   },
   SENIOR_ELITE_SINGLE_PARENT: {
-    market: "GBP",
     group: "senior elite",
     label: "Single Parent",
     order: 3,
     rowOrder: 1,
   },
   SENIOR_ELITE_COUPLE: {
-    market: "GBP",
     group: "senior elite",
     label: "Couple",
     order: 3,
     rowOrder: 2,
   },
   VITAL_BASIC_INDIVIDUAL: {
-    market: "NGN",
     group: "vital basic",
     label: "Individual",
     order: 1,
     rowOrder: 1,
   },
   VITAL_BASIC_FAMILY: {
-    market: "NGN",
     group: "vital basic",
     label: "Family",
     order: 1,
     rowOrder: 2,
   },
   VITAL_LITE_INDIVIDUAL: {
-    market: "NGN",
     group: "vital lite",
     label: "Individual",
     order: 2,
     rowOrder: 1,
   },
   VITAL_LITE_FAMILY: {
-    market: "NGN",
     group: "vital lite",
     label: "Family",
     order: 2,
     rowOrder: 2,
   },
   VITAL_GROOVE_INDIVIDUAL: {
-    market: "NGN",
     group: "vital groove",
     label: "Individual",
     order: 3,
     rowOrder: 1,
   },
   VITAL_GROOVE_FAMILY: {
-    market: "NGN",
     group: "vital groove",
     label: "Family",
     order: 3,
     rowOrder: 2,
   },
   VITAL_PLUS_INDIVIDUAL: {
-    market: "NGN",
     group: "vital plus",
     label: "Individual",
     order: 4,
     rowOrder: 1,
   },
   VITAL_PLUS_FAMILY: {
-    market: "NGN",
     group: "vital plus",
     label: "Family",
     order: 4,
     rowOrder: 2,
   },
   VITAL_MAX_INDIVIDUAL: {
-    market: "NGN",
     group: "vital max",
     label: "Individual",
     order: 5,
     rowOrder: 1,
   },
   VITAL_MAX_FAMILY: {
-    market: "NGN",
     group: "vital max",
     label: "Family",
     order: 5,
@@ -261,125 +226,260 @@ const planVariantDefinitions: Record<string, PlanVariantDefinition> = {
   },
 };
 
-const fallbackPlans: Record<Market, DisplayPlan[]> = {
-  GBP: ["Senior Basic", "Senior Standard", "Senior Elite"].map((name) =>
-    buildFallbackPlan(name, "GBP"),
-  ),
-  NGN: [
-    "Vital Basic",
-    "Vital Lite",
-    "Vital Groove",
-    "Vital Plus",
-    "Vital Max",
-  ].map((name) => buildFallbackPlan(name, "NGN")),
-};
-
 function normalizePlanName(name: string) {
   return name.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
-function buildFallbackPlan(name: string, market: Market): DisplayPlan {
-  const pricing = selectedPlanPrices[market][normalizePlanName(name)];
+function titleCase(value: string) {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
+function normalizeCurrency(currency?: string | null) {
+  return String(currency || "NGN").trim().toUpperCase();
+}
+
+function getRate(currency: string, rates: CurrencyRates): CurrencyRate | null {
+  const code = normalizeCurrency(currency);
+  if (code === "NGN") {
+    return {
+      currencyCode: "NGN",
+      currencyName: "Nigerian Naira",
+      rateToNgn: 1,
+      ngnToCurrencyRate: 1,
+    };
+  }
+
+  return rates[code] || null;
+}
+
+function convertCurrency(
+  amount: number,
+  sourceCurrency: string,
+  targetCurrency: string,
+  rates: CurrencyRates,
+) {
+  const source = normalizeCurrency(sourceCurrency);
+  const target = normalizeCurrency(targetCurrency);
+
+  if (source === target) {
+    return { amount, currency: source, converted: false };
+  }
+
+  const sourceRate = getRate(source, rates);
+  const targetRate = getRate(target, rates);
+  if (!sourceRate || !targetRate) {
+    return { amount, currency: source, converted: false };
+  }
+
+  const amountInNgn = amount * Number(sourceRate.rateToNgn);
   return {
-    id: `${market}-${normalizePlanName(name)}`,
-    name,
-    description: "Healthcare coverage for everyday care and managed support.",
-    audience: market === "NGN" ? "Nigerian market" : "International market",
-    rows: pricing.rows,
-    features: [
-      "Hospital access",
-      "Routine checkups",
-      "Digital support",
-      "Telemedicine",
-    ],
+    amount: amountInNgn * Number(targetRate.ngnToCurrencyRate),
+    currency: target,
+    converted: true,
   };
 }
 
-function formatPlanPrice(plan: PublicPlan) {
-  const amount = Number(plan.annualPremiumPrice || 0);
+function formatCurrency(amount: number, currency: string) {
+  const code = normalizeCurrency(currency);
+  const maximumFractionDigits = ["JPY", "KRW", "VND"].includes(code) ? 0 : 2;
 
-  if (plan.currency === "GBP") {
-    return `£${amount.toLocaleString("en-GB")}`;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: code,
+      maximumFractionDigits,
+    }).format(amount);
+  } catch {
+    return `${code} ${amount.toLocaleString(undefined, {
+      maximumFractionDigits,
+    })}`;
   }
-
-  return `N${amount.toLocaleString("en-NG")}`;
 }
 
-function mapPublicPlans(plans: PublicPlan[], market: Market): DisplayPlan[] {
+function inferPlanCategory(plan: PublicPlan): Exclude<PlanCategory, "general"> | "general" {
+  const text = `${plan.name || ""} ${plan.code || ""} ${plan.description || ""}`.toLowerCase();
+
+  if (/(corporate|company|business|employer|staff|group)/.test(text)) {
+    return "corporate";
+  }
+  if (/(geriatric|senior|elder|aged|parent)/.test(text)) {
+    return "geriatric";
+  }
+  if (/(diaspora|international|abroad|overseas|uk|usa|europe)/.test(text)) {
+    return "diaspora";
+  }
+  if (/(retail|vital|individual|family)/.test(text)) {
+    return "retail";
+  }
+
+  return "general";
+}
+
+function getVariantLabel(plan: PublicPlan) {
+  const definition = planVariantLabels[plan.code];
+  if (definition) {
+    return definition.label;
+  }
+
+  const text = `${plan.code || ""} ${plan.name || ""}`.toLowerCase();
+  if (text.includes("family")) return "Family";
+  if (text.includes("couple")) return "Couple";
+  if (text.includes("single")) return "Single";
+  if (text.includes("individual")) return "Individual";
+  return "Plan";
+}
+
+function getPlanGroupKey(plan: PublicPlan) {
+  const definition = planVariantLabels[plan.code];
+  return definition?.group || normalizePlanName(plan.name || plan.code || plan.id);
+}
+
+function getPlanOrder(plan: PublicPlan) {
+  return planVariantLabels[plan.code]?.order ?? 999;
+}
+
+function getRowOrder(plan: PublicPlan) {
+  return planVariantLabels[plan.code]?.rowOrder ?? 999;
+}
+
+function cycleToLabel(cycle?: string | null) {
+  const normalized = String(cycle || "annual").toLowerCase();
+  if (normalized.includes("month")) return "per month";
+  if (normalized.includes("quarter")) return "per quarter";
+  if (normalized.includes("week")) return "per week";
+  return "per year";
+}
+
+function buildDisplayPlans(
+  plans: PublicPlan[],
+  displayCurrency: string,
+  rates: CurrencyRates,
+): DisplayPlan[] {
   const grouped = new Map<
     string,
     {
-      definition: PlanVariantDefinition;
-      plans: { plan: PublicPlan; definition: PlanVariantDefinition }[];
+      category: PlanCategory;
+      group: string;
+      plans: PublicPlan[];
     }
   >();
 
   plans.forEach((plan) => {
-    const definition = planVariantDefinitions[plan.code];
-    if (!definition || definition.market !== market) {
+    const category = inferPlanCategory(plan);
+    const group = getPlanGroupKey(plan);
+    const key = `${category}:${group}`;
+    const existing = grouped.get(key);
+
+    if (existing) {
+      existing.plans.push(plan);
       return;
     }
 
-    const existing = grouped.get(definition.group);
-    if (existing) {
-      existing.plans.push({ plan, definition });
-    } else {
-      grouped.set(definition.group, {
-        definition,
-        plans: [{ plan, definition }],
-      });
-    }
+    grouped.set(key, {
+      category,
+      group,
+      plans: [plan],
+    });
   });
 
-  return Array.from(grouped.entries())
-    .map(([group, item]) => {
-      const orderedPlans = item.plans.sort(
-        (a, b) => a.definition.rowOrder - b.definition.rowOrder,
+  return Array.from(grouped.values())
+    .map((item) => {
+      const orderedPlans = [...item.plans].sort(
+        (a, b) => getRowOrder(a) - getRowOrder(b) || a.name.localeCompare(b.name),
       );
-      const firstPlan = orderedPlans[0]?.plan;
+      const firstPlan = orderedPlans[0];
+      const cycles = new Set(orderedPlans.map((plan) => cycleToLabel(plan.planCycle)));
+      const categoryLabel =
+        planCategories.find((category) => category.key === item.category)?.label ||
+        "General";
 
       return {
-        id: group,
-        name: firstPlan?.name || group,
+        id: `${item.category}-${item.group}`,
+        name: firstPlan?.name || titleCase(item.group),
         description:
           firstPlan?.description ||
           "Healthcare coverage for everyday care and managed support.",
-        audience: market === "NGN" ? "Nigerian market" : "International market",
-        rows: orderedPlans.map(({ plan, definition }) => ({
-          label: definition.label,
-          price: formatPlanPrice(plan),
-          planId: plan.id,
-        })),
+        category: item.category,
+        audience: `${categoryLabel} plans`,
+        cycleLabel: cycles.size === 1 ? Array.from(cycles)[0] : "billing cycle varies",
+        rows: orderedPlans.map((plan) => {
+          const amount = Number(plan.annualPremiumPrice || 0);
+          const sourceCurrency = normalizeCurrency(plan.currency);
+          const display = convertCurrency(
+            amount,
+            sourceCurrency,
+            displayCurrency,
+            rates,
+          );
+
+          return {
+            label: getVariantLabel(plan),
+            price: formatCurrency(display.amount, display.currency),
+            sourcePrice: formatCurrency(amount, sourceCurrency),
+            billingCurrency: sourceCurrency,
+            converted: display.converted,
+            planId: plan.id,
+          };
+        }),
         features: [
           firstPlan?.planCycle
-            ? `${firstPlan.planCycle} coverage cycle`
-            : "Annual coverage",
-          "Managed care access",
+            ? `${titleCase(firstPlan.planCycle)} coverage cycle`
+            : "Flexible coverage cycle",
+          firstPlan?.allowDependentEnrolee
+            ? "Dependent coverage available"
+            : "Individual focused coverage",
+          firstPlan?.maxNumberOfDependents
+            ? `Up to ${firstPlan.maxNumberOfDependents} dependents`
+            : "Managed care access",
           "Digital support",
-          "More benefits",
         ],
-        sources: orderedPlans.map(({ plan }) => plan),
+        sources: orderedPlans,
       };
     })
     .sort((a, b) => {
-      const planA = selectedPlanPrices[market][normalizePlanName(a.name)];
-      const planB = selectedPlanPrices[market][normalizePlanName(b.name)];
-
-      return planA.order - planB.order;
+      const planA = a.sources[0];
+      const planB = b.sources[0];
+      return (
+        getPlanOrder(planA) - getPlanOrder(planB) ||
+        a.name.localeCompare(b.name)
+      );
     });
 }
 
+function getCurrencyForCountry(countryCode?: string) {
+  const code = String(countryCode || "").trim().toUpperCase();
+  return countryCurrencyMap[code] || "";
+}
+
+function readCategoryFromUrl(): PlanCategory {
+  if (typeof window === "undefined") {
+    return "general";
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const category = params.get("planCategory")?.toLowerCase() as PlanCategory;
+  return planCategories.some((item) => item.key === category)
+    ? category
+    : "general";
+}
+
 export default function Plans() {
-  const [market, setMarket] = useState<Market>("GBP");
+  const [selectedCategory, setSelectedCategory] =
+    useState<PlanCategory>("general");
+  const [displayCurrency, setDisplayCurrency] = useState("NGN");
   const [backendPlans, setBackendPlans] = useState<PublicPlan[]>([]);
+  const [currencyRates, setCurrencyRates] = useState<CurrencyRates>({});
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState<DisplayPlan | null>(null);
   const [selectedVariantPlanId, setSelectedVariantPlanId] = useState("");
   const [gateways, setGateways] = useState<PaymentGateway[]>([]);
-  const [selectedGateway, setSelectedGateway] = useState<
-    "paypal" | "stripe" | ""
-  >("");
+  const [selectedGateway, setSelectedGateway] = useState<PaymentProvider | "">(
+    "",
+  );
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [modalError, setModalError] = useState("");
   const [modalSuccess, setModalSuccess] = useState("");
@@ -391,35 +491,44 @@ export default function Plans() {
     referralCode: "",
   });
 
+  const allPlans = useMemo(
+    () => buildDisplayPlans(backendPlans, displayCurrency, currencyRates),
+    [backendPlans, displayCurrency, currencyRates],
+  );
+
+  const visiblePlans = useMemo(() => {
+    if (selectedCategory === "general") {
+      return allPlans;
+    }
+
+    return allPlans.filter((plan) => plan.category === selectedCategory);
+  }, [allPlans, selectedCategory]);
+
   const selectedVariant = selectedPlan?.rows.find(
     (row) => row.planId === selectedVariantPlanId,
   );
 
   useEffect(() => {
-    let isMounted = true;
+    setSelectedCategory(readCategoryFromUrl());
 
-    const detectMarket = async () => {
-      try {
-        const response = await fetch("https://ipapi.co/json/");
-        if (!response.ok) {
-          throw new Error("Unable to detect user location");
-        }
-
-        const location = (await response.json()) as IpLocation;
-        if (isMounted) {
-          setMarket(location.country_code === "NG" ? "NGN" : "GBP");
-        }
-      } catch {
-        if (isMounted) {
-          setMarket("GBP");
-        }
+    const handleCategoryEvent = (event: Event) => {
+      const detail = (event as CustomEvent<{ category?: PlanCategory }>).detail;
+      const category = detail?.category || readCategoryFromUrl();
+      if (planCategories.some((item) => item.key === category)) {
+        setSelectedCategory(category);
       }
     };
 
-    detectMarket();
+    const handleUrlChange = () => setSelectedCategory(readCategoryFromUrl());
+
+    window.addEventListener("altu:plan-category", handleCategoryEvent);
+    window.addEventListener("popstate", handleUrlChange);
+    window.addEventListener("hashchange", handleUrlChange);
 
     return () => {
-      isMounted = false;
+      window.removeEventListener("altu:plan-category", handleCategoryEvent);
+      window.removeEventListener("popstate", handleUrlChange);
+      window.removeEventListener("hashchange", handleUrlChange);
     };
   }, []);
 
@@ -448,14 +557,16 @@ export default function Plans() {
         setIsProcessingPayment(true);
         const pending = JSON.parse(pendingRaw) as {
           planId: string;
-          gateway: "paypal" | "stripe";
+          gateway: PaymentProvider;
           checkoutReference: string;
           form: typeof planForm;
         };
         const checkoutReference =
           pending.gateway === "stripe"
             ? params.get("session_id") || pending.checkoutReference
-            : params.get("token") || pending.checkoutReference;
+            : pending.gateway === "paystack"
+              ? params.get("reference") || pending.checkoutReference
+              : params.get("token") || pending.checkoutReference;
 
         const response = (await apiClient("/public/purchases/complete", {
           method: "POST",
@@ -493,42 +604,37 @@ export default function Plans() {
   }, []);
 
   useEffect(() => {
-    if (!selectedPlan || market === "NGN") {
-      return;
-    }
-
-    const fetchGateways = async () => {
-      try {
-        const response = (await apiClient(
-          `/public/purchases/gateways?market=${market}`,
-        )) as GatewaysResponse;
-        const availableGateways = response.data?.gateways || [];
-        setGateways(availableGateways);
-        setSelectedGateway(availableGateways[0]?.provider || "");
-      } catch (err) {
-        setModalError(
-          err instanceof Error
-            ? err.message
-            : "Unable to fetch payment gateways.",
-        );
-      }
-    };
-
-    fetchGateways();
-  }, [selectedPlan, market]);
-
-  useEffect(() => {
     let isMounted = true;
 
     const fetchPlans = async () => {
       try {
-        const payload = (await apiClient("/public/plans")) as PlansResponse;
+        let detectedCurrency = "";
+
+        try {
+          const response = await fetch("https://ipapi.co/json/");
+          if (response.ok) {
+            const location = (await response.json()) as IpLocation;
+            detectedCurrency = getCurrencyForCountry(location.country_code);
+          }
+        } catch {
+          detectedCurrency = "";
+        }
+
+        const query = detectedCurrency
+          ? `?currency=${encodeURIComponent(detectedCurrency)}`
+          : "";
+        const payload = (await apiClient(`/public/plans${query}`)) as PlansResponse;
+
         if (isMounted) {
           setBackendPlans(payload.data?.list || []);
+          setCurrencyRates(payload.data?.currencyRates || {});
+          setDisplayCurrency(payload.data?.displayCurrency || detectedCurrency || "NGN");
         }
       } catch {
         if (isMounted) {
           setBackendPlans([]);
+          setCurrencyRates({});
+          setDisplayCurrency("NGN");
         }
       } finally {
         if (isMounted) {
@@ -544,11 +650,38 @@ export default function Plans() {
     };
   }, []);
 
-  const plans = useMemo(() => {
-    const selected = mapPublicPlans(backendPlans, market);
+  useEffect(() => {
+    if (!selectedPlan || !selectedVariant) {
+      return;
+    }
 
-    return selected.length > 0 ? selected : fallbackPlans[market];
-  }, [backendPlans, market]);
+    const fetchGateways = async () => {
+      try {
+        const response = (await apiClient(
+          `/public/purchases/gateways?currency=${selectedVariant.billingCurrency}`,
+        )) as GatewaysResponse;
+        const availableGateways = response.data?.gateways || [];
+        setGateways(availableGateways);
+        setSelectedGateway(availableGateways[0]?.provider || "");
+      } catch (err) {
+        setModalError(
+          err instanceof Error
+            ? err.message
+            : "Unable to fetch payment gateways.",
+        );
+      }
+    };
+
+    fetchGateways();
+  }, [selectedPlan, selectedVariant]);
+
+  const handleCategoryChange = (category: PlanCategory) => {
+    setSelectedCategory(category);
+    const url = new URL(window.location.href);
+    url.searchParams.set("planCategory", category);
+    url.hash = "plans";
+    window.history.replaceState({}, "", url.toString());
+  };
 
   const handlePlanInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -571,11 +704,6 @@ export default function Plans() {
   };
 
   const openPlanModal = (plan: DisplayPlan) => {
-    if (market === "NGN") {
-      setModalError("No payment gateway available for Nigeria at the moment.");
-      return;
-    }
-
     setSelectedPlan(plan);
     setSelectedVariantPlanId(plan.rows[0]?.planId || "");
     setModalError("");
@@ -642,19 +770,36 @@ export default function Plans() {
         <div className="section-title">
           <span>Our Plans</span>
           <h2>Choose A Health Plan That Fits Your Needs.</h2>
-          <p>Explore selected healthcare plans tailored to your market.</p>
+          <p>
+            Browse every available plan by category. Prices are shown in{" "}
+            {displayCurrency} when an exchange rate is available.
+          </p>
         </div>
 
-        <div className="plan-market-toggle" aria-label="Detected plan market">
-          <span className={market === "NGN" ? "active" : ""}>Nigeria</span>
-          <span className={market === "GBP" ? "active" : ""}>
-            International
-          </span>
+        <div className="plan-category-tabs" aria-label="Plan categories">
+          {planCategories.map((category) => (
+            <button
+              key={category.key}
+              type="button"
+              className={selectedCategory === category.key ? "active" : ""}
+              onClick={() => handleCategoryChange(category.key)}
+            >
+              {category.label}
+            </button>
+          ))}
         </div>
 
         <div className="plan-grid">
-          {plans.map((plan) => (
-            <div key={plan.id} className="plan-card">
+          {visiblePlans.map((plan) => (
+            <div
+              key={plan.id}
+              className={`plan-card ${
+                selectedCategory !== "general" &&
+                selectedCategory === plan.category
+                  ? "plan-card-highlighted"
+                  : ""
+              }`}
+            >
               <div className="plan-card-header">
                 <div>
                   <h3>{plan.name}</h3>
@@ -667,12 +812,12 @@ export default function Plans() {
 
               <div className="plan-price-panel">
                 {plan.rows.map((row) => (
-                  <div className="plan-price-row" key={row.label}>
+                  <div className="plan-price-row" key={`${row.label}-${row.planId}`}>
                     <span>{row.label}</span>
                     <strong>{row.price}</strong>
                   </div>
                 ))}
-                <p>{market === "NGN" ? "per year" : "per month"}</p>
+                <p>{plan.cycleLabel}</p>
               </div>
 
               <div className="plan-divider"></div>
@@ -699,6 +844,13 @@ export default function Plans() {
             </div>
           ))}
         </div>
+
+        {!isLoadingPlans && visiblePlans.length === 0 && (
+          <div className="plan-empty-state">
+            <strong>No plans in this category yet.</strong>
+            <p>Choose another category to view available coverage options.</p>
+          </div>
+        )}
       </div>
 
       {modalError && !selectedPlan && (
@@ -777,7 +929,7 @@ export default function Plans() {
                       className={
                         row.planId === selectedVariantPlanId ? "active" : ""
                       }
-                      key={row.label}
+                      key={`${row.label}-${row.planId}`}
                       onClick={() =>
                         setSelectedVariantPlanId((current) =>
                           current === row.planId ? "" : row.planId || "",
@@ -853,6 +1005,9 @@ export default function Plans() {
                   <strong>Selected option</strong>
                   <p>
                     {selectedVariant.label} - {selectedVariant.price}
+                    {selectedVariant.converted
+                      ? ` (${selectedVariant.sourcePrice} billed in ${selectedVariant.billingCurrency})`
+                      : ""}
                   </p>
                 </div>
               )}
@@ -873,7 +1028,7 @@ export default function Plans() {
                 type="button"
                 className="buy-btn"
                 onClick={handleProceedToPayment}
-                disabled={isProcessingPayment}
+                disabled={isProcessingPayment || gateways.length === 0}
               >
                 {isProcessingPayment ? "Processing..." : "Proceed to Pay"}{" "}
                 <span>→</span>

@@ -3,6 +3,16 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+type PlanCategory = "general" | "retail" | "diaspora" | "geriatric" | "corporate";
+
+const planCategories: { key: PlanCategory; label: string }[] = [
+  { key: "general", label: "General" },
+  { key: "retail", label: "Retail" },
+  { key: "diaspora", label: "Diaspora" },
+  { key: "geriatric", label: "Geriatric" },
+  { key: "corporate", label: "Corporate" },
+];
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -19,6 +29,24 @@ export default function Header() {
     }
   };
 
+  const goToPlanCategory = (category: PlanCategory) => {
+    const target = `/?planCategory=${category}#plans`;
+
+    if (pathname !== "/") {
+      router.push(target);
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("planCategory", category);
+    url.hash = "plans";
+    window.history.replaceState({}, "", url.toString());
+    window.dispatchEvent(
+      new CustomEvent("altu:plan-category", { detail: { category } }),
+    );
+    document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
     <header>
       <div className="container">
@@ -33,7 +61,22 @@ export default function Header() {
             <a onClick={() => scrollToSection("home")}>Home</a>
             <a onClick={() => scrollToSection("about")}>About</a>
             <Link href="/healthcare-providers">Healthcare Providers</Link>
-            <a onClick={() => scrollToSection("plans")}>Plans</a>
+            <div className="nav-plan-menu">
+              <button type="button" onClick={() => scrollToSection("plans")}>
+                Plans
+              </button>
+              <div className="nav-plan-dropdown">
+                {planCategories.map((category) => (
+                  <button
+                    key={category.key}
+                    type="button"
+                    onClick={() => goToPlanCategory(category.key)}
+                  >
+                    {category.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <a onClick={() => scrollToSection("services")}>Services</a>
             <a onClick={() => scrollToSection("team")}>Management</a>
             <Link href="/contact">Contact</Link>

@@ -2,7 +2,6 @@
 
 const axios = require('axios');
 const bcrypt = require('bcrypt');
-const { Op } = require('sequelize');
 const notify = require('../../../utils/notify');
 const generateCode = require('../../../utils/verificationCode');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
@@ -10,10 +9,13 @@ const { getNextSubscriptionReferenceNumber } = require('../../../utils/subscript
 const { calculateEndDateFromCycle, generatePaymentReference } = require('../../../utils/subscriptionCalculationHelper');
 
 const INTERNATIONAL_GATEWAYS = ['paypal', 'stripe'];
+const LOCAL_GATEWAYS = ['paystack'];
+const ALL_GATEWAYS = [...LOCAL_GATEWAYS, ...INTERNATIONAL_GATEWAYS];
 
 function getGatewayName(integration) {
     const name = String(integration.name || '').toLowerCase();
     const provider = String(integration.additional_config?.provider || '').toLowerCase();
+    if (name.includes('paystack') || provider.includes('paystack')) return 'paystack';
     if (name.includes('paypal') || provider.includes('paypal')) return 'paypal';
     if (name.includes('stripe') || provider.includes('stripe')) return 'stripe';
     return null;
@@ -29,18 +31,14 @@ async function getActiveGatewayIntegrations(Integration) {
     const integrations = await Integration.findAll({
         where: {
             is_active: true,
-            is_deleted: false,
-            [Op.or]: [
-                { name: { [Op.iLike]: '%paypal%' } },
-                { name: { [Op.iLike]: '%stripe%' } }
-            ]
+            is_deleted: false
         },
         order: [['created_at', 'DESC']]
     });
 
     return integrations
         .map((integration) => ({ integration, provider: getGatewayName(integration) }))
-        .filter((item) => item.provider && INTERNATIONAL_GATEWAYS.includes(item.provider));
+        .filter((item) => item.provider && ALL_GATEWAYS.includes(item.provider));
 }
 
 function chooseIntegration(items, provider) {
@@ -72,6 +70,10 @@ function getOrigin(req) {
 
 function getPaypalBaseUrl(integration) {
     return integration.base_url || (integrationIsProduction(integration) ? 'https://api.paypal.com' : 'https://api.sandbox.paypal.com');
+}
+
+function getPaystackBaseUrl(integration) {
+    return integration.base_url || 'https://api.paystack.co';
 }
 
 async function getPaypalAccessToken(integration) {
@@ -156,6 +158,42 @@ async function createStripeCheckout(req, integration, plan) {
     };
 }
 
+async function createPaystackCheckout(req, integration, plan, email) {
+    const origin = getOrigin(req);
+    const secret = integration.secret_key || integration.api_secret || integration.api_key;
+    if (!secret) throw new Error('Paystack secret key is not configured');
+
+    const response = await axios.post(
+        `${getPaystackBaseUrl(integration)}/transaction/initialize`,
+        {
+            email,
+            amount: Math.round(getPlanAmount(plan) * 100),
+            currency: plan.currency || 'NGN',
+            callback_url: `${origin}/?payment_status=success&gateway=paystack`,
+            metadata: {
+                planId: plan.id,
+                planName: plan.name
+            }
+        },
+        {
+            headers: {
+                Authorization: `Bearer ${secret}`,
+                'Content-Type': 'application/json'
+            }
+        }
+    );
+
+    const data = response.data?.data || {};
+    if (!data.authorization_url || !data.reference) {
+        throw new Error('Paystack authorization URL was not returned');
+    }
+
+    return {
+        checkoutUrl: data.authorization_url,
+        checkoutReference: data.reference
+    };
+}
+
 async function verifyStripePayment(integration, checkoutReference) {
     const secret = integration.secret_key || integration.api_secret;
     const response = await axios.get(`https://api.stripe.com/v1/checkout/sessions/${checkoutReference}`, {
@@ -198,19 +236,51 @@ async function capturePaypalPayment(integration, checkoutReference) {
     };
 }
 
+async function verifyPaystackPayment(integration, checkoutReference) {
+    const secret = integration.secret_key || integration.api_secret || integration.api_key;
+    if (!secret) throw new Error('Paystack secret key is not configured');
+
+    const response = await axios.get(
+        `${getPaystackBaseUrl(integration)}/transaction/verify/${encodeURIComponent(checkoutReference)}`,
+        {
+            headers: { Authorization: `Bearer ${secret}` }
+        }
+    );
+
+    const data = response.data?.data || {};
+    if (data.status !== 'success') {
+        throw new Error('Paystack payment is not completed');
+    }
+
+    return {
+        transactionId: data.id ? String(data.id) : checkoutReference,
+        amount: Number(data.amount || 0) / 100,
+        currency: String(data.currency || 'NGN').toUpperCase()
+    };
+}
+
+function getGatewayLabel(provider) {
+    if (provider === 'paystack') return 'Paystack';
+    if (provider === 'paypal') return 'PayPal';
+    return 'Stripe';
+}
+
+function getProvidersForCurrency(currency) {
+    return String(currency || '').toUpperCase() === 'NGN'
+        ? LOCAL_GATEWAYS
+        : INTERNATIONAL_GATEWAYS;
+}
+
 async function listGateways(req, res, next) {
     try {
         const { Integration } = req.models;
-        const { market } = req.query;
-
-        if (market === 'NGN') {
-            return res.success({ gateways: [] }, 'No payment gateway available for Nigeria');
-        }
+        const currency = String(req.query.currency || req.query.market || '').toUpperCase();
+        const providers = getProvidersForCurrency(currency);
 
         const items = await getActiveGatewayIntegrations(Integration);
-        const gateways = INTERNATIONAL_GATEWAYS
+        const gateways = providers
             .filter((provider) => chooseIntegration(items, provider))
-            .map((provider) => ({ provider, label: provider === 'paypal' ? 'PayPal' : 'Stripe' }));
+            .map((provider) => ({ provider, label: getGatewayLabel(provider) }));
 
         return res.success({ gateways }, 'Payment gateways fetched');
     } catch (err) {
@@ -230,7 +300,14 @@ async function createCheckout(req, res, next) {
 
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
-        if (plan.currency === 'NGN') return res.fail('No payment gateway available for Nigeria', 400);
+        const planCurrency = String(plan.currency || 'NGN').toUpperCase();
+        const gatewayProvider = String(gateway).toLowerCase();
+        if (planCurrency === 'NGN' && gatewayProvider !== 'paystack') {
+            return res.fail('NGN plans must be paid with Paystack', 400);
+        }
+        if (planCurrency !== 'NGN' && gatewayProvider === 'paystack') {
+            return res.fail('Paystack is only available for NGN plans', 400);
+        }
 
         const existingEmail = await RetailEnrollee.findOne({ where: { email } });
         if (existingEmail) return res.fail('Email already exists', 400);
@@ -238,12 +315,14 @@ async function createCheckout(req, res, next) {
         if (existingPhone) return res.fail('Phone number already exists', 400);
 
         const items = await getActiveGatewayIntegrations(Integration);
-        const selected = chooseIntegration(items, String(gateway).toLowerCase());
+        const selected = chooseIntegration(items, gatewayProvider);
         if (!selected) return res.fail('Selected payment gateway is not available', 400);
 
-        const checkout = selected.provider === 'paypal'
-            ? await createPaypalCheckout(req, selected.integration, plan)
-            : await createStripeCheckout(req, selected.integration, plan);
+        const checkout = selected.provider === 'paystack'
+            ? await createPaystackCheckout(req, selected.integration, plan, email)
+            : selected.provider === 'paypal'
+                ? await createPaypalCheckout(req, selected.integration, plan)
+                : await createStripeCheckout(req, selected.integration, plan);
 
         return res.success({
             gateway: selected.provider,
@@ -279,7 +358,14 @@ async function completePurchase(req, res, next) {
 
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
-        if (plan.currency === 'NGN') return res.fail('No payment gateway available for Nigeria', 400);
+        const planCurrency = String(plan.currency || 'NGN').toUpperCase();
+        const gatewayProvider = String(gateway).toLowerCase();
+        if (planCurrency === 'NGN' && gatewayProvider !== 'paystack') {
+            return res.fail('NGN plans must be paid with Paystack', 400);
+        }
+        if (planCurrency !== 'NGN' && gatewayProvider === 'paystack') {
+            return res.fail('Paystack is only available for NGN plans', 400);
+        }
 
         const existingEmail = await RetailEnrollee.findOne({ where: { email } });
         if (existingEmail) return res.fail('Email already exists', 400);
@@ -287,12 +373,14 @@ async function completePurchase(req, res, next) {
         if (existingPhone) return res.fail('Phone number already exists', 400);
 
         const items = await getActiveGatewayIntegrations(Integration);
-        const selected = chooseIntegration(items, String(gateway).toLowerCase());
+        const selected = chooseIntegration(items, gatewayProvider);
         if (!selected) return res.fail('Selected payment gateway is not available', 400);
 
-        const payment = selected.provider === 'paypal'
-            ? await capturePaypalPayment(selected.integration, checkoutReference)
-            : await verifyStripePayment(selected.integration, checkoutReference);
+        const payment = selected.provider === 'paystack'
+            ? await verifyPaystackPayment(selected.integration, checkoutReference)
+            : selected.provider === 'paypal'
+                ? await capturePaypalPayment(selected.integration, checkoutReference)
+                : await verifyStripePayment(selected.integration, checkoutReference);
 
         const rawPassword = generateCode(10, { letters: true, numbers: true });
         const hashedPassword = await bcrypt.hash(rawPassword, 10);
