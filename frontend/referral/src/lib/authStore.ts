@@ -14,6 +14,9 @@ interface User {
   availableBalance?: number;
   totalWithdrawn?: number;
   status?: string;
+  bankName?: string | null;
+  accountName?: string | null;
+  accountNumber?: string | null;
   rolePrivileges?: string[];
 }
 
@@ -21,6 +24,7 @@ interface AuthState {
   user: User | null;
   token: string | null;
   login: (user: AuthState["user"], token: string) => void;
+  updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -33,6 +37,10 @@ export const useAuthStore = create<AuthState>()(
         set({ user, token });
         document.cookie = `auth_token=${token}; path=/; max-age=86400`;
       },
+      updateUser: (updates) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...updates } : null,
+        })),
       logout: () => {
         set({ user: null, token: null });
         document.cookie = "auth_token=; path=/; max-age=0";

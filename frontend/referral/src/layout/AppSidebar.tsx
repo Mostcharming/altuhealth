@@ -1,33 +1,14 @@
 "use client";
 import { useSidebar } from "@/context/SidebarContext";
 import {
-  CallIcon,
-  CartIcon,
   ChevronDownIcon,
-  EnvelopeIcon,
   GridIcon,
-  GroupIcon,
   HorizontaLDots,
-  InfoIcon,
-  ListIcon,
-  PaperPlaneIcon,
-  PencilIcon,
-  PlugInIcon,
-  TaskIcon,
-  UserCircleIcon,
-  UserIcon,
 } from "@/icons";
-import { useAuthStore } from "@/lib/authStore";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 type NavItem = {
   name: string;
@@ -40,214 +21,14 @@ type NavItem = {
 const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
-    name: "Dashboard",
-    subItems: [
-      { name: "Overview", path: "/overview" }, //finance
-      { name: "Analytics", path: "/analytics" },
-      { name: "Finance", path: "/finance" }, //find something
-    ],
-  },
-
-  {
-    name: "Admins",
-    icon: <UserIcon />,
-    subItems: [
-      { name: "Admin Directory", path: "/admins" },
-      { name: "Other Employees", path: "/others" },
-      { name: "Access & Roles", path: "/userroles" },
-    ],
-  },
-  {
-    name: "Providers",
-    icon: <UserCircleIcon />,
-    subItems: [
-      { name: "Provider Directory", path: "/providers" },
-      { name: "Credentialing", path: "/provider-credentialing" },
-      { name: "Tariff History", path: "/tariff" },
-      { name: "Specializations", path: "/provider-specializations" },
-    ],
-  },
-  {
-    name: "Organizations",
-    icon: <PaperPlaneIcon />,
-    subItems: [
-      { name: "Companies", path: "/companies" },
-      { name: "Subscriptions & Plans", path: "/subscriptions" },
-      { name: "Contracts & SLAs", path: "/contracts" },
-      { name: "Reviews", path: "/review" },
-    ],
-  },
-  {
-    name: "Enrollees",
-    icon: <GroupIcon />,
-    subItems: [
-      { name: "Enrollee List", path: "/enrollees" },
-      { name: "Dependents", path: "/dependents" },
-      { name: "Retail Enrollees", path: "/retail-enrollees" },
-      { name: "Form Setup", path: "/form-setup" },
-      { name: "Birthday Setup", path: "/birthday-setup" },
-      { name: "Bulk Upload", path: "/enrollees/bulk-upload" },
-    ],
-  },
-  {
-    name: "Claims",
-    icon: <EnvelopeIcon />,
-    subItems: [
-      { name: "Claims Management", path: "/claims" },
-      { name: "Capture & Validation", path: "/capture" },
-      { name: "Vetting & Adjudication", path: "/vetting" },
-      { name: "Payment Batch", path: "/payment-batch" },
-      { name: "Payment Advice", path: "/payment-advice" },
-      { name: "Reconciliation", path: "/reconciliation" },
-      { name: "Assigned Claims", path: "/assigned-claims" },
-    ],
-  },
-  {
-    name: "Authorizations",
-    icon: <PencilIcon />,
-    subItems: [
-      { name: "Requests", path: "/authorizations" },
-      { name: "Tracker", path: "/authorization-tracking" },
-      { name: "Create Authorization", path: "/new-authorization" },
-      { name: "Verification Monitor", path: "/verification-monitor" },
-    ],
-  },
-  {
-    name: "Services",
-    icon: <CartIcon />,
-    subItems: [
-      { name: "Service Catalog", path: "/service-catalog" }, //medical checkup
-      { name: "Appointments & Memos", path: "/call-memo" },
-      { name: "Surveys", path: "/surveys" },
-      { name: "Service Cycles", path: "/service-cycles" },
-    ],
-  },
-  {
-    name: "Billing",
-    icon: <TaskIcon />,
-    subItems: [
-      { name: "Invoices", path: "/invoices" },
-      { name: "Generate Invoice", path: "/generate-invoice" },
-      { name: "Billing Settings", path: "/invoice-settings" },
-      { name: "Payment Reconciliation", path: "/payment-reconciliation" },
-    ],
-  },
-  {
-    name: "Configuration",
-    icon: <PlugInIcon />,
-    subItems: [
-      { name: "Plans", path: "/plans" },
-      { name: "Units", path: "/units" },
-      { name: "Roles", path: "/roles" },
-      { name: "Diagnosis Codes", path: "/diagnosis" },
-      { name: "Exclusions", path: "/exclude" },
-      { name: "Benefits", path: "/benefits" },
-      { name: "Notification Settings", path: "/notification-settings" },
-      { name: "Integrations", path: "/integrations" },
-    ],
-  },
-];
-
-const supportItems: NavItem[] = [
-  {
-    name: "Operations",
-    icon: <InfoIcon />,
-    subItems: [
-      { name: "Approvals", path: "/approvals" },
-      { name: "Requests", path: "/requests" },
-      { name: "Reports", path: "/reports" },
-      { name: "System Status", path: "/system-status" },
-    ],
-  },
-  {
-    icon: <CallIcon />,
-    name: "Support",
-    subItems: [
-      { name: "Support Tickets", path: "/support-tickets" },
-      { name: "Ticket Replies", path: "/support-ticket-reply" },
-      { name: "Knowledge Base", path: "/knowledge-base" },
-      { name: "SLA Management", path: "/sla-management" },
-    ],
-  },
-];
-
-const othersItems: NavItem[] = [
-  {
-    name: "Logs",
-    icon: <ListIcon />,
-    subItems: [
-      { name: "Audit Logs", path: "/audit" },
-      { name: "Notification Logs", path: "/notification" },
-    ],
-  },
-  {
-    name: "Developer",
-    icon: <PaperPlaneIcon />,
-    subItems: [
-      { name: "API Keys", path: "/api-keys" },
-      { name: "Webhooks", path: "/webhooks" },
-    ],
+    name: "Overview",
+    path: "/overview",
   },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
-  const user = useAuthStore((s) => s.user);
-
-  // Map privileges to the top-level menu names they should enable
-  const privilegeMap: Record<string, string[]> = {
-    "admins.manage": ["Admins"],
-    "providers.manage": ["Providers"],
-    "organizations.manage": ["Organizations"],
-    "enrollees.manage": ["Enrollees"],
-    "claims.manage": ["Claims"],
-    "authorizations.manage": ["Authorizations"],
-    "services.manage": ["Services"],
-    "billing.manage": ["Billing"],
-    "config.manage": ["Configuration"],
-    "operations.manage": ["Operations"],
-    "support.manage": ["Support"],
-    "logs.view": ["Logs"],
-    "developer.manage": ["Developer"],
-  };
-
-  // Memoize user's privilege names to avoid recreating the Set each render
-  const userPrivNames = useMemo(() => {
-    const rolePrivilegesArr = (user?.rolePrivileges || []) as Array<
-      { name?: string } | undefined
-    >;
-    return new Set<string>(
-      rolePrivilegesArr
-        .map((p) => p?.name)
-        .filter((n): n is string => Boolean(n))
-    );
-  }, [user?.rolePrivileges]);
-
-  // Always allow Dashboard and add menu names based on privileges (memoized)
-  const allowedMenuNames = useMemo(() => {
-    const set = new Set<string>(["Dashboard"]);
-    Object.entries(privilegeMap).forEach(([priv, names]) => {
-      if (userPrivNames.has(priv)) {
-        names.forEach((n) => set.add(n));
-      }
-    });
-    return set;
-  }, [userPrivNames]);
-
-  // Filter the top-level arrays so only allowed sections are rendered (memoized)
-  const filteredNavItems = useMemo(
-    () => navItems.filter((item) => allowedMenuNames.has(item.name)),
-    [allowedMenuNames]
-  );
-  const filteredSupportItems = useMemo(
-    () => supportItems.filter((item) => allowedMenuNames.has(item.name)),
-    [allowedMenuNames]
-  );
-  const filteredOthersItems = useMemo(
-    () => othersItems.filter((item) => allowedMenuNames.has(item.name)),
-    [allowedMenuNames]
-  );
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -405,9 +186,9 @@ const AppSidebar: React.FC = () => {
     let matched: { type: "main" | "support" | "others"; index: number } | null =
       null;
     const menuItemsMap: Record<string, NavItem[]> = {
-      main: filteredNavItems,
-      support: filteredSupportItems,
-      others: filteredOthersItems,
+      main: navItems,
+      support: [],
+      others: [],
     };
 
     (
@@ -439,9 +220,6 @@ const AppSidebar: React.FC = () => {
   }, [
     pathname,
     isActive,
-    filteredNavItems,
-    filteredSupportItems,
-    filteredOthersItems,
   ]);
 
   useEffect(() => {
@@ -539,39 +317,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems, "main")}
-            </div>
-            <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "xl:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Support"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(filteredSupportItems, "support")}
-            </div>
-            <div>
-              <h2
-                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${
-                  !isExpanded && !isHovered
-                    ? "xl:justify-center"
-                    : "justify-start"
-                }`}
-              >
-                {isExpanded || isHovered || isMobileOpen ? (
-                  "Others"
-                ) : (
-                  <HorizontaLDots />
-                )}
-              </h2>
-              {renderMenuItems(filteredOthersItems, "others")}
+              {renderMenuItems(navItems, "main")}
             </div>
           </div>
         </nav>

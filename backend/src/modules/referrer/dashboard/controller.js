@@ -1,6 +1,6 @@
 'use strict';
 
-const { fn, col, literal } = require('sequelize');
+const { fn, col, literal, Op } = require('sequelize');
 
 const ensureReferrer = async (req, res) => {
     const referrerId = req.user && req.user.id;
@@ -139,6 +139,50 @@ const getDashboard = async (req, res, next) => {
     }
 };
 
+const updateBankDetails = async (req, res, next) => {
+    try {
+        const referrer = await ensureReferrer(req, res);
+        if (!referrer) return;
+
+        const bankName = String(req.body?.bankName || '').trim();
+        const accountName = String(req.body?.accountName || '').trim();
+        const accountNumber = String(req.body?.accountNumber || '').replace(/\s/g, '');
+
+        if (!bankName || !accountName || !accountNumber) {
+            return res.fail('Bank name, account name, and account number are required', 400);
+        }
+
+        if (!/^\d{6,20}$/.test(accountNumber)) {
+            return res.fail('Account number must contain 6 to 20 digits', 400);
+        }
+
+        const accountInUse = await req.models.Referrer.findOne({
+            where: {
+                id: { [Op.ne]: referrer.id },
+                accountNumber
+            }
+        });
+
+        if (accountInUse) {
+            return res.fail('This account number is already linked to another referrer', 409);
+        }
+
+        await referrer.update({ bankName, accountName, accountNumber });
+
+        return res.success({
+            bankName: referrer.bankName,
+            accountName: referrer.accountName,
+            accountNumber: referrer.accountNumber
+        }, 'Bank details updated successfully');
+    } catch (error) {
+        if (error?.name === 'SequelizeUniqueConstraintError') {
+            return res.fail('This account number is already linked to another referrer', 409);
+        }
+        return next(error);
+    }
+};
+
 module.exports = {
-    getDashboard
+    getDashboard,
+    updateBankDetails
 };

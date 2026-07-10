@@ -8,4 +8,7 @@ const BASE_URLS = {
 export const APP_CONFIG = {
   ENV,
   API_BASE_URL: BASE_URLS[ENV === "production" ? "production" : "development"],
+  REFERRAL_TARGET_URL:
+    process.env.NEXT_PUBLIC_REFERRAL_TARGET_URL ||
+    "https://altuhealth.com/plans",
 };
