@@ -1,12 +1,10 @@
-import UserAddressCard from "@/components/user-profile/UserAddressCard";
-import UserInfoCard from "@/components/user-profile/UserInfoCard";
-import UserMetaCard from "@/components/user-profile/UserMetaCard";
+import ReferralProfile from "@/components/user-profile/ReferralProfile";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AltuHealth Admin Profile",
+  title: "AltuHealth | Referrer Profile",
   description:
-    "Manage your profile information within the AltuHealth admin panel.",
+    "Manage your profile information and account security in the AltuHealth referral portal.",
 };
 
 export default function Profile() {
@@ -16,11 +14,7 @@ export default function Profile() {
         <h3 className="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-7">
           Profile
         </h3>
-        <div className="space-y-6">
-          <UserMetaCard />
-          <UserInfoCard />
-          <UserAddressCard />
-        </div>
+        <ReferralProfile />
       </div>
     </div>
   );

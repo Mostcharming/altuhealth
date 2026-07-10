@@ -17,6 +17,18 @@ export interface ReferrerProfile {
   availableBalance: number;
   totalWithdrawn: number;
   picture: string | null;
+  type?: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface ReferrerProfilePayload {
+  user: ReferrerProfile;
+}
+
+export interface ReferrerPasswordPayload {
+  oldPassword: string;
+  newPassword: string;
 }
 
 export interface ReferralEarning {
@@ -78,6 +90,30 @@ interface ApiResponse<T> {
 }
 
 export const referralAPI = {
+  async getProfile(): Promise<ApiResponse<ReferrerProfilePayload>> {
+    return apiClient("/referrer/account/profile", {
+      method: "GET",
+    });
+  },
+
+  async updateProfile(
+    profile: FormData
+  ): Promise<ApiResponse<ReferrerProfilePayload>> {
+    return apiClient("/referrer/account/profile", {
+      method: "PUT",
+      formData: profile,
+    });
+  },
+
+  async changePassword(
+    passwords: ReferrerPasswordPayload
+  ): Promise<ApiResponse<null>> {
+    return apiClient("/referrer/account/password", {
+      method: "POST",
+      body: passwords,
+    });
+  },
+
   async getDashboard(params?: {
     page?: number;
     limit?: number;

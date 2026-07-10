@@ -1,387 +1,308 @@
 "use client";
-import { useModal } from "@/hooks/useModal";
-import { apiClient } from "@/lib/apiClient";
-import { useAuthStore } from "@/lib/authStore";
-import { Account, useAccountStore } from "@/lib/store/accountStore";
-import {
-  ChangeEvent,
-  SyntheticEvent,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
-import PhoneInput from "../form/group-input/PhoneInput";
-import FileInput from "../form/input/FileInput";
-import Input from "../form/input/InputField";
-import TextArea from "../form/input/TextArea";
-import Label from "../form/Label";
-import Select from "../form/Select";
-import ErrorModal from "../modals/error";
-import SuccessModal from "../modals/success";
-import Button from "../ui/button/Button";
-import { Modal } from "../ui/modal";
 
-export default function UserInfoCard() {
-  const { isOpen, openModal, closeModal } = useModal();
-  const errorModal = useModal();
-  const successModal = useModal();
-  const account = useAccountStore((s) => s.account);
-  const setAccount = useAccountStore((s) => s.setAccount);
-  const [loading, setLoading] = useState(true);
+import Alert from "@/components/ui/alert/Alert";
+import Button from "@/components/ui/button/Button";
+import FileInput from "@/components/form/input/FileInput";
+import Input from "@/components/form/input/InputField";
+import Label from "@/components/form/Label";
+import { referralAPI, ReferrerProfile } from "@/lib/apis/referral";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
-  // Local form state to make the form controlled
-  const [firstName, setFirstName] = useState<string>("");
-  const [lastName, setLastName] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [messageTwo, setMessageTwo] = useState<string>("");
-  const user = useAuthStore((s) => s.user);
+type UserInfoCardProps = {
+  profile: ReferrerProfile;
+  onProfileUpdated: (profile: ReferrerProfile) => void;
+};
 
-  const fetchAccount = useCallback(async () => {
-    try {
-      setLoading(true);
+type Feedback = {
+  variant: "success" | "error";
+  title: string;
+  message: string;
+};
 
-      const url = `/admin/account/profile`;
+const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_PROFILE_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+]);
 
-      const data = await apiClient(url, {
-        method: "GET",
-        onLoading: (l) => setLoading(l),
+export default function UserInfoCard({
+  profile,
+  onProfileUpdated,
+}: UserInfoCardProps) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [picture, setPicture] = useState<File | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  useEffect(() => {
+    setFirstName(profile.firstName || "");
+    setLastName(profile.lastName || "");
+    setEmail(profile.email || "");
+    setPhoneNumber(profile.phoneNumber || "");
+  }, [profile]);
+
+  const handlePictureChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextPicture = event.target.files?.[0] || null;
+    setFeedback(null);
+
+    if (!nextPicture) {
+      setPicture(null);
+      return;
+    }
+
+    if (!ALLOWED_PROFILE_IMAGE_TYPES.has(nextPicture.type)) {
+      setPicture(null);
+      setFileInputKey((key) => key + 1);
+      setFeedback({
+        variant: "error",
+        title: "Unsupported profile picture",
+        message: "Choose a JPEG, PNG, GIF, or WebP image.",
       });
-
-      const items: Account = data.data.user;
-
-      setAccount(items);
-    } catch (err) {
-      console.warn("Role fetch failed", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [setAccount]);
-
-  useEffect(() => {
-    fetchAccount();
-  }, [fetchAccount]);
-
-  // When account updates, initialize the form fields
-  useEffect(() => {
-    if (!account) return;
-    setFirstName(account.firstName ?? "");
-    setLastName(account.lastName ?? "");
-    setPhone(account.phoneNumber ?? "");
-    setSelectedCountry(account.country ?? null);
-    setMessageTwo(account.address ?? "");
-  }, [account]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement> | null) => {
-    if (!e) {
-      setFile(null);
-      return;
-    }
-    const files = e.target.files;
-    const selected = files && files[0] ? files[0] : null;
-
-    // Only accept image files
-    if (selected && !selected.type.startsWith("image/")) {
-      console.warn("Only image files are allowed");
-      setFile(null);
       return;
     }
 
-    setFile(selected);
-  };
-
-  const handlePhoneChange = (val: string) => {
-    setPhone(val ?? "");
-  };
-
-  const handleCountryChange = (value: string) => {
-    setSelectedCountry(value ?? null);
-  };
-
-  const handleSave = async (e?: SyntheticEvent) => {
-    if (e && typeof e.preventDefault === "function") {
-      e.preventDefault();
+    if (nextPicture.size > MAX_PROFILE_IMAGE_BYTES) {
+      setPicture(null);
+      setFileInputKey((key) => key + 1);
+      setFeedback({
+        variant: "error",
+        title: "Profile picture is too large",
+        message: "Choose an image smaller than 5 MB.",
+      });
+      return;
     }
 
-    // assemble form data for multipart/form-data upload
+    setPicture(nextPicture);
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFeedback(null);
+
+    const normalizedFirstName = firstName.trim();
+    const normalizedLastName = lastName.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhoneNumber = phoneNumber.trim();
+
+    if (!normalizedFirstName || !normalizedLastName || !normalizedPhoneNumber) {
+      setFeedback({
+        variant: "error",
+        title: "Complete the required fields",
+        message: "First name, last name, and phone number are required.",
+      });
+      return;
+    }
+
+    if (
+      normalizedEmail &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      setFeedback({
+        variant: "error",
+        title: "Check your email address",
+        message: "Enter a valid email address or leave the field empty.",
+      });
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("firstName", firstName ?? "");
-    formData.append("lastName", lastName ?? "");
-    formData.append("phoneNumber", phone ?? "");
-    formData.append("address", messageTwo ?? "");
-    if (selectedCountry) formData.append("country", selectedCountry);
-    // include existing address if available
-    if (file) {
-      formData.append("picture", file);
-    }
+    formData.append("firstName", normalizedFirstName);
+    formData.append("lastName", normalizedLastName);
+    formData.append("email", normalizedEmail);
+    formData.append("phoneNumber", normalizedPhoneNumber);
+    if (picture) formData.append("picture", picture);
 
     try {
-      setLoading(true);
+      setIsSaving(true);
+      const response = await referralAPI.updateProfile(formData);
+      const updatedProfile = response.data?.user;
 
-      const url = `/admin/account/profile`;
-
-      const data = await apiClient(url, {
-        method: "PUT",
-        formData,
-        onLoading: (l) => setLoading(l),
-      });
-
-      const updated: Account = data?.data?.user ?? data?.data ?? data;
-
-      if (updated) {
-        setAccount(updated);
-        const acc = updated as Account;
-        const authUser = {
-          id: String(acc.id ?? ""),
-          email: String(acc.email ?? ""),
-          firstName: acc.firstName ?? undefined,
-          lastName: acc.lastName ?? undefined,
-          role: user?.role ?? undefined,
-          picture: acc.picture ?? undefined,
-          phoneNumber: acc.phoneNumber ?? undefined,
-          status: acc.status ?? undefined,
-          rolePrivileges: user?.rolePrivileges ?? undefined,
-        };
-
-        useAuthStore.setState({ user: authUser });
+      if (response.error || !updatedProfile) {
+        throw new Error(response.message || "The profile could not be updated.");
       }
-      closeModal();
-    } catch (err) {
-      console.warn("Profile update failed", err);
+
+      onProfileUpdated(updatedProfile);
+      setPicture(null);
+      setFileInputKey((key) => key + 1);
+      setFeedback({
+        variant: "success",
+        title: "Profile updated",
+        message: response.message || "Your account information is up to date.",
+      });
+    } catch (error) {
+      setFeedback({
+        variant: "error",
+        title: "Profile not updated",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Please check your details and try again.",
+      });
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
-  const options = [
-    { value: "United States", label: "United States" },
-    { value: "Canada", label: "Canada" },
-    { value: "United Kingdom", label: "United Kingdom" },
-    { value: "Australia", label: "Australia" },
-    { value: "India", label: "India" },
-    { value: "Nigeria", label: "Nigeria" },
-    { value: "Germany", label: "Germany" },
-    { value: "France", label: "France" },
-    { value: "Spain", label: "Spain" },
-    { value: "Italy", label: "Italy" },
-    { value: "Brazil", label: "Brazil" },
-    { value: "Mexico", label: "Mexico" },
-    { value: "China", label: "China" },
-    { value: "Japan", label: "Japan" },
-    { value: "South Africa", label: "South Africa" },
-  ];
-  const countries = [
-    { code: "US", label: "+1" },
-    { code: "CA", label: "+1" },
-    { code: "GB", label: "+44" },
-    { code: "AU", label: "+61" },
-    { code: "IN", label: "+91" },
-    { code: "NG", label: "+234" },
-    { code: "DE", label: "+49" },
-    { code: "FR", label: "+33" },
-    { code: "ES", label: "+34" },
-    { code: "IT", label: "+39" },
-    { code: "BR", label: "+55" },
-    { code: "MX", label: "+52" },
-    { code: "CN", label: "+86" },
-    { code: "JP", label: "+81" },
-    { code: "ZA", label: "+27" },
-  ];
-  const handleSuccessClose = () => {
-    successModal.closeModal();
-    closeModal();
-  };
+  const payoutAccount = profile.bankName
+    ? `${profile.bankName}${
+        profile.accountNumber
+          ? ` •••• ${profile.accountNumber.slice(-4)}`
+          : ""
+      }`
+    : "Not configured";
 
-  const handleErrorClose = () => {
-    errorModal.closeModal();
-    closeModal();
-  };
+  const memberSince = profile.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString("en-NG", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "Not available";
+
   return (
-    <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-            Personal Information
-          </h4>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                First Name
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {account?.firstName || "Firstname"}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Last name
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {account?.lastName || "Lastname"}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Email address
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {account?.email || "  "}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Phone
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {account?.phoneNumber || "+00 000 000 00"}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Country
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {account?.country || "  "}
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Address
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                {account?.address || "  "}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={openModal}
-          className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
-        >
-          <svg
-            className="fill-current"
-            width="18"
-            height="18"
-            viewBox="0 0 18 18"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              fillRule="evenodd"
-              clipRule="evenodd"
-              d="M15.0911 2.78206C14.2125 1.90338 12.7878 1.90338 11.9092 2.78206L4.57524 10.116C4.26682 10.4244 4.0547 10.8158 3.96468 11.2426L3.31231 14.3352C3.25997 14.5833 3.33653 14.841 3.51583 15.0203C3.69512 15.1996 3.95286 15.2761 4.20096 15.2238L7.29355 14.5714C7.72031 14.4814 8.11172 14.2693 8.42013 13.9609L15.7541 6.62695C16.6327 5.74827 16.6327 4.32365 15.7541 3.44497L15.0911 2.78206ZM12.9698 3.84272C13.2627 3.54982 13.7376 3.54982 14.0305 3.84272L14.6934 4.50563C14.9863 4.79852 14.9863 5.2734 14.6934 5.56629L14.044 6.21573L12.3204 4.49215L12.9698 3.84272ZM11.2597 5.55281L5.6359 11.1766C5.53309 11.2794 5.46238 11.4099 5.43238 11.5522L5.01758 13.5185L6.98394 13.1037C7.1262 13.0737 7.25666 13.003 7.35947 12.9002L12.9833 7.27639L11.2597 5.55281Z"
-              fill=""
-            />
-          </svg>
-          Edit
-        </button>
+    <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800 lg:p-6">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+          Account information
+        </h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          These details come directly from your referrer account.
+        </p>
       </div>
 
-      <Modal isOpen={isOpen} onClose={closeModal} className="max-w-[700px] m-4">
-        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
-          <div className="px-2 pr-14">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Personal Information
-            </h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Update your details to keep your profile up-to-date.
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <DetailItem label="Email" value={profile.email || "Not provided"} />
+        <DetailItem label="Phone number" value={profile.phoneNumber} />
+        <DetailItem label="Payout account" value={payoutAccount} />
+        <DetailItem label="Member since" value={memberSince} />
+      </div>
+
+      <div className="my-7 border-t border-gray-200 dark:border-gray-800" />
+
+      <div>
+        <h4 className="text-base font-semibold text-gray-800 dark:text-white/90">
+          Edit personal information
+        </h4>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Update the contact information attached to your referral account.
+        </p>
+      </div>
+
+      {feedback && (
+        <div className="mt-5" role="status" aria-live="polite">
+          <Alert
+            variant={feedback.variant}
+            title={feedback.title}
+            message={feedback.message}
+          />
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-6">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          <div>
+            <Label htmlFor="profile-first-name">
+              First name <span className="text-error-500">*</span>
+            </Label>
+            <Input
+              id="profile-first-name"
+              name="firstName"
+              value={firstName}
+              onChange={(event) => setFirstName(event.target.value)}
+              autoComplete="given-name"
+              required
+              disabled={isSaving}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="profile-last-name">
+              Last name <span className="text-error-500">*</span>
+            </Label>
+            <Input
+              id="profile-last-name"
+              name="lastName"
+              value={lastName}
+              onChange={(event) => setLastName(event.target.value)}
+              autoComplete="family-name"
+              required
+              disabled={isSaving}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="profile-email">Email</Label>
+            <Input
+              id="profile-email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              disabled={isSaving}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="profile-phone-number">
+              Phone number <span className="text-error-500">*</span>
+            </Label>
+            <Input
+              id="profile-phone-number"
+              name="phoneNumber"
+              type="tel"
+              value={phoneNumber}
+              onChange={(event) => setPhoneNumber(event.target.value)}
+              autoComplete="tel"
+              required
+              disabled={isSaving}
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <Label htmlFor="profile-picture">Profile picture</Label>
+            <FileInput
+              key={fileInputKey}
+              id="profile-picture"
+              name="picture"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handlePictureChange}
+              disabled={isSaving}
+            />
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              JPEG, PNG, GIF, or WebP. Maximum size 5 MB.
             </p>
           </div>
-          <form className="flex flex-col">
-            <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
-              <div className="mt-7">
-                <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                  Personal Information
-                </h5>
-
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>First Name</Label>
-                    <Input
-                      type="text"
-                      value={firstName}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setFirstName(e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Last Name</Label>
-                    <Input
-                      type="text"
-                      value={lastName}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        setLastName(e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label htmlFor="phone">Phone</Label>
-                    <PhoneInput
-                      selectPosition="start"
-                      countries={countries}
-                      placeholder="+1 (555) 000-0000"
-                      onChange={handlePhoneChange}
-                    />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Select Country</Label>
-                    <Select
-                      options={options}
-                      placeholder="Select Country"
-                      onChange={handleCountryChange}
-                      defaultValue={selectedCountry ?? ""}
-                      className="dark:bg-dark-900"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Address</Label>
-                    <TextArea
-                      rows={3}
-                      value={messageTwo}
-                      error
-                      onChange={(value) => setMessageTwo(value)}
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Label>Upload file</Label>
-                    <FileInput
-                      onChange={handleFileChange}
-                      className="custom-class"
-                      accept="image/*"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
-                Close
-              </Button>
-              <Button loading={loading} size="sm" onClick={handleSave}>
-                Save Changes
-              </Button>
-            </div>
-          </form>
         </div>
-      </Modal>
-      <SuccessModal
-        successModal={successModal}
-        handleSuccessClose={handleSuccessClose}
-      />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
+        <div className="mt-6 flex justify-end">
+          <Button
+            size="sm"
+            loading={isSaving}
+            disabled={isSaving}
+            loadingClassName="text-white"
+          >
+            Save changes
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-gray-50 p-4 dark:bg-white/[0.03]">
+      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium text-gray-800 dark:text-white/90">
+        {value}
+      </p>
     </div>
   );
 }

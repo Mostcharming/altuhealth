@@ -77,7 +77,7 @@ async function createRetailEnrollee(req, res, next) {
             state: state || null,
             lga: lga || null,
             country: country || null,
-            maxDependents: maxDependents || null,
+            maxDependents: maxDependents === undefined || maxDependents === null || maxDependents === '' ? null : maxDependents,
             planId,
             subscriptionStartDate,
             subscriptionEndDate: subscriptionEndDate || null,
@@ -361,7 +361,9 @@ async function updateRetailEnrollee(req, res, next) {
         if (state !== undefined) updates.state = state || null;
         if (lga !== undefined) updates.lga = lga || null;
         if (country !== undefined) updates.country = country || null;
-        if (maxDependents !== undefined) updates.maxDependents = maxDependents || null;
+        if (maxDependents !== undefined) {
+            updates.maxDependents = maxDependents === null || maxDependents === '' ? null : maxDependents;
+        }
         if (planId !== undefined) updates.planId = planId;
         if (subscriptionStartDate !== undefined) updates.subscriptionStartDate = subscriptionStartDate;
         if (subscriptionEndDate !== undefined) updates.subscriptionEndDate = subscriptionEndDate || null;

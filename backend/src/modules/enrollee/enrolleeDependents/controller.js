@@ -1,13 +1,53 @@
 'use strict';
 
 const { Op } = require('sequelize');
+const { isDependentLimitError, withDependentCapacity } = require('../../../utils/dependentLimit');
+
+async function generateDependentPolicyNumber(parent, DependentModel, dependentCount, transaction) {
+    for (let sequenceNumber = 1; sequenceNumber <= dependentCount + 1; sequenceNumber += 1) {
+        const policyNumber = `${parent.policyNumber}-${sequenceNumber}`;
+        const existingDependent = await DependentModel.findOne({
+            where: { policyNumber },
+            attributes: ['id'],
+            transaction
+        });
+
+        if (!existingDependent) return policyNumber;
+    }
+
+    throw new Error('Unable to generate a unique dependent policy number');
+}
 
 async function createDependent(req, res, next) {
     try {
-        const { EnrolleeDependent, Enrollee } = req.models;
         const enrolleeId = req.user?.id;
+        const enrolleeType = req.user?.type;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+
+        let ParentModel;
+        let DependentModel;
+        let foreignKey;
+        let subjectLabel;
+        let notFoundMessage;
+        let isRetailEnrollee = false;
+
+        if (enrolleeType === 'Enrollee') {
+            ParentModel = req.models.Enrollee;
+            DependentModel = req.models.EnrolleeDependent;
+            foreignKey = 'enrolleeId';
+            subjectLabel = 'enrollee';
+            notFoundMessage = 'Enrollee not found';
+        } else if (enrolleeType === 'RetailEnrollee') {
+            ParentModel = req.models.RetailEnrollee;
+            DependentModel = req.models.RetailEnrolleeDependent;
+            foreignKey = 'retailEnrolleeId';
+            subjectLabel = 'retail enrollee';
+            notFoundMessage = 'Retail enrollee not found';
+            isRetailEnrollee = true;
+        } else {
+            return res.fail('Unsupported enrollee account type', 403);
+        }
 
         const {
             firstName,
@@ -30,45 +70,54 @@ async function createDependent(req, res, next) {
         if (!gender) return res.fail('`gender` is required', 400);
         if (!relationshipToEnrollee) return res.fail('`relationshipToEnrollee` is required', 400);
 
-        // Get the enrollee to access their policy number
-        const enrollee = await Enrollee.findByPk(enrolleeId);
-        if (!enrollee) return res.fail('Enrollee not found', 404);
+        const { dependent, enrollee, policyNumber } = await withDependentCapacity({
+            ParentModel,
+            DependentModel,
+            parentId: enrolleeId,
+            foreignKey,
+            subjectLabel,
+            notFoundMessage
+        }, async ({ parent, dependentCount, transaction }) => {
+            const generatedPolicyNumber = await generateDependentPolicyNumber(
+                parent,
+                DependentModel,
+                dependentCount,
+                transaction
+            );
 
-        // Count existing dependents to generate policy number
-        const dependentCount = await EnrolleeDependent.count({
-            where: { enrolleeId }
-        });
+            const dependentData = {
+                [foreignKey]: enrolleeId,
+                policyNumber: generatedPolicyNumber,
+                firstName,
+                middleName,
+                lastName,
+                dateOfBirth,
+                gender,
+                phoneNumber,
+                email,
+                pictureUrl: req.profileImage?.url || null,
+                isActive: true
+            };
 
-        // Check if adding a new dependent would exceed the maximum allowed
-        if (enrollee.maxDependents !== null && enrollee.maxDependents !== undefined) {
-            if (dependentCount >= enrollee.maxDependents) {
-                return res.fail(
-                    `Maximum number of dependents (${enrollee.maxDependents}) has been reached for this enrollee`,
-                    400
-                );
+            if (isRetailEnrollee) {
+                dependentData.relationship = relationshipToEnrollee;
+            } else {
+                Object.assign(dependentData, {
+                    relationshipToEnrollee,
+                    occupation,
+                    maritalStatus,
+                    preexistingMedicalRecords,
+                    notes
+                });
             }
-        }
 
-        // Generate policy number: enrollee policy number + "-" + (count + 1)
-        const policyNumber = `${enrollee.policyNumber}-${dependentCount + 1}`;
+            const createdDependent = await DependentModel.create(dependentData, { transaction });
 
-        const dependent = await EnrolleeDependent.create({
-            enrolleeId,
-            policyNumber,
-            firstName,
-            middleName,
-            lastName,
-            dateOfBirth,
-            gender,
-            relationshipToEnrollee,
-            phoneNumber,
-            email,
-            occupation,
-            maritalStatus,
-            preexistingMedicalRecords,
-            notes,
-            pictureUrl: req.profileImage?.url || null,
-            isActive: true
+            return {
+                dependent: createdDependent,
+                enrollee: parent,
+                policyNumber: generatedPolicyNumber
+            };
         });
 
         // Send email notification if email is provided
@@ -81,7 +130,8 @@ async function createDependent(req, res, next) {
                     firstName,
                     lastName,
                     policyNumber
-                }, 'dependent', 'dependent_enrollment', {
+                }, isRetailEnrollee ? 'retail_enrollee_dependent' : 'dependent',
+                isRetailEnrollee ? 'DEPENDENT_ENROLLMENT' : 'dependent_enrollment', {
                     dependentName: `${firstName} ${lastName}`,
                     policyNumber,
                     enrolleeName: `${enrollee.firstName} ${enrollee.lastName}`
@@ -94,19 +144,36 @@ async function createDependent(req, res, next) {
 
         // Create notification in database
         try {
-            const { addEnrolleeDependentNotification } = require('../../../utils/addNotifications');
-            await addEnrolleeDependentNotification(req.models, {
-                enrolleeDependentId: dependent.id,
+            const {
+                addEnrolleeDependentNotification,
+                addRetailEnrolleeDependentNotification
+            } = require('../../../utils/addNotifications');
+            const notificationData = {
                 title: 'Enrollment Confirmation',
                 message: `You have been enrolled successfully. Your policy number is ${policyNumber}.`,
                 notificationType: 'enrollment'
-            });
+            };
+
+            if (isRetailEnrollee) {
+                await addRetailEnrolleeDependentNotification(req.models, {
+                    retailEnrolleeDependentId: dependent.id,
+                    ...notificationData
+                });
+            } else {
+                await addEnrolleeDependentNotification(req.models, {
+                    enrolleeDependentId: dependent.id,
+                    ...notificationData
+                });
+            }
         } catch (notificationError) {
             console.log('Error creating notification:', notificationError);
         }
 
         return res.success({ dependent: dependent.toJSON() }, 'Dependent created successfully', 201);
     } catch (err) {
+        if (isDependentLimitError(err)) {
+            return res.fail(err.message, err.statusCode);
+        }
         console.log('Error creating dependent:', err);
         return next(err);
     }

@@ -63,7 +63,7 @@ async function createStaff(req, res, next) {
             companyId,
             subsidiaryId: subsidiaryId || null,
             dateOfBirth: dateOfBirth || null,
-            maxDependents: maxDependents || null,
+            maxDependents: maxDependents === undefined || maxDependents === null || maxDependents === '' ? null : maxDependents,
             preexistingMedicalRecords: preexistingMedicalRecords || null,
             subscriptionId: subscriptionId || null
         }, { transaction });
@@ -103,7 +103,7 @@ async function createStaff(req, res, next) {
                     gender: gender || 'other',
                     phoneNumber: phoneNumber || generatedEmail,
                     email: generatedEmail,
-                    maxDependents: maxDependents || null,
+                    maxDependents: maxDependents === undefined || maxDependents === null || maxDependents === '' ? null : maxDependents,
                     preexistingMedicalRecords: preexistingMedicalRecords || null,
                     isActive: true,
                     password: hashedPassword
@@ -237,7 +237,9 @@ async function updateStaff(req, res, next) {
 
         if (dateOfBirth !== undefined) updates.dateOfBirth = dateOfBirth || null;
 
-        if (maxDependents !== undefined) updates.maxDependents = maxDependents || null;
+        if (maxDependents !== undefined) {
+            updates.maxDependents = maxDependents === null || maxDependents === '' ? null : maxDependents;
+        }
 
         if (preexistingMedicalRecords !== undefined) updates.preexistingMedicalRecords = preexistingMedicalRecords || null;
 
@@ -843,7 +845,7 @@ async function bulkCreateStaffs(req, res, next) {
                     companyId,
                     subsidiaryId: subsidiaryId || null,
                     dateOfBirth: dateOfBirth || null,
-                    maxDependents: maxDependents ? parseInt(maxDependents) : null,
+                    maxDependents: maxDependents === undefined || maxDependents === null || maxDependents === '' ? null : parseInt(maxDependents, 10),
                     preexistingMedicalRecords: preexistingMedicalRecords ? preexistingMedicalRecords.trim() : null,
                     subscriptionId: subscriptionIdToUse || null
                 }, { transaction });
@@ -905,7 +907,7 @@ async function bulkCreateStaffs(req, res, next) {
                         gender: gender || 'other',
                         phoneNumber: phoneNumber ? phoneNumber.trim() : generatedEmail,
                         email: generatedEmail,
-                        maxDependents: maxDependents ? parseInt(maxDependents) : null,
+                        maxDependents: maxDependents === undefined || maxDependents === null || maxDependents === '' ? null : parseInt(maxDependents, 10),
                         preexistingMedicalRecords: preexistingMedicalRecords ? preexistingMedicalRecords.trim() : null,
                         isActive: true,
                         password: hashedPassword

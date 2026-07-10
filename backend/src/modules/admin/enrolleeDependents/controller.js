@@ -3,18 +3,20 @@ const { addAuditLog } = require('../../../utils/addAdminNotification');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
 const { generateTemporaryPassword, hashPassword } = require('../../../utils/passwordGenerator');
+const { isDependentLimitError, withDependentCapacity } = require('../../../utils/dependentLimit');
 
 /**
  * Generate dependent policy number from enrollee policy number
  * Format: ENROLLEE_POLICY-XX where XX is a 2-digit sequence number
  */
-async function generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enrollee) {
+async function generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enrollee, transaction) {
     try {
 
         // Get the enrollee's policy number
         const enrollee = await Enrollee.findByPk(enrolleeId, {
             attributes: ['policyNumber'],
-            raw: true
+            raw: true,
+            transaction
         });
 
         if (!enrollee) {
@@ -34,7 +36,8 @@ async function generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enro
             const foundDependent = await EnrolleeDependent.findOne({
                 where: { policyNumber },
                 attributes: ['id'],
-                raw: true
+                raw: true,
+                transaction
             });
             exists = !!foundDependent;
             sequenceNumber++;
@@ -64,33 +67,44 @@ async function createEnrolleeDependent(req, res, next) {
         if (!gender) return res.fail('`gender` is required', 400);
         if (!relationshipToEnrollee) return res.fail('`relationshipToEnrollee` is required', 400);
 
-        // Verify enrollee exists
-        const enrollee = await Enrollee.findByPk(enrolleeId);
-        if (!enrollee) return res.fail('Enrollee not found', 404);
-
         // Generate temporary password
         const temporaryPassword = generateTemporaryPassword();
         const hashedPassword = await hashPassword(temporaryPassword);
 
-        // Generate policy number
-        const policyNumber = await generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enrollee);
+        const { dependent, enrollee } = await withDependentCapacity({
+            ParentModel: Enrollee,
+            DependentModel: EnrolleeDependent,
+            parentId: enrolleeId,
+            foreignKey: 'enrolleeId',
+            subjectLabel: 'enrollee',
+            notFoundMessage: 'Enrollee not found'
+        }, async ({ parent, transaction }) => {
+            const policyNumber = await generateDependentPolicyNumber(
+                enrolleeId,
+                EnrolleeDependent,
+                Enrollee,
+                transaction
+            );
 
-        const dependent = await EnrolleeDependent.create({
-            enrolleeId,
-            policyNumber,
-            firstName,
-            middleName: middleName || null,
-            lastName,
-            dateOfBirth,
-            gender,
-            relationshipToEnrollee,
-            phoneNumber: phoneNumber || null,
-            email: email || null,
-            occupation: occupation || null,
-            maritalStatus: maritalStatus || null,
-            preexistingMedicalRecords: preexistingMedicalRecords || null,
-            pictureUrl: req.profileImage?.url || null,
-            password: hashedPassword
+            const createdDependent = await EnrolleeDependent.create({
+                enrolleeId,
+                policyNumber,
+                firstName,
+                middleName: middleName || null,
+                lastName,
+                dateOfBirth,
+                gender,
+                relationshipToEnrollee,
+                phoneNumber: phoneNumber || null,
+                email: email || null,
+                occupation: occupation || null,
+                maritalStatus: maritalStatus || null,
+                preexistingMedicalRecords: preexistingMedicalRecords || null,
+                pictureUrl: req.profileImage?.url || null,
+                password: hashedPassword
+            }, { transaction });
+
+            return { dependent: createdDependent, enrollee: parent };
         });
 
         await addAuditLog(req.models, {
@@ -135,6 +149,9 @@ async function createEnrolleeDependent(req, res, next) {
 
         return res.success({ dependent: dependent.toJSON() }, 'Enrollee dependent created', 201);
     } catch (err) {
+        if (isDependentLimitError(err)) {
+            return res.fail(err.message, err.statusCode);
+        }
         return next(err);
     }
 }
@@ -386,16 +403,9 @@ async function bulkCreateEnrolleeDependents(req, res, next) {
             return res.fail('`enrolleeId` is required', 400);
         }
 
-        // Verify enrollee exists
-        const enrollee = await Enrollee.findByPk(enrolleeId);
-        if (!enrollee) {
-            return res.fail('Enrollee not found', 404);
-        }
-
         // Parse the file
         let rows = [];
         const fs = require('fs');
-        const path = require('path');
 
         if (file.mimetype === 'text/csv') {
             // Parse CSV
@@ -430,82 +440,102 @@ async function bulkCreateEnrolleeDependents(req, res, next) {
         const createdDependents = [];
         const errors = [];
 
-        for (let i = 0; i < rows.length; i++) {
-            try {
-                const row = rows[i];
-                const rowNumber = i + 2; // +2 because row 1 is header, i starts from 0
+        await withDependentCapacity({
+            ParentModel: Enrollee,
+            DependentModel: EnrolleeDependent,
+            parentId: enrolleeId,
+            foreignKey: 'enrolleeId',
+            subjectLabel: 'enrollee',
+            notFoundMessage: 'Enrollee not found'
+        }, async ({ maxDependents, remainingSlots, transaction }) => {
+            const limitReachedMessage = `Maximum number of dependents (${maxDependents}) has been reached for this enrollee`;
 
-                // Validate required fields
-                if (!row.firstName) {
-                    errors.push({ row: rowNumber, error: 'firstName is required' });
-                    continue;
-                }
-                if (!row.lastName) {
-                    errors.push({ row: rowNumber, error: 'lastName is required' });
-                    continue;
-                }
-                if (!row.dateOfBirth) {
-                    errors.push({ row: rowNumber, error: 'dateOfBirth is required' });
-                    continue;
-                }
-                if (!row.gender) {
-                    errors.push({ row: rowNumber, error: 'gender is required' });
-                    continue;
-                }
-                if (!row.relationshipToEnrollee) {
-                    errors.push({ row: rowNumber, error: 'relationshipToEnrollee is required' });
-                    continue;
-                }
+            for (let i = 0; i < rows.length; i++) {
+                try {
+                    const row = rows[i];
+                    const rowNumber = i + 2; // +2 because row 1 is header, i starts from 0
 
-                // Validate enum values
-                if (!['male', 'female', 'other'].includes(row.gender.toLowerCase())) {
-                    errors.push({ row: rowNumber, error: `Invalid gender value: ${row.gender}` });
-                    continue;
+                    // Validate required fields
+                    if (!row.firstName) {
+                        errors.push({ row: rowNumber, error: 'firstName is required' });
+                        continue;
+                    }
+                    if (!row.lastName) {
+                        errors.push({ row: rowNumber, error: 'lastName is required' });
+                        continue;
+                    }
+                    if (!row.dateOfBirth) {
+                        errors.push({ row: rowNumber, error: 'dateOfBirth is required' });
+                        continue;
+                    }
+                    if (!row.gender) {
+                        errors.push({ row: rowNumber, error: 'gender is required' });
+                        continue;
+                    }
+                    if (!row.relationshipToEnrollee) {
+                        errors.push({ row: rowNumber, error: 'relationshipToEnrollee is required' });
+                        continue;
+                    }
+
+                    // Validate enum values
+                    if (!['male', 'female', 'other'].includes(row.gender.toLowerCase())) {
+                        errors.push({ row: rowNumber, error: `Invalid gender value: ${row.gender}` });
+                        continue;
+                    }
+
+                    if (!['spouse', 'child', 'parent', 'sibling', 'other'].includes(row.relationshipToEnrollee.toLowerCase())) {
+                        errors.push({ row: rowNumber, error: `Invalid relationshipToEnrollee value: ${row.relationshipToEnrollee}` });
+                        continue;
+                    }
+
+                    // Validate maritalStatus if provided
+                    if (row.maritalStatus && !['single', 'married', 'divorced', 'widowed', 'separated'].includes(row.maritalStatus.toLowerCase())) {
+                        errors.push({ row: rowNumber, error: `Invalid maritalStatus value: ${row.maritalStatus}` });
+                        continue;
+                    }
+
+                    // Validate email if provided
+                    if (row.email && !String(row.email).toLowerCase().match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                        errors.push({ row: rowNumber, error: `Invalid email format: ${row.email}` });
+                        continue;
+                    }
+
+                    // Invalid rows do not use capacity; otherwise-valid excess rows receive a limit error.
+                    if (createdDependents.length >= remainingSlots) {
+                        errors.push({ row: rowNumber, error: limitReachedMessage });
+                        continue;
+                    }
+
+                    const policyNumber = await generateDependentPolicyNumber(
+                        enrolleeId,
+                        EnrolleeDependent,
+                        Enrollee,
+                        transaction
+                    );
+
+                    const dependent = await EnrolleeDependent.create({
+                        enrolleeId,
+                        policyNumber,
+                        firstName: row.firstName.trim(),
+                        middleName: row.middleName ? row.middleName.trim() : null,
+                        lastName: row.lastName.trim(),
+                        dateOfBirth: new Date(row.dateOfBirth),
+                        gender: row.gender.toLowerCase(),
+                        relationshipToEnrollee: row.relationshipToEnrollee.toLowerCase(),
+                        phoneNumber: row.phoneNumber ? row.phoneNumber.trim() : null,
+                        email: row.email ? row.email.toLowerCase().trim() : null,
+                        occupation: row.occupation ? row.occupation.trim() : null,
+                        maritalStatus: row.maritalStatus ? row.maritalStatus.toLowerCase() : null,
+                        preexistingMedicalRecords: row.preexistingMedicalRecords ? row.preexistingMedicalRecords.trim() : null
+                    }, { transaction });
+
+                    createdDependents.push(dependent.toJSON());
+                } catch (err) {
+                    const rowNumber = i + 2;
+                    errors.push({ row: rowNumber, error: err.message });
                 }
-
-                if (!['spouse', 'child', 'parent', 'sibling', 'other'].includes(row.relationshipToEnrollee.toLowerCase())) {
-                    errors.push({ row: rowNumber, error: `Invalid relationshipToEnrollee value: ${row.relationshipToEnrollee}` });
-                    continue;
-                }
-
-                // Validate maritalStatus if provided
-                if (row.maritalStatus && !['single', 'married', 'divorced', 'widowed', 'separated'].includes(row.maritalStatus.toLowerCase())) {
-                    errors.push({ row: rowNumber, error: `Invalid maritalStatus value: ${row.maritalStatus}` });
-                    continue;
-                }
-
-                // Validate email if provided
-                if (row.email && !String(row.email).toLowerCase().match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-                    errors.push({ row: rowNumber, error: `Invalid email format: ${row.email}` });
-                    continue;
-                }
-
-                // Generate policy number
-                const policyNumber = await generateDependentPolicyNumber(enrolleeId, EnrolleeDependent, Enrollee);
-
-                // Create the dependent
-                const dependent = await EnrolleeDependent.create({
-                    enrolleeId,
-                    policyNumber,
-                    firstName: row.firstName.trim(),
-                    middleName: row.middleName ? row.middleName.trim() : null,
-                    lastName: row.lastName.trim(),
-                    dateOfBirth: new Date(row.dateOfBirth),
-                    gender: row.gender.toLowerCase(),
-                    relationshipToEnrollee: row.relationshipToEnrollee.toLowerCase(),
-                    phoneNumber: row.phoneNumber ? row.phoneNumber.trim() : null,
-                    email: row.email ? row.email.toLowerCase().trim() : null,
-                    occupation: row.occupation ? row.occupation.trim() : null,
-                    maritalStatus: row.maritalStatus ? row.maritalStatus.toLowerCase() : null,
-                    preexistingMedicalRecords: row.preexistingMedicalRecords ? row.preexistingMedicalRecords.trim() : null
-                });
-
-                createdDependents.push(dependent.toJSON());
-            } catch (err) {
-                const rowNumber = i + 2;
-                errors.push({ row: rowNumber, error: err.message });
             }
-        }
+        });
 
         // Clean up uploaded file
         try {
@@ -542,6 +572,9 @@ async function bulkCreateEnrolleeDependents(req, res, next) {
             } catch (e) {
                 console.error('Error deleting uploaded file:', e);
             }
+        }
+        if (isDependentLimitError(err)) {
+            return res.fail(err.message, err.statusCode);
         }
         return next(err);
     }

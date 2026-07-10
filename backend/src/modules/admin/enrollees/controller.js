@@ -93,7 +93,7 @@ async function createEnrollee(req, res, next) {
             gender,
             phoneNumber,
             email,
-            maxDependents: maxDependents || null,
+            maxDependents: maxDependents === undefined || maxDependents === null || maxDependents === '' ? null : maxDependents,
             preexistingMedicalRecords: preexistingMedicalRecords || null,
             expirationDate: expirationDate || null,
             pictureUrl: pictureUrl || null,

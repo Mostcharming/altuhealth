@@ -1,17 +1,19 @@
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
+const { isDependentLimitError, withDependentCapacity } = require('../../../utils/dependentLimit');
 
 /**
  * Generate dependent policy number from retail enrollee policy number
  * Format: ENROLLEE_POLICY-XX where XX is a 2-digit sequence number
  */
-async function generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDependent, RetailEnrollee) {
+async function generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDependent, RetailEnrollee, transaction) {
     try {
         // Get the retail enrollee's policy number
         const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId, {
             attributes: ['policyNumber'],
-            raw: true
+            raw: true,
+            transaction
         });
 
         if (!enrollee) {
@@ -31,7 +33,8 @@ async function generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDep
             const foundDependent = await RetailEnrolleeDependent.findOne({
                 where: { policyNumber },
                 attributes: ['id'],
-                raw: true
+                raw: true,
+                transaction
             });
             exists = !!foundDependent;
             sequenceNumber++;
@@ -52,7 +55,8 @@ async function generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDep
 async function createRetailEnrolleeDependent(req, res, next) {
     try {
         const { RetailEnrolleeDependent, RetailEnrollee } = req.models;
-        const { retailEnrolleeId, firstName, middleName, lastName, dateOfBirth, gender, relationship, phoneNumber, email, state, lga, country, address } = req.body || {};
+        const { firstName, middleName, lastName, dateOfBirth, gender, relationship, phoneNumber, email, state, lga, country, address } = req.body || {};
+        const retailEnrolleeId = req.params?.retailEnrolleeId || req.body?.retailEnrolleeId;
 
         if (!retailEnrolleeId) return res.fail('`retailEnrolleeId` is required', 400);
         if (!firstName) return res.fail('`firstName` is required', 400);
@@ -61,29 +65,38 @@ async function createRetailEnrolleeDependent(req, res, next) {
         if (!gender) return res.fail('`gender` is required', 400);
         if (!relationship) return res.fail('`relationship` is required', 400);
 
-        // Verify retail enrollee exists
-        const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
-        if (!enrollee) return res.fail('Retail enrollee not found', 404);
+        const dependent = await withDependentCapacity({
+            ParentModel: RetailEnrollee,
+            DependentModel: RetailEnrolleeDependent,
+            parentId: retailEnrolleeId,
+            foreignKey: 'retailEnrolleeId',
+            subjectLabel: 'retail enrollee',
+            notFoundMessage: 'Retail enrollee not found'
+        }, async ({ transaction }) => {
+            const policyNumber = await generateDependentPolicyNumber(
+                retailEnrolleeId,
+                RetailEnrolleeDependent,
+                RetailEnrollee,
+                transaction
+            );
 
-        // Generate policy number
-        const policyNumber = await generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDependent, RetailEnrollee);
-
-        const dependent = await RetailEnrolleeDependent.create({
-            retailEnrolleeId,
-            policyNumber,
-            firstName,
-            middleName: middleName || null,
-            lastName,
-            dateOfBirth,
-            gender,
-            relationship,
-            phoneNumber: phoneNumber || null,
-            email: email || null,
-            state: state || null,
-            lga: lga || null,
-            country: country || null,
-            address: address || null,
-            isActive: true
+            return RetailEnrolleeDependent.create({
+                retailEnrolleeId,
+                policyNumber,
+                firstName,
+                middleName: middleName || null,
+                lastName,
+                dateOfBirth,
+                gender,
+                relationship,
+                phoneNumber: phoneNumber || null,
+                email: email || null,
+                state: state || null,
+                lga: lga || null,
+                country: country || null,
+                address: address || null,
+                isActive: true
+            }, { transaction });
         });
 
         await addAuditLog(req.models, {
@@ -96,6 +109,9 @@ async function createRetailEnrolleeDependent(req, res, next) {
 
         return res.success({ dependent: dependent.toJSON() }, 'Retail enrollee dependent created', 201);
     } catch (err) {
+        if (isDependentLimitError(err)) {
+            return res.fail(err.message, err.statusCode);
+        }
         return next(err);
     }
 }

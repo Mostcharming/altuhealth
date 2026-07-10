@@ -404,7 +404,9 @@ async function completePurchase(req, res, next) {
                 state: null,
                 lga: null,
                 country: plan.currency === 'GBP' ? 'United Kingdom' : null,
-                maxDependents: plan.allowDependentEnrolee ? 1 : 0,
+                maxDependents: plan.allowDependentEnrolee
+                    ? plan.maxNumberOfDependents
+                    : 0,
                 planId,
                 subscriptionStartDate,
                 subscriptionEndDate,

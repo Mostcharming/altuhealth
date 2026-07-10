@@ -190,7 +190,7 @@ export default function PageMetricsRetailEnrollee({
         state: state || null,
         lga: lga || null,
         country: country || null,
-        maxDependents: maxDependents || null,
+        maxDependents: maxDependents ?? null,
         planId,
         subscriptionStartDate,
         subscriptionEndDate: subscriptionEndDate || null,
@@ -458,10 +458,10 @@ export default function PageMetricsRetailEnrollee({
                 <Input
                   type="number"
                   placeholder="Enter max dependents"
-                  value={maxDependents || ""}
+                  value={maxDependents ?? ""}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     setMaxDependents(
-                      e.target.value ? parseInt(e.target.value) : undefined
+                      e.target.value ? parseInt(e.target.value, 10) : undefined
                     )
                   }
                 />

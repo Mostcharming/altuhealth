@@ -1,140 +1,236 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
+import Alert from "@/components/ui/alert/Alert";
 import Button from "@/components/ui/button/Button";
-import { useModal } from "@/hooks/useModal";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
-import { apiClient } from "@/lib/apiClient";
-import { useState } from "react";
-import ErrorModal from "../modals/error";
-import SuccessModal from "../modals/success";
+import { referralAPI } from "@/lib/apis/referral";
+import { FormEvent, useState } from "react";
+
+type Feedback = {
+  variant: "success" | "error";
+  title: string;
+  message: string;
+};
+
+type PasswordFieldProps = {
+  id: string;
+  label: string;
+  value: string;
+  visible: boolean;
+  autoComplete: "current-password" | "new-password";
+  disabled: boolean;
+  onChange: (value: string) => void;
+  onToggleVisibility: () => void;
+};
 
 export default function UserAddressCard() {
-  const { closeModal } = useModal();
-  const [showOldPassword, setShowOldPassword] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
-  const errorModal = useModal();
-  const successModal = useModal();
-  const [showPassword, setShowPassword] = useState(false);
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setFeedback(null);
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setFeedback({
+        variant: "error",
+        title: "Complete all password fields",
+        message: "Enter your current password, new password, and confirmation.",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setFeedback({
+        variant: "error",
+        title: "New password is too short",
+        message: "Use at least 8 characters for your new password.",
+      });
+      return;
+    }
+
+    if (newPassword === oldPassword) {
+      setFeedback({
+        variant: "error",
+        title: "Choose a different password",
+        message: "Your new password must be different from your current password.",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setFeedback({
+        variant: "error",
+        title: "Passwords do not match",
+        message: "Re-enter the same new password in the confirmation field.",
+      });
+      return;
+    }
 
     try {
-      const bodyPayload: any = {
-        newPassword: password,
+      setIsSaving(true);
+      const response = await referralAPI.changePassword({
         oldPassword,
-      };
-
-      const data = await apiClient("/admin/account/password", {
-        method: "POST",
-        body: bodyPayload,
-        onLoading: setIsLoading,
+        newPassword,
       });
-      if (!data?.error) {
-        successModal.openModal();
+
+      if (response.error) {
+        throw new Error(response.message || "The password could not be changed.");
       }
+
       setOldPassword("");
-      setPassword("");
-    } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      errorModal.openModal();
-      console.error("Sign in error:", err);
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowOldPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+      setFeedback({
+        variant: "success",
+        title: "Password changed",
+        message:
+          response.message || "Your account is now using the new password.",
+      });
+    } catch (error) {
+      setFeedback({
+        variant: "error",
+        title: "Password not changed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Please verify your current password and try again.",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
-  const handleSuccessClose = () => {
-    successModal.closeModal();
-    closeModal();
-  };
 
-  const handleErrorClose = () => {
-    errorModal.closeModal();
-    closeModal();
-  };
   return (
-    <>
-      <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Change Password
-            </h4>
-          </div>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-6">
-            <div>
-              <Label>
-                Old Password <span className="text-error-500">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  type={showOldPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                />
-                <span
-                  onClick={() => setShowOldPassword(!showOldPassword)}
-                  className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
-                >
-                  {showOldPassword ? (
-                    <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
-                  ) : (
-                    <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <Label>
-                New Password <span className="text-error-500">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
-                >
-                  {showPassword ? (
-                    <EyeIcon className="fill-gray-500 dark:fill-gray-400" />
-                  ) : (
-                    <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400" />
-                  )}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <Button
-                className="w-full"
-                size="sm"
-                loading={isLoading}
-                loadingSize={20}
-                loadingClassName="text-white"
-              >
-                Submit
-              </Button>
-            </div>
-          </div>
-        </form>
+    <section className="rounded-2xl border border-gray-200 p-5 dark:border-gray-800 lg:p-6">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
+          Change password
+        </h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Confirm your current password before setting a new one.
+        </p>
       </div>
-      <SuccessModal
-        successModal={successModal}
-        handleSuccessClose={handleSuccessClose}
-      />
 
-      <ErrorModal errorModal={errorModal} handleErrorClose={handleErrorClose} />
-    </>
+      {feedback && (
+        <div className="mt-5" role="status" aria-live="polite">
+          <Alert
+            variant={feedback.variant}
+            title={feedback.title}
+            message={feedback.message}
+          />
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-6 max-w-2xl">
+        <div className="space-y-5">
+          <PasswordField
+            id="current-password"
+            label="Current password"
+            value={oldPassword}
+            visible={showOldPassword}
+            autoComplete="current-password"
+            disabled={isSaving}
+            onChange={setOldPassword}
+            onToggleVisibility={() => setShowOldPassword((visible) => !visible)}
+          />
+
+          <PasswordField
+            id="new-password"
+            label="New password"
+            value={newPassword}
+            visible={showNewPassword}
+            autoComplete="new-password"
+            disabled={isSaving}
+            onChange={setNewPassword}
+            onToggleVisibility={() => setShowNewPassword((visible) => !visible)}
+          />
+
+          <PasswordField
+            id="confirm-password"
+            label="Confirm new password"
+            value={confirmPassword}
+            visible={showConfirmPassword}
+            autoComplete="new-password"
+            disabled={isSaving}
+            onChange={setConfirmPassword}
+            onToggleVisibility={() =>
+              setShowConfirmPassword((visible) => !visible)
+            }
+          />
+        </div>
+
+        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          Use at least 8 characters and avoid reusing your current password.
+        </p>
+
+        <div className="mt-6">
+          <Button
+            size="sm"
+            loading={isSaving}
+            disabled={isSaving}
+            loadingClassName="text-white"
+          >
+            Change password
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function PasswordField({
+  id,
+  label,
+  value,
+  visible,
+  autoComplete,
+  disabled,
+  onChange,
+  onToggleVisibility,
+}: PasswordFieldProps) {
+  return (
+    <div>
+      <Label htmlFor={id}>
+        {label} <span className="text-error-500">*</span>
+      </Label>
+      <div className="relative">
+        <Input
+          id={id}
+          name={id}
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          className="pr-12"
+          required
+          disabled={disabled}
+        />
+        <button
+          type="button"
+          onClick={onToggleVisibility}
+          disabled={disabled}
+          className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded p-1 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:text-gray-200"
+          aria-label={`${visible ? "Hide" : "Show"} ${label.toLowerCase()}`}
+        >
+          {visible ? (
+            <EyeIcon className="fill-current" />
+          ) : (
+            <EyeCloseIcon className="fill-current" />
+          )}
+        </button>
+      </div>
+    </div>
   );
 }

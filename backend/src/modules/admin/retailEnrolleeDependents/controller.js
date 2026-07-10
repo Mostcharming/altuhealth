@@ -3,17 +3,19 @@ const { addAuditLog } = require('../../../utils/addAdminNotification');
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
 const { generateTemporaryPassword, hashPassword } = require('../../../utils/passwordGenerator');
+const { isDependentLimitError, withDependentCapacity } = require('../../../utils/dependentLimit');
 
 /**
  * Generate dependent policy number from enrollee policy number
  * Format: ENROLLEE_POLICY-XX where XX is a 2-digit sequence number
  */
-async function generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDependent, RetailEnrollee) {
+async function generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDependent, RetailEnrollee, transaction) {
     try {
         // Get the enrollee's policy number
         const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId, {
             attributes: ['policyNumber'],
-            raw: true
+            raw: true,
+            transaction
         });
 
         if (!enrollee) {
@@ -33,7 +35,8 @@ async function generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDep
             const foundDependent = await RetailEnrolleeDependent.findOne({
                 where: { policyNumber },
                 attributes: ['id'],
-                raw: true
+                raw: true,
+                transaction
             });
             exists = !!foundDependent;
             sequenceNumber++;
@@ -63,32 +66,43 @@ async function createRetailEnrolleeDependent(req, res, next) {
         if (!gender) return res.fail('`gender` is required', 400);
         if (!relationshipToEnrollee) return res.fail('`relationshipToEnrollee` is required', 400);
 
-        // Verify enrollee exists
-        const enrollee = await RetailEnrollee.findByPk(retailEnrolleeId);
-        if (!enrollee) return res.fail('Retail enrollee not found', 404);
-
         // Generate temporary password
         const temporaryPassword = generateTemporaryPassword();
         const hashedPassword = await hashPassword(temporaryPassword);
 
-        // Generate policy number
-        const policyNumber = await generateDependentPolicyNumber(retailEnrolleeId, RetailEnrolleeDependent, RetailEnrollee);
+        const { dependent, enrollee } = await withDependentCapacity({
+            ParentModel: RetailEnrollee,
+            DependentModel: RetailEnrolleeDependent,
+            parentId: retailEnrolleeId,
+            foreignKey: 'retailEnrolleeId',
+            subjectLabel: 'retail enrollee',
+            notFoundMessage: 'Retail enrollee not found'
+        }, async ({ parent, transaction }) => {
+            const policyNumber = await generateDependentPolicyNumber(
+                retailEnrolleeId,
+                RetailEnrolleeDependent,
+                RetailEnrollee,
+                transaction
+            );
 
-        const dependent = await RetailEnrolleeDependent.create({
-            retailEnrolleeId,
-            policyNumber,
-            firstName,
-            middleName: middleName || null,
-            lastName,
-            dateOfBirth,
-            gender,
-            relationshipToEnrollee,
-            phoneNumber: phoneNumber || null,
-            email: email || null,
-            occupation: occupation || null,
-            maritalStatus: maritalStatus || null,
-            preexistingMedicalRecords: preexistingMedicalRecords || null,
-            password: hashedPassword
+            const createdDependent = await RetailEnrolleeDependent.create({
+                retailEnrolleeId,
+                policyNumber,
+                firstName,
+                middleName: middleName || null,
+                lastName,
+                dateOfBirth,
+                gender,
+                relationship: relationshipToEnrollee,
+                phoneNumber: phoneNumber || null,
+                email: email || null,
+                occupation: occupation || null,
+                maritalStatus: maritalStatus || null,
+                preexistingMedicalRecords: preexistingMedicalRecords || null,
+                password: hashedPassword
+            }, { transaction });
+
+            return { dependent: createdDependent, enrollee: parent };
         });
 
         await addAuditLog(req.models, {
@@ -133,6 +147,9 @@ async function createRetailEnrolleeDependent(req, res, next) {
 
         return res.success({ dependent: dependent.toJSON() }, 'Retail enrollee dependent created', 201);
     } catch (err) {
+        if (isDependentLimitError(err)) {
+            return res.fail(err.message, err.statusCode);
+        }
         return next(err);
     }
 }
