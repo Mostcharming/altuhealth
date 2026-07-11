@@ -5,6 +5,58 @@ const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator'
 const notify = require('../../../utils/notify');
 const config = require('../../../config');
 const generateCode = require('../../../utils/verificationCode');
+const {
+    MAX_BULK_STAFF_ROWS,
+    parseBulkStaffFile,
+    prepareStaffRow
+} = require('./bulkUpload');
+
+async function runWithConcurrency(items, concurrency, worker) {
+    let cursor = 0;
+    const workers = Array.from(
+        { length: Math.min(concurrency, items.length) },
+        async () => {
+            while (cursor < items.length) {
+                const index = cursor;
+                cursor += 1;
+                await worker(items[index]);
+            }
+        }
+    );
+
+    await Promise.allSettled(workers);
+}
+
+function queueEnrollmentNotifications(models, company, notificationTasks) {
+    if (!notificationTasks.length) return;
+
+    setImmediate(async () => {
+        await runWithConcurrency(notificationTasks, 5, async ({ staff, enrollee, rawPassword }) => {
+            try {
+                await notify(
+                    { id: staff.id, email: staff.email, firstName: staff.firstName },
+                    'staff',
+                    'STAFF_ENROLLMENT_REQUIRED',
+                    {
+                        firstName: staff.firstName,
+                        companyName: company.name,
+                        loginLink: 'https://enrollee.altuhealth.com',
+                        temporaryPassword: rawPassword,
+                        policyNumber: enrollee.policyNumber
+                    },
+                    ['email']
+                );
+
+                await models.Staff.update(
+                    { isNotified: true, notifiedAt: new Date() },
+                    { where: { id: staff.id } }
+                );
+            } catch (error) {
+                console.error(`Background enrollment notification failed for ${staff.email}:`, error);
+            }
+        });
+    });
+}
 
 async function createStaff(req, res, next) {
     let transaction;
@@ -717,10 +769,14 @@ async function bulkEnrollStaffs(req, res, next) {
 }
 
 async function bulkCreateStaffs(req, res, next) {
+    const file = req.file;
+
     try {
         const { Staff, Company, CompanySubsidiary, Subscription, Enrollee, CompanyPlan, SubscriptionPlan } = req.models;
-        const { companyId, subsidiaryId, subscriptionId } = req.body || {};
-        const file = req.file;
+        const { companyId, subsidiaryId, subscriptionId, companyPlanId } = req.body || {};
+
+        req.setTimeout(120000);
+        res.setTimeout(120000);
 
         if (!file) {
             return res.fail('File is required', 400);
@@ -728,6 +784,10 @@ async function bulkCreateStaffs(req, res, next) {
 
         if (!companyId) {
             return res.fail('`companyId` is required', 400);
+        }
+
+        if (!subscriptionId) {
+            return res.fail('`subscriptionId` is required', 400);
         }
 
         const company = await Company.findByPk(companyId);
@@ -745,54 +805,151 @@ async function bulkCreateStaffs(req, res, next) {
             }
         }
 
-        if (subscriptionId) {
-            const subscription = await Subscription.findByPk(subscriptionId);
-            if (!subscription) {
-                return res.fail('Subscription not found', 404);
-            }
-            if (subscription.companyId !== companyId) {
-                return res.fail('Subscription does not belong to the specified company', 400);
-            }
+        const subscription = await Subscription.findByPk(subscriptionId);
+        if (!subscription) {
+            return res.fail('Subscription not found', 404);
+        }
+        if (subscription.companyId !== companyId) {
+            return res.fail('Subscription does not belong to the specified company', 400);
         }
 
-        let rows = [];
-        const fs = require('fs');
-        const path = require('path');
-
-        if (file.mimetype === 'text/csv') {
-            const csv = require('csv-parser');
-            rows = await new Promise((resolve, reject) => {
-                const data = [];
-                fs.createReadStream(file.path)
-                    .pipe(csv())
-                    .on('data', (row) => data.push(row))
-                    .on('end', () => resolve(data))
-                    .on('error', reject);
-            });
-        } else if (
-            file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-            file.mimetype === 'application/vnd.ms-excel'
+        const now = new Date();
+        if (
+            subscription.status !== 'active'
+            || new Date(subscription.startDate) > now
+            || new Date(subscription.endDate) < now
         ) {
-            const XLSX = require('xlsx');
-            const workbook = XLSX.readFile(file.path);
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            rows = XLSX.utils.sheet_to_json(worksheet);
-        } else {
-            return res.fail('Invalid file format. Only CSV and Excel files are supported', 400);
+            return res.fail('The selected subscription is not currently active', 400);
         }
+
+        const subscriptionPlans = await SubscriptionPlan.findAll({
+            where: { subscriptionId },
+            attributes: ['companyPlanId'],
+            raw: true
+        });
+        if (!subscriptionPlans.length) {
+            return res.fail('No company plan is linked to the selected subscription', 400);
+        }
+
+        const selectedPlanLink = companyPlanId
+            ? subscriptionPlans.find((item) => String(item.companyPlanId) === String(companyPlanId))
+            : subscriptionPlans.length === 1
+                ? subscriptionPlans[0]
+                : null;
+
+        if (!selectedPlanLink) {
+            return res.fail(
+                companyPlanId
+                    ? 'The selected company plan is not linked to this subscription'
+                    : '`companyPlanId` is required when a subscription has multiple plans',
+                400
+            );
+        }
+
+        const companyPlan = await CompanyPlan.findByPk(selectedPlanLink.companyPlanId);
+        if (!companyPlan || companyPlan.companyId !== companyId || companyPlan.isActive === false) {
+            return res.fail('The selected company plan is invalid or inactive', 400);
+        }
+
+        const rows = await parseBulkStaffFile(file);
 
         if (!Array.isArray(rows) || rows.length === 0) {
             return res.fail('File is empty or has no valid data', 400);
         }
 
+        if (rows.length > MAX_BULK_STAFF_ROWS) {
+            return res.fail(
+                `A maximum of ${MAX_BULK_STAFF_ROWS} staff rows can be uploaded at once`,
+                400
+            );
+        }
+
         const createdStaffs = [];
         const createdEnrollees = [];
         const errors = [];
+        const notificationTasks = [];
+        const preparedRows = rows.map((row, index) => prepareStaffRow(row, {
+            companyName: company.name,
+            rowNumber: index + 2
+        }));
+        const seenEmails = new Map();
+        const seenPolicies = new Map();
 
-        for (let i = 0; i < rows.length; i++) {
+        preparedRows.forEach((entry) => {
+            const emailKey = entry.data.email.toLowerCase();
+            if (seenEmails.has(emailKey)) {
+                entry.errors.push(`email duplicates row ${seenEmails.get(emailKey)}`);
+            } else {
+                seenEmails.set(emailKey, entry.rowNumber);
+            }
+
+            if (entry.data.policyNumber) {
+                const policyKey = entry.data.policyNumber.toUpperCase();
+                if (seenPolicies.has(policyKey)) {
+                    entry.errors.push(`policyNumber duplicates row ${seenPolicies.get(policyKey)}`);
+                } else {
+                    seenPolicies.set(policyKey, entry.rowNumber);
+                }
+            }
+        });
+
+        const uploadEmails = Array.from(seenEmails.keys());
+        const uploadPolicies = Array.from(seenPolicies.keys());
+        const [existingStaffs, existingEnrollees] = await Promise.all([
+            uploadEmails.length
+                ? Staff.findAll({
+                    where: { email: { [Op.in]: uploadEmails } },
+                    attributes: ['email'],
+                    raw: true
+                })
+                : [],
+            uploadPolicies.length
+                ? Enrollee.findAll({
+                    where: { policyNumber: { [Op.in]: uploadPolicies } },
+                    attributes: ['policyNumber'],
+                    raw: true
+                })
+                : []
+        ]);
+        const existingEmails = new Set(existingStaffs.map((staff) => String(staff.email).toLowerCase()));
+        const existingPolicies = new Set(
+            existingEnrollees.map((enrollee) => String(enrollee.policyNumber).toUpperCase())
+        );
+
+        preparedRows.forEach((entry) => {
+            if (existingEmails.has(entry.data.email.toLowerCase())) {
+                entry.errors.push('email already exists');
+            }
+            if (
+                entry.data.policyNumber
+                && existingPolicies.has(entry.data.policyNumber.toUpperCase())
+            ) {
+                entry.errors.push('policyNumber already exists');
+            }
+        });
+
+        await Promise.all(
+            preparedRows
+                .filter((entry) => entry.errors.length === 0)
+                .map(async (entry) => {
+                    entry.rawPassword = generateCode(10, { letters: true, numbers: true });
+                    entry.hashedPassword = await bcrypt.hash(entry.rawPassword, 10);
+                })
+        );
+
+        for (const entry of preparedRows) {
             let transaction;
+
+            if (entry.errors.length) {
+                errors.push({
+                    row: entry.rowNumber,
+                    message: entry.errors.join('; '),
+                    errors: entry.errors
+                });
+                continue;
+            }
+
             try {
-                const row = rows[i];
                 const {
                     firstName,
                     middleName,
@@ -804,180 +961,96 @@ async function bulkCreateStaffs(req, res, next) {
                     maxDependents,
                     preexistingMedicalRecords,
                     gender,
-                    policyNumber,
-                    subscriptionId: rowSubscriptionId
-                } = row;
+                    policyNumber
+                } = entry.data;
 
-                if (!firstName) {
-                    errors.push(`Row ${i + 2}: firstName is required`);
-                    continue;
-                }
-                if (!lastName) {
-                    errors.push(`Row ${i + 2}: lastName is required`);
-                    continue;
-                }
-
-                // Auto-generate email if not provided
-                const generatedEmail = email || `${firstName.toLowerCase().trim()}.${lastName.toLowerCase().trim()}@${company.name.toLowerCase().replace(/\s+/g, '')}.enrollee`;
-
-                const existingEmail = await Staff.findOne({ where: { email: generatedEmail } });
-                if (existingEmail) {
-                    errors.push(`Row ${i + 2}: Email already exists`);
-                    continue;
-                }
-
-                // Auto-generate staffId if not provided
                 const generatedStaffId = staffId || `STF-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-                // Use subscriptionId from row if provided, otherwise use the one from body
-                const subscriptionIdToUse = rowSubscriptionId || subscriptionId;
-
-                // Start transaction for atomic staff and enrollee creation
                 transaction = await Staff.sequelize.transaction();
 
                 const staff = await Staff.create({
-                    firstName: firstName.trim(),
-                    middleName: middleName ? middleName.trim() : null,
-                    lastName: lastName.trim(),
-                    email: generatedEmail,
-                    phoneNumber: phoneNumber ? phoneNumber.trim() : null,
+                    firstName,
+                    middleName,
+                    lastName,
+                    email,
+                    phoneNumber,
                     staffId: generatedStaffId,
                     companyId,
                     subsidiaryId: subsidiaryId || null,
                     dateOfBirth: dateOfBirth || null,
-                    maxDependents: maxDependents === undefined || maxDependents === null || maxDependents === '' ? null : parseInt(maxDependents, 10),
-                    preexistingMedicalRecords: preexistingMedicalRecords ? preexistingMedicalRecords.trim() : null,
-                    subscriptionId: subscriptionIdToUse || null
+                    maxDependents,
+                    preexistingMedicalRecords,
+                    subscriptionId
                 }, { transaction });
 
-                // Only create enrollee if subscriptionId is provided
-                let enrollee = null;
-                let rawPassword = null;
-
-                if (subscriptionIdToUse) {
-                    const subscriptionPlan = await SubscriptionPlan.findOne({
-                        where: { subscriptionId: subscriptionIdToUse },
-                        raw: true
-                    });
-
-                    if (!subscriptionPlan) {
-                        await transaction.rollback();
-                        errors.push(`Row ${i + 2}: No company plan found for the specified subscription`);
-                        continue;
-                    }
-
-                    const planId = subscriptionPlan.companyPlanId;
-
-                    const companyPlan = await CompanyPlan.findByPk(planId);
-                    if (!companyPlan) {
-                        await transaction.rollback();
-                        errors.push(`Row ${i + 2}: Company plan not found`);
-                        continue;
-                    }
-                    if (companyPlan.companyId !== companyId) {
-                        await transaction.rollback();
-                        errors.push(`Row ${i + 2}: Company plan does not belong to the specified company`);
-                        continue;
-                    }
-
-                    const providedPolicyNumber = policyNumber && String(policyNumber).trim() ? String(policyNumber).trim() : null;
-                    if (providedPolicyNumber) {
-                        const existingPolicyNumber = await Enrollee.findOne({ where: { policyNumber: providedPolicyNumber } });
-                        if (existingPolicyNumber) {
-                            await transaction.rollback();
-                            errors.push(`Row ${i + 2}: Policy number already exists`);
-                            continue;
-                        }
-                    }
-                    const enrolleePolicyNumber = providedPolicyNumber || await getUniquePolicyNumber(Enrollee);
-
-                    // Generate password for enrollee
-                    rawPassword = generateCode(10, { letters: true, numbers: true });
-                    const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-                    enrollee = await Enrollee.create({
-                        firstName: firstName.trim(),
-                        middleName: middleName ? middleName.trim() : null,
-                        lastName: lastName.trim(),
-                        policyNumber: enrolleePolicyNumber,
-                        staffId: staff.id,
-                        companyId,
-                        companyPlanId: planId,
-                        dateOfBirth: dateOfBirth || new Date(),
-                        gender: gender || 'other',
-                        phoneNumber: phoneNumber ? phoneNumber.trim() : generatedEmail,
-                        email: generatedEmail,
-                        maxDependents: maxDependents === undefined || maxDependents === null || maxDependents === '' ? null : parseInt(maxDependents, 10),
-                        preexistingMedicalRecords: preexistingMedicalRecords ? preexistingMedicalRecords.trim() : null,
-                        isActive: true,
-                        password: hashedPassword
-                    }, { transaction });
-
-                    await staff.update({
-                        enrollmentStatus: 'enrolled'
-                    }, { transaction });
+                if (Staff.sequelize.getDialect() === 'postgres') {
+                    await Staff.sequelize.query(
+                        "SELECT pg_advisory_xact_lock(hashtext('enrollee_policy_number'))",
+                        { transaction }
+                    );
                 }
 
-                // Commit transaction before audit log and notifications
+                const enrolleePolicyNumber = policyNumber
+                    || await getUniquePolicyNumber(Enrollee, { transaction });
+                const enrollee = await Enrollee.create({
+                    firstName,
+                    middleName,
+                    lastName,
+                    policyNumber: enrolleePolicyNumber,
+                    staffId: staff.id,
+                    companyId,
+                    companyPlanId: companyPlan.id,
+                    dateOfBirth: dateOfBirth || new Date('1990-01-01'),
+                    expirationDate: subscription.endDate,
+                    gender,
+                    phoneNumber: phoneNumber || email,
+                    email,
+                    maxDependents,
+                    preexistingMedicalRecords,
+                    isActive: true,
+                    password: entry.hashedPassword
+                }, { transaction });
+
+                await staff.update({ enrollmentStatus: 'enrolled' }, { transaction });
                 await transaction.commit();
 
                 createdStaffs.push(staff.toJSON());
-                if (enrollee) {
-                    createdEnrollees.push(enrollee.toJSON());
-                }
-
-                // Send notification if email is provided
-                if (staff.email) {
-                    try {
-                        const notificationData = {
-                            firstName: staff.firstName,
-                            companyName: company.name,
-                            loginLink: `https://enrollee.altuhealth.com`
-                        };
-
-                        // Include password and policy number in notification if enrollee was created
-                        if (enrollee) {
-                            notificationData.temporaryPassword = rawPassword;
-                            notificationData.policyNumber = enrollee.policyNumber;
-                        }
-
-                        await notify(
-                            { id: staff.id, email: staff.email, firstName: staff.firstName },
-                            'staff',
-                            'STAFF_ENROLLMENT_REQUIRED',
-                            notificationData
-                        );
-
-                        await staff.update({
-                            isNotified: true,
-                            notifiedAt: new Date()
-                        });
-                    } catch (notifyErr) {
-                        console.error(`Error sending enrollment email for ${staff.email}:`, notifyErr);
-                    }
-                }
+                createdEnrollees.push(enrollee.toJSON());
+                notificationTasks.push({
+                    staff: staff.toJSON(),
+                    enrollee: enrollee.toJSON(),
+                    rawPassword: entry.rawPassword
+                });
             } catch (err) {
-                if (transaction) {
+                if (transaction && !transaction.finished) {
                     await transaction.rollback();
                 }
-                errors.push(`Row ${i + 2}: ${err.message}`);
+                errors.push({
+                    row: entry.rowNumber,
+                    message: err.message,
+                    errors: [err.message]
+                });
             }
         }
 
-        // Clean up uploaded file
         try {
-            fs.unlinkSync(file.path);
-        } catch (err) {
-            console.error('Error deleting uploaded file:', err);
+            await addAuditLog(req.models, {
+                action: 'staff.bulk_create',
+                message: `${createdStaffs.length} staff(s) and enrollee(s) created via bulk upload`,
+                userId: (req.user && req.user.id) ? req.user.id : null,
+                userType: (req.user && req.user.type) ? req.user.type : null,
+                meta: {
+                    createdCount: createdStaffs.length,
+                    enrolleeCount: createdEnrollees.length,
+                    errorCount: errors.length,
+                    subscriptionId,
+                    companyPlanId: companyPlan.id
+                }
+            });
+        } catch (auditError) {
+            console.error('Failed to record staff bulk upload audit log:', auditError);
         }
 
-        await addAuditLog(req.models, {
-            action: 'staff.bulk_create',
-            message: `${createdStaffs.length} staff(s) created via bulk upload${createdEnrollees.length > 0 ? ` with ${createdEnrollees.length} enrollee(s)` : ''}`,
-            userId: (req.user && req.user.id) ? req.user.id : null,
-            userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { createdCount: createdStaffs.length, enrolleeCount: createdEnrollees.length, errorCount: errors.length }
-        });
+        queueEnrollmentNotifications(req.models, company, notificationTasks);
 
         const message =
             errors.length > 0
@@ -991,21 +1064,28 @@ async function bulkCreateStaffs(req, res, next) {
                 errors,
                 createdCount: createdStaffs.length,
                 enrolleeCount: createdEnrollees.length,
-                errorCount: errors.length
+                errorCount: errors.length,
+                totalRows: preparedRows.length,
+                notificationQueuedCount: notificationTasks.length,
+                companyPlan: {
+                    id: companyPlan.id,
+                    name: companyPlan.name
+                }
             },
             message,
-            201
+            errors.length > 0 ? 207 : 201
         );
     } catch (err) {
-        if (req.file) {
-            try {
-                const fs = require('fs');
-                fs.unlinkSync(req.file.path);
-            } catch (e) {
-                console.error('Error deleting uploaded file:', e);
-            }
-        }
         return next(err);
+    } finally {
+        if (file?.path) {
+            const fs = require('fs');
+            await fs.promises.unlink(file.path).catch((error) => {
+                if (error.code !== 'ENOENT') {
+                    console.error('Error deleting uploaded staff file:', error);
+                }
+            });
+        }
     }
 }
 

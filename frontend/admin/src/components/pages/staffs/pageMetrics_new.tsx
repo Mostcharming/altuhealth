@@ -17,6 +17,25 @@ import { apiClient } from "@/lib/apiClient";
 import { useStaffStore } from "@/lib/store/staffStore";
 import { ChangeEvent, useEffect, useState } from "react";
 
+type BulkUploadError = {
+  row: number;
+  message: string;
+  errors: string[];
+};
+
+type BulkUploadResult = {
+  createdCount: number;
+  enrolleeCount: number;
+  errorCount: number;
+  totalRows: number;
+  notificationQueuedCount: number;
+  errors: BulkUploadError[];
+  companyPlan?: {
+    id: string;
+    name: string;
+  };
+};
+
 export default function PageMetricsStaffs({
   buttonText,
 }: {
@@ -28,6 +47,7 @@ export default function PageMetricsStaffs({
 
   const errorModal = useModal();
   const successModal = useModal();
+  const bulkResultModal = useModal();
 
   // stores
   const addStaff = useStaffStore((s) => s.addStaff);
@@ -55,10 +75,12 @@ export default function PageMetricsStaffs({
   const [bulkCompanyId, setBulkCompanyId] = useState("");
   const [bulkSubsidiaryId, setBulkSubsidiaryId] = useState("");
   const [bulkSubscriptionId, setBulkSubscriptionId] = useState("");
+  const [bulkCompanyPlanId, setBulkCompanyPlanId] = useState("");
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkCompanies, setBulkCompanies] = useState<any[]>([]);
   const [bulkSubsidiaries, setBulkSubsidiaries] = useState<any[]>([]);
   const [bulkSubscriptions, setBulkSubscriptions] = useState<any[]>([]);
+  const [bulkResult, setBulkResult] = useState<BulkUploadResult | null>(null);
 
   const [errorMessage, setErrorMessage] = useState(
     "Failed to save staff. Please try again.",
@@ -117,6 +139,27 @@ export default function PageMetricsStaffs({
       setBulkSubscriptions([]);
     }
   }, [bulkCompanyId]);
+
+  const selectedBulkSubscription = bulkSubscriptions.find(
+    (subscription) => subscription.id === bulkSubscriptionId,
+  );
+  const bulkCompanyPlans = (selectedBulkSubscription?.companyPlans || []).filter(
+    (plan: any) => plan.isActive !== false,
+  );
+
+  useEffect(() => {
+    const subscription = bulkSubscriptions.find(
+      (item) => item.id === bulkSubscriptionId,
+    );
+    const plans = (subscription?.companyPlans || []).filter(
+      (plan: any) => plan.isActive !== false,
+    );
+
+    setBulkCompanyPlanId((current) => {
+      if (plans.length === 1) return plans[0].id;
+      return plans.some((plan: any) => plan.id === current) ? current : "";
+    });
+  }, [bulkSubscriptionId, bulkSubscriptions]);
 
   const fetchCompanies = async () => {
     try {
@@ -195,7 +238,15 @@ export default function PageMetricsStaffs({
           method: "GET",
         },
       );
-      const subscriptionsList = data?.data?.list || [];
+      const now = Date.now();
+      const subscriptionsList = (data?.data?.list || []).filter(
+        (subscription: any) =>
+          subscription.status === "active" &&
+          new Date(subscription.startDate).getTime() <= now &&
+          new Date(subscription.endDate).getTime() >= now &&
+          Array.isArray(subscription.companyPlans) &&
+          subscription.companyPlans.length > 0,
+      );
       setBulkSubscriptions(subscriptionsList);
     } catch (err) {
       console.warn("Failed to fetch subscriptions", err);
@@ -219,6 +270,7 @@ export default function PageMetricsStaffs({
     setBulkCompanyId("");
     setBulkSubsidiaryId("");
     setBulkSubscriptionId("");
+    setBulkCompanyPlanId("");
     setBulkFile(null);
   };
 
@@ -234,43 +286,52 @@ export default function PageMetricsStaffs({
     // closeModal();
   };
 
-  const downloadSampleTemplate = () => {
-    const sampleData = [
-      {
-        firstName: "John",
-        middleName: "Michael",
-        lastName: "Doe",
-        email: "john.doe@example.com",
-        policyNumber: "ALT-000123",
-        maxDependents: "3",
-        preexistingMedicalRecords: "None",
-      },
-      {
-        firstName: "Jane",
-        middleName: "Elizabeth",
-        lastName: "Smith",
-        email: "jane.smith@example.com",
-        policyNumber: "xxx",
-        maxDependents: "2",
-        preexistingMedicalRecords: "Diabetes",
-      },
-    ];
+  const handleBulkResultClose = () => {
+    bulkResultModal.closeModal();
+    if ((bulkResult?.createdCount || 0) > 0) {
+      resetForm();
+      closeModal();
+    }
+    setBulkResult(null);
+  };
 
-    // Create CSV content
-    const headers = Object.keys(sampleData[0]);
+  const downloadBulkErrors = () => {
+    if (!bulkResult?.errors?.length) return;
+
+    const escapeCsv = (value: string | number) =>
+      `"${String(value).replace(/"/g, '""')}"`;
     const csv = [
-      headers.join(","),
-      ...sampleData.map((row) =>
-        headers
-          .map((header) => {
-            const value = row[header as keyof typeof row];
-            return typeof value === "string" && value.includes(",")
-              ? `"${value}"`
-              : value;
-          })
-          .join(","),
+      "row,error",
+      ...bulkResult.errors.map((error) =>
+        [escapeCsv(error.row), escapeCsv(error.message)].join(","),
       ),
     ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "staff_bulk_upload_errors.csv";
+    document.body.appendChild(link);
+    link.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+  };
+
+  const downloadSampleTemplate = () => {
+    const headers = [
+      "firstName",
+      "middleName",
+      "lastName",
+      "email",
+      "phoneNumber",
+      "staffId",
+      "dateOfBirth",
+      "gender",
+      "policyNumber",
+      "maxDependents",
+      "preexistingMedicalRecords",
+    ];
+    const csv = `${headers.join(",")}\n`;
 
     // Create and trigger download
     const blob = new Blob([csv], { type: "text/csv" });
@@ -298,6 +359,12 @@ export default function PageMetricsStaffs({
         return;
       }
 
+      if (!bulkCompanyPlanId) {
+        setErrorMessage("Company plan is required for bulk upload.");
+        errorModal.openModal();
+        return;
+      }
+
       if (!bulkFile) {
         setErrorMessage("Please select a file to upload.");
         errorModal.openModal();
@@ -315,6 +382,7 @@ export default function PageMetricsStaffs({
       if (bulkSubscriptionId) {
         formData.append("subscriptionId", bulkSubscriptionId);
       }
+      formData.append("companyPlanId", bulkCompanyPlanId);
 
       const data = await apiClient("/admin/staffs/bulk/create", {
         method: "POST",
@@ -328,8 +396,8 @@ export default function PageMetricsStaffs({
         });
       }
 
-      successModal.openModal();
-      resetForm();
+      setBulkResult(data.data as BulkUploadResult);
+      bulkResultModal.openModal();
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "An unexpected error occurred.",
@@ -499,7 +567,12 @@ export default function PageMetricsStaffs({
                       label: c.name,
                     }))}
                     placeholder="Select company"
-                    onChange={(value) => setBulkCompanyId(value as string)}
+                    onChange={(value) => {
+                      setBulkCompanyId(value as string);
+                      setBulkSubsidiaryId("");
+                      setBulkSubscriptionId("");
+                      setBulkCompanyPlanId("");
+                    }}
                     defaultValue={bulkCompanyId}
                   />
                 </div>
@@ -522,7 +595,7 @@ export default function PageMetricsStaffs({
                   <Select
                     options={bulkSubscriptions.map((s) => ({
                       value: s.id,
-                      label: s.code,
+                      label: `${s.code} (${s.companyPlans.length} plan${s.companyPlans.length === 1 ? "" : "s"})`,
                     }))}
                     placeholder="Select subscription"
                     onChange={(value) => setBulkSubscriptionId(value as string)}
@@ -530,8 +603,23 @@ export default function PageMetricsStaffs({
                   />
                 </div>
 
+                <div>
+                  <Label>Company Plan *</Label>
+                  <Select
+                    options={bulkCompanyPlans.map((plan: any) => ({
+                      value: plan.id,
+                      label: plan.name,
+                    }))}
+                    placeholder="Select company plan"
+                    onChange={(value) =>
+                      setBulkCompanyPlanId(value as string)
+                    }
+                    defaultValue={bulkCompanyPlanId}
+                  />
+                </div>
+
                 <div className="col-span-2">
-                  <Label>CSV File *</Label>
+                  <Label>CSV or Excel File *</Label>
                   <FileInput
                     accept=".csv,.xlsx,.xls"
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -541,8 +629,9 @@ export default function PageMetricsStaffs({
                     }}
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Supported formats: CSV, XLSX, XLS. Optional column:
-                    policyNumber.
+                    Supported formats: CSV, XLSX, XLS. Maximum 200 rows.
+                    Headers are normalized automatically; policyNumber is
+                    optional.
                   </p>
                 </div>
 
@@ -552,7 +641,7 @@ export default function PageMetricsStaffs({
                     onClick={downloadSampleTemplate}
                     className="px-4 py-2 rounded border border-brand-500 text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-500/10"
                   >
-                    📥 Download Sample Template
+                    📥 Download Empty Template
                   </button>
                   <div className="flex gap-3">
                     <button
@@ -772,6 +861,90 @@ export default function PageMetricsStaffs({
         successModal={successModal}
         handleSuccessClose={handleSuccessClose}
       />
+
+      <Modal
+        isOpen={bulkResultModal.isOpen}
+        onClose={handleBulkResultClose}
+        className="max-w-[720px] p-5 lg:p-8"
+      >
+        <div>
+          <h4 className="text-2xl font-semibold text-gray-800 dark:text-white/90">
+            {bulkResult?.errorCount
+              ? bulkResult.createdCount
+                ? "Bulk upload completed with errors"
+                : "Bulk upload failed"
+              : "Bulk upload completed"}
+          </h4>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Plan: {bulkResult?.companyPlan?.name || "—"}. Enrollment emails
+            are sent in the background after the records are created.
+          </p>
+
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="rounded-lg bg-gray-50 p-3 dark:bg-white/[0.03]">
+              <span className="text-xs text-gray-500">Rows</span>
+              <strong className="block text-lg text-gray-800 dark:text-white/90">
+                {bulkResult?.totalRows || 0}
+              </strong>
+            </div>
+            <div className="rounded-lg bg-success-50 p-3 dark:bg-success-500/10">
+              <span className="text-xs text-success-700">Created</span>
+              <strong className="block text-lg text-success-700">
+                {bulkResult?.createdCount || 0}
+              </strong>
+            </div>
+            <div className="rounded-lg bg-error-50 p-3 dark:bg-error-500/10">
+              <span className="text-xs text-error-700">Failed</span>
+              <strong className="block text-lg text-error-700">
+                {bulkResult?.errorCount || 0}
+              </strong>
+            </div>
+            <div className="rounded-lg bg-brand-50 p-3 dark:bg-brand-500/10">
+              <span className="text-xs text-brand-700">Emails queued</span>
+              <strong className="block text-lg text-brand-700">
+                {bulkResult?.notificationQueuedCount || 0}
+              </strong>
+            </div>
+          </div>
+
+          {!!bulkResult?.errors?.length && (
+            <div className="custom-scrollbar mt-5 max-h-64 overflow-y-auto rounded-lg border border-error-200 dark:border-error-500/30">
+              {bulkResult.errors.map((error) => (
+                <div
+                  key={`${error.row}-${error.message}`}
+                  className="border-b border-error-100 p-3 last:border-b-0 dark:border-error-500/20"
+                >
+                  <strong className="text-sm text-error-700 dark:text-error-400">
+                    Row {error.row}
+                  </strong>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                    {error.message}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-6 flex justify-end gap-3">
+            {!!bulkResult?.errors?.length && (
+              <button
+                type="button"
+                onClick={downloadBulkErrors}
+                className="rounded-lg border border-error-300 px-4 py-2.5 text-sm font-medium text-error-700 hover:bg-error-50 dark:border-error-500/40 dark:text-error-400 dark:hover:bg-error-500/10"
+              >
+                Download Errors
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleBulkResultClose}
+              className="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600"
+            >
+              {(bulkResult?.createdCount || 0) > 0 ? "Done" : "Review File"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <ErrorModal
         message={errorMessage}

@@ -17,9 +17,10 @@ function generatePolicyNumber() {
 /**
  * Get a unique policy number ensuring it doesn't already exist
  * @param {Object} Enrollee - Sequelize Enrollee model
+ * @param {Object} [options] - Optional Sequelize query options
  * @returns {Promise<string>} Unique policy number
  */
-async function getUniquePolicyNumber(Enrollee) {
+async function getUniquePolicyNumber(Enrollee, options = {}) {
     try {
         let policyNumber;
         let exists = true;
@@ -32,7 +33,8 @@ async function getUniquePolicyNumber(Enrollee) {
             const foundEnrollee = await Enrollee.findOne({
                 where: { policyNumber },
                 attributes: ['id'],
-                raw: true
+                raw: true,
+                transaction: options.transaction
             });
             exists = !!foundEnrollee;
             attempts++;
