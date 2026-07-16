@@ -26,6 +26,7 @@ const app = express();
 
 const defaultCorsOrigins = [
   'https://altuhealth.com',
+  'https://wwww.altuhealth.com',
   'https://provider.altuhealth.com',
   'https://admin.altuhealth.com',
   'https://enrollee.altuhealth.com',
