@@ -382,6 +382,12 @@ section {
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
 }
 
+.about-principle + .about-principle {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 28px;
+  padding-top: 28px;
+}
+
 .about-copy h3 {
   font-size: 30px;
   margin-bottom: 16px;
@@ -392,11 +398,47 @@ section {
   color: #475569;
   line-height: 1.9;
   font-size: 17px;
-  margin-bottom: 28px;
+  margin: 0;
 }
 
-.about-copy p:last-child {
-  margin-bottom: 0;
+.core-values-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+}
+
+.core-values-list li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: #f4f8ff;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  color: #1e293b;
+}
+
+.core-values-list span {
+  display: grid;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 10px;
+  background: #1e63e9;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.core-values-list strong {
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .about-panel {
@@ -1550,6 +1592,10 @@ footer {
 
   .about-copy {
     padding: 30px;
+  }
+
+  .core-values-list {
+    grid-template-columns: 1fr;
   }
 
   .about-metrics {
