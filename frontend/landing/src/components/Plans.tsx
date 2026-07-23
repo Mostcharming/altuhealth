@@ -1,10 +1,17 @@
 "use client";
 
 import { apiClient } from "@/lib/apiClient";
+import {
+  detectVisitorCountryCode,
+  getPlanCategoriesForCountry,
+  getPlanCategoryLabel,
+  type PlanCategory,
+  type PlanCategoryOption,
+} from "@/lib/planMarket";
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
-type PlanCategory = "general" | "retail" | "diaspora" | "geriatric" | "corporate";
+type InferredPlanCategory = PlanCategory | "general";
 type PaymentProvider = "paystack" | "paypal" | "stripe";
 
 type PublicPlan = {
@@ -43,7 +50,7 @@ type DisplayPlan = {
   id: string;
   name: string;
   description: string;
-  category: PlanCategory;
+  category: InferredPlanCategory;
   audience: string;
   cycleLabel: string;
   rows: DisplayPlanRow[];
@@ -87,18 +94,6 @@ type CompletePurchaseResponse = {
     };
   };
 };
-
-type IpLocation = {
-  country_code?: string;
-};
-
-const planCategories: { key: PlanCategory; label: string }[] = [
-  { key: "general", label: "General" },
-  { key: "retail", label: "Retail" },
-  { key: "diaspora", label: "Diaspora" },
-  { key: "geriatric", label: "Geriatric" },
-  { key: "corporate", label: "Corporate" },
-];
 
 const countryCurrencyMap: Record<string, string> = {
   AE: "AED",
@@ -300,7 +295,7 @@ function formatCurrency(amount: number, currency: string) {
   }
 }
 
-function inferPlanCategory(plan: PublicPlan): Exclude<PlanCategory, "general"> | "general" {
+function inferPlanCategory(plan: PublicPlan): InferredPlanCategory {
   const text = `${plan.name || ""} ${plan.code || ""} ${plan.description || ""}`.toLowerCase();
 
   if (/(corporate|company|business|employer|staff|group)/.test(text)) {
@@ -362,7 +357,7 @@ function buildDisplayPlans(
   const grouped = new Map<
     string,
     {
-      category: PlanCategory;
+      category: InferredPlanCategory;
       group: string;
       plans: PublicPlan[];
     }
@@ -394,8 +389,9 @@ function buildDisplayPlans(
       const firstPlan = orderedPlans[0];
       const cycles = new Set(orderedPlans.map((plan) => cycleToLabel(plan.planCycle)));
       const categoryLabel =
-        planCategories.find((category) => category.key === item.category)?.label ||
-        "General";
+        item.category === "general"
+          ? "General"
+          : getPlanCategoryLabel(item.category);
 
       return {
         id: `${item.category}-${item.group}`,
@@ -455,21 +451,26 @@ function getCurrencyForCountry(countryCode?: string) {
   return countryCurrencyMap[code] || "";
 }
 
-function readCategoryFromUrl(): PlanCategory {
+function readCategoryFromUrl(
+  availableCategories: PlanCategoryOption[],
+): PlanCategory {
   if (typeof window === "undefined") {
-    return "general";
+    return availableCategories[0]?.key || "retail";
   }
 
   const params = new URLSearchParams(window.location.search);
   const category = params.get("planCategory")?.toLowerCase() as PlanCategory;
-  return planCategories.some((item) => item.key === category)
+  return availableCategories.some((item) => item.key === category)
     ? category
-    : "general";
+    : availableCategories[0]?.key || "retail";
 }
 
 export default function Plans() {
+  const [availableCategories, setAvailableCategories] = useState<
+    PlanCategoryOption[]
+  >([]);
   const [selectedCategory, setSelectedCategory] =
-    useState<PlanCategory>("general");
+    useState<PlanCategory>("retail");
   const [displayCurrency, setDisplayCurrency] = useState("NGN");
   const [backendPlans, setBackendPlans] = useState<PublicPlan[]>([]);
   const [currencyRates, setCurrencyRates] = useState<CurrencyRates>({});
@@ -498,10 +499,6 @@ export default function Plans() {
   );
 
   const visiblePlans = useMemo(() => {
-    if (selectedCategory === "general") {
-      return allPlans;
-    }
-
     return allPlans.filter((plan) => plan.category === selectedCategory);
   }, [allPlans, selectedCategory]);
 
@@ -510,17 +507,19 @@ export default function Plans() {
   );
 
   useEffect(() => {
-    setSelectedCategory(readCategoryFromUrl());
+    setSelectedCategory(readCategoryFromUrl(availableCategories));
 
     const handleCategoryEvent = (event: Event) => {
       const detail = (event as CustomEvent<{ category?: PlanCategory }>).detail;
-      const category = detail?.category || readCategoryFromUrl();
-      if (planCategories.some((item) => item.key === category)) {
+      const category =
+        detail?.category || readCategoryFromUrl(availableCategories);
+      if (availableCategories.some((item) => item.key === category)) {
         setSelectedCategory(category);
       }
     };
 
-    const handleUrlChange = () => setSelectedCategory(readCategoryFromUrl());
+    const handleUrlChange = () =>
+      setSelectedCategory(readCategoryFromUrl(availableCategories));
 
     window.addEventListener("altu:plan-category", handleCategoryEvent);
     window.addEventListener("popstate", handleUrlChange);
@@ -531,7 +530,7 @@ export default function Plans() {
       window.removeEventListener("popstate", handleUrlChange);
       window.removeEventListener("hashchange", handleUrlChange);
     };
-  }, []);
+  }, [availableCategories]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -609,16 +608,11 @@ export default function Plans() {
 
     const fetchPlans = async () => {
       try {
-        let detectedCurrency = "";
+        const countryCode = await detectVisitorCountryCode();
+        const detectedCurrency = getCurrencyForCountry(countryCode || undefined);
 
-        try {
-          const response = await fetch("https://ipapi.co/json/");
-          if (response.ok) {
-            const location = (await response.json()) as IpLocation;
-            detectedCurrency = getCurrencyForCountry(location.country_code);
-          }
-        } catch {
-          detectedCurrency = "";
+        if (isMounted) {
+          setAvailableCategories(getPlanCategoriesForCountry(countryCode));
         }
 
         const query = detectedCurrency
@@ -798,13 +792,13 @@ export default function Plans() {
           <span>Our Plans</span>
           <h2>Choose A Health Plan That Fits Your Needs.</h2>
           <p>
-            Browse every available plan by category. Prices are shown in{" "}
+            Browse plans available for your location by category. Prices are shown in{" "}
             {displayCurrency} when an exchange rate is available.
           </p>
         </div>
 
         <div className="plan-category-tabs" aria-label="Plan categories">
-          {planCategories.map((category) => (
+          {availableCategories.map((category) => (
             <button
               key={category.key}
               type="button"
@@ -821,7 +815,6 @@ export default function Plans() {
             <div
               key={plan.id}
               className={`plan-card ${
-                selectedCategory !== "general" &&
                 selectedCategory === plan.category
                   ? "plan-card-highlighted"
                   : ""

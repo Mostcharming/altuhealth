@@ -1,21 +1,33 @@
 "use client";
 
+import {
+  detectVisitorCountryCode,
+  getPlanCategoriesForCountry,
+  type PlanCategory,
+  type PlanCategoryOption,
+} from "@/lib/planMarket";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-
-type PlanCategory = "general" | "retail" | "diaspora" | "geriatric" | "corporate";
-
-const planCategories: { key: PlanCategory; label: string }[] = [
-  { key: "general", label: "General" },
-  { key: "retail", label: "Retail" },
-  { key: "diaspora", label: "Diaspora" },
-  { key: "geriatric", label: "Geriatric" },
-  { key: "corporate", label: "Corporate" },
-];
+import { useEffect, useState } from "react";
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
+  const [planCategories, setPlanCategories] = useState<PlanCategoryOption[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    detectVisitorCountryCode().then((countryCode) => {
+      if (isMounted) {
+        setPlanCategories(getPlanCategoriesForCountry(countryCode));
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const scrollToSection = (sectionId: string) => {
     if (pathname !== "/") {
