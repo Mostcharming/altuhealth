@@ -1,22 +1,61 @@
 export default function Services() {
-  const services = [
+  const featuredServices = [
     {
-      name: "Telemedicine",
+      name: "Health Insurance Plans",
       description:
-        "Speak with licensed medical professionals remotely through our secure healthcare platform.",
-      image: "/images/altuhealth/service-telemedicine.png",
+        "Flexible HMO plans tailored for individuals, families, SMEs, and corporates.",
+      image: "/images/altuhealth/service-healthcare-analytics.png",
     },
     {
-      name: "Digital Claims",
+      name: "Claims Management",
       description:
-        "Fast and transparent claims processing powered by intelligent healthcare systems.",
+        "Fast, transparent, and fully digital claims process.",
       image: "/images/altuhealth/service-digital-claims.png",
     },
     {
-      name: "Healthcare Analytics",
+      name: "Telemedicine",
       description:
-        "Data-driven healthcare insights helping organizations optimize employee wellbeing.",
-      image: "/images/altuhealth/service-healthcare-analytics.png",
+        "See a doctor anytime, anywhere with our e-health solutions.",
+      image: "/images/altuhealth/service-telemedicine.png",
+    },
+  ];
+
+  const additionalServices = [
+    {
+      initials: "PN",
+      name: "Provider Network Access",
+      description:
+        "Wide access to hospitals, clinics, and diagnostic centers nationwide.",
+    },
+    {
+      initials: "PH",
+      name: "Preventive Health",
+      description:
+        "Screenings, checkups, and health education to keep you ahead.",
+    },
+    {
+      initials: "CC",
+      name: "Care Coordination",
+      description:
+        "Personalized support for chronic and special health conditions.",
+    },
+    {
+      initials: "TPA",
+      name: "Third Party Administration",
+      description:
+        "Efficient management of health insurance claims and benefits to ensure smooth and transparent processing.",
+    },
+    {
+      initials: "PES",
+      name: "Pre & Intra Employment Screening",
+      description:
+        "Comprehensive health assessments to support safe, compliant, and informed hiring and employee monitoring decisions.",
+    },
+    {
+      initials: "HC",
+      name: "Healthcare Consulting",
+      description:
+        "Expert guidance to optimize healthcare strategies, improve service delivery, and enhance overall health system performance.",
     },
   ];
 
@@ -27,8 +66,9 @@ export default function Services() {
           <span>Our Services</span>
           <h2>Technology Meets Healthcare Excellence.</h2>
           <p>
-            We leverage modern digital systems to simplify enrolment, claims
-            processing, healthcare access, and provider management.
+            Smart healthcare for a healthier tomorrow. At Altu Health, we go
+            beyond health insurance to deliver complete healthcare solutions
+            that put your needs first.
           </p>
         </div>
 
@@ -41,14 +81,35 @@ export default function Services() {
           </div>
 
           <div className="service-grid">
-            {services.map((service, index) => (
-              <div key={index} className="service-card">
+            {featuredServices.map((service) => (
+              <article key={service.name} className="service-card">
                 <img src={service.image} alt="" />
                 <div>
                   <h3>{service.name}</h3>
                   <p>{service.description}</p>
                 </div>
-              </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="additional-services">
+          <div className="additional-services-heading">
+            <span>Complete Care Solutions</span>
+            <h3>More ways we support better health outcomes.</h3>
+          </div>
+
+          <div className="additional-service-grid">
+            {additionalServices.map((service) => (
+              <article key={service.name} className="additional-service-card">
+                <span className="service-initials" aria-hidden="true">
+                  {service.initials}
+                </span>
+                <div>
+                  <h4>{service.name}</h4>
+                  <p>{service.description}</p>
+                </div>
+              </article>
             ))}
           </div>
         </div>

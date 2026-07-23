@@ -1038,6 +1038,84 @@ section {
   line-height: 1.7;
 }
 
+.additional-services {
+  margin-top: 64px;
+}
+
+.additional-services-heading {
+  max-width: 680px;
+  margin-bottom: 28px;
+}
+
+.additional-services-heading > span {
+  color: #1e63e9;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.additional-services-heading h3 {
+  margin-top: 10px;
+  color: #0f172a;
+  font-size: 32px;
+  line-height: 1.25;
+}
+
+.additional-service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.additional-service-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+  padding: 24px;
+  background: #f6faff;
+  border: 1px solid #dbeafe;
+  border-radius: 20px;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s,
+    border-color 0.3s;
+}
+
+.additional-service-card:hover {
+  transform: translateY(-6px);
+  border-color: #93c5fd;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+}
+
+.service-initials {
+  display: grid;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 14px;
+  background: #1e63e9;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.additional-service-card h4 {
+  margin-bottom: 8px;
+  color: #0f172a;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.additional-service-card p {
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
 /* TEAM */
 
 .team {
@@ -1494,6 +1572,10 @@ footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .additional-service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hero-grid,
   .about-layout,
   .feature-layout,
@@ -1611,6 +1693,18 @@ footer {
   .service-card img {
     width: 78px;
     height: 78px;
+  }
+
+  .additional-services {
+    margin-top: 48px;
+  }
+
+  .additional-services-heading h3 {
+    font-size: 28px;
+  }
+
+  .additional-service-grid {
+    grid-template-columns: 1fr;
   }
 
   .whatsapp {
