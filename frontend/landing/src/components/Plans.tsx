@@ -465,6 +465,16 @@ function readCategoryFromUrl(
     : availableCategories[0]?.key || "retail";
 }
 
+function readReferralCodeFromUrl() {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return new URLSearchParams(window.location.search)
+    .get("referralCode")
+    ?.trim() || "";
+}
+
 export default function Plans() {
   const [availableCategories, setAvailableCategories] = useState<
     PlanCategoryOption[]
@@ -485,6 +495,7 @@ export default function Plans() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [modalError, setModalError] = useState("");
   const [modalSuccess, setModalSuccess] = useState("");
+  const [referralCodeFromUrl, setReferralCodeFromUrl] = useState("");
   const [planForm, setPlanForm] = useState({
     firstName: "",
     lastName: "",
@@ -505,6 +516,18 @@ export default function Plans() {
   const selectedVariant = selectedPlan?.rows.find(
     (row) => row.planId === selectedVariantPlanId,
   );
+
+  useEffect(() => {
+    const referralCode = readReferralCodeFromUrl();
+    setReferralCodeFromUrl(referralCode);
+
+    if (referralCode) {
+      setPlanForm((current) => ({
+        ...current,
+        referralCode,
+      }));
+    }
+  }, []);
 
   useEffect(() => {
     setSelectedCategory(readCategoryFromUrl(availableCategories));
@@ -716,7 +739,7 @@ export default function Plans() {
       lastName: "",
       email: "",
       phone: "",
-      referralCode: "",
+      referralCode: referralCodeFromUrl,
     });
   };
 
