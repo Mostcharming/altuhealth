@@ -14,22 +14,52 @@ export default function About() {
 
         <div className="about-layout">
           <div className="about-copy">
-            <h3>Our Vision</h3>
+            <div className="about-principle">
+              <h3>Our Vision</h3>
+              <p>
+                To restore trust in healthcare coverage by delivering
+                accessible, efficient, and quality healthcare to enrolees
+                nationwide.
+              </p>
+            </div>
 
-            <p>
-              To provide dependable, technology-driven healthcare solutions
-              through strong provider networks, exceptional customer service,
-              and transparent operations; ensuring every enrolee receives
-              timely, affordable, and high-quality care across Nigeria.
-            </p>
+            <div className="about-principle">
+              <h3>Our Mission</h3>
+              <p>
+                To provide dependable, technology-driven healthcare solutions
+                through strong provider networks, exceptional customer service,
+                and transparent operations; ensuring every enrolee receives
+                timely, affordable, and high-quality care across Nigeria.
+              </p>
+            </div>
 
-            <h3>Core Values</h3>
+            <div className="about-principle">
+              <h3>Core Values</h3>
+              <p>
+                At ALTU HEALTH, our core values guide every decision and action
+                as we strive to restore trust in healthcare coverage across
+                Nigeria.
+              </p>
 
-            <p>
-              At ALTU HEALTH, our core values guide every decision and action
-              as we strive to restore trust in healthcare coverage across
-              Nigeria. Accountability, Leadership, Trust, Universal.
-            </p>
+              <ul className="core-values-list" aria-label="ALTU Health core values">
+                <li>
+                  <span aria-hidden="true">A</span>
+                  <strong>Accountability</strong>
+                </li>
+                <li>
+                  <span aria-hidden="true">L</span>
+                  <strong>Leadership</strong>
+                </li>
+                <li>
+                  <span aria-hidden="true">T</span>
+                  <strong>Trustworthiness</strong>
+                </li>
+                <li>
+                  <span aria-hidden="true">U</span>
+                  <strong>Universal</strong>
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div className="about-panel">
