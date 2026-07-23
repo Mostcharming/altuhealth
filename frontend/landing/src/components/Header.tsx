@@ -78,6 +78,7 @@ export default function Header() {
               </div>
             </div>
             <a onClick={() => scrollToSection("services")}>Services</a>
+            <Link href="/partnership-program">Partners</Link>
             <a onClick={() => scrollToSection("team")}>Management</a>
             <Link href="/contact">Contact</Link>
           </div>

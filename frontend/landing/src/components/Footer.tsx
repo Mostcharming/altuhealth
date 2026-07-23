@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer id="contact">
@@ -15,13 +17,16 @@ export default function Footer() {
             <h4>Company</h4>
             <ul>
               <li>
-                <a href="#about">About Us</a>
+                <Link href="/#about">About Us</Link>
               </li>
               <li>
-                <a href="#plans">Healthcare Plans</a>
+                <Link href="/#plans">Healthcare Plans</Link>
               </li>
               <li>
-                Providers
+                <Link href="/partnership-program">Partnership Program</Link>
+              </li>
+              <li>
+                <Link href="/healthcare-providers">Providers</Link>
               </li>
               <li>
                 Careers
@@ -33,16 +38,16 @@ export default function Footer() {
             <h4>Services</h4>
             <ul>
               <li>
-                <a href="#services">Telemedicine</a>
+                <Link href="/#services">Telemedicine</Link>
               </li>
               <li>
-                <a href="#services">Digital Claims</a>
+                <Link href="/#services">Digital Claims</Link>
               </li>
               <li>
-                <a href="#plans">Corporate Healthcare</a>
+                <Link href="/#plans">Corporate Healthcare</Link>
               </li>
               <li>
-                <a href="#services">Health Analytics</a>
+                <Link href="/#services">Health Analytics</Link>
               </li>
             </ul>
           </div>
