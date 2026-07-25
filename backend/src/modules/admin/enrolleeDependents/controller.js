@@ -1,9 +1,9 @@
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
-const notify = require('../../../utils/notify');
-const config = require('../../../config');
 const { generateTemporaryPassword, hashPassword } = require('../../../utils/passwordGenerator');
 const { isDependentLimitError, withDependentCapacity } = require('../../../utils/dependentLimit');
+const { sendDependentAddedEmail } = require('../../../utils/sendDependentAddedEmail');
+const { resolveMemberIdCardUrl } = require('../../../utils/idCard');
 
 /**
  * Generate dependent policy number from enrollee policy number
@@ -118,29 +118,11 @@ async function createEnrolleeDependent(req, res, next) {
         // Send email notification if email is provided
         if (email) {
             try {
-                await notify(
-                    {
-                        id: dependent.id,
-                        email: dependent.email,
-                        firstName: dependent.firstName,
-                        enrolleeFirstName: enrollee.firstName,
-                        enrolleeLastName: enrollee.lastName,
-                        policyNumber: dependent.policyNumber,
-                        temporaryPassword: temporaryPassword,
-                        loginLink: `${config.enrolleeDependentPortalUrl}/login`
-                    },
-                    'enrollee_dependent',
-                    'ENROLLEE_DEPENDENT_CREATED',
-                    {
-                        firstName: dependent.firstName,
-                        enrolleeFirstName: enrollee.firstName,
-                        enrolleeLastName: enrollee.lastName,
-                        policyNumber: dependent.policyNumber,
-                        temporaryPassword: temporaryPassword,
-                        loginLink: `${config.enrolleeDependentPortalUrl}/login`
-                    },
-                    ['email']
-                );
+                await sendDependentAddedEmail({
+                    dependent,
+                    enrollee,
+                    temporaryPassword
+                });
             } catch (emailError) {
                 console.error('Error sending notification email:', emailError);
                 // Don't fail the request if email fails to send
@@ -440,14 +422,14 @@ async function bulkCreateEnrolleeDependents(req, res, next) {
         const createdDependents = [];
         const errors = [];
 
-        await withDependentCapacity({
+        const enrollee = await withDependentCapacity({
             ParentModel: Enrollee,
             DependentModel: EnrolleeDependent,
             parentId: enrolleeId,
             foreignKey: 'enrolleeId',
             subjectLabel: 'enrollee',
             notFoundMessage: 'Enrollee not found'
-        }, async ({ maxDependents, remainingSlots, transaction }) => {
+        }, async ({ parent, maxDependents, remainingSlots, transaction }) => {
             const limitReachedMessage = `Maximum number of dependents (${maxDependents}) has been reached for this enrollee`;
 
             for (let i = 0; i < rows.length; i++) {
@@ -535,6 +517,8 @@ async function bulkCreateEnrolleeDependents(req, res, next) {
                     errors.push({ row: rowNumber, error: err.message });
                 }
             }
+
+            return parent;
         });
 
         // Clean up uploaded file
@@ -552,6 +536,21 @@ async function bulkCreateEnrolleeDependents(req, res, next) {
             userType: (req.user && req.user.type) ? req.user.type : null,
             meta: { createdCount: createdDependents.length, errorCount: errors.length, enrolleeId }
         });
+
+        const emailResults = await Promise.allSettled(
+            createdDependents
+                .filter((dependent) => dependent.email)
+                .map((dependent) => sendDependentAddedEmail({
+                    dependent,
+                    enrollee
+                }))
+        );
+
+        for (const emailResult of emailResults) {
+            if (emailResult.status === 'rejected') {
+                console.error('Error sending dependent notification email:', emailResult.reason);
+            }
+        }
 
         // Return response
         const message =
@@ -623,14 +622,13 @@ async function downloadIdCard(req, res, next) {
         const dependent = await EnrolleeDependent.findByPk(dependentId);
         if (!dependent) return res.fail('Dependent not found', 404);
 
-        // Check if ID card URL exists
-        if (!dependent.idCardUrl) {
+        const idCardUrl = resolveMemberIdCardUrl(dependent);
+        if (!idCardUrl) {
             return res.fail('ID card not available for this dependent', 404);
         }
 
-        // Return the ID card URL to the client
         return res.success(
-            { idCardUrl: dependent.idCardUrl },
+            { idCardUrl },
             'ID card retrieved successfully'
         );
     } catch (error) {

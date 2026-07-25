@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
 const { isDependentLimitError, withDependentCapacity } = require('../../../utils/dependentLimit');
+const { sendDependentAddedEmail } = require('../../../utils/sendDependentAddedEmail');
 
 /**
  * Generate dependent policy number from retail enrollee policy number
@@ -65,14 +66,14 @@ async function createRetailEnrolleeDependent(req, res, next) {
         if (!gender) return res.fail('`gender` is required', 400);
         if (!relationship) return res.fail('`relationship` is required', 400);
 
-        const dependent = await withDependentCapacity({
+        const { dependent, enrollee } = await withDependentCapacity({
             ParentModel: RetailEnrollee,
             DependentModel: RetailEnrolleeDependent,
             parentId: retailEnrolleeId,
             foreignKey: 'retailEnrolleeId',
             subjectLabel: 'retail enrollee',
             notFoundMessage: 'Retail enrollee not found'
-        }, async ({ transaction }) => {
+        }, async ({ parent, transaction }) => {
             const policyNumber = await generateDependentPolicyNumber(
                 retailEnrolleeId,
                 RetailEnrolleeDependent,
@@ -80,7 +81,7 @@ async function createRetailEnrolleeDependent(req, res, next) {
                 transaction
             );
 
-            return RetailEnrolleeDependent.create({
+            const createdDependent = await RetailEnrolleeDependent.create({
                 retailEnrolleeId,
                 policyNumber,
                 firstName,
@@ -97,6 +98,11 @@ async function createRetailEnrolleeDependent(req, res, next) {
                 address: address || null,
                 isActive: true
             }, { transaction });
+
+            return {
+                dependent: createdDependent,
+                enrollee: parent
+            };
         });
 
         await addAuditLog(req.models, {
@@ -106,6 +112,19 @@ async function createRetailEnrolleeDependent(req, res, next) {
             userType: (req.user && req.user.type) ? req.user.type : null,
             meta: { dependentId: dependent.id, retailEnrolleeId }
         });
+
+        if (dependent.email) {
+            try {
+                await sendDependentAddedEmail({
+                    dependent,
+                    enrollee,
+                    isRetailEnrollee: true
+                });
+            } catch (emailError) {
+                console.error('Error sending notification email:', emailError);
+                // Don't fail the request if email fails to send
+            }
+        }
 
         return res.success({ dependent: dependent.toJSON() }, 'Retail enrollee dependent created', 201);
     } catch (err) {
