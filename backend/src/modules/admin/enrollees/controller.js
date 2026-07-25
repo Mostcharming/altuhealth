@@ -6,6 +6,7 @@ const { getUniqueAuthorizationCode } = require('../../../utils/authorizationCode
 const { getUniqueVerificationCode, getVerificationCodeExpirationDate, isVerificationCodeExpired, formatVerificationCode } = require('../../../utils/verificationCodeGenerator');
 const notify = require('../../../utils/notify');
 const generateCode = require('../../../utils/verificationCode');
+const { resolveMemberIdCardUrl } = require('../../../utils/idCard');
 
 async function createEnrollee(req, res, next) {
     try {
@@ -670,14 +671,13 @@ async function downloadIdCard(req, res, next) {
         const enrollee = await Enrollee.findByPk(enrolleeId);
         if (!enrollee) return res.fail('Enrollee not found', 404);
 
-        // Check if ID card URL exists
-        if (!enrollee.idCardUrl) {
+        const idCardUrl = resolveMemberIdCardUrl(enrollee);
+        if (!idCardUrl) {
             return res.fail('ID card not available for this enrollee', 404);
         }
 
-        // Return the ID card URL to the client
         return res.success(
-            { idCardUrl: enrollee.idCardUrl },
+            { idCardUrl },
             'ID card retrieved successfully'
         );
     } catch (error) {

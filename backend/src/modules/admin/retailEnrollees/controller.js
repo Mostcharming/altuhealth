@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const { resolveMemberIdCardUrl } = require('../../../utils/idCard');
 const bcrypt = require('bcrypt');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
@@ -663,7 +664,7 @@ async function downloadIdCard(req, res, next) {
 
         // Return ID card URL (can be extended to generate actual PDF in future)
         return res.success(
-            { idCardUrl: enrollee.pictureUrl || '/images/main/small.svg' },
+            { idCardUrl: resolveMemberIdCardUrl(enrollee) || '/images/main/small.svg' },
             'ID card retrieved successfully'
         );
     } catch (err) {

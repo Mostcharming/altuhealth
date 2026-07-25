@@ -63,6 +63,12 @@ export default function UserInfoCard() {
     fetchAccount();
   }, [fetchAccount]);
 
+  useEffect(() => {
+    if (window.location.hash === "#profile-picture") {
+      openModal();
+    }
+  }, [openModal]);
+
   // When account updates, initialize the form fields
   useEffect(() => {
     if (!account) return;
@@ -355,8 +361,9 @@ export default function UserInfoCard() {
                     />
                   </div>
                   <div className="col-span-2">
-                    <Label>Profile Picture</Label>
+                    <Label htmlFor="profile-picture">Profile Picture</Label>
                     <FileInput
+                      id="profile-picture"
                       onChange={handleFileChange}
                       className="custom-class"
                       accept="image/*"

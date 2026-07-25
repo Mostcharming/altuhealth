@@ -2,6 +2,7 @@
 
 const { Op } = require('sequelize');
 const { isDependentLimitError, withDependentCapacity } = require('../../../utils/dependentLimit');
+const { sendDependentAddedEmail } = require('../../../utils/sendDependentAddedEmail');
 
 async function generateDependentPolicyNumber(parent, DependentModel, dependentCount, transaction) {
     for (let sequenceNumber = 1; sequenceNumber <= dependentCount + 1; sequenceNumber += 1) {
@@ -123,19 +124,11 @@ async function createDependent(req, res, next) {
         // Send email notification if email is provided
         if (email) {
             try {
-                const notify = require('../../../utils/notify');
-                await notify({
-                    email,
-                    id: dependent.id,
-                    firstName,
-                    lastName,
-                    policyNumber
-                }, isRetailEnrollee ? 'retail_enrollee_dependent' : 'dependent',
-                isRetailEnrollee ? 'DEPENDENT_ENROLLMENT' : 'dependent_enrollment', {
-                    dependentName: `${firstName} ${lastName}`,
-                    policyNumber,
-                    enrolleeName: `${enrollee.firstName} ${enrollee.lastName}`
-                }, 'email', false);
+                await sendDependentAddedEmail({
+                    dependent,
+                    enrollee,
+                    isRetailEnrollee
+                });
             } catch (notificationError) {
                 console.log('Error sending notification:', notificationError);
                 // Don't fail the request if notification fails
