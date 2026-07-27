@@ -82,6 +82,8 @@ const enrolleeLogin = async (req, res, next) => {
             policyNumber: enrollee.policyNumber,
             status: enrollee.status || 'active',
             type: userType,
+            dependentVisitNotificationsEnabled: enrollee.dependentVisitNotificationsEnabled,
+            requiresDependentVisitSetup: enrollee.dependentVisitNotificationsEnabled === null,
         };
 
         let signedToken;

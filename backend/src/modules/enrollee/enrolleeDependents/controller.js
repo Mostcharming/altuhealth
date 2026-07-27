@@ -4,6 +4,26 @@ const { Op } = require('sequelize');
 const { isDependentLimitError, withDependentCapacity } = require('../../../utils/dependentLimit');
 const { sendDependentAddedEmail } = require('../../../utils/sendDependentAddedEmail');
 
+function resolveDependentContext(req) {
+    if (req.user?.type === 'RetailEnrollee') {
+        return {
+            model: req.models.RetailEnrolleeDependent,
+            ownerKey: 'retailEnrolleeId',
+            relationshipKey: 'relationship'
+        };
+    }
+
+    if (req.user?.type === 'Enrollee') {
+        return {
+            model: req.models.EnrolleeDependent,
+            ownerKey: 'enrolleeId',
+            relationshipKey: 'relationshipToEnrollee'
+        };
+    }
+
+    return null;
+}
+
 async function generateDependentPolicyNumber(parent, DependentModel, dependentCount, transaction) {
     for (let sequenceNumber = 1; sequenceNumber <= dependentCount + 1; sequenceNumber += 1) {
         const policyNumber = `${parent.policyNumber}-${sequenceNumber}`;
@@ -174,10 +194,11 @@ async function createDependent(req, res, next) {
 
 async function listDependents(req, res, next) {
     try {
-        const { EnrolleeDependent } = req.models;
+        const context = resolveDependentContext(req);
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
         const { limit = 10, page = 1, q, status } = req.query;
 
@@ -187,7 +208,7 @@ async function listDependents(req, res, next) {
         const offset = isAll ? 0 : (pageNum - 1) * limitNum;
 
         const where = {
-            enrolleeId // Only show dependents for the current enrollee
+            [context.ownerKey]: enrolleeId
         };
 
         if (status !== undefined) {
@@ -204,11 +225,11 @@ async function listDependents(req, res, next) {
             ];
         }
 
-        const total = await EnrolleeDependent.count({ where });
+        const total = await context.model.count({ where });
 
         const findOptions = {
             where,
-            order: [['enrollmentDate', 'DESC']],
+            order: [['createdAt', 'DESC']],
             attributes: { exclude: ['password'] }
         };
 
@@ -217,8 +238,14 @@ async function listDependents(req, res, next) {
             findOptions.offset = Number(offset);
         }
 
-        const dependents = await EnrolleeDependent.findAll(findOptions);
-        const data = dependents.map(dep => dep.toJSON());
+        const dependents = await context.model.findAll(findOptions);
+        const data = dependents.map((dep) => {
+            const value = dep.toJSON();
+            if (context.relationshipKey === 'relationship') {
+                value.relationshipToEnrollee = value.relationship;
+            }
+            return value;
+        });
 
         const hasPrevPage = !isAll && pageNum > 1;
         const hasNextPage = !isAll && (offset + dependents.length < total);
@@ -241,13 +268,14 @@ async function listDependents(req, res, next) {
 
 async function getDependent(req, res, next) {
     try {
-        const { EnrolleeDependent } = req.models;
+        const context = resolveDependentContext(req);
         const { id } = req.params;
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
-        const dependent = await EnrolleeDependent.findByPk(id, {
+        const dependent = await context.model.findByPk(id, {
             attributes: { exclude: ['password'] }
         });
 
@@ -256,11 +284,15 @@ async function getDependent(req, res, next) {
         }
 
         // Ensure enrollee can only see their own dependents
-        if (dependent.enrolleeId !== enrolleeId) {
+        if (dependent[context.ownerKey] !== enrolleeId) {
             return res.fail('You do not have permission to view this dependent', 403);
         }
 
-        return res.success(dependent.toJSON());
+        const data = dependent.toJSON();
+        if (context.relationshipKey === 'relationship') {
+            data.relationshipToEnrollee = data.relationship;
+        }
+        return res.success(data);
     } catch (err) {
         console.log('Error fetching dependent:', err);
         return next(err);
@@ -269,20 +301,21 @@ async function getDependent(req, res, next) {
 
 async function updateDependent(req, res, next) {
     try {
-        const { EnrolleeDependent } = req.models;
+        const context = resolveDependentContext(req);
         const { id } = req.params;
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
-        const dependent = await EnrolleeDependent.findByPk(id);
+        const dependent = await context.model.findByPk(id);
 
         if (!dependent) {
             return res.fail('Dependent not found', 404);
         }
 
         // Ensure enrollee can only update their own dependents
-        if (dependent.enrolleeId !== enrolleeId) {
+        if (dependent[context.ownerKey] !== enrolleeId) {
             return res.fail('You do not have permission to update this dependent', 403);
         }
 
@@ -307,7 +340,7 @@ async function updateDependent(req, res, next) {
         if (lastName) dependent.lastName = lastName;
         if (dateOfBirth) dependent.dateOfBirth = dateOfBirth;
         if (gender) dependent.gender = gender;
-        if (relationshipToEnrollee) dependent.relationshipToEnrollee = relationshipToEnrollee;
+        if (relationshipToEnrollee) dependent[context.relationshipKey] = relationshipToEnrollee;
         if (phoneNumber !== undefined) dependent.phoneNumber = phoneNumber;
         if (email !== undefined) dependent.email = email;
         if (occupation !== undefined) dependent.occupation = occupation;
@@ -318,7 +351,11 @@ async function updateDependent(req, res, next) {
 
         await dependent.save();
 
-        return res.success({ dependent: dependent.toJSON() }, 'Dependent updated successfully');
+        const data = dependent.toJSON();
+        if (context.relationshipKey === 'relationship') {
+            data.relationshipToEnrollee = data.relationship;
+        }
+        return res.success({ dependent: data }, 'Dependent updated successfully');
     } catch (err) {
         console.log('Error updating dependent:', err);
         return next(err);
@@ -327,20 +364,21 @@ async function updateDependent(req, res, next) {
 
 async function deleteDependent(req, res, next) {
     try {
-        const { EnrolleeDependent } = req.models;
+        const context = resolveDependentContext(req);
         const { id } = req.params;
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
-        const dependent = await EnrolleeDependent.findByPk(id);
+        const dependent = await context.model.findByPk(id);
 
         if (!dependent) {
             return res.fail('Dependent not found', 404);
         }
 
         // Ensure enrollee can only delete their own dependents
-        if (dependent.enrolleeId !== enrolleeId) {
+        if (dependent[context.ownerKey] !== enrolleeId) {
             return res.fail('You do not have permission to delete this dependent', 403);
         }
 

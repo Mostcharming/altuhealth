@@ -125,7 +125,7 @@ export default function SignInForm() {
         bodyPayload.policyNumber = identifier;
       }
 
-      const data = await apiClient("/admin/auth/login", {
+      const data = await apiClient("/enrollee/auth/login", {
         method: "POST",
         body: bodyPayload,
         onLoading: setIsLoading,
@@ -181,7 +181,7 @@ export default function SignInForm() {
         <div>
           <div className="mb-5 sm:mb-8">
             <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Doctors Sign In
+              Retail Enrollee Sign In
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Enter your email and password to sign in!

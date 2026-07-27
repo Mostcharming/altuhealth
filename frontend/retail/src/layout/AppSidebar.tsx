@@ -5,6 +5,7 @@ import {
   CartIcon,
   ChevronDownIcon,
   EnvelopeIcon,
+  FileIcon,
   GridIcon,
   GroupIcon,
   HorizontaLDots,
@@ -42,10 +43,13 @@ const navItems: NavItem[] = [
     icon: <GridIcon />,
     name: "Dashboard",
     subItems: [
-      { name: "Overview", path: "/overview" }, //finance
-      { name: "Analytics", path: "/analytics" },
-      { name: "Finance", path: "/finance" }, //find something
+      { name: "Overview", path: "/overview" },
     ],
+  },
+  {
+    name: "Dependent Medical History",
+    icon: <FileIcon />,
+    path: "/dependent-medical-history",
   },
 
   {
@@ -190,27 +194,26 @@ const othersItems: NavItem[] = [
   },
 ];
 
+const privilegeMap: Record<string, string[]> = {
+  "admins.manage": ["Admins"],
+  "providers.manage": ["Providers"],
+  "organizations.manage": ["Organizations"],
+  "enrollees.manage": ["Enrollees"],
+  "claims.manage": ["Claims"],
+  "authorizations.manage": ["Authorizations"],
+  "services.manage": ["Services"],
+  "billing.manage": ["Billing"],
+  "config.manage": ["Configuration"],
+  "operations.manage": ["Operations"],
+  "support.manage": ["Support"],
+  "logs.view": ["Logs"],
+  "developer.manage": ["Developer"],
+};
+
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
-
-  // Map privileges to the top-level menu names they should enable
-  const privilegeMap: Record<string, string[]> = {
-    "admins.manage": ["Admins"],
-    "providers.manage": ["Providers"],
-    "organizations.manage": ["Organizations"],
-    "enrollees.manage": ["Enrollees"],
-    "claims.manage": ["Claims"],
-    "authorizations.manage": ["Authorizations"],
-    "services.manage": ["Services"],
-    "billing.manage": ["Billing"],
-    "config.manage": ["Configuration"],
-    "operations.manage": ["Operations"],
-    "support.manage": ["Support"],
-    "logs.view": ["Logs"],
-    "developer.manage": ["Developer"],
-  };
 
   // Memoize user's privilege names to avoid recreating the Set each render
   const userPrivNames = useMemo(() => {
@@ -227,13 +230,16 @@ const AppSidebar: React.FC = () => {
   // Always allow Dashboard and add menu names based on privileges (memoized)
   const allowedMenuNames = useMemo(() => {
     const set = new Set<string>(["Dashboard"]);
+    if (user?.dependentVisitNotificationsEnabled === true) {
+      set.add("Dependent Medical History");
+    }
     Object.entries(privilegeMap).forEach(([priv, names]) => {
       if (userPrivNames.has(priv)) {
         names.forEach((n) => set.add(n));
       }
     });
     return set;
-  }, [userPrivNames]);
+  }, [user?.dependentVisitNotificationsEnabled, userPrivNames]);
 
   // Filter the top-level arrays so only allowed sections are rendered (memoized)
   const filteredNavItems = useMemo(

@@ -17,7 +17,7 @@ export default function UserMetaCard() {
     try {
       setLoading(true);
 
-      const url = `/admin/account/profile`;
+      const url = `/enrollee/account/profile`;
 
       const data = await apiClient(url, {
         method: "GET",

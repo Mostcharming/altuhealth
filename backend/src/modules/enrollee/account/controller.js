@@ -1,5 +1,19 @@
 const bcrypt = require('bcrypt');
 
+function resolveAccountModel(req) {
+    const accountType = req.user?.type;
+
+    if (accountType === 'RetailEnrollee') {
+        return req.models?.RetailEnrollee;
+    }
+
+    if (accountType === 'Enrollee') {
+        return req.models?.Enrollee;
+    }
+
+    return null;
+}
+
 // Controller for enrollee account operations: update profile (excluding email) and change password
 const updateProfile = () => async (req, res, next) => {
     try {
@@ -28,10 +42,10 @@ const updateProfile = () => async (req, res, next) => {
 
         if (Object.keys(updates).length === 0) return res.fail('No updatable fields provided', 400);
 
-        const Enrollee = req.models && req.models.Enrollee;
-        if (!Enrollee) return res.fail('Server configuration error (Enrollee model missing)', 500);
+        const AccountModel = resolveAccountModel(req);
+        if (!AccountModel) return res.fail('Unsupported enrollee account type', 403);
 
-        const user = await Enrollee.findByPk(userId);
+        const user = await AccountModel.findByPk(userId);
         if (!user) return res.fail('Enrollee not found', 404);
 
         await user.update(updates);
@@ -52,7 +66,9 @@ const updateProfile = () => async (req, res, next) => {
             address: user.address || null,
             city: user.city || null,
             lga: user.lga || null,
-            postalCode: user.postalCode || null
+            postalCode: user.postalCode || null,
+            type: req.user.type,
+            dependentVisitNotificationsEnabled: user.dependentVisitNotificationsEnabled
         };
 
         return res.success({ user: safeUser }, 'Profile updated');
@@ -70,10 +86,10 @@ const changePassword = () => async (req, res, next) => {
         if (!oldPassword || !newPassword) return res.fail('oldPassword and newPassword are required', 400);
         if (typeof newPassword !== 'string' || newPassword.length < 8) return res.fail('Password must be at least 8 characters', 400);
 
-        const Enrollee = req.models && req.models.Enrollee;
-        if (!Enrollee) return res.fail('Server configuration error (Enrollee model missing)', 500);
+        const AccountModel = resolveAccountModel(req);
+        if (!AccountModel) return res.fail('Unsupported enrollee account type', 403);
 
-        const user = await Enrollee.findByPk(userId);
+        const user = await AccountModel.findByPk(userId);
         if (!user) return res.fail('Enrollee not found', 404);
 
         let matches = false;
@@ -103,10 +119,10 @@ const getProfile = () => async (req, res, next) => {
         const userId = req.user && req.user.id;
         if (!userId) return res.fail('Unauthorized', 401);
 
-        const Enrollee = req.models && req.models.Enrollee;
-        if (!Enrollee) return res.fail('Server configuration error (Enrollee model missing)', 500);
+        const AccountModel = resolveAccountModel(req);
+        if (!AccountModel) return res.fail('Unsupported enrollee account type', 403);
 
-        const user = await Enrollee.findByPk(userId);
+        const user = await AccountModel.findByPk(userId);
         if (!user) return res.fail('Enrollee not found', 404);
 
         const safeUser = {
@@ -124,7 +140,10 @@ const getProfile = () => async (req, res, next) => {
             address: user.address || null,
             city: user.city || null,
             lga: user.lga || null,
-            postalCode: user.postalCode || null
+            postalCode: user.postalCode || null,
+            type: req.user.type,
+            dependentVisitNotificationsEnabled: user.dependentVisitNotificationsEnabled,
+            requiresDependentVisitSetup: user.dependentVisitNotificationsEnabled === null
         };
 
         return res.success({ user: safeUser }, 'Profile fetched');
@@ -133,8 +152,59 @@ const getProfile = () => async (req, res, next) => {
     }
 };
 
+const getDependentVisitPreference = () => async (req, res, next) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) return res.fail('Unauthorized', 401);
+
+        const AccountModel = resolveAccountModel(req);
+        if (!AccountModel) return res.fail('Unsupported enrollee account type', 403);
+
+        const user = await AccountModel.findByPk(userId, {
+            attributes: ['id', 'dependentVisitNotificationsEnabled']
+        });
+        if (!user) return res.fail('Enrollee not found', 404);
+
+        return res.success({
+            dependentVisitNotificationsEnabled: user.dependentVisitNotificationsEnabled,
+            requiresDependentVisitSetup: user.dependentVisitNotificationsEnabled === null
+        }, 'Dependent visit preference fetched');
+    } catch (err) {
+        return next(err);
+    }
+};
+
+const updateDependentVisitPreference = () => async (req, res, next) => {
+    try {
+        const userId = req.user?.id;
+        if (!userId) return res.fail('Unauthorized', 401);
+
+        const { enabled } = req.body || {};
+        if (typeof enabled !== 'boolean') {
+            return res.fail('`enabled` must be a boolean', 400);
+        }
+
+        const AccountModel = resolveAccountModel(req);
+        if (!AccountModel) return res.fail('Unsupported enrollee account type', 403);
+
+        const user = await AccountModel.findByPk(userId);
+        if (!user) return res.fail('Enrollee not found', 404);
+
+        await user.update({ dependentVisitNotificationsEnabled: enabled });
+
+        return res.success({
+            dependentVisitNotificationsEnabled: enabled,
+            requiresDependentVisitSetup: false
+        }, 'Dependent visit preference updated');
+    } catch (err) {
+        return next(err);
+    }
+};
+
 module.exports = {
     updateProfile: updateProfile(),
     changePassword: changePassword(),
-    getProfile: getProfile()
+    getProfile: getProfile(),
+    getDependentVisitPreference: getDependentVisitPreference(),
+    updateDependentVisitPreference: updateDependentVisitPreference()
 };
