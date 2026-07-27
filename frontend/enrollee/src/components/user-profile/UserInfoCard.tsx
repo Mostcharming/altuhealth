@@ -147,6 +147,10 @@ export default function UserInfoCard() {
           phoneNumber: acc.phoneNumber ?? undefined,
           status: acc.status ?? undefined,
           rolePrivileges: user?.rolePrivileges ?? undefined,
+          type: user?.type,
+          dependentVisitNotificationsEnabled:
+            user?.dependentVisitNotificationsEnabled,
+          requiresDependentVisitSetup: user?.requiresDependentVisitSetup,
         };
 
         useAuthStore.setState({ user: authUser });

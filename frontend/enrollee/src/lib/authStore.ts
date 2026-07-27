@@ -14,12 +14,16 @@ interface User {
   rolePrivileges?: string[];
   state?: string;
   lga?: string;
+  type?: "Enrollee" | "RetailEnrollee";
+  dependentVisitNotificationsEnabled?: boolean | null;
+  requiresDependentVisitSetup?: boolean;
 }
 
 interface AuthState {
   user: User | null;
   token: string | null;
   login: (user: AuthState["user"], token: string) => void;
+  updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }
 
@@ -32,6 +36,10 @@ export const useAuthStore = create<AuthState>()(
         set({ user, token });
         document.cookie = `auth_token=${token}; path=/; max-age=86400`;
       },
+      updateUser: (updates) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...updates } : state.user,
+        })),
       logout: () => {
         set({ user: null, token: null });
         document.cookie = "auth_token=; path=/; max-age=0";

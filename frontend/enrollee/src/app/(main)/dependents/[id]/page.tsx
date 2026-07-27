@@ -7,6 +7,7 @@ import DependentMedicalHistoryTable from "@/components/pages/dependent/Dependent
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { fetchDependentById } from "@/lib/apis/dependent";
 import capitalizeWords from "@/lib/capitalize";
+import { useAuthStore } from "@/lib/authStore";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -34,6 +35,9 @@ export default function SingleDependentPage() {
   const id = params.id as string;
   const [dependent, setDependent] = useState<DependentDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const canViewDependentMedicalHistory = useAuthStore(
+    (state) => state.user?.dependentVisitNotificationsEnabled === true,
+  );
 
   useEffect(() => {
     const fetchDependent = async () => {
@@ -79,9 +83,11 @@ export default function SingleDependentPage() {
               <DependentDetailsInfo data={dependent} />
             </div>
 
-            <div>
-              <DependentMedicalHistoryTable dependentId={id} />
-            </div>
+            {canViewDependentMedicalHistory && (
+              <div>
+                <DependentMedicalHistoryTable dependentId={id} />
+              </div>
+            )}
           </div>
         </>
       )}

@@ -12,7 +12,6 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
 export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifying, setNotifying] = useState(true);
   const notifications = useNotificationStore((s) => s.notifications);
   const setNotifications = useNotificationStore((s) => s.setNotifications);
   const [loading, setLoading] = useState(false);
@@ -40,7 +39,6 @@ export default function NotificationDropdown() {
 
   const handleClick = () => {
     toggleDropdown();
-    setNotifying(false);
   };
 
   const handleNotificationClick = async (n: Notification) => {
@@ -58,18 +56,15 @@ export default function NotificationDropdown() {
     const updatedSorted = sortNotifications(updated);
     setNotifications(updatedSorted);
 
-    // If clickUrl provided and not '#', navigate to it now
-    if (n.clickUrl && n.clickUrl !== "#") {
-      // Use window.location to allow external links
-      window.location.href = n.clickUrl;
-      return;
-    }
-
     try {
       await apiClient("/enrollee/notifications/read", {
         method: "PUT",
         body: { id: n.id },
       });
+
+      if (n.clickUrl && n.clickUrl !== "#") {
+        window.location.href = n.clickUrl;
+      }
     } catch (err) {
       console.warn("[NotificationDropdown] mark read failed", err);
       const rolledBack = notifications.map((item) =>
@@ -82,15 +77,11 @@ export default function NotificationDropdown() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (user?.id) params.append("enrolleeId", user.id);
-      const data = await apiClient(
-        `/enrollee/notifications/list?${params.toString()}`,
-        {
-          method: "GET",
-          onLoading: (l) => setLoading(l),
-        }
-      );
+      if (!user?.id) return;
+      const data = await apiClient("/enrollee/notifications/list", {
+        method: "GET",
+        onLoading: (l) => setLoading(l),
+      });
 
       const items: Notification[] =
         data?.data?.data && Array.isArray(data.data.data)
@@ -111,7 +102,7 @@ export default function NotificationDropdown() {
   }, [user?.id, setLoading, setNotifications]);
 
   useEffect(() => {
-    // fetchNotifications();
+    fetchNotifications();
   }, [fetchNotifications]);
 
   return (
@@ -122,7 +113,9 @@ export default function NotificationDropdown() {
       >
         <span
           className={`absolute right-0 top-0.5 z-10 h-2 w-2 rounded-full bg-orange-400 ${
-            !notifying ? "hidden" : "flex"
+            notifications.some((notification) => !notification.isRead)
+              ? "flex"
+              : "hidden"
           }`}
         >
           <span className="absolute inline-flex w-full h-full bg-orange-400 rounded-full opacity-75 animate-ping"></span>
@@ -220,7 +213,7 @@ export default function NotificationDropdown() {
                     <span className="font-medium text-gray-800 dark:text-white/90">
                       {n.title || n.source || "New notification"}
                     </span>
-                    <span>{n.body || ""}</span>
+                    <span>{n.message || n.body || ""}</span>
                   </span>
 
                   <span className="flex items-center gap-2 text-gray-500 text-theme-xs dark:text-gray-400">

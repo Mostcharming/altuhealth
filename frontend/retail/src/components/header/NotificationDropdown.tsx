@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "../../lib/apiClient";
+import { useAuthStore } from "../../lib/authStore";
 import {
   Notification,
   useNotificationStore,
@@ -11,10 +12,10 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 
 export default function NotificationDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifying, setNotifying] = useState(true);
   const notifications = useNotificationStore((s) => s.notifications);
   const setNotifications = useNotificationStore((s) => s.setNotifications);
   const [loading, setLoading] = useState(false);
+  const user = useAuthStore((state) => state.user);
 
   // Helper: sort so unread (isRead === false) come first, then by createdAt desc
   const sortNotifications = (items: Notification[]) => {
@@ -38,7 +39,6 @@ export default function NotificationDropdown() {
 
   const handleClick = () => {
     toggleDropdown();
-    setNotifying(false);
   };
 
   const handleNotificationClick = async (n: Notification) => {
@@ -56,18 +56,14 @@ export default function NotificationDropdown() {
     const updatedSorted = sortNotifications(updated);
     setNotifications(updatedSorted);
 
-    // If clickUrl provided and not '#', navigate to it now
-    if (n.clickUrl && n.clickUrl !== "#") {
-      // Use window.location to allow external links
-      window.location.href = n.clickUrl;
-      return;
-    }
-
     try {
-      await apiClient("/admin/notifications/read", {
+      await apiClient("/enrollee/notifications/read", {
         method: "PUT",
         body: { id: n.id },
       });
+      if (n.clickUrl && n.clickUrl !== "#") {
+        window.location.href = n.clickUrl;
+      }
     } catch (err) {
       console.warn("[NotificationDropdown] mark read failed", err);
       const rolledBack = notifications.map((item) =>
@@ -80,13 +76,16 @@ export default function NotificationDropdown() {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await apiClient("/admin/notifications/list", {
+      if (!user?.id) return;
+      const data = await apiClient("/enrollee/notifications/list", {
         method: "GET",
         onLoading: (l) => setLoading(l),
       });
 
       const items: Notification[] =
-        data?.data && Array.isArray(data.data)
+        data?.data?.data && Array.isArray(data.data.data)
+          ? data.data.data
+          : data?.data && Array.isArray(data.data)
           ? data.data
           : Array.isArray(data)
           ? data
@@ -99,7 +98,7 @@ export default function NotificationDropdown() {
     } finally {
       setLoading(false);
     }
-  }, [setLoading, setNotifications]);
+  }, [setLoading, setNotifications, user?.id]);
 
   useEffect(() => {
     fetchNotifications();
@@ -113,7 +112,9 @@ export default function NotificationDropdown() {
       >
         <span
           className={`absolute right-0 top-0.5 z-10 h-2 w-2 rounded-full bg-orange-400 ${
-            !notifying ? "hidden" : "flex"
+            notifications.some((notification) => !notification.isRead)
+              ? "flex"
+              : "hidden"
           }`}
         >
           <span className="absolute inline-flex w-full h-full bg-orange-400 rounded-full opacity-75 animate-ping"></span>
@@ -211,7 +212,7 @@ export default function NotificationDropdown() {
                     <span className="font-medium text-gray-800 dark:text-white/90">
                       {n.title || n.source || "New notification"}
                     </span>
-                    <span>{n.body || ""}</span>
+                    <span>{n.message || n.body || ""}</span>
                   </span>
 
                   <span className="flex items-center gap-2 text-gray-500 text-theme-xs dark:text-gray-400">

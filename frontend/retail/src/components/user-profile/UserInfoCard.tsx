@@ -42,7 +42,7 @@ export default function UserInfoCard() {
     try {
       setLoading(true);
 
-      const url = `/admin/account/profile`;
+      const url = `/enrollee/account/profile`;
 
       const data = await apiClient(url, {
         method: "GET",
@@ -119,7 +119,7 @@ export default function UserInfoCard() {
     try {
       setLoading(true);
 
-      const url = `/admin/account/profile`;
+      const url = `/enrollee/account/profile`;
 
       const data = await apiClient(url, {
         method: "PUT",
@@ -142,6 +142,10 @@ export default function UserInfoCard() {
           phoneNumber: acc.phoneNumber ?? undefined,
           status: acc.status ?? undefined,
           rolePrivileges: user?.rolePrivileges ?? undefined,
+          type: user?.type,
+          dependentVisitNotificationsEnabled:
+            user?.dependentVisitNotificationsEnabled,
+          requiresDependentVisitSetup: user?.requiresDependentVisitSetup,
         };
 
         useAuthStore.setState({ user: authUser });

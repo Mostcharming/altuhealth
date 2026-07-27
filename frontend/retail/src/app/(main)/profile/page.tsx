@@ -1,6 +1,7 @@
 import UserAddressCard from "@/components/user-profile/UserAddressCard";
 import UserInfoCard from "@/components/user-profile/UserInfoCard";
 import UserMetaCard from "@/components/user-profile/UserMetaCard";
+import DependentVisitPreferenceCard from "@/components/user-profile/DependentVisitPreferenceCard";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function Profile() {
           <UserMetaCard />
           <UserInfoCard />
           <UserAddressCard />
+          <DependentVisitPreferenceCard />
         </div>
       </div>
     </div>

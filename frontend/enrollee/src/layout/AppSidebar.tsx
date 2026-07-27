@@ -16,6 +16,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuthStore } from "@/lib/authStore";
 import React, {
   useCallback,
   useEffect,
@@ -29,6 +30,7 @@ type NavItem = {
   icon: React.ReactNode;
   path?: string;
   new?: boolean;
+  requiresDependentVisitAccess?: boolean;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
@@ -48,6 +50,12 @@ const navItems: NavItem[] = [
     name: "Dependents",
     icon: <GroupIcon />,
     path: "/dependents",
+  },
+  {
+    name: "Dependent Medical History",
+    icon: <FileIcon />,
+    path: "/dependent-medical-history",
+    requiresDependentVisitAccess: true,
   },
   {
     name: "Appointments",
@@ -93,6 +101,9 @@ const navItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const dependentVisitNotificationsEnabled = useAuthStore(
+    (state) => state.user?.dependentVisitNotificationsEnabled,
+  );
 
   // Allow all menu items (no privilege check needed for providers)
   const allowedMenuNames = useMemo(() => {
@@ -103,8 +114,50 @@ const AppSidebar: React.FC = () => {
 
   // Filter the top-level arrays so only allowed sections are rendered (memoized)
   const filteredNavItems = useMemo(
-    () => navItems.filter((item) => allowedMenuNames.has(item.name)),
-    [allowedMenuNames],
+    () =>
+      navItems.filter(
+        (item) =>
+          allowedMenuNames.has(item.name) &&
+          (!item.requiresDependentVisitAccess ||
+            dependentVisitNotificationsEnabled === true),
+      ),
+    [allowedMenuNames, dependentVisitNotificationsEnabled],
+  );
+
+  const healthcareItems = useMemo(
+    () =>
+      filteredNavItems.filter((item) =>
+        [
+          "Dashboard",
+          "Medical History",
+          "Dependents",
+          "Dependent Medical History",
+          "Appointments",
+        ].includes(item.name),
+      ),
+    [filteredNavItems],
+  );
+  const coverageItems = useMemo(
+    () =>
+      filteredNavItems.filter((item) =>
+        ["Enrollee Benefits", "Hospital List"].includes(item.name),
+      ),
+    [filteredNavItems],
+  );
+  const womensHealthItems = useMemo(
+    () =>
+      filteredNavItems.filter((item) => item.name === "Women's Health"),
+    [filteredNavItems],
+  );
+  const serviceItems = useMemo(
+    () =>
+      filteredNavItems.filter((item) => item.name === "Consult a Doctor"),
+    [filteredNavItems],
+  );
+  const supportItems = useMemo(
+    () =>
+      filteredNavItems.filter((item) => item.name === "Support Messages"),
+    [filteredNavItems],
   );
 
   const renderMenuItems = (
@@ -388,7 +441,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems.slice(0, 4), "main")}
+              {renderMenuItems(healthcareItems, "main")}
             </div>
 
             {/* Benefits & Coverage */}
@@ -406,7 +459,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems.slice(4, 6), "main")}
+              {renderMenuItems(coverageItems, "main")}
             </div>
 
             {/* Women's Health */}
@@ -424,7 +477,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems.slice(6, 7), "main")}
+              {renderMenuItems(womensHealthItems, "main")}
             </div>
 
             {/* Requests & Services */}
@@ -442,7 +495,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems.slice(7, 8), "main")}
+              {renderMenuItems(serviceItems, "main")}
             </div>
 
             {/* Support */}
@@ -460,7 +513,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(filteredNavItems.slice(8, 9), "main")}
+              {renderMenuItems(supportItems, "main")}
             </div>
           </div>
         </nav>

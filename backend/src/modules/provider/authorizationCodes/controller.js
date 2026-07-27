@@ -3,7 +3,11 @@
 const authorizationCodeGenerator = require('../../../utils/authorizationCodeGenerator');
 const config = require('../../../config');
 const { addAdminNotification, addAuditLog } = require('../../../utils/addAdminNotification');
-const { addProviderNotification } = require('../../../utils/addNotifications');
+const {
+    addProviderNotification,
+    addEnrolleeNotification,
+    addRetailEnrolleeNotification
+} = require('../../../utils/addNotifications');
 const { createMedicalHistoryForAuthorization } = require('../../../utils/createMedicalHistoryForAuthorization');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -45,7 +49,14 @@ async function resolveMember(models, memberFields) {
                 companyId: primary.companyId || null,
                 companyPlanId: primary.companyPlanId || null
             },
-            label: `dependent ${dependent.id}`
+            label: `dependent ${dependent.id}`,
+            dependentVisit: {
+                enabled: primary.dependentVisitNotificationsEnabled === true,
+                primaryId: primary.id,
+                dependentId: dependent.id,
+                dependentName: [dependent.firstName, dependent.lastName].filter(Boolean).join(' ') || 'Your dependent',
+                accountType: 'Enrollee'
+            }
         };
     }
 
@@ -59,11 +70,22 @@ async function resolveMember(models, memberFields) {
     }
 
     if (memberFields.retailEnrolleeDependentId) {
-        const retailDependent = await RetailEnrolleeDependent.findByPk(memberFields.retailEnrolleeDependentId);
+        const retailDependent = await RetailEnrolleeDependent.findByPk(
+            memberFields.retailEnrolleeDependentId,
+            { include: [{ model: RetailEnrollee }] }
+        );
         if (!retailDependent) return null;
+        const primary = retailDependent.RetailEnrollee || {};
         return {
             fields: { retailEnrolleeDependentId: retailDependent.id },
-            label: `retail dependent ${retailDependent.id}`
+            label: `retail dependent ${retailDependent.id}`,
+            dependentVisit: {
+                enabled: primary.dependentVisitNotificationsEnabled === true,
+                primaryId: primary.id,
+                dependentId: retailDependent.id,
+                dependentName: [retailDependent.firstName, retailDependent.lastName].filter(Boolean).join(' ') || 'Your dependent',
+                accountType: 'RetailEnrollee'
+            }
         };
     }
 
@@ -265,6 +287,36 @@ async function createAuthorizationCode(req, res, next) {
                 notificationType: 'authorization_code'
             })
         ]);
+
+        if (resolvedMember.dependentVisit?.enabled && resolvedMember.dependentVisit.primaryId) {
+            const visit = resolvedMember.dependentVisit;
+            const portalUrl = visit.accountType === 'RetailEnrollee'
+                ? config.retailUrl
+                : config.enrolleeUrl;
+            const clickUrl = `${String(portalUrl || '').replace(/\/+$/, '')}/dependent-medical-history?dependentId=${visit.dependentId}`;
+            const notification = {
+                title: 'Dependent provider visit recorded',
+                message: `${visit.dependentName}'s visit to ${provider.name || 'a provider'} was recorded when authorization ${authorizationCode.authorizationCode} was requested.`,
+                clickUrl,
+                notificationType: 'dependent_provider_visit'
+            };
+
+            try {
+                if (visit.accountType === 'RetailEnrollee') {
+                    await addRetailEnrolleeNotification(req.models, {
+                        retailEnrolleeId: visit.primaryId,
+                        ...notification
+                    });
+                } else {
+                    await addEnrolleeNotification(req.models, {
+                        enrolleeId: visit.primaryId,
+                        ...notification
+                    });
+                }
+            } catch (notificationError) {
+                console.error('Failed to notify primary enrollee about dependent provider visit:', notificationError);
+            }
+        }
 
         await addAuditLog(req.models, {
             action: 'provider_authorization_code.create',

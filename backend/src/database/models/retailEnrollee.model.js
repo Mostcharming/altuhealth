@@ -125,6 +125,13 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true,
             field: 'referral_code'
+        },
+        dependentVisitNotificationsEnabled: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: null,
+            field: 'dependent_visit_notifications_enabled',
+            comment: 'Also controls whether the primary enrollee can view dependent medical history'
         }
     }, {
         tableName: 'retail_enrollees',

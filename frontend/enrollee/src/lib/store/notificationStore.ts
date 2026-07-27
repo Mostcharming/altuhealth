@@ -4,6 +4,7 @@ export interface Notification {
   id: string;
   title?: string;
   body?: string;
+  message?: string;
   source?: string;
   picture?: string;
   isRead?: boolean;

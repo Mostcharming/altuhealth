@@ -4,6 +4,7 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
+import DependentVisitSetup from "@/components/setup/DependentVisitSetup";
 import { usePathname } from "next/navigation";
 import React from "react";
 
@@ -38,6 +39,7 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen xl:flex">
+      <DependentVisitSetup />
       <AppSidebar />
       <Backdrop />
       <div

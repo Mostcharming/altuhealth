@@ -186,6 +186,13 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true,
             field: 'password'
+        },
+        dependentVisitNotificationsEnabled: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: null,
+            field: 'dependent_visit_notifications_enabled',
+            comment: 'Also controls whether the primary enrollee can view dependent medical history'
         }
     }, {
         tableName: 'enrollees',

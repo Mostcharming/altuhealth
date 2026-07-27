@@ -41,7 +41,7 @@ export default function ResetPasswordForm() {
           identifier.trim();
       }
 
-      const data = await apiClient("/admin/auth/forgot", {
+      const data = await apiClient("/enrollee/auth/forgot", {
         method: "POST",
         body: bodyPayload,
         onLoading: setIsLoading,
