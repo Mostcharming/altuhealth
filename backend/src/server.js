@@ -50,6 +50,7 @@ const defaultCorsOrigins = [
   'http://192.168.1.156:3003',
   'http://192.168.1.156:3007',
   'http://192.168.1.156:3008',
+  'http://192.168.1.165:3008',
 ];
 
 const configuredCorsOrigins = process.env.CORS_ORIGIN

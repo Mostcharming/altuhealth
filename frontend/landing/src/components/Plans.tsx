@@ -1,5 +1,6 @@
 "use client";
 
+import CorporateRequestForm from "@/components/CorporateRequestForm";
 import { apiClient } from "@/lib/apiClient";
 import {
   detectVisitorCountryCode,
@@ -8,6 +9,7 @@ import {
   type PlanCategory,
   type PlanCategoryOption,
 } from "@/lib/planMarket";
+import Link from "next/link";
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -833,66 +835,90 @@ export default function Plans() {
           ))}
         </div>
 
-        <div className="plan-grid">
-          {visiblePlans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`plan-card ${
-                selectedCategory === plan.category
-                  ? "plan-card-highlighted"
-                  : ""
-              }`}
-            >
-              <div className="plan-card-header">
-                <div>
-                  <h3>{plan.name}</h3>
-                  <div className="plan-audience">
-                    <span></span>
-                    <p>{plan.audience}</p>
+        {selectedCategory === "corporate" ? (
+          <CorporateRequestForm />
+        ) : (
+          <>
+            <div className="plan-grid">
+              {visiblePlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`plan-card ${
+                    selectedCategory === plan.category
+                      ? "plan-card-highlighted"
+                      : ""
+                  }`}
+                >
+                  <div className="plan-card-header">
+                    <div>
+                      <h3>{plan.name}</h3>
+                      <div className="plan-audience">
+                        <span></span>
+                        <p>{plan.audience}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="plan-price-panel">
+                    {plan.rows.map((row) => (
+                      <div
+                        className="plan-price-row"
+                        key={`${row.label}-${row.planId}`}
+                      >
+                        <span>{row.label}</span>
+                        <strong>{row.price}</strong>
+                      </div>
+                    ))}
+                    <p>{plan.cycleLabel}</p>
+                  </div>
+
+                  <div className="plan-divider"></div>
+
+                  <div className="plan-content">
+                    <ul>
+                      {plan.features.map((feature) => (
+                        <li key={feature}>
+                          <span className="plan-check">✓</span>
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                      <li className="more-benefits">
+                        <span className="plan-check" aria-hidden="true">
+                          +
+                        </span>
+                        <Link
+                          href={`/benefits?planId=${encodeURIComponent(
+                            plan.sources[0]?.id || plan.id,
+                          )}`}
+                        >
+                          See more benefits
+                        </Link>
+                      </li>
+                    </ul>
+
+                    <button
+                      type="button"
+                      className="buy-btn"
+                      onClick={() => openPlanModal(plan)}
+                      disabled={isLoadingPlans}
+                    >
+                      {isLoadingPlans ? "Loading" : "Register"}{" "}
+                      <span>→</span>
+                    </button>
                   </div>
                 </div>
-              </div>
-
-              <div className="plan-price-panel">
-                {plan.rows.map((row) => (
-                  <div className="plan-price-row" key={`${row.label}-${row.planId}`}>
-                    <span>{row.label}</span>
-                    <strong>{row.price}</strong>
-                  </div>
-                ))}
-                <p>{plan.cycleLabel}</p>
-              </div>
-
-              <div className="plan-divider"></div>
-
-              <div className="plan-content">
-                <ul>
-                  {plan.features.map((feature) => (
-                    <li key={feature}>
-                      <span className="plan-check">✓</span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  type="button"
-                  className="buy-btn"
-                  onClick={() => openPlanModal(plan)}
-                  disabled={isLoadingPlans}
-                >
-                  {isLoadingPlans ? "Loading" : "Register"} <span>→</span>
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {!isLoadingPlans && visiblePlans.length === 0 && (
-          <div className="plan-empty-state">
-            <strong>No plans in this category yet.</strong>
-            <p>Choose another category to view available coverage options.</p>
-          </div>
+            {!isLoadingPlans && visiblePlans.length === 0 && (
+              <div className="plan-empty-state">
+                <strong>No plans in this category yet.</strong>
+                <p>
+                  Choose another category to view available coverage options.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 

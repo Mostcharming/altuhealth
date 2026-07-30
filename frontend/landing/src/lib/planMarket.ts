@@ -11,7 +11,7 @@ export type PlanCategoryOption = {
 
 const planCategoryLabels: Record<PlanCategory, string> = {
   retail: "Retail",
-  diaspora: "Diaspora",
+  diaspora: "Retail",
   geriatric: "Geriatric",
   corporate: "Corporate",
 };
