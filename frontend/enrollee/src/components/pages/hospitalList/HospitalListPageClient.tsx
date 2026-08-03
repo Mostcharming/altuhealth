@@ -23,6 +23,40 @@ type Header = {
   label: string;
 };
 
+function compactLocation(values: Array<string | undefined>) {
+  const seen = new Set<string>();
+
+  return values
+    .map((value) => String(value || "").trim())
+    .filter((value) => {
+      if (!value || seen.has(value.toLowerCase())) {
+        return false;
+      }
+
+      seen.add(value.toLowerCase());
+      return true;
+    })
+    .join(", ");
+}
+
+function getProviderLocation(provider: Provider) {
+  return compactLocation([
+    provider.providerArea,
+    provider.lga,
+    provider.state,
+    provider.country,
+  ]);
+}
+
+function getProviderAddress(provider: Provider) {
+  return (
+    provider.address?.trim() ||
+    provider.currentLocation?.trim() ||
+    getProviderLocation(provider) ||
+    "Location available from AltuHealth"
+  );
+}
+
 const ProviderListPageClient: React.FC = () => {
   const { user } = useAuthStore();
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -52,6 +86,7 @@ const ProviderListPageClient: React.FC = () => {
     { key: "name", label: "Provider Name" },
     { key: "category", label: "Category" },
     { key: "currentLocation", label: "Location" },
+    { key: "address", label: "Address" },
     { key: "state", label: "State" },
     { key: "phoneNumber", label: "Phone" },
     { key: "email", label: "Email" },
@@ -318,6 +353,11 @@ const ProviderListPageClient: React.FC = () => {
                     <td className="p-4 whitespace-nowrap">
                       <span className="text-sm text-gray-700 dark:text-gray-400">
                         {provider.currentLocation}
+                      </span>
+                    </td>
+                    <td className="min-w-72 max-w-sm p-4">
+                      <span className="text-sm leading-5 text-gray-700 dark:text-gray-400">
+                        {getProviderAddress(provider)}
                       </span>
                     </td>
                     <td className="p-4 whitespace-nowrap">

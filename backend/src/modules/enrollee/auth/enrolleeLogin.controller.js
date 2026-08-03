@@ -1,11 +1,17 @@
 const { signToken } = require('../../../middlewares/common/security');
 const Sequelize = require('sequelize');
+const {
+    normalizeEmailIdentifier,
+    normalizePolicyIdentifier
+} = require('../../../utils/loginIdentifier');
 
 const enrolleeLogin = async (req, res, next) => {
     try {
         const { email, policyNumber, password, remember, location } = req.body || {};
+        const lookupEmail = normalizeEmailIdentifier(email);
+        const lookupPolicyNumber = normalizePolicyIdentifier(policyNumber);
         if (!password) return res.fail('Password is required', 400);
-        if (!email && !policyNumber) return res.fail('Provide email or policy number', 400);
+        if (!lookupEmail && !lookupPolicyNumber) return res.fail('Provide email or policy number', 400);
 
         const EnrolleeModel = req.models && req.models['Enrollee'];
         const RetailEnrolleeModel = req.models && req.models['RetailEnrollee'];
@@ -13,27 +19,25 @@ const enrolleeLogin = async (req, res, next) => {
 
         let enrollee = null;
         let userType = 'Enrollee';
-        if (email) {
-            const lookupValue = (typeof email === 'string') ? email.toLowerCase() : email;
+        if (lookupEmail) {
             try {
                 enrollee = await EnrolleeModel.findOne({
-                    where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupValue)
+                    where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupEmail)
                 });
             } catch (e) {
-                enrollee = await EnrolleeModel.findOne({ where: { email: lookupValue } });
+                enrollee = await EnrolleeModel.findOne({ where: { email: lookupEmail } });
             }
             if (!enrollee) {
                 try {
                     enrollee = await RetailEnrolleeModel.findOne({
-                        where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupValue)
+                        where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupEmail)
                     });
                 } catch (e) {
-                    enrollee = await RetailEnrolleeModel.findOne({ where: { email: lookupValue } });
+                    enrollee = await RetailEnrolleeModel.findOne({ where: { email: lookupEmail } });
                 }
                 if (enrollee) userType = 'RetailEnrollee';
             }
-        } else if (policyNumber) {
-            const lookupPolicyNumber = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
+        } else if (lookupPolicyNumber) {
             enrollee = await EnrolleeModel.findOne({ where: { policyNumber: lookupPolicyNumber } });
             if (!enrollee) {
                 enrollee = await RetailEnrolleeModel.findOne({ where: { policyNumber: lookupPolicyNumber } });

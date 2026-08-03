@@ -1,20 +1,22 @@
 const { signToken } = require('../../../middlewares/common/security');
 const Sequelize = require('sequelize');
+const { removeIdentifierWhitespace } = require('../../../utils/loginIdentifier');
 
 const providerLogin = async (req, res, next) => {
     try {
         const { policyNumber, password, remember, location } = req.body || {};
+        const normalizedIdentifier = removeIdentifierWhitespace(policyNumber);
 
         if (!password) return res.fail('Password is required', 400);
-        if (!policyNumber) return res.fail('Provide policy number', 400);
+        if (!normalizedIdentifier) return res.fail('Provide policy number', 400);
 
         const ProviderModel = req.models && req.models['Provider'];
         if (!ProviderModel) return res.fail('Server configuration error (models missing)', 500);
 
         let provider = null;
 
-        const lookupValue = (typeof policyNumber === 'string') ? policyNumber.toLowerCase() : policyNumber;
-        const lookupValueUPN = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
+        const lookupValue = normalizedIdentifier.toLowerCase();
+        const lookupValueUPN = normalizedIdentifier.toUpperCase();
 
         try {
             provider = await ProviderModel.findOne({

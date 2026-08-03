@@ -87,6 +87,7 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
         (benefit: Record<string, unknown>) => ({
           id: String(benefit.id),
           name: String(benefit.name),
+          isCovered: benefit.isCovered === true,
           benefitType: String(benefit.benefitType || "General"),
           coverageAmount: Number(benefit.coverageAmount || 0),
           currency: String(benefit.currency || "NGN"),
@@ -250,7 +251,8 @@ const BenefitsTable: React.FC<BenefitsTableProps> = ({ onFetchRef }) => {
                   </td>
                   <td className="p-4 whitespace-nowrap">
                     <span className="text-sm text-gray-700 dark:text-gray-400">
-                      {benefit.description || "-"}
+                      {benefit.description?.trim() ||
+                        (benefit.isCovered ? "Covered" : "-")}
                     </span>
                   </td>
                 </tr>
