@@ -2,7 +2,7 @@ import { apiClient } from "@/lib/apiClient";
 import { CompanyPlan } from "@/lib/store/companyPlanStore";
 
 export async function fetchCompanyPlans(params: {
-  limit?: number;
+  limit?: number | "all";
   page?: number;
   q?: string;
   companyId?: string;

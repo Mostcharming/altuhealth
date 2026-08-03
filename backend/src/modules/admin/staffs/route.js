@@ -63,6 +63,7 @@ router.delete('/:id', Staff.deleteStaff);
 router.post('/:id/resend-enrollment-notification', Staff.resendEnrollmentNotification);
 
 // Bulk operations
+router.post('/bulk/delete', Staff.bulkDeleteStaffs);
 router.post('/bulk/notify', Staff.bulkNotifyStaffs);
 router.post('/bulk/enroll', Staff.bulkEnrollStaffs);
 router.post('/bulk/create', extendBulkUploadTimeout, uploadStaffFile, Staff.bulkCreateStaffs);

@@ -8,6 +8,83 @@ const notify = require('../../../utils/notify');
 const generateCode = require('../../../utils/verificationCode');
 const { resolveMemberIdCardUrl } = require('../../../utils/idCard');
 
+const CORPORATE_ENROLLMENT_TEMPLATE = 'STAFF_ENROLLMENT_REQUIRED';
+const ENROLLEE_PORTAL_URL = 'https://enrollee.altuhealth.com';
+
+async function mapWithConcurrency(items, concurrency, worker) {
+    const results = new Array(items.length);
+    let cursor = 0;
+    const workers = Array.from(
+        { length: Math.min(concurrency, items.length) },
+        async () => {
+            while (cursor < items.length) {
+                const index = cursor;
+                cursor += 1;
+
+                try {
+                    results[index] = {
+                        ok: true,
+                        value: await worker(items[index])
+                    };
+                } catch (error) {
+                    results[index] = { ok: false, error };
+                }
+            }
+        }
+    );
+
+    await Promise.all(workers);
+    return results;
+}
+
+async function sendCorporateEnrollmentNotification(enrollee) {
+    if (!enrollee.email) {
+        throw new Error('Enrollee email is not available');
+    }
+
+    const previousPassword = enrollee.password ?? null;
+    const rawPassword = generateCode(10, { letters: true, numbers: true });
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+    await enrollee.update({ password: hashedPassword });
+
+    try {
+        // notify resolves the editable template and records the rendered message
+        // in NotificationLog after a successful delivery.
+        await notify(
+            {
+                id: enrollee.id,
+                email: enrollee.email,
+                phoneNumber: enrollee.phoneNumber,
+                firstName: enrollee.firstName
+            },
+            'enrollee',
+            CORPORATE_ENROLLMENT_TEMPLATE,
+            {
+                firstName: enrollee.firstName,
+                companyName: enrollee.Company?.name || 'Your Company',
+                temporaryPassword: rawPassword,
+                policyNumber: enrollee.policyNumber,
+                loginLink: ENROLLEE_PORTAL_URL
+            },
+            ['email']
+        );
+    } catch (error) {
+        try {
+            await enrollee.update({ password: previousPassword });
+        } catch (restoreError) {
+            console.error(`Failed to restore password for enrollee ${enrollee.id}:`, restoreError);
+        }
+        throw error;
+    }
+
+    return {
+        enrolleeId: enrollee.id,
+        staffId: enrollee.staffId,
+        email: enrollee.email
+    };
+}
+
 async function createEnrollee(req, res, next) {
     try {
         const { Enrollee, Staff, Company, CompanyPlan, Diagnosis, Provider } = req.models;
@@ -129,13 +206,14 @@ async function createEnrollee(req, res, next) {
 
 async function getEnrollees(req, res, next) {
     try {
-        const { Enrollee, Staff, Company, CompanyPlan } = req.models;
+        const { Enrollee, Staff, Company, CompanyPlan, Subscription } = req.models;
         const {
             page = 1,
             limit = 10,
             search = '',
             companyId = null,
             companyPlanId = null,
+            subscriptionId = null,
             isActive = true
         } = req.query;
 
@@ -160,15 +238,37 @@ async function getEnrollees(req, res, next) {
             ];
         }
 
+        const staffInclude = {
+            model: Staff,
+            attributes: ['id', 'firstName', 'lastName', 'staffId', 'subscriptionId'],
+            required: Boolean(subscriptionId),
+            include: [
+                {
+                    model: Subscription,
+                    attributes: ['id', 'code', 'startDate', 'endDate', 'status'],
+                    required: false
+                }
+            ]
+        };
+
+        if (subscriptionId) {
+            staffInclude.where = { subscriptionId };
+        }
+
         const queryOptions = {
             where,
             include: [
-                { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId'] },
+                staffInclude,
                 { model: Company, attributes: ['id', 'name'] },
-                { model: CompanyPlan, as: 'companyPlan', attributes: ['id', 'name'] }
+                {
+                    model: CompanyPlan,
+                    as: 'companyPlan',
+                    attributes: ['id', 'name', 'planType', 'planCycle', 'annualPremiumPrice', 'currency']
+                }
             ],
             order: [['createdAt', 'DESC']],
-            subQuery: false
+            subQuery: false,
+            distinct: true
         };
 
         if (parsedLimit !== null) {
@@ -185,7 +285,9 @@ async function getEnrollees(req, res, next) {
                     total: count,
                     page: parsedLimit === null ? 1 : parseInt(page),
                     limit: parsedLimit === null ? count : parseInt(limit),
-                    pages: parsedLimit === null ? 1 : Math.ceil(count / parseInt(limit))
+                    pages: parsedLimit === null ? 1 : Math.ceil(count / parseInt(limit)),
+                    hasNextPage: parsedLimit === null ? false : offset + rows.length < count,
+                    hasPreviousPage: parsedLimit === null ? false : Number(page) > 1
                 }
             },
             'Enrollees retrieved successfully'
@@ -243,16 +345,40 @@ async function lookupEnrollee(req, res, next) {
 
 async function getEnrolleeById(req, res, next) {
     try {
-        const { Enrollee, Staff, Company, CompanyPlan, EnrolleeMedicalHistory, AuthorizationCode, Provider, Diagnosis } = req.models;
+        const { Enrollee, Staff, Company, CompanyPlan, Subscription, EnrolleeMedicalHistory, AuthorizationCode, Provider, Diagnosis } = req.models;
         const { enrolleeId } = req.params;
 
         if (!enrolleeId) return res.fail('`enrolleeId` is required', 400);
 
         const enrollee = await Enrollee.findByPk(enrolleeId, {
             include: [
-                { model: Staff, attributes: ['id', 'firstName', 'lastName', 'staffId', 'email', 'phoneNumber'] },
+                {
+                    model: Staff,
+                    attributes: ['id', 'firstName', 'lastName', 'staffId', 'email', 'phoneNumber', 'subscriptionId'],
+                    include: [
+                        {
+                            model: Subscription,
+                            attributes: ['id', 'code', 'mode', 'startDate', 'endDate', 'status', 'notes'],
+                            required: false
+                        }
+                    ]
+                },
                 { model: Company, attributes: ['id', 'name'] },
-                { model: CompanyPlan, as: 'companyPlan', attributes: ['id', 'name'] },
+                {
+                    model: CompanyPlan,
+                    as: 'companyPlan',
+                    attributes: [
+                        'id',
+                        'name',
+                        'planType',
+                        'planCycle',
+                        'annualPremiumPrice',
+                        'currency',
+                        'description',
+                        'maxNumberOfDependents',
+                        'isActive'
+                    ]
+                },
                 // {
                 //     model: EnrolleeMedicalHistory,
                 //     as: 'medicalHistories',
@@ -583,7 +709,7 @@ async function verifyEnrollee(req, res, next) {
 
 async function resendVerificationCode(req, res, next) {
     try {
-        const { Enrollee, Company, Staff } = req.models;
+        const { Enrollee, Company, Staff, NotificationTemplate } = req.models;
         const { enrolleeId } = req.params;
 
         if (!enrolleeId) return res.fail('`enrolleeId` is required', 400);
@@ -610,36 +736,23 @@ async function resendVerificationCode(req, res, next) {
             return res.fail('Enrollee email is not available', 400);
         }
 
-        // Generate a new password and hash it
-        const rawPassword = generateCode(10, { letters: true, numbers: true });
-        const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-        // Update enrollee with new password
-        await enrollee.update({
-            password: hashedPassword
+        const notificationTemplate = await NotificationTemplate.findOne({
+            where: { act: CORPORATE_ENROLLMENT_TEMPLATE },
+            attributes: ['id', 'act', 'subj', 'emailStatus']
         });
+        if (!notificationTemplate) {
+            return res.fail('Complete HMO Enrollment notification template was not found', 409);
+        }
+        if (!notificationTemplate.emailStatus) {
+            return res.fail('Complete HMO Enrollment email notification is disabled', 409);
+        }
 
-        const enrollmentLink = `https://enrollee.altuhealth.com`;
-        const company = enrollee.Company;
-        const companyName = company ? company.name : 'Your Company';
-        const policyNumber = enrollee.policyNumber;
-
-        try {
-            // Send enrollment email with new password
-            await notify(
-                { id: enrollee.id, email: enrollee.email, firstName: enrollee.firstName },
-                'enrollee',
-                'STAFF_ENROLLMENT_REQUIRED',
-                {
-                    firstName: enrollee.firstName,
-                    companyName,
-                    temporaryPassword: rawPassword,
-                    policyNumber,
-                    loginLink: enrollmentLink
-                }
+        const sent = await sendCorporateEnrollmentNotification(enrollee);
+        if (sent.staffId) {
+            await Staff.update(
+                { isNotified: true, notifiedAt: new Date() },
+                { where: { id: sent.staffId } }
             );
-        } catch (notifyErr) {
-            console.error('Error sending enrollment email:', notifyErr);
         }
 
         // Add audit log
@@ -656,6 +769,186 @@ async function resendVerificationCode(req, res, next) {
         );
     } catch (error) {
         console.error('Error resending verification code:', error);
+        next(error);
+    }
+}
+
+async function bulkResendEnrollmentNotifications(req, res, next) {
+    try {
+        const { Enrollee, Company, Staff, NotificationTemplate } = req.models;
+        const {
+            enrolleeIds: requestedEnrolleeIds,
+            companyId: requestedCompanyId,
+            sendAllForCompany = false,
+            confirmation
+        } = req.body || {};
+
+        const companyId = typeof requestedCompanyId === 'string'
+            ? requestedCompanyId.trim()
+            : '';
+        const enrolleeIds = Array.isArray(requestedEnrolleeIds)
+            ? [...new Set(
+                requestedEnrolleeIds
+                    .filter((id) => typeof id === 'string')
+                    .map((id) => id.trim())
+                    .filter(Boolean)
+            )]
+            : [];
+
+        let company = null;
+        let where;
+        let scope;
+
+        if (sendAllForCompany === true) {
+            if (!companyId) {
+                return res.fail('`companyId` is required to notify all enrollees for a company', 400);
+            }
+            if (confirmation !== companyId) {
+                return res.fail('Company notification confirmation does not match the selected company', 400);
+            }
+
+            company = await Company.findByPk(companyId, {
+                attributes: ['id', 'name']
+            });
+            if (!company) return res.fail('Company not found', 404);
+
+            where = { companyId };
+            scope = 'company';
+        } else {
+            if (enrolleeIds.length === 0) {
+                return res.fail('Select at least one enrollee to notify', 400);
+            }
+            if (enrolleeIds.length > 1000) {
+                return res.fail('A maximum of 1,000 selected enrollees can be notified at once', 400);
+            }
+
+            where = {
+                id: { [Op.in]: enrolleeIds },
+                ...(companyId ? { companyId } : {})
+            };
+            scope = 'selected';
+        }
+
+        const notificationTemplate = await NotificationTemplate.findOne({
+            where: { act: CORPORATE_ENROLLMENT_TEMPLATE },
+            attributes: ['id', 'act', 'subj', 'emailStatus']
+        });
+        if (!notificationTemplate) {
+            return res.fail('Complete HMO Enrollment notification template was not found', 409);
+        }
+        if (!notificationTemplate.emailStatus) {
+            return res.fail('Complete HMO Enrollment email notification is disabled', 409);
+        }
+
+        const enrollees = await Enrollee.findAll({
+            where,
+            attributes: [
+                'id',
+                'firstName',
+                'lastName',
+                'email',
+                'phoneNumber',
+                'policyNumber',
+                'password',
+                'companyId',
+                'staffId'
+            ],
+            include: [
+                {
+                    model: Company,
+                    attributes: ['id', 'name'],
+                    required: false
+                }
+            ],
+            order: [['createdAt', 'ASC']]
+        });
+
+        if (scope === 'selected' && enrollees.length !== enrolleeIds.length) {
+            return res.fail(
+                companyId
+                    ? 'One or more selected enrollees do not belong to the selected company or no longer exist'
+                    : 'One or more selected enrollees no longer exist',
+                409
+            );
+        }
+        if (enrollees.length === 0) {
+            return res.fail('No enrollees found for this notification request', 404);
+        }
+
+        const outcomes = await mapWithConcurrency(
+            enrollees,
+            5,
+            sendCorporateEnrollmentNotification
+        );
+        const sent = outcomes
+            .filter((outcome) => outcome.ok)
+            .map((outcome) => outcome.value);
+        const failures = outcomes
+            .map((outcome, index) => ({ outcome, enrollee: enrollees[index] }))
+            .filter(({ outcome }) => !outcome.ok)
+            .map(({ outcome, enrollee }) => ({
+                enrolleeId: enrollee.id,
+                email: enrollee.email || null,
+                reason: outcome.error instanceof Error
+                    ? outcome.error.message
+                    : 'Notification could not be sent'
+            }));
+
+        const notifiedStaffIds = [...new Set(sent.map((item) => item.staffId).filter(Boolean))];
+        if (notifiedStaffIds.length > 0) {
+            try {
+                await Staff.update(
+                    { isNotified: true, notifiedAt: new Date() },
+                    { where: { id: { [Op.in]: notifiedStaffIds } } }
+                );
+            } catch (staffUpdateError) {
+                console.error('Failed to update staff notification status:', staffUpdateError);
+            }
+        }
+
+        try {
+            await addAuditLog(req.models, {
+                action: scope === 'company'
+                    ? 'enrollee.bulk_resend_enrollment_notification_company'
+                    : 'enrollee.bulk_resend_enrollment_notification',
+                message: scope === 'company'
+                    ? `Complete HMO Enrollment notification retriggered for ${sent.length} enrollee(s) in ${company.name}`
+                    : `Complete HMO Enrollment notification retriggered for ${sent.length} selected enrollee(s)`,
+                userId: req.user?.id || null,
+                userType: req.user?.type || 'admin',
+                meta: {
+                    scope,
+                    companyId: companyId || null,
+                    templateAct: CORPORATE_ENROLLMENT_TEMPLATE,
+                    requestedCount: enrollees.length,
+                    sentCount: sent.length,
+                    failedCount: failures.length,
+                    failedEnrolleeIds: failures.map((failure) => failure.enrolleeId)
+                }
+            });
+        } catch (auditError) {
+            console.error('Failed to record bulk enrollment notification audit log:', auditError);
+        }
+
+        return res.success(
+            {
+                scope,
+                companyId: companyId || null,
+                template: {
+                    act: notificationTemplate.act,
+                    subject: notificationTemplate.subj
+                },
+                requestedCount: enrollees.length,
+                sentCount: sent.length,
+                failedCount: failures.length,
+                failures
+            },
+            failures.length === 0
+                ? `Enrollment notification sent to ${sent.length} enrollee(s)`
+                : `Enrollment notification sent to ${sent.length} enrollee(s); ${failures.length} failed`
+        );
+    } catch (error) {
+        console.error('Error bulk resending enrollment notifications:', error);
         next(error);
     }
 }
@@ -697,5 +990,6 @@ module.exports = {
     sendVerificationCode,
     verifyEnrollee,
     resendVerificationCode,
+    bulkResendEnrollmentNotifications,
     downloadIdCard
 };

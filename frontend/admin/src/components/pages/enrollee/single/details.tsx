@@ -9,11 +9,47 @@ import { useState } from "react";
 
 const formatDate = (date: string | null | undefined) => {
   if (!date) return "N/A";
-  return new Date(date).toLocaleDateString("en-US", {
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) return "N/A";
+
+  return parsedDate.toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+};
+
+const formatTimeRemaining = (date: string | null | undefined) => {
+  if (!date) return "N/A";
+  const expirationDate = new Date(date);
+  if (Number.isNaN(expirationDate.getTime())) return "N/A";
+
+  const days = Math.ceil(
+    (expirationDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  );
+
+  if (days < 0) {
+    return `Expired ${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`;
+  }
+  if (days === 0) return "Expires today";
+  return `${days} day${days === 1 ? "" : "s"} remaining`;
+};
+
+const formatCurrency = (
+  amount: number | null | undefined,
+  currency = "NGN",
+) => {
+  if (amount === null || amount === undefined) return "N/A";
+
+  try {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toLocaleString()}`;
+  }
 };
 
 export default function Details({ data }: { data: any }) {
@@ -21,6 +57,9 @@ export default function Details({ data }: { data: any }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [showIdCard, setShowIdCard] = useState(false);
   const errorModal = useModal();
+  const companyPlan = data?.companyPlan;
+  const subscription = data?.Staff?.Subscription;
+  const coverageExpiration = data?.expirationDate || subscription?.endDate;
 
   const handleViewIdCard = async () => {
     try {
@@ -57,7 +96,9 @@ export default function Details({ data }: { data: any }) {
         {label}
       </span>
       <span className="w-1/2 text-sm text-gray-700 sm:w-2/3 dark:text-gray-400">
-        {value ? String(value) : "N/A"}
+        {value !== null && value !== undefined && value !== ""
+          ? String(value)
+          : "N/A"}
       </span>
     </li>
   );
@@ -124,9 +165,12 @@ export default function Details({ data }: { data: any }) {
           </h2>
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
             <DetailRow label="Policy Number" value={data?.policyNumber} />
-            <DetailRow label="Staff ID" value={data?.Staff.staffId} />
+            <DetailRow label="Staff ID" value={data?.Staff?.staffId} />
             <DetailRow label="Company" value={data?.Company?.name} />
-            <DetailRow label="Company Plan" value={data?.CompanyPlan?.name} />
+            <DetailRow
+              label="Enrollment Date"
+              value={formatDate(data?.enrollmentDate)}
+            />
             <DetailRow
               label="Status"
               value={data?.isActive ? "Active" : "Inactive"}
@@ -142,12 +186,45 @@ export default function Details({ data }: { data: any }) {
           </ul>
         </div>
 
-        {/* Medical & Coverage Information */}
+        {/* Coverage Information */}
         <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/3">
           <h2 className="mb-5 text-lg font-semibold text-gray-800 dark:text-white/90">
-            Medical & Coverage Information
+            Coverage Information
           </h2>
           <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+            <DetailRow label="Company Plan" value={companyPlan?.name} />
+            <DetailRow
+              label="Plan Type"
+              value={capitalizeWords(companyPlan?.planType)}
+            />
+            <DetailRow
+              label="Plan Cycle"
+              value={capitalizeWords(companyPlan?.planCycle)}
+            />
+            <DetailRow
+              label="Plan Premium"
+              value={formatCurrency(
+                companyPlan?.annualPremiumPrice,
+                companyPlan?.currency,
+              )}
+            />
+            <DetailRow label="Subscription" value={subscription?.code} />
+            <DetailRow
+              label="Subscription Status"
+              value={capitalizeWords(subscription?.status)}
+            />
+            <DetailRow
+              label="Coverage Start"
+              value={formatDate(subscription?.startDate)}
+            />
+            <DetailRow
+              label="Coverage Expiration"
+              value={formatDate(coverageExpiration)}
+            />
+            <DetailRow
+              label="Time Remaining"
+              value={formatTimeRemaining(coverageExpiration)}
+            />
             <DetailRow
               label="Max Dependents"
               value={data?.maxDependents ?? "N/A"}
@@ -155,10 +232,6 @@ export default function Details({ data }: { data: any }) {
             <DetailRow
               label="Pre-existing Medical Records"
               value={data?.preexistingMedicalRecords}
-            />
-            <DetailRow
-              label="Expiration Date"
-              value={formatDate(data?.expirationDate)}
             />
           </ul>
         </div>
@@ -206,7 +279,7 @@ export default function Details({ data }: { data: any }) {
           lastName: data?.lastName || "",
           gender: data?.gender || "M",
           pictureUrl: data?.pictureUrl,
-          plan: data?.CompanyPlan?.name || "",
+          plan: data?.companyPlan?.name || "",
         }}
       />
     </>

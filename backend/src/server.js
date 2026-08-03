@@ -58,6 +58,7 @@ const configuredCorsOrigins = process.env.CORS_ORIGIN
   : defaultCorsOrigins;
 
 const allowedCorsOriginPatterns = [
+  /^http:\/\/localhost(?::\d+)?$/,
   /^http:\/\/192\.168\.1\.156(?::\d+)?$/,
 ];
 

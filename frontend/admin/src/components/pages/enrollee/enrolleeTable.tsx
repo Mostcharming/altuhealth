@@ -1,17 +1,31 @@
 "use client";
 import Select from "@/components/form/Select";
+import ConfirmModal from "@/components/modals/confirm";
+import ErrorModal from "@/components/modals/error";
+import SuccessModal from "@/components/modals/success";
 import EditEnrolleeModal from "@/components/pages/enrollee/editEnrolleeModal";
 import Notification from "@/components/ui/notification/Notification";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
-import { CopyIcon, EyeIcon, PencilIcon } from "@/icons";
+import { CopyIcon, EyeIcon, MailIcon, PencilIcon } from "@/icons";
+import { useModal } from "@/hooks/useModal";
+import { apiClient } from "@/lib/apiClient";
 import { fetchCompanies } from "@/lib/apis/company";
+import { fetchCompanyPlans } from "@/lib/apis/companyPlan";
 import { fetchEnrollees } from "@/lib/apis/enrollee";
 import capitalizeWords from "@/lib/capitalize";
 import { formatDate } from "@/lib/formatDate";
+import { CompanyPlan } from "@/lib/store/companyPlanStore";
 import { Company, useCompanyStore } from "@/lib/store/companyStore";
 import { Enrollee, useEnrolleeStore } from "@/lib/store/enrolleeStore";
+import { Subscription } from "@/lib/store/subscriptionStore";
 import { useRouter } from "next/navigation";
-import React, { useCallback, useEffect, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 const copyTextToClipboard = async (text: string): Promise<boolean> => {
   if (!text) return false;
@@ -56,6 +70,12 @@ const EnrolleeTable: React.FC = () => {
   const [limit, setLimit] = useState<number>(10);
   const [search, setSearch] = useState<string>("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
+  const [selectedSubscriptionId, setSelectedSubscriptionId] =
+    useState<string>("");
+  const [selectedCompanyPlanId, setSelectedCompanyPlanId] =
+    useState<string>("");
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [companyPlans, setCompanyPlans] = useState<CompanyPlan[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [totalItems, setTotalItems] = useState<number>(1);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
@@ -74,9 +94,26 @@ const EnrolleeTable: React.FC = () => {
     null,
   );
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedEnrolleeIds, setSelectedEnrolleeIds] = useState<string[]>([]);
+  const [bulkNotificationMode, setBulkNotificationMode] = useState<
+    "selected" | "company" | null
+  >(null);
+  const [sendingNotifications, setSendingNotifications] = useState(false);
+  const [notificationErrorMessage, setNotificationErrorMessage] = useState(
+    "Failed to send enrollment notifications.",
+  );
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
+  const notificationConfirmModal = useModal();
+  const notificationSuccessModal = useModal();
+  const notificationErrorModal = useModal();
 
   type Header = {
-    key: keyof Enrollee | "actions";
+    key:
+      | keyof Enrollee
+      | "companyPlan"
+      | "subscription"
+      | "coverageExpiry"
+      | "actions";
     label: string;
   };
 
@@ -94,6 +131,9 @@ const EnrolleeTable: React.FC = () => {
     { key: "email", label: "Email" },
     { key: "phoneNumber", label: "Phone Number" },
     { key: "policyNumber", label: "Policy Number" },
+    { key: "companyPlan", label: "Company Plan" },
+    { key: "subscription", label: "Subscription" },
+    { key: "coverageExpiry", label: "Expires" },
     { key: "isActive", label: "Status" },
     { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
@@ -108,6 +148,8 @@ const EnrolleeTable: React.FC = () => {
         page: currentPage,
         q: search,
         companyId: selectedCompanyId || undefined,
+        subscriptionId: selectedSubscriptionId || undefined,
+        companyPlanId: selectedCompanyPlanId || undefined,
       });
 
       const items: Enrollee[] =
@@ -127,7 +169,15 @@ const EnrolleeTable: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [limit, currentPage, search, selectedCompanyId, setEnrollees]);
+  }, [
+    limit,
+    currentPage,
+    search,
+    selectedCompanyId,
+    selectedSubscriptionId,
+    selectedCompanyPlanId,
+    setEnrollees,
+  ]);
 
   useEffect(() => {
     fetch();
@@ -151,6 +201,89 @@ const EnrolleeTable: React.FC = () => {
     fetchCompanyList();
   }, [setCompanies]);
 
+  useEffect(() => {
+    const fetchCoverageFilters = async () => {
+      try {
+        const [subscriptionsResponse, companyPlansResponse] =
+          await Promise.all([
+            apiClient("/admin/subscriptions/list?limit=all", {
+              method: "GET",
+            }),
+            fetchCompanyPlans({ limit: "all" }),
+          ]);
+
+        setSubscriptions(
+          Array.isArray(subscriptionsResponse?.data?.list)
+            ? subscriptionsResponse.data.list
+            : [],
+        );
+        setCompanyPlans(
+          Array.isArray(companyPlansResponse?.data?.list)
+            ? companyPlansResponse.data.list
+            : [],
+        );
+      } catch (err) {
+        console.warn("Enrollee coverage filters fetch failed", err);
+      }
+    };
+
+    fetchCoverageFilters();
+  }, []);
+
+  const availableSubscriptions = useMemo(
+    () =>
+      subscriptions.filter(
+        (subscription) =>
+          !selectedCompanyId || subscription.companyId === selectedCompanyId,
+      ),
+    [subscriptions, selectedCompanyId],
+  );
+
+  const availableCompanyPlans = useMemo(() => {
+    const selectedSubscription = subscriptions.find(
+      (subscription) => subscription.id === selectedSubscriptionId,
+    );
+    const subscriptionPlanIds = selectedSubscription
+      ? new Set(
+          (selectedSubscription.companyPlans || []).map((plan) => plan.id),
+        )
+      : null;
+
+    return companyPlans.filter((plan) => {
+      if (selectedCompanyId && plan.companyId !== selectedCompanyId) {
+        return false;
+      }
+
+      return !subscriptionPlanIds || subscriptionPlanIds.has(plan.id);
+    });
+  }, [companyPlans, selectedCompanyId, selectedSubscriptionId, subscriptions]);
+
+  const selectedCompany = useMemo(
+    () => companies.find((company) => company.id === selectedCompanyId),
+    [companies, selectedCompanyId],
+  );
+  const visibleEnrolleeIds = useMemo(
+    () => enrollees.map((enrollee) => enrollee.id),
+    [enrollees],
+  );
+  const selectedEnrolleeIdSet = useMemo(
+    () => new Set(selectedEnrolleeIds),
+    [selectedEnrolleeIds],
+  );
+  const selectedVisibleCount = visibleEnrolleeIds.filter((id) =>
+    selectedEnrolleeIdSet.has(id),
+  ).length;
+  const allVisibleEnrolleesSelected =
+    visibleEnrolleeIds.length > 0 &&
+    selectedVisibleCount === visibleEnrolleeIds.length;
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate =
+        selectedVisibleCount > 0 && !allVisibleEnrolleesSelected;
+    }
+  }, [allVisibleEnrolleesSelected, loading, selectedVisibleCount]);
+
   const startEntry: number =
     totalItems === 0 ? 0 : (currentPage - 1) * limit + 1;
   const endEntry: number = Math.min(currentPage * limit, totalItems);
@@ -158,11 +291,39 @@ const EnrolleeTable: React.FC = () => {
   const handleSelectChange = (selectedValue: string) => {
     setLimit(Number(selectedValue));
     setCurrentPage(1);
+    setSelectedEnrolleeIds([]);
   };
 
   const handleCompanyChange = (selectedValue: string) => {
-    setSelectedCompanyId(selectedValue);
+    setSelectedCompanyId(selectedValue === "all" ? "" : selectedValue);
+    setSelectedSubscriptionId("");
+    setSelectedCompanyPlanId("");
     setCurrentPage(1);
+    setSelectedEnrolleeIds([]);
+  };
+
+  const handleSubscriptionChange = (selectedValue: string) => {
+    const subscriptionId = selectedValue === "all" ? "" : selectedValue;
+    setSelectedSubscriptionId(subscriptionId);
+
+    if (selectedCompanyPlanId && subscriptionId) {
+      const subscription = subscriptions.find(
+        (item) => item.id === subscriptionId,
+      );
+      const includesSelectedPlan = subscription?.companyPlans?.some(
+        (plan) => plan.id === selectedCompanyPlanId,
+      );
+      if (!includesSelectedPlan) setSelectedCompanyPlanId("");
+    }
+
+    setCurrentPage(1);
+    setSelectedEnrolleeIds([]);
+  };
+
+  const handleCompanyPlanChange = (selectedValue: string) => {
+    setSelectedCompanyPlanId(selectedValue === "all" ? "" : selectedValue);
+    setCurrentPage(1);
+    setSelectedEnrolleeIds([]);
   };
 
   const previousPage = () => {
@@ -199,6 +360,130 @@ const EnrolleeTable: React.FC = () => {
     setIsEditOpen(true);
   };
 
+  const toggleEnrolleeSelection = (enrolleeId: string) => {
+    setSelectedEnrolleeIds((current) =>
+      current.includes(enrolleeId)
+        ? current.filter((id) => id !== enrolleeId)
+        : [...current, enrolleeId],
+    );
+  };
+
+  const toggleVisibleEnrolleeSelection = () => {
+    setSelectedEnrolleeIds((current) => {
+      if (allVisibleEnrolleesSelected) {
+        return current.filter((id) => !visibleEnrolleeIds.includes(id));
+      }
+
+      return [...new Set([...current, ...visibleEnrolleeIds])];
+    });
+  };
+
+  const handleBulkNotificationModal = (mode: "selected" | "company") => {
+    if (mode === "selected" && selectedEnrolleeIds.length === 0) {
+      setNotificationErrorMessage(
+        "Select at least one enrollee before sending the notification.",
+      );
+      notificationErrorModal.openModal();
+      return;
+    }
+    if (mode === "company" && !selectedCompanyId) {
+      setNotificationErrorMessage(
+        "Select a company before notifying all of its enrollees.",
+      );
+      notificationErrorModal.openModal();
+      return;
+    }
+
+    setBulkNotificationMode(mode);
+    notificationConfirmModal.openModal();
+  };
+
+  const closeNotificationConfirmModal = () => {
+    setBulkNotificationMode(null);
+    notificationConfirmModal.closeModal();
+  };
+
+  const sendBulkEnrollmentNotifications = async () => {
+    if (!bulkNotificationMode) return;
+
+    try {
+      setSendingNotifications(true);
+      const payload =
+        bulkNotificationMode === "company"
+          ? {
+              companyId: selectedCompanyId,
+              sendAllForCompany: true,
+              confirmation: selectedCompanyId,
+            }
+          : {
+              enrolleeIds: selectedEnrolleeIds,
+              ...(selectedCompanyId ? { companyId: selectedCompanyId } : {}),
+            };
+      const response = await apiClient(
+        "/admin/enrollees/bulk/resend-enrollment-notification",
+        {
+          method: "POST",
+          body: payload,
+        },
+      );
+      const result = response?.data || {};
+      const sentCount = Number(result.sentCount || 0);
+      const failedCount = Number(result.failedCount || 0);
+
+      setSelectedEnrolleeIds([]);
+      setBulkNotificationMode(null);
+      notificationConfirmModal.closeModal();
+
+      if (failedCount > 0) {
+        const reasons = Array.isArray(result.failures)
+          ? result.failures
+              .slice(0, 3)
+              .map((failure: { email?: string | null; reason?: string }) =>
+                `${failure.email || "Enrollee"}: ${failure.reason || "Send failed"}`,
+              )
+              .join("; ")
+          : "";
+        setNotificationErrorMessage(
+          `${sentCount} notification${sentCount === 1 ? " was" : "s were"} sent, but ${failedCount} failed.${reasons ? ` ${reasons}` : ""}`,
+        );
+        notificationErrorModal.openModal();
+      } else {
+        notificationSuccessModal.openModal();
+      }
+
+      await fetch();
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      setNotificationErrorMessage(
+        err.message || "Failed to send enrollment notifications.",
+      );
+      notificationErrorModal.openModal();
+    } finally {
+      setSendingNotifications(false);
+    }
+  };
+
+  const notificationConfirmation = useMemo(() => {
+    if (bulkNotificationMode === "company") {
+      return {
+        title: `Notify all ${selectedCompany?.name || "company"} enrollees?`,
+        message: `This will send the Complete HMO Enrollment message to every enrollee in ${
+          selectedCompany?.name || "the selected company"
+        }. Each enrollee will receive a new temporary password, replacing their current password.`,
+        confirmLabel: "Notify company enrollees",
+      };
+    }
+
+    const count = selectedEnrolleeIds.length;
+    return {
+      title: `Notify ${count} selected enrollee${count === 1 ? "" : "s"}?`,
+      message: `This will send the Complete HMO Enrollment message and create a new temporary password for ${count} selected enrollee${
+        count === 1 ? "" : "s"
+      }. Their current passwords will be replaced.`,
+      confirmLabel: `Notify ${count} enrollee${count === 1 ? "" : "s"}`,
+    };
+  }, [bulkNotificationMode, selectedCompany?.name, selectedEnrolleeIds.length]);
+
   return (
     <>
       {showCopyNotification && (
@@ -213,28 +498,55 @@ const EnrolleeTable: React.FC = () => {
         </div>
       )}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+        <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-800 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
               Enrollees Listing
             </h3>
           </div>
 
-          <div className="flex gap-3.5">
-            <div className="hidden flex-col gap-3 sm:flex sm:flex-row sm:items-center">
+          <div className="flex w-full gap-3.5 xl:w-auto">
+            <div className="flex w-full flex-wrap items-center gap-3 xl:justify-end">
               <Select
                 options={[
-                  { value: "", label: "All Companies" },
+                  { value: "all", label: "All Companies" },
                   ...companies.map((company) => ({
                     value: company.id,
                     label: company.name,
                   })),
                 ]}
-                placeholder="Select company"
+                placeholder="All Companies"
                 onChange={handleCompanyChange}
-                defaultValue={selectedCompanyId}
+                defaultValue={selectedCompanyId || "all"}
+                className="min-w-[170px]"
               />
-              <div className="relative">
+              <Select
+                options={[
+                  { value: "all", label: "All Subscriptions" },
+                  ...availableSubscriptions.map((subscription) => ({
+                    value: subscription.id,
+                    label: subscription.code,
+                  })),
+                ]}
+                placeholder="All Subscriptions"
+                onChange={handleSubscriptionChange}
+                defaultValue={selectedSubscriptionId || "all"}
+                className="min-w-[180px]"
+              />
+              <Select
+                options={[
+                  { value: "all", label: "All Company Plans" },
+                  ...availableCompanyPlans.map((plan) => ({
+                    value: plan.id,
+                    label: plan.name,
+                  })),
+                ]}
+                placeholder="All Company Plans"
+                onChange={handleCompanyPlanChange}
+                defaultValue={selectedCompanyPlanId || "all"}
+                className="min-w-[180px]"
+              />
+              <div className="relative min-w-[220px] flex-1 xl:flex-none">
                 <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
                   <svg
                     className="fill-current"
@@ -254,16 +566,53 @@ const EnrolleeTable: React.FC = () => {
                 </span>
                 <input
                   type="text"
-                  placeholder="Search..."
-                  className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                  placeholder="Search enrollees..."
+                  className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[260px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                   value={search}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setSearch(e.target.value);
                     setCurrentPage(1);
+                    setSelectedEnrolleeIds([]);
                   }}
                 />
               </div>
             </div>
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 border-b border-blue-200 bg-blue-50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-blue-900/50 dark:bg-blue-500/10">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold text-blue-900 dark:text-blue-300">
+              Complete HMO Enrollment notification
+            </p>
+            <p className="mt-1 text-sm leading-6 text-blue-800 dark:text-blue-400">
+              Tick individual enrollees and notify the selection, or select a
+              company above to notify every enrollee in that company. The
+              configured notification template is used and each successful
+              delivery appears in Notification Logs. Retriggering creates a new
+              temporary password for every recipient.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => handleBulkNotificationModal("selected")}
+              disabled={
+                selectedEnrolleeIds.length === 0 || sendingNotifications
+              }
+              className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg border border-brand-300 bg-white px-4 py-2.5 text-sm font-medium text-brand-600 transition hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-800 dark:bg-gray-900 dark:text-brand-400 dark:hover:bg-brand-500/10"
+            >
+              <MailIcon />
+              Notify selected ({selectedEnrolleeIds.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkNotificationModal("company")}
+              disabled={!selectedCompanyId || sendingNotifications}
+              className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <MailIcon />
+              Notify company enrollees
+            </button>
           </div>
         </div>
         {loading ? (
@@ -273,6 +622,17 @@ const EnrolleeTable: React.FC = () => {
             <table className="w-full table-auto">
               <thead>
                 <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+                  <th className="w-12 p-4 text-left">
+                    <input
+                      ref={selectAllCheckboxRef}
+                      type="checkbox"
+                      checked={allVisibleEnrolleesSelected}
+                      onChange={toggleVisibleEnrolleeSelection}
+                      disabled={visibleEnrolleeIds.length === 0}
+                      aria-label="Select all enrollees on this page"
+                      className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900"
+                    />
+                  </th>
                   {headers.map((h) => (
                     <th
                       key={h.key}
@@ -291,8 +651,21 @@ const EnrolleeTable: React.FC = () => {
                 {enrollees.map((enrollee: Enrollee) => (
                   <tr
                     key={enrollee.id}
-                    className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
+                    className={`transition hover:bg-gray-50 dark:hover:bg-gray-900 ${
+                      selectedEnrolleeIdSet.has(enrollee.id)
+                        ? "bg-brand-50/60 dark:bg-brand-500/5"
+                        : ""
+                    }`}
                   >
+                    <td className="w-12 p-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedEnrolleeIdSet.has(enrollee.id)}
+                        onChange={() => toggleEnrolleeSelection(enrollee.id)}
+                        aria-label={`Select ${enrollee.firstName} ${enrollee.lastName}`}
+                        className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900"
+                      />
+                    </td>
                     <td className="p-4 whitespace-nowrap">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-400">
                         {capitalizeWords(enrollee.firstName)}
@@ -350,6 +723,28 @@ const EnrolleeTable: React.FC = () => {
                           </button>
                         )}
                       </div>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-sm text-gray-700 dark:text-gray-400">
+                        {enrollee.companyPlan?.name || "-"}
+                      </p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-sm text-gray-700 dark:text-gray-400">
+                        {enrollee.Staff?.Subscription?.code || "-"}
+                      </p>
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <p className="text-sm text-gray-700 dark:text-gray-400">
+                        {enrollee.expirationDate ||
+                        enrollee.Staff?.Subscription?.endDate
+                          ? formatDate(
+                              enrollee.expirationDate ||
+                                enrollee.Staff?.Subscription?.endDate ||
+                                "",
+                            )
+                          : "-"}
+                      </p>
                     </td>
                     <td className="p-4 whitespace-nowrap">
                       <span
@@ -508,6 +903,25 @@ const EnrolleeTable: React.FC = () => {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        confirmModal={notificationConfirmModal}
+        handleSave={() => void sendBulkEnrollmentNotifications()}
+        closeModal={closeNotificationConfirmModal}
+        title={notificationConfirmation.title}
+        message={notificationConfirmation.message}
+        confirmLabel={notificationConfirmation.confirmLabel}
+        cancelLabel="Cancel"
+        loading={sendingNotifications}
+      />
+      <SuccessModal
+        successModal={notificationSuccessModal}
+        handleSuccessClose={notificationSuccessModal.closeModal}
+      />
+      <ErrorModal
+        message={notificationErrorMessage}
+        errorModal={notificationErrorModal}
+        handleErrorClose={notificationErrorModal.closeModal}
+      />
       <EditEnrolleeModal
         enrollee={selectedEnrollee}
         isOpen={isEditOpen}

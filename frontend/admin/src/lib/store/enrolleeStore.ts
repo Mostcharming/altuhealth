@@ -21,6 +21,7 @@ export interface Enrollee {
   email: string;
   maxDependents?: number | null;
   preexistingMedicalRecords?: string | null;
+  enrollmentDate?: string | null;
   expirationDate?: string | null;
   pictureUrl?: string | null;
   idCardUrl?: string | null;
@@ -28,6 +29,30 @@ export interface Enrollee {
   isVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  Company?: {
+    id: string;
+    name: string;
+  };
+  companyPlan?: {
+    id: string;
+    name: string;
+    planType?: string;
+    planCycle?: string;
+    annualPremiumPrice?: number;
+    currency?: string;
+  };
+  Staff?: {
+    id: string;
+    staffId?: string | null;
+    subscriptionId?: string | null;
+    Subscription?: {
+      id: string;
+      code: string;
+      startDate: string;
+      endDate: string;
+      status: "active" | "suspended" | "inactive" | "expired";
+    } | null;
+  };
 }
 
 type EnrolleeState = {
