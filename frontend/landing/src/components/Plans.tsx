@@ -6,6 +6,7 @@ import {
   detectVisitorCountryCode,
   getPlanCategoriesForCountry,
   getPlanCategoryLabel,
+  getPublicPlanCategoryKey,
   type PlanCategory,
   type PlanCategoryOption,
 } from "@/lib/planMarket";
@@ -124,107 +125,108 @@ const countryCurrencyMap: Record<string, string> = {
   ZA: "ZAR",
 };
 
-const planVariantLabels: Record<string, { group: string; label: string; order: number; rowOrder: number }> = {
-  SENIOR_BASIC_SINGLE_PARENT: {
-    group: "senior basic",
-    label: "Single Parent",
-    order: 1,
-    rowOrder: 1,
-  },
-  SENIOR_BASIC_COUPLE: {
-    group: "senior basic",
-    label: "Couple",
-    order: 1,
-    rowOrder: 2,
-  },
-  SENIOR_STANDARD_SINGLE_PARENT: {
-    group: "senior standard",
-    label: "Single Parent",
-    order: 2,
-    rowOrder: 1,
-  },
-  SENIOR_STANDARD_COUPLE: {
-    group: "senior standard",
-    label: "Couple",
-    order: 2,
-    rowOrder: 2,
-  },
-  SENIOR_ELITE_SINGLE_PARENT: {
-    group: "senior elite",
-    label: "Single Parent",
-    order: 3,
-    rowOrder: 1,
-  },
-  SENIOR_ELITE_COUPLE: {
-    group: "senior elite",
-    label: "Couple",
-    order: 3,
-    rowOrder: 2,
-  },
-  VITAL_BASIC_INDIVIDUAL: {
-    group: "vital basic",
-    label: "Individual",
-    order: 1,
-    rowOrder: 1,
-  },
-  VITAL_BASIC_FAMILY: {
-    group: "vital basic",
-    label: "Family",
-    order: 1,
-    rowOrder: 2,
-  },
-  VITAL_LITE_INDIVIDUAL: {
-    group: "vital lite",
-    label: "Individual",
-    order: 2,
-    rowOrder: 1,
-  },
-  VITAL_LITE_FAMILY: {
-    group: "vital lite",
-    label: "Family",
-    order: 2,
-    rowOrder: 2,
-  },
-  VITAL_GROOVE_INDIVIDUAL: {
-    group: "vital groove",
-    label: "Individual",
-    order: 3,
-    rowOrder: 1,
-  },
-  VITAL_GROOVE_FAMILY: {
-    group: "vital groove",
-    label: "Family",
-    order: 3,
-    rowOrder: 2,
-  },
-  VITAL_PLUS_INDIVIDUAL: {
-    group: "vital plus",
-    label: "Individual",
-    order: 4,
-    rowOrder: 1,
-  },
-  VITAL_PLUS_FAMILY: {
-    group: "vital plus",
-    label: "Family",
-    order: 4,
-    rowOrder: 2,
-  },
-  VITAL_MAX_INDIVIDUAL: {
-    group: "vital max",
-    label: "Individual",
-    order: 5,
-    rowOrder: 1,
-  },
-  VITAL_MAX_FAMILY: {
-    group: "vital max",
-    label: "Family",
-    order: 5,
-    rowOrder: 2,
-  },
+type PlanNameDefinition = {
+  category: PlanCategory;
+  group: string;
+  displayName: string;
+  family: "senior" | "vital" | "altu";
+  order: number;
 };
 
+const planNameDefinitions: PlanNameDefinition[] = [
+  {
+    category: "geriatric",
+    group: "senior basic",
+    displayName: "Senior Basic",
+    family: "senior",
+    order: 1,
+  },
+  {
+    category: "geriatric",
+    group: "senior standard",
+    displayName: "Senior Standard",
+    family: "senior",
+    order: 2,
+  },
+  {
+    category: "geriatric",
+    group: "senior elite",
+    displayName: "Senior Elite",
+    family: "senior",
+    order: 3,
+  },
+  {
+    category: "retail",
+    group: "vital basic",
+    displayName: "Vital Basic",
+    family: "vital",
+    order: 1,
+  },
+  {
+    category: "retail",
+    group: "vital lite",
+    displayName: "Vital Lite",
+    family: "vital",
+    order: 2,
+  },
+  {
+    category: "retail",
+    group: "vital groove",
+    displayName: "Vital Groove",
+    family: "vital",
+    order: 3,
+  },
+  {
+    category: "retail",
+    group: "vital plus",
+    displayName: "Vital Plus",
+    family: "vital",
+    order: 4,
+  },
+  {
+    category: "retail",
+    group: "vital max",
+    displayName: "Vital Max",
+    family: "vital",
+    order: 5,
+  },
+  {
+    category: "diaspora",
+    group: "altu basic",
+    displayName: "Altu Basic",
+    family: "altu",
+    order: 1,
+  },
+  {
+    category: "diaspora",
+    group: "altu standard",
+    displayName: "Altu Standard",
+    family: "altu",
+    order: 2,
+  },
+  {
+    category: "diaspora",
+    group: "altu elite",
+    displayName: "Altu Elite",
+    family: "altu",
+    order: 3,
+  },
+];
+
+function getPlanNameDefinition(plan: PublicPlan) {
+  const lowerCaseName = normalizePlanName(plan.name || "");
+  return planNameDefinitions.find((definition) =>
+    lowerCaseName.includes(definition.group),
+  );
+}
+
 function normalizePlanName(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function titleCase(value: string) {
@@ -236,7 +238,9 @@ function titleCase(value: string) {
 }
 
 function normalizeCurrency(currency?: string | null) {
-  return String(currency || "NGN").trim().toUpperCase();
+  return String(currency || "NGN")
+    .trim()
+    .toUpperCase();
 }
 
 function getRate(currency: string, rates: CurrencyRates): CurrencyRate | null {
@@ -298,7 +302,12 @@ function formatCurrency(amount: number, currency: string) {
 }
 
 function inferPlanCategory(plan: PublicPlan): InferredPlanCategory {
-  const text = `${plan.name || ""} ${plan.code || ""} ${plan.description || ""}`.toLowerCase();
+  const definition = getPlanNameDefinition(plan);
+  if (definition) {
+    return definition.category;
+  }
+
+  const text = normalizePlanName(plan.name || "");
 
   if (/(corporate|company|business|employer|staff|group)/.test(text)) {
     return "corporate";
@@ -317,12 +326,33 @@ function inferPlanCategory(plan: PublicPlan): InferredPlanCategory {
 }
 
 function getVariantLabel(plan: PublicPlan) {
-  const definition = planVariantLabels[plan.code];
-  if (definition) {
-    return definition.label;
+  const definition = getPlanNameDefinition(plan);
+  const text = normalizePlanName(plan.name || "");
+
+  if (definition?.family === "senior") {
+    if (text.includes("couple")) return "Couple";
+    if (text.includes("single parent")) return "Single Parent";
+    return plan.allowDependentEnrolee ? "Couple" : "Single Parent";
   }
 
-  const text = `${plan.code || ""} ${plan.name || ""}`.toLowerCase();
+  if (definition?.family === "vital") {
+    if (text.includes("family")) return "Family";
+    if (text.includes("individual")) return "Individual";
+    return plan.allowDependentEnrolee ? "Family" : "Individual";
+  }
+
+  if (definition?.family === "altu") {
+    const individualCountFromName = text.match(/\b([1-4])\s+individuals?\b/);
+    const dependentCount = Number(plan.maxNumberOfDependents);
+    const individualCount = individualCountFromName
+      ? Number(individualCountFromName[1])
+      : Number.isInteger(dependentCount) && dependentCount >= 0
+        ? dependentCount + 1
+        : 1;
+
+    return `${individualCount} ${individualCount === 1 ? "Individual" : "Individuals"}`;
+  }
+
   if (text.includes("family")) return "Family";
   if (text.includes("couple")) return "Couple";
   if (text.includes("single")) return "Single";
@@ -331,16 +361,24 @@ function getVariantLabel(plan: PublicPlan) {
 }
 
 function getPlanGroupKey(plan: PublicPlan) {
-  const definition = planVariantLabels[plan.code];
-  return definition?.group || normalizePlanName(plan.name || plan.code || plan.id);
+  const definition = getPlanNameDefinition(plan);
+  return definition?.group || normalizePlanName(plan.name || plan.id);
 }
 
 function getPlanOrder(plan: PublicPlan) {
-  return planVariantLabels[plan.code]?.order ?? 999;
+  return getPlanNameDefinition(plan)?.order ?? 999;
 }
 
 function getRowOrder(plan: PublicPlan) {
-  return planVariantLabels[plan.code]?.rowOrder ?? 999;
+  const definition = getPlanNameDefinition(plan);
+  const label = getVariantLabel(plan);
+
+  if (definition?.family === "altu") {
+    return Number.parseInt(label, 10) || 999;
+  }
+  if (label === "Single Parent" || label === "Individual") return 1;
+  if (label === "Couple" || label === "Family") return 2;
+  return 999;
 }
 
 function cycleToLabel(cycle?: string | null) {
@@ -386,10 +424,13 @@ function buildDisplayPlans(
   return Array.from(grouped.values())
     .map((item) => {
       const orderedPlans = [...item.plans].sort(
-        (a, b) => getRowOrder(a) - getRowOrder(b) || a.name.localeCompare(b.name),
+        (a, b) =>
+          getRowOrder(a) - getRowOrder(b) || a.name.localeCompare(b.name),
       );
       const firstPlan = orderedPlans[0];
-      const cycles = new Set(orderedPlans.map((plan) => cycleToLabel(plan.planCycle)));
+      const cycles = new Set(
+        orderedPlans.map((plan) => cycleToLabel(plan.planCycle)),
+      );
       const categoryLabel =
         item.category === "general"
           ? "General"
@@ -397,13 +438,17 @@ function buildDisplayPlans(
 
       return {
         id: `${item.category}-${item.group}`,
-        name: firstPlan?.name || titleCase(item.group),
+        name:
+          getPlanNameDefinition(firstPlan)?.displayName ||
+          firstPlan?.name ||
+          titleCase(item.group),
         description:
           firstPlan?.description ||
           "Healthcare coverage for everyday care and managed support.",
         category: item.category,
         audience: `${categoryLabel} plans`,
-        cycleLabel: cycles.size === 1 ? Array.from(cycles)[0] : "billing cycle varies",
+        cycleLabel:
+          cycles.size === 1 ? Array.from(cycles)[0] : "billing cycle varies",
         rows: orderedPlans.map((plan) => {
           const amount = Number(plan.annualPremiumPrice || 0);
           const sourceCurrency = normalizeCurrency(plan.currency);
@@ -449,7 +494,9 @@ function buildDisplayPlans(
 }
 
 function getCurrencyForCountry(countryCode?: string) {
-  const code = String(countryCode || "").trim().toUpperCase();
+  const code = String(countryCode || "")
+    .trim()
+    .toUpperCase();
   return countryCurrencyMap[code] || "";
 }
 
@@ -461,7 +508,15 @@ function readCategoryFromUrl(
   }
 
   const params = new URLSearchParams(window.location.search);
-  const category = params.get("planCategory")?.toLowerCase() as PlanCategory;
+  const requestedCategory = params
+    .get("planCategory")
+    ?.toLowerCase() as PlanCategory;
+  const category =
+    requestedCategory === "retail" &&
+    availableCategories.some((item) => item.key === "diaspora") &&
+    !availableCategories.some((item) => item.key === "retail")
+      ? "diaspora"
+      : requestedCategory;
   return availableCategories.some((item) => item.key === category)
     ? category
     : availableCategories[0]?.key || "retail";
@@ -472,9 +527,10 @@ function readReferralCodeFromUrl() {
     return "";
   }
 
-  return new URLSearchParams(window.location.search)
-    .get("referralCode")
-    ?.trim() || "";
+  return (
+    new URLSearchParams(window.location.search).get("referralCode")?.trim() ||
+    ""
+  );
 }
 
 export default function Plans() {
@@ -634,7 +690,9 @@ export default function Plans() {
     const fetchPlans = async () => {
       try {
         const countryCode = await detectVisitorCountryCode();
-        const detectedCurrency = getCurrencyForCountry(countryCode || undefined);
+        const detectedCurrency = getCurrencyForCountry(
+          countryCode || undefined,
+        );
 
         if (isMounted) {
           setAvailableCategories(getPlanCategoriesForCountry(countryCode));
@@ -643,12 +701,16 @@ export default function Plans() {
         const query = detectedCurrency
           ? `?currency=${encodeURIComponent(detectedCurrency)}`
           : "";
-        const payload = (await apiClient(`/public/plans${query}`)) as PlansResponse;
+        const payload = (await apiClient(
+          `/public/plans${query}`,
+        )) as PlansResponse;
 
         if (isMounted) {
           setBackendPlans(payload.data?.list || []);
           setCurrencyRates(payload.data?.currencyRates || {});
-          setDisplayCurrency(payload.data?.displayCurrency || detectedCurrency || "NGN");
+          setDisplayCurrency(
+            payload.data?.displayCurrency || detectedCurrency || "NGN",
+          );
         }
       } catch {
         if (isMounted) {
@@ -719,7 +781,7 @@ export default function Plans() {
   const handleCategoryChange = (category: PlanCategory) => {
     setSelectedCategory(category);
     const url = new URL(window.location.href);
-    url.searchParams.set("planCategory", category);
+    url.searchParams.set("planCategory", getPublicPlanCategoryKey(category));
     url.hash = "plans";
     window.history.replaceState({}, "", url.toString());
   };
@@ -817,8 +879,8 @@ export default function Plans() {
           <span>Our Plans</span>
           <h2>Choose A Health Plan That Fits Your Needs.</h2>
           <p>
-            Browse plans available for your location by category. Prices are shown in{" "}
-            {displayCurrency} when an exchange rate is available.
+            Browse plans available for your location by category. Prices are
+            shown in {displayCurrency} when an exchange rate is available.
           </p>
         </div>
 
@@ -902,8 +964,7 @@ export default function Plans() {
                       onClick={() => openPlanModal(plan)}
                       disabled={isLoadingPlans}
                     >
-                      {isLoadingPlans ? "Loading" : "Register"}{" "}
-                      <span>→</span>
+                      {isLoadingPlans ? "Loading" : "Register"} <span>→</span>
                     </button>
                   </div>
                 </div>
@@ -1119,7 +1180,9 @@ export default function Plans() {
                 className="buy-btn"
                 onClick={handleProceedToPayment}
                 disabled={
-                  isProcessingPayment || isLoadingGateways || gateways.length === 0
+                  isProcessingPayment ||
+                  isLoadingGateways ||
+                  gateways.length === 0
                 }
               >
                 {isProcessingPayment ? "Processing..." : "Proceed to Pay"}{" "}
