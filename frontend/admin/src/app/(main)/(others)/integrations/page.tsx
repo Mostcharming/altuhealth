@@ -1,6 +1,12 @@
 "use client";
 
-import { HealaIcon, PayPalIcon, StripeIcon } from "@/components/integration/icon";
+import {
+  FlutterwaveIcon,
+  HealaIcon,
+  IntegrationFallbackIcon,
+  PayPalIcon,
+  StripeIcon,
+} from "@/components/integration/icon";
 import IntegrationBreadcrumb from "@/components/integration/IntegrationBreadcrumb";
 import IntegrationCard from "@/components/integration/IntegrationCard";
 import ErrorModal from "@/components/modals/error";
@@ -54,6 +60,57 @@ const integrationDefaults = {
   },
 };
 
+function normalizeIntegrationName(name: string) {
+  return name.trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function getIntegrationDefaults(name: string) {
+  const normalizedName = normalizeIntegrationName(name);
+  const configuredDefault =
+    integrationDefaults[normalizedName as keyof typeof integrationDefaults];
+
+  if (configuredDefault) return configuredDefault;
+
+  if (normalizedName.includes("stripe")) {
+    return {
+      title: name,
+      description:
+        "Connect your Stripe account to process payments and manage transactions.",
+      icon: <StripeIcon />,
+    };
+  }
+
+  if (normalizedName.includes("paypal")) {
+    return {
+      title: name,
+      description:
+        "Connect your PayPal account to process payments and manage transactions.",
+      icon: <PayPalIcon />,
+    };
+  }
+
+  if (normalizedName.includes("flutterwave")) {
+    const isTestEnvironment = /(sandbox|test|staging)/.test(normalizedName);
+    return {
+      title: name,
+      description: isTestEnvironment
+        ? "Connect your Flutterwave test account for payment testing and development."
+        : "Connect your Flutterwave account to process payments and manage transactions.",
+      icon: <FlutterwaveIcon />,
+    };
+  }
+
+  if (normalizedName.includes("heala")) {
+    return {
+      title: name,
+      description: "Connect Heala for enrollee virtual health consultations.",
+      icon: <HealaIcon />,
+    };
+  }
+
+  return undefined;
+}
+
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<IntegrationData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,29 +130,17 @@ export default function IntegrationsPage() {
         response?.data?.integrations || response?.integrations || [];
 
       const formattedIntegrations: IntegrationData[] = integrationsList.map(
-        (integration: Integration) => ({
-          id: integration.id,
-          title:
-            integrationDefaults[
-              integration.name
-                .toLowerCase()
-                .replace(/\s+/g, "-") as keyof typeof integrationDefaults
-            ]?.title || integration.name,
-          description:
-            integration.description ||
-            integrationDefaults[
-              integration.name
-                .toLowerCase()
-                .replace(/\s+/g, "-") as keyof typeof integrationDefaults
-            ]?.description ||
-            "",
-          icon: integrationDefaults[
-            integration.name
-              .toLowerCase()
-              .replace(/\s+/g, "-") as keyof typeof integrationDefaults
-          ]?.icon || <StripeIcon />,
-          isConnected: integration.is_active,
-        }),
+        (integration: Integration) => {
+          const defaults = getIntegrationDefaults(integration.name);
+
+          return {
+            id: integration.id,
+            title: defaults?.title || integration.name,
+            description: integration.description || defaults?.description || "",
+            icon: defaults?.icon || <IntegrationFallbackIcon />,
+            isConnected: integration.is_active,
+          };
+        },
       );
 
       setIntegrations(formattedIntegrations);
