@@ -21,8 +21,16 @@ export interface Plan {
   createdAt?: string;
   updatedAt?: string;
   benefitCategories?: BenefitCategory[];
+  benefits?: PlanBenefit[];
   exclusions?: Exclusion[];
   providers?: Provider[];
+}
+
+export interface PlanBenefit {
+  id: string;
+  name: string;
+  description?: string;
+  benefitCategoryId: string;
 }
 
 export interface BenefitCategory {
@@ -119,6 +127,30 @@ export async function removeBenefitCategory(
     `/admin/plans/benefit-categories/${planId}/${benefitCategoryId}`,
     {
       method: "DELETE",
+    }
+  );
+}
+
+export async function syncPlanBenefitCategories(
+  planId: string,
+  benefitCategoryIds: string[]
+) {
+  return apiClient(`/admin/plans/${planId}/benefit-categories`, {
+    method: "PUT",
+    body: { benefitCategoryIds },
+  });
+}
+
+export async function syncPlanBenefits(
+  planId: string,
+  benefitCategoryId: string,
+  benefitIds: string[]
+) {
+  return apiClient(
+    `/admin/plans/${planId}/benefit-categories/${benefitCategoryId}/benefits`,
+    {
+      method: "PUT",
+      body: { benefitIds },
     }
   );
 }

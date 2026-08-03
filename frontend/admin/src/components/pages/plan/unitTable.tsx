@@ -34,6 +34,7 @@ const AdminTable: React.FC = () => {
   const [editingRole, setEditingRole] = useState<Plan | null>(null);
   const [viewingPlan, setViewingPlan] = useState<Plan | null>(null);
   const removeUser = usePlanStore((s) => s.removePlan);
+  const updatePlanInStore = usePlanStore((s) => s.updatePlan);
   const [errorMessage, setErrorMessage] = useState(
     "Failed to delete plan. Please try again."
   );
@@ -456,6 +457,14 @@ const AdminTable: React.FC = () => {
         isOpen={viewModal.isOpen}
         closeModal={handleCloseView}
         plan={viewingPlan}
+        onUpdated={(updatedPlan) => {
+          updatePlanInStore(updatedPlan.id, updatedPlan);
+          setViewingPlan((current) =>
+            current?.id === updatedPlan.id
+              ? { ...current, ...updatedPlan }
+              : current
+          );
+        }}
       />
       <SuccessModal
         successModal={successModal}

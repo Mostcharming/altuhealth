@@ -5,12 +5,8 @@ import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
-import {
-  addBenefitToPlan,
-  Benefit,
-  fetchBenefitsByCategory,
-  removeBenefitFromPlan,
-} from "@/lib/apis/benefit";
+import { Benefit, fetchBenefitsByCategory } from "@/lib/apis/benefit";
+import { syncPlanBenefits } from "@/lib/apis/plan";
 import React, { useCallback, useEffect, useState } from "react";
 
 interface BenefitSelectionModalProps {
@@ -19,7 +15,7 @@ interface BenefitSelectionModalProps {
   planId: string | null;
   benefitCategoryId: string | null;
   benefitCategoryName?: string;
-  onSuccess?: () => void;
+  onSuccess?: (benefitIds: string[], benefits: Benefit[]) => void;
   initialBenefitIds?: string[];
 }
 
@@ -96,11 +92,14 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
   const [errorMessage, setErrorMessage] = useState("");
 
   const errorModal = useModal();
+  const openErrorModal = errorModal.openModal;
   const successModal = useModal();
 
   const [allBenefits, setAllBenefits] = useState<Benefit[]>([]);
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
-  const [initialBenefits, setInitialBenefits] = useState<string[]>([]);
+  const initialBenefitIdsKey = [...new Set(initialBenefitIds.map(String))]
+    .sort()
+    .join(",");
 
   const fetchBenefits = useCallback(async () => {
     if (!benefitCategoryId) return;
@@ -117,24 +116,26 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
       setAllBenefits(items);
 
       // Pre-select benefits that are already associated with the plan
+      const initialIds = initialBenefitIdsKey
+        ? initialBenefitIdsKey.split(",")
+        : [];
       const benefitsToSelect = items
         .filter((benefit: Benefit) =>
-          initialBenefitIds.includes(String(benefit.id))
+          initialIds.includes(String(benefit.id))
         )
         .map((benefit: Benefit) => String(benefit.id));
 
       setSelectedBenefits(benefitsToSelect);
-      setInitialBenefits(benefitsToSelect);
     } catch (err) {
       console.warn("Failed to fetch benefits", err);
       setErrorMessage(
         err instanceof Error ? err.message : "Failed to fetch benefits"
       );
-      errorModal.openModal();
+      openErrorModal();
     } finally {
       setLoading(false);
     }
-  }, [benefitCategoryId]);
+  }, [benefitCategoryId, initialBenefitIdsKey, openErrorModal]);
 
   useEffect(() => {
     if (isOpen && benefitCategoryId) {
@@ -151,66 +152,24 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
   };
 
   const handleSaveBenefits = async () => {
-    if (!planId) return;
+    if (!planId || !benefitCategoryId) return;
 
     try {
       setUpdating(true);
-      let hasError = false;
-      const errors: string[] = [];
-
-      // Remove benefits that were deselected
-      for (const benefitId of initialBenefits) {
-        if (!selectedBenefits.includes(benefitId)) {
-          try {
-            await removeBenefitFromPlan(planId, benefitId);
-          } catch (err) {
-            hasError = true;
-            const errorMsg =
-              err instanceof Error
-                ? err.message
-                : `Failed to remove benefit ${benefitId}`;
-            console.warn(errorMsg, err);
-            errors.push(errorMsg);
-          }
-        }
-      }
-
-      // Add benefits that were newly selected
-      for (const benefitId of selectedBenefits) {
-        if (!initialBenefits.includes(benefitId)) {
-          try {
-            await addBenefitToPlan(planId, benefitId);
-          } catch (err) {
-            hasError = true;
-            const errorMsg =
-              err instanceof Error
-                ? err.message
-                : `Failed to add benefit ${benefitId}`;
-            console.warn(errorMsg, err);
-            errors.push(errorMsg);
-          }
-        }
-      }
-
-      if (hasError) {
-        setErrorMessage(
-          errors.length > 0
-            ? `Some operations failed: ${errors.join(", ")}`
-            : "An error occurred while updating benefits"
-        );
-        errorModal.openModal();
-      } else {
-        setInitialBenefits(selectedBenefits);
-        successModal.openModal();
-        if (onSuccess) {
-          onSuccess();
-        }
-      }
+      const canonicalBenefitIds = [...new Set(selectedBenefits)];
+      await syncPlanBenefits(planId, benefitCategoryId, canonicalBenefitIds);
+      successModal.openModal();
+      onSuccess?.(
+        canonicalBenefitIds,
+        allBenefits.filter((benefit) =>
+          canonicalBenefitIds.includes(String(benefit.id))
+        )
+      );
     } catch (err) {
       setErrorMessage(
         err instanceof Error ? err.message : "An unexpected error occurred."
       );
-      errorModal.openModal();
+      openErrorModal();
     } finally {
       setUpdating(false);
     }

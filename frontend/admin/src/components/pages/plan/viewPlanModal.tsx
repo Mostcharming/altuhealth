@@ -8,14 +8,12 @@ import { Modal } from "@/components/ui/modal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
-import { fetchBenefitsByCategory } from "@/lib/apis/benefit";
 import {
-  addBenefitCategory,
   addExclusion,
   addProvider,
-  removeBenefitCategory,
   removeExclusion,
   removeProvider,
+  syncPlanBenefitCategories,
 } from "@/lib/apis/plan";
 import { Plan } from "@/lib/store/planStore";
 import React, { useCallback, useEffect, useState } from "react";
@@ -39,6 +37,19 @@ interface ViewPlanModalProps {
   isOpen: boolean;
   closeModal: () => void;
   plan: Plan | null;
+  onUpdated?: (plan: Plan) => void;
+}
+
+function groupPlanBenefitsByCategory(benefits: any[] = []) {
+  return benefits.reduce<Record<string, string[]>>((groups, benefit) => {
+    const categoryId = String(benefit?.benefitCategoryId || "");
+    const benefitId = String(benefit?.id || "");
+    if (!categoryId || !benefitId) return groups;
+
+    groups[categoryId] = groups[categoryId] || [];
+    groups[categoryId].push(benefitId);
+    return groups;
+  }, {});
 }
 
 const CheckboxItem: React.FC<{
@@ -46,11 +57,22 @@ const CheckboxItem: React.FC<{
   label: string;
   checked: boolean;
   onChange: (id: string) => void;
-}> = ({ id, label, checked, onChange }) => (
-  <div className="p-5 bg-white border border-gray-200 rounded-xl shadow-sm dark:border-gray-800 dark:bg-white/5">
+  actionLabel?: string;
+  onAction?: () => void;
+  actionDisabled?: boolean;
+}> = ({
+  id,
+  label,
+  checked,
+  onChange,
+  actionLabel,
+  onAction,
+  actionDisabled = false,
+}) => (
+  <div className="flex items-center gap-3 p-5 bg-white border border-gray-200 rounded-xl shadow-sm dark:border-gray-800 dark:bg-white/5">
     <label
       htmlFor={`item${id}`}
-      className="flex items-center w-full cursor-pointer gap-3"
+      className="flex flex-1 items-center min-w-0 cursor-pointer gap-3"
     >
       <input
         type="checkbox"
@@ -86,6 +108,16 @@ const CheckboxItem: React.FC<{
       </div>
       <p className="text-base text-gray-800 dark:text-white/90">{label}</p>
     </label>
+    {actionLabel && onAction && (
+      <button
+        type="button"
+        onClick={onAction}
+        disabled={actionDisabled}
+        className="shrink-0 rounded-lg border border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-400 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10 dark:disabled:border-gray-700 dark:disabled:text-gray-600"
+      >
+        {actionLabel}
+      </button>
+    )}
   </div>
 );
 
@@ -93,6 +125,7 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
   isOpen,
   closeModal,
   plan,
+  onUpdated,
 }) => {
   const [activeTab, setActiveTab] = useState<string>("benefitCategories");
   const [loading, setLoading] = useState(false);
@@ -134,6 +167,7 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
   const [planBenefitsByCategory, setPlanBenefitsByCategory] = useState<
     Record<string, string[]>
   >({});
+  const [planBenefits, setPlanBenefits] = useState<any[]>([]);
 
   const tabs = [
     { key: "benefitCategories", title: "Benefit Categories" },
@@ -202,7 +236,7 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
       setLoading(true);
 
       const response = await apiClient(
-        `/admin/plans/${plan.id}?include=benefitCategories,exclusions,providers`,
+        `/admin/plans/${plan.id}?include=benefitCategories,benefits,exclusions,providers`,
         {
           method: "GET",
         }
@@ -210,41 +244,16 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
 
       const planData = response?.data;
 
-      if (
-        planData?.benefitCategories &&
-        Array.isArray(planData.benefitCategories)
-      ) {
-        const benefitCategoryIds = planData.benefitCategories.map((bc: any) =>
-          String(bc.id)
-        );
-        setSelectedBenefitCategories(benefitCategoryIds);
-        setInitialBenefitCategories(benefitCategoryIds);
-
-        // Fetch benefits for each benefit category
-        const benefitsByCategory: Record<string, string[]> = {};
-        for (const categoryId of benefitCategoryIds) {
-          try {
-            const benefitsResponse = await fetchBenefitsByCategory(categoryId);
-            const benefitsList =
-              benefitsResponse?.data?.list &&
-              Array.isArray(benefitsResponse.data.list)
-                ? benefitsResponse.data.list
-                : Array.isArray(benefitsResponse)
-                ? benefitsResponse
-                : [];
-            benefitsByCategory[categoryId] = benefitsList.map((b: any) =>
-              String(b.id)
-            );
-          } catch (err) {
-            console.warn(
-              `Failed to fetch benefits for category ${categoryId}`,
-              err
-            );
-            benefitsByCategory[categoryId] = [];
-          }
-        }
-        setPlanBenefitsByCategory(benefitsByCategory);
-      }
+      const benefitCategoryIds = Array.isArray(planData?.benefitCategories)
+        ? planData.benefitCategories.map((bc: any) => String(bc.id))
+        : [];
+      setSelectedBenefitCategories(benefitCategoryIds);
+      setInitialBenefitCategories(benefitCategoryIds);
+      const benefits = Array.isArray(planData?.benefits)
+        ? planData.benefits
+        : [];
+      setPlanBenefits(benefits);
+      setPlanBenefitsByCategory(groupPlanBenefitsByCategory(benefits));
 
       if (planData?.exclusions && Array.isArray(planData.exclusions)) {
         const exclusionIds = planData.exclusions.map((e: any) => String(e.id));
@@ -280,18 +289,21 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
   ]);
 
   const toggleBenefitCategory = (categoryId: string) => {
-    // Find the category name
-    const category = allBenefitCategories.find((bc) => bc.id === categoryId);
-    if (category) {
-      setSelectedCategoryForBenefits({ id: categoryId, name: category.name });
-      setShowBenefitSelectionModal(true);
-    }
-
     setSelectedBenefitCategories((prev) =>
       prev.includes(categoryId)
         ? prev.filter((id) => id !== categoryId)
         : [...prev, categoryId]
     );
+  };
+
+  const openBenefitSelection = (categoryId: string) => {
+    const category = allBenefitCategories.find(
+      (benefitCategory) => String(benefitCategory.id) === categoryId
+    );
+    if (!category) return;
+
+    setSelectedCategoryForBenefits({ id: categoryId, name: category.name });
+    setShowBenefitSelectionModal(true);
   };
 
   const toggleExclusion = (exclusionId: string) => {
@@ -314,33 +326,30 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
     if (!plan) return;
     try {
       setUpdating(true);
-
-      // Remove items that were deselected
-      for (const categoryId of initialBenefitCategories) {
-        if (!selectedBenefitCategories.includes(categoryId)) {
-          try {
-            await removeBenefitCategory(plan.id, categoryId);
-          } catch (err) {
-            console.warn(
-              `Failed to remove benefit category ${categoryId}`,
-              err
-            );
-          }
-        }
+      const response = await syncPlanBenefitCategories(
+        plan.id,
+        selectedBenefitCategories
+      );
+      const updatedPlan = response?.data?.plan;
+      if (!updatedPlan) {
+        throw new Error("The plan was updated, but the latest data was not returned.");
       }
 
-      // Add items that were newly selected
-      for (const categoryId of selectedBenefitCategories) {
-        if (!initialBenefitCategories.includes(categoryId)) {
-          try {
-            await addBenefitCategory(plan.id, categoryId);
-          } catch (err) {
-            console.warn(`Failed to add benefit category ${categoryId}`, err);
-          }
-        }
-      }
-
-      setInitialBenefitCategories(selectedBenefitCategories);
+      const canonicalCategoryIds = Array.isArray(
+        updatedPlan.benefitCategories
+      )
+        ? updatedPlan.benefitCategories.map((category: any) =>
+            String(category.id)
+          )
+        : [];
+      setSelectedBenefitCategories(canonicalCategoryIds);
+      setInitialBenefitCategories(canonicalCategoryIds);
+      const benefits = Array.isArray(updatedPlan.benefits)
+        ? updatedPlan.benefits
+        : [];
+      setPlanBenefits(benefits);
+      setPlanBenefitsByCategory(groupPlanBenefitsByCategory(benefits));
+      onUpdated?.({ ...plan, ...updatedPlan });
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
@@ -611,6 +620,27 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
                     label={getItemLabel(item)}
                     checked={selectedIds.includes(String(item.id))}
                     onChange={() => getToggleHandler(String(item.id))()}
+                    actionLabel={
+                      activeTab === "benefitCategories" &&
+                      selectedBenefitCategories.includes(String(item.id))
+                        ? initialBenefitCategories.includes(String(item.id))
+                          ? `Manage benefits (${
+                              planBenefitsByCategory[String(item.id)]?.length ||
+                              0
+                            })`
+                          : "Save to manage"
+                        : undefined
+                    }
+                    onAction={
+                      activeTab === "benefitCategories" &&
+                      selectedBenefitCategories.includes(String(item.id))
+                        ? () => openBenefitSelection(String(item.id))
+                        : undefined
+                    }
+                    actionDisabled={
+                      updating ||
+                      !initialBenefitCategories.includes(String(item.id))
+                    }
                   />
                 ))}
               </div>
@@ -667,7 +697,24 @@ const ViewPlanModal: React.FC<ViewPlanModalProps> = ({
             ? planBenefitsByCategory[selectedCategoryForBenefits.id] || []
             : []
         }
-        onSuccess={() => {
+        onSuccess={(benefitIds, benefits) => {
+          const categoryId = selectedCategoryForBenefits?.id;
+          if (categoryId) {
+            const updatedBenefits = [
+              ...planBenefits.filter(
+                (benefit) => String(benefit.benefitCategoryId) !== categoryId
+              ),
+              ...benefits,
+            ];
+            setPlanBenefits(updatedBenefits);
+            setPlanBenefitsByCategory((current) => ({
+              ...current,
+              [categoryId]: benefitIds,
+            }));
+            if (plan) {
+              onUpdated?.({ ...plan, benefits: updatedBenefits });
+            }
+          }
           setShowBenefitSelectionModal(false);
           setSelectedCategoryForBenefits(null);
         }}

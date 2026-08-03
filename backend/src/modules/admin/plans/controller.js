@@ -251,7 +251,10 @@ async function getPlan(req, res, next) {
             const association = [];
 
             if (includes.includes('benefitCategories')) {
-                association.push({ association: 'benefitCategories' });
+                association.push({ association: 'benefitCategories', through: { attributes: [] } });
+            }
+            if (includes.includes('benefits')) {
+                association.push({ association: 'benefits', through: { attributes: [] } });
             }
             if (includes.includes('exclusions')) {
                 association.push({ association: 'exclusions' });
@@ -270,6 +273,241 @@ async function getPlan(req, res, next) {
 
         return res.success(plan.toJSON());
     } catch (err) {
+        return next(err);
+    }
+}
+
+function normalizeSelectedIds(value, fieldName) {
+    if (!Array.isArray(value)) {
+        const error = new Error(`\`${fieldName}\` must be an array`);
+        error.status = 400;
+        throw error;
+    }
+
+    const ids = value.map(id => String(id || '').trim());
+    if (ids.some(id => !id)) {
+        const error = new Error(`\`${fieldName}\` must contain valid IDs`);
+        error.status = 400;
+        throw error;
+    }
+
+    return [...new Set(ids)];
+}
+
+async function findPlanWithBenefits(Plan, planId) {
+    return Plan.findByPk(planId, {
+        include: [
+            { association: 'benefitCategories', through: { attributes: [] } },
+            { association: 'benefits', through: { attributes: [] } }
+        ]
+    });
+}
+
+// Replace a plan's complete benefit-category selection atomically.
+async function syncBenefitCategories(req, res, next) {
+    let transaction;
+
+    try {
+        const { Plan, BenefitCategory, Benefit, PlanBenefitCategory, PlanBenefit } = req.models;
+        const { id: planId } = req.params;
+        const benefitCategoryIds = normalizeSelectedIds(
+            req.body && req.body.benefitCategoryIds,
+            'benefitCategoryIds'
+        );
+
+        transaction = await Plan.sequelize.transaction();
+
+        const plan = await Plan.findByPk(planId, {
+            transaction,
+            lock: transaction.LOCK.UPDATE
+        });
+        if (!plan) {
+            await transaction.rollback();
+            transaction = null;
+            return res.fail('Plan not found', 404);
+        }
+
+        if (benefitCategoryIds.length > 0) {
+            const categories = await BenefitCategory.findAll({
+                where: { id: { [Op.in]: benefitCategoryIds } },
+                attributes: ['id'],
+                transaction
+            });
+            const existingIds = new Set(categories.map(category => String(category.id)));
+            const invalidIds = benefitCategoryIds.filter(id => !existingIds.has(id));
+            if (invalidIds.length > 0) {
+                await transaction.rollback();
+                transaction = null;
+                return res.fail('Some benefit categories do not exist', 400);
+            }
+        }
+
+        const currentCategories = await PlanBenefitCategory.findAll({
+            where: { planId },
+            attributes: ['benefitCategoryId'],
+            transaction
+        });
+        const selectedCategoryIds = new Set(benefitCategoryIds);
+        const removedCategoryIds = [
+            ...new Set(
+                currentCategories
+                    .map(category => String(category.benefitCategoryId))
+                    .filter(categoryId => !selectedCategoryIds.has(categoryId))
+            )
+        ];
+
+        const allowedBenefits = benefitCategoryIds.length > 0
+            ? await Benefit.findAll({
+                where: { benefitCategoryId: { [Op.in]: benefitCategoryIds } },
+                attributes: ['id'],
+                transaction
+            })
+            : [];
+        const allowedBenefitIds = allowedBenefits.map(benefit => String(benefit.id));
+
+        // Remove benefits from every unselected category, including legacy orphan rows.
+        await PlanBenefit.destroy({
+            where: allowedBenefitIds.length > 0
+                ? { planId, benefitId: { [Op.notIn]: allowedBenefitIds } }
+                : { planId },
+            transaction
+        });
+
+        // Replacing the join rows also repairs any legacy duplicates.
+        await PlanBenefitCategory.destroy({ where: { planId }, transaction });
+        if (benefitCategoryIds.length > 0) {
+            await PlanBenefitCategory.bulkCreate(
+                benefitCategoryIds.map(benefitCategoryId => ({ planId, benefitCategoryId })),
+                { transaction }
+            );
+        }
+
+        await transaction.commit();
+        transaction = null;
+
+        const updatedPlan = await findPlanWithBenefits(Plan, planId);
+
+        try {
+            await addAuditLog(req.models, {
+                action: 'plan.benefitCategories.sync',
+                message: `Benefit categories updated for Plan ${plan.name}`,
+                userId: (req.user && req.user.id) ? req.user.id : null,
+                userType: (req.user && req.user.type) ? req.user.type : null,
+                meta: {
+                    planId,
+                    selectedCount: benefitCategoryIds.length,
+                    removedCategoryIds
+                }
+            });
+        } catch (auditError) {
+            console.warn('Failed to create plan benefit-category audit log:', auditError.message || auditError);
+        }
+
+        return res.success(
+            { plan: updatedPlan.toJSON() },
+            'Plan benefit categories updated'
+        );
+    } catch (err) {
+        if (transaction && !transaction.finished) {
+            await transaction.rollback();
+        }
+        if (err && err.status === 400) return res.fail(err.message, 400);
+        return next(err);
+    }
+}
+
+// Replace the selected benefits within one plan category atomically.
+async function syncBenefits(req, res, next) {
+    let transaction;
+
+    try {
+        const { Plan, BenefitCategory, Benefit, PlanBenefitCategory, PlanBenefit } = req.models;
+        const { planId, benefitCategoryId } = req.params;
+        const benefitIds = normalizeSelectedIds(req.body && req.body.benefitIds, 'benefitIds');
+
+        transaction = await Plan.sequelize.transaction();
+
+        const plan = await Plan.findByPk(planId, {
+            transaction,
+            lock: transaction.LOCK.UPDATE
+        });
+        if (!plan) {
+            await transaction.rollback();
+            transaction = null;
+            return res.fail('Plan not found', 404);
+        }
+
+        const category = await BenefitCategory.findByPk(benefitCategoryId, { transaction });
+        if (!category) {
+            await transaction.rollback();
+            transaction = null;
+            return res.fail('Benefit category not found', 404);
+        }
+
+        const planCategory = await PlanBenefitCategory.findOne({
+            where: { planId, benefitCategoryId },
+            transaction
+        });
+        if (!planCategory) {
+            await transaction.rollback();
+            transaction = null;
+            return res.fail('Save this benefit category on the plan before selecting its benefits', 409);
+        }
+
+        const categoryBenefits = await Benefit.findAll({
+            where: { benefitCategoryId },
+            attributes: ['id'],
+            transaction
+        });
+        const categoryBenefitIds = categoryBenefits.map(benefit => String(benefit.id));
+        const validBenefitIds = new Set(categoryBenefitIds);
+        const invalidBenefitIds = benefitIds.filter(id => !validBenefitIds.has(id));
+        if (invalidBenefitIds.length > 0) {
+            await transaction.rollback();
+            transaction = null;
+            return res.fail('Some benefits do not exist in this benefit category', 400);
+        }
+
+        if (categoryBenefitIds.length > 0) {
+            await PlanBenefit.destroy({
+                where: {
+                    planId,
+                    benefitId: { [Op.in]: categoryBenefitIds }
+                },
+                transaction
+            });
+        }
+        if (benefitIds.length > 0) {
+            await PlanBenefit.bulkCreate(
+                benefitIds.map(benefitId => ({ planId, benefitId })),
+                { transaction }
+            );
+        }
+
+        await transaction.commit();
+        transaction = null;
+
+        try {
+            await addAuditLog(req.models, {
+                action: 'plan.benefits.sync',
+                message: `Benefits updated for Plan ${plan.name}`,
+                userId: (req.user && req.user.id) ? req.user.id : null,
+                userType: (req.user && req.user.type) ? req.user.type : null,
+                meta: { planId, benefitCategoryId, selectedCount: benefitIds.length }
+            });
+        } catch (auditError) {
+            console.warn('Failed to create plan-benefit audit log:', auditError.message || auditError);
+        }
+
+        return res.success(
+            { benefitCategoryId, benefitIds },
+            'Plan benefits updated'
+        );
+    } catch (err) {
+        if (transaction && !transaction.finished) {
+            await transaction.rollback();
+        }
+        if (err && err.status === 400) return res.fail(err.message, 400);
         return next(err);
     }
 }
@@ -566,6 +804,8 @@ module.exports = {
     deletePlan,
     listPlans,
     getPlan,
+    syncBenefitCategories,
+    syncBenefits,
     addBenefitCategory,
     removeBenefitCategory,
     addBenefit,
