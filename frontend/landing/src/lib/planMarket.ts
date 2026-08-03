@@ -12,7 +12,11 @@ const planCategoryLabels: Record<PlanCategory, string> = {
   corporate: "Corporate",
 };
 
-const nigeriaPlanCategories: PlanCategory[] = ["retail", "geriatric"];
+const nigeriaPlanCategories: PlanCategory[] = [
+  "retail",
+  "corporate",
+  "geriatric",
+];
 
 const internationalPlanCategories: PlanCategory[] = ["diaspora", "geriatric"];
 
