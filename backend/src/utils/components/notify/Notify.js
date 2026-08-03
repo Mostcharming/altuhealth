@@ -33,6 +33,8 @@ class Notify {
             methods = this.notifyMethods();
         }
 
+        const results = {};
+
         for (const [methodName, MethodClass] of Object.entries(methods)) {
             const notifyInstance = new MethodClass(this.setting);
             notifyInstance.templateName = this.templateName;
@@ -43,8 +45,10 @@ class Notify {
             notifyInstance.userColumn = this.userColumn;
             notifyInstance.userType = this.userType;
 
-            await notifyInstance.send();
+            results[methodName] = await notifyInstance.send();
         }
+
+        return results;
     }
 
     notifyMethods(sendVia = null) {

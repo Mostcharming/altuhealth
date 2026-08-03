@@ -26,7 +26,7 @@ export default function OtpForm() {
   const router = useRouter();
 
   const handleChange = (value: string, index: number) => {
-    const sanitized = value.replace(/[^0-9a-zA-Z]/g, "");
+    const sanitized = value.replace(/\D/g, "");
     const updatedOtp = [...otp];
     updatedOtp[index] = sanitized.slice(0, 1);
 
@@ -41,7 +41,7 @@ export default function OtpForm() {
 
   const handleKeyDown = (
     event: React.KeyboardEvent<HTMLInputElement>,
-    index: number
+    index: number,
   ) => {
     if (event.key === "Backspace") {
       const updatedOtp = [...otp];
@@ -71,7 +71,7 @@ export default function OtpForm() {
     // Get the pasted text
     const pasteData = event.clipboardData
       .getData("text")
-      .replace(/[^0-9a-zA-Z]/g, "")
+      .replace(/\D/g, "")
       .slice(0, 6)
       .split("");
 
@@ -88,7 +88,7 @@ export default function OtpForm() {
     // Focus the last filled input
     const filledIndex = Math.min(
       pasteData.length - 1,
-      inputsRef.current.length - 1
+      inputsRef.current.length - 1,
     );
     if (inputsRef.current[filledIndex]) {
       inputsRef.current[filledIndex].focus();
@@ -106,8 +106,8 @@ export default function OtpForm() {
     inputsRef.current[0]?.focus();
   }, []);
 
-  const handleVerifyClick = (event?: React.MouseEvent) => {
-    event?.preventDefault();
+  const handleVerifyClick = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     (async () => {
       if (!showPasswords) {
@@ -128,7 +128,7 @@ export default function OtpForm() {
         // small timeout to wait for animation then focus password input by id
         setTimeout(() => {
           const el = document.getElementById(
-            "new-password"
+            "new-password",
           ) as HTMLInputElement | null;
           el?.focus();
         }, 200);
@@ -175,10 +175,11 @@ export default function OtpForm() {
 
       try {
         setIsLoading(true);
-        const data = await apiClient("/admin/auth/reset", {
+        const data = await apiClient("/enrollee/auth/reset", {
           method: "POST",
           body: { token, password },
           onLoading: setIsLoading,
+          redirectOnAuthError: false,
         });
 
         const message =
@@ -223,8 +224,8 @@ export default function OtpForm() {
             Two Step Verification
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            A verification code has been sent to your mobile. Please enter it in
-            the field below.
+            A verification code has been sent to the email linked to your
+            enrollee account. Please enter it below.
           </p>
         </div>
         <div>
@@ -238,7 +239,7 @@ export default function OtpForm() {
             </div>
           )}
 
-          <form>
+          <form onSubmit={handleVerifyClick}>
             <div className="space-y-5">
               {/* OTP container */}
               <div>
@@ -328,12 +329,7 @@ export default function OtpForm() {
 
               {/* Button */}
               <div className="flex flex-col gap-3">
-                <Button
-                  onClick={handleVerifyClick}
-                  className="w-full"
-                  size="sm"
-                  loading={isLoading}
-                >
+                <Button className="w-full" size="sm" loading={isLoading}>
                   {showPasswords ? "Reset Password" : "Continue"}
                 </Button>
 

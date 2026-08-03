@@ -31,26 +31,29 @@ export default function ResetPasswordForm() {
     }
 
     try {
-      const isEmail = /\S+@\S+\.\S+/.test(identifier);
+      const normalizedIdentifier = identifier.trim();
+      const isEmail = /\S+@\S+\.\S+/.test(normalizedIdentifier);
       const bodyPayload: Record<string, unknown> = {};
 
       if (isEmail) {
-        (bodyPayload as Record<string, unknown>)["email"] = identifier.trim();
+        (bodyPayload as Record<string, unknown>)["email"] =
+          normalizedIdentifier;
       } else {
         (bodyPayload as Record<string, unknown>)["policyNumber"] =
-          identifier.trim();
+          normalizedIdentifier;
       }
 
-      const data = await apiClient("/admin/auth/forgot", {
+      const data = await apiClient("/enrollee/auth/forgot", {
         method: "POST",
         body: bodyPayload,
         onLoading: setIsLoading,
+        redirectOnAuthError: false,
       });
 
       const resp = data && typeof data === "object" ? data : {};
 
       let message =
-        "If an account exists we sent a reset link to the provided contact.";
+        "A verification code was sent to the email linked to your account.";
       if (resp && typeof resp === "object") {
         const r = resp as Record<string, unknown>;
         if (typeof r.message === "string") {
@@ -63,7 +66,7 @@ export default function ResetPasswordForm() {
 
       setToast({
         variant: "success",
-        title: "Reset link sent",
+        title: "Verification code sent",
         description: String(message),
       });
 
@@ -73,8 +76,9 @@ export default function ResetPasswordForm() {
       const error = err instanceof Error ? err : new Error(String(err));
       setToast({
         variant: "error",
-        title: "Failed to send reset link",
-        description: "Invalid Credentials",
+        title: "Failed to send verification code",
+        description:
+          error.message || "Please check your details and try again.",
       });
       console.error("Reset password error:", error);
     }
@@ -94,8 +98,8 @@ export default function ResetPasswordForm() {
             Forgot Your Password?
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Enter the email address linked to your account, and we’ll send you a
-            link to reset your password.
+            Enter the email address or policy number linked to your enrollee
+            account, and we’ll email you a verification code.
           </p>
         </div>
         <div>
@@ -132,14 +136,14 @@ export default function ResetPasswordForm() {
 
               <div>
                 <Button className="w-full" size="sm" loading={isLoading}>
-                  Send Reset Link
+                  Send Verification Code
                 </Button>
               </div>
             </div>
           </form>
           <div className="mt-5">
             <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
-              Wait, I remember my password...
+              Wait, I remember my password...{" "}
               <Link
                 href="/signin"
                 className="text-brand-500 hover:text-brand-600 dark:text-brand-400"

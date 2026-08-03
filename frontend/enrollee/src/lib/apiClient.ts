@@ -10,6 +10,7 @@ export type ApiRequestOptions = {
   baseUrl?: string;
   nextOptions?: RequestInit;
   onLoading?: (loading: boolean) => void;
+  redirectOnAuthError?: boolean;
 };
 
 const DEFAULT_HEADERS = {
@@ -27,6 +28,7 @@ export async function apiClient(
     baseUrl = APP_CONFIG.API_BASE_URL,
     nextOptions = {},
     onLoading,
+    redirectOnAuthError = true,
   }: ApiRequestOptions = {},
 ) {
   try {
@@ -88,7 +90,7 @@ export async function apiClient(
     const err = error instanceof Error ? error : new Error(String(error));
 
     // If the error message mentions "token" (case-insensitive), clear auth token and redirect to /signin
-    if (/token/i.test(err.message)) {
+    if (redirectOnAuthError && /token/i.test(err.message)) {
       try {
         // Cast the store to a narrow shape so TypeScript is happy
         const store = useAuthStore as unknown as {

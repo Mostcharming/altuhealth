@@ -5,6 +5,9 @@ const { makeResetPassword } = require('../../common/reset.controller');
 const generateCode = require('../../../utils/verificationCode');
 const notify = require('../../../utils/notify');
 
+const RESET_CODE_TTL_MINUTES = 15;
+const MAX_CODE_GENERATION_ATTEMPTS = 5;
+
 const findByEmail = async (Model, email) => {
     const lookupEmail = (typeof email === 'string') ? email.trim().toLowerCase() : email;
 
@@ -45,6 +48,38 @@ const findEnrolleeForReset = async (req, { email, policyNumber }) => {
     return null;
 };
 
+const createPasswordReset = async (PasswordReset, userId, userType) => {
+    await PasswordReset.update(
+        { isUsed: true },
+        { where: { userId, userType, isUsed: false } }
+    );
+
+    const activeSince = new Date(Date.now() - RESET_CODE_TTL_MINUTES * 60 * 1000);
+
+    for (let attempt = 0; attempt < MAX_CODE_GENERATION_ATTEMPTS; attempt += 1) {
+        const code = generateCode(6, { letters: false, numbers: true });
+        const existingCode = await PasswordReset.findOne({
+            where: {
+                token: code,
+                isUsed: false,
+                createdAt: { [Sequelize.Op.gte]: activeSince }
+            }
+        });
+
+        if (!existingCode) {
+            const resetEntry = await PasswordReset.create({
+                userId,
+                userType,
+                token: code
+            });
+
+            return { code, resetEntry };
+        }
+    }
+
+    throw new Error('Unable to generate a unique password reset code');
+};
+
 const login = enrolleeLogin;
 const forgot = async (req, res, next) => {
     try {
@@ -61,18 +96,38 @@ const forgot = async (req, res, next) => {
         const result = await findEnrolleeForReset(req, { email, policyNumber });
         if (!result) return res.fail('Invalid credentials', 401);
 
-        const code = generateCode(6, { letters: false, numbers: true });
-
-        await PasswordReset.create({
-            userId: result.user.id,
-            userType: result.userType,
-            token: code
-        });
+        const { code, resetEntry } = await createPasswordReset(
+            PasswordReset,
+            result.user.id,
+            result.userType
+        );
 
         try {
-            await notify(result.user, result.userType, 'OTP', { code }, ['email'], true);
+            const deliveryResults = await notify(
+                result.user,
+                result.userType,
+                'OTP',
+                { code },
+                ['email'],
+                true
+            );
+
+            if (!deliveryResults || deliveryResults.email !== true) {
+                throw new Error('Password reset email was not delivered');
+            }
         } catch (e) {
             console.error('Failed to send password reset notification:', e && e.message ? e.message : e);
+
+            try {
+                await resetEntry.destroy();
+            } catch (cleanupError) {
+                console.error(
+                    'Failed to remove undelivered password reset code:',
+                    cleanupError && cleanupError.message ? cleanupError.message : cleanupError
+                );
+            }
+
+            return res.fail('Unable to send verification code. Please try again.', 502);
         }
 
         return res.success({}, 'Verification code sent');
@@ -81,8 +136,10 @@ const forgot = async (req, res, next) => {
     }
 };
 const reset = makeResetPassword('Enrollee', {
-    policyModelKey: 'Enrollee',
     userType: 'Enrollee',
+    allowedUserTypes: ['Enrollee', 'RetailEnrollee'],
+    tokenMaxAgeMinutes: RESET_CODE_TTL_MINUTES,
+    minimumPasswordLength: 8,
 });
 
 module.exports = {

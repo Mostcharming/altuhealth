@@ -11,7 +11,7 @@ async function notify(user, userType, templateName, shortCodes = null, sendVia =
     notifyInstance.createLog = createLog;
     notifyInstance.userColumn = user.id;
 
-    await notifyInstance.send();
+    return notifyInstance.send();
 }
 
 module.exports = notify;
