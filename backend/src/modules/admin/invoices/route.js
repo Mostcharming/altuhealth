@@ -5,6 +5,8 @@ const router = express.Router();
 const Invoices = require('./controller');
 
 // CRUD for invoices
+router.get('/bank-details', Invoices.getInvoiceBankDetails);
+router.put('/bank-details', Invoices.updateInvoiceBankDetails);
 router.post('/', Invoices.createInvoice);
 router.get('/list', Invoices.listInvoices);
 router.get('/:id', Invoices.getInvoice);

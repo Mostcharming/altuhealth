@@ -154,6 +154,12 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
             field: 'description'
         },
+        bankDetails: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            field: 'bank_details',
+            comment: 'Snapshot of the payment bank details shown when this invoice was issued'
+        },
         issuedBy: {
             type: DataTypes.UUID,
             allowNull: true,

@@ -36,29 +36,7 @@ export default function EnrolleeDependentPHeader({
     }
   };
 
-  const handleViewIdCard = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient(
-        `/admin/enrollee-dependents/${data?.id}/download-id-card`,
-        {
-          method: "GET",
-          onLoading: (l: boolean) => setLoading(l),
-        }
-      );
-
-      if (response?.data.idCardUrl) {
-        setShowIdCard(true);
-      }
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to fetch ID card"
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleViewIdCard = () => setShowIdCard(true);
 
   const handleResendVerification = async () => {
     try {
@@ -69,12 +47,12 @@ export default function EnrolleeDependentPHeader({
           method: "POST",
           body: { via: "email" },
           onLoading: (l: boolean) => setLoading(l),
-        }
+        },
       );
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Failed to send verification code"
+        err instanceof Error ? err.message : "Failed to send verification code",
       );
       errorModal.openModal();
     } finally {
@@ -115,7 +93,7 @@ export default function EnrolleeDependentPHeader({
             disabled={loading}
             className={getButtonClasses("not")}
           >
-            {loading ? "Processing..." : "View ID card"}
+            View ID Card
           </button>
 
           <button
@@ -152,7 +130,11 @@ export default function EnrolleeDependentPHeader({
           lastName: data?.lastName || "",
           gender: data?.gender || "M",
           pictureUrl: data?.pictureUrl,
-          plan: data?.CompanyPlan?.name || "",
+          plan:
+            data?.companyPlan?.name ||
+            data?.CompanyPlan?.name ||
+            data?.Enrollee?.companyPlan?.name ||
+            "",
         }}
       />
 

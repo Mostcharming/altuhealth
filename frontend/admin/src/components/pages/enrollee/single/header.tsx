@@ -37,29 +37,7 @@ export default function SinglePHeader({
     }
   };
 
-  const handleViewIdCard = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient(
-        `/admin/enrollees/${data?.id}/download-id-card`,
-        {
-          method: "GET",
-          onLoading: (l: boolean) => setLoading(l),
-        }
-      );
-
-      if (response?.data.idCardUrl) {
-        setShowIdCard(true);
-      }
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to fetch ID card"
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleViewIdCard = () => setShowIdCard(true);
 
   const handleResendVerification = async () => {
     try {
@@ -72,7 +50,7 @@ export default function SinglePHeader({
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Failed to send verification code"
+        err instanceof Error ? err.message : "Failed to send verification code",
       );
       errorModal.openModal();
     } finally {
@@ -96,7 +74,7 @@ export default function SinglePHeader({
             <span className="text-base font-medium text-gray-700 dark:text-gray-400">
               Name:{" "}
               {capitalizeWords(
-                data?.firstName + data?.middleName + data?.lastName
+                data?.firstName + data?.middleName + data?.lastName,
               )}
             </span>
             {/* <span className={getStatusClasses(data?.status)}>
@@ -122,7 +100,7 @@ export default function SinglePHeader({
             disabled={loading}
             className={getButtonClasses("not")}
           >
-            {loading ? "Processing..." : "View ID card"}
+            View ID Card
           </button>
 
           <button
@@ -159,7 +137,7 @@ export default function SinglePHeader({
           lastName: data?.lastName || "",
           gender: data?.gender || "M",
           pictureUrl: data?.pictureUrl,
-          plan: data?.CompanyPlan?.name || "",
+          plan: data?.companyPlan?.name || data?.CompanyPlan?.name || "",
         }}
       />
 

@@ -135,7 +135,6 @@ const EnrolleeTable: React.FC = () => {
     { key: "subscription", label: "Subscription" },
     { key: "coverageExpiry", label: "Expires" },
     { key: "isActive", label: "Status" },
-    { key: "createdAt", label: "Date Created" },
     { key: "actions", label: "Actions" },
   ];
 
@@ -757,14 +756,6 @@ const EnrolleeTable: React.FC = () => {
                         {enrollee.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-700 dark:text-gray-400">
-                        {enrollee.createdAt
-                          ? formatDate(enrollee.createdAt)
-                          : "-"}
-                      </p>
-                    </td>
-
                     <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center w-full gap-2">
                         <button

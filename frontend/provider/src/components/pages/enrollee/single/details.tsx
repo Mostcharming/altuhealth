@@ -1,5 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
+import IdCardModal from "@/components/modals/idCardModal";
 import capitalizeWords from "@/lib/capitalize";
+import { useState } from "react";
 
 const formatDate = (date: string | null | undefined) => {
   if (!date) return "N/A";
@@ -11,7 +15,7 @@ const formatDate = (date: string | null | undefined) => {
 };
 
 export default function Details({ data }: { data: any }) {
-  console.log(data);
+  const [showIdCard, setShowIdCard] = useState(false);
 
   const DetailRow = ({
     label,
@@ -156,25 +160,39 @@ export default function Details({ data }: { data: any }) {
               </span>
             </li>
           )}
-          {data?.idCardUrl && (
-            <li className="flex items-start gap-5 py-2.5">
-              <span className="w-1/2 text-sm text-gray-500 sm:w-1/3 dark:text-gray-400">
-                ID Card URL
-              </span>
-              <span className="w-1/2 text-sm text-blue-600 break-all sm:w-2/3 dark:text-blue-400">
-                <a
-                  href={data?.idCardUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:no-underline"
-                >
-                  View ID Card
-                </a>
-              </span>
-            </li>
-          )}
+          <li className="flex items-start gap-5 py-2.5">
+            <span className="w-1/2 text-sm text-gray-500 sm:w-1/3 dark:text-gray-400">
+              ID Card
+            </span>
+            <span className="w-1/2 text-sm text-blue-600 sm:w-2/3 dark:text-blue-400">
+              <button
+                type="button"
+                onClick={() => setShowIdCard(true)}
+                className="underline hover:no-underline"
+              >
+                View ID Card
+              </button>
+            </span>
+          </li>
         </ul>
       </div>
+
+      <IdCardModal
+        isOpen={showIdCard}
+        onClose={() => setShowIdCard(false)}
+        idCardData={{
+          policyNumber: data?.policyNumber || "N/A",
+          firstName: data?.firstName || "",
+          lastName: data?.lastName || "",
+          gender: data?.gender || "M",
+          pictureUrl: data?.pictureUrl,
+          plan:
+            data?.CompanyPlan?.name ||
+            data?.companyPlan?.name ||
+            data?.plan?.name ||
+            (typeof data?.plan === "string" ? data.plan : ""),
+        }}
+      />
     </>
   );
 }

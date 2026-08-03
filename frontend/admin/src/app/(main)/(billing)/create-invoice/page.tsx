@@ -9,11 +9,14 @@ import CreateInvoiceTable from "@/components/invoice/CreateInvoiceTable";
 import ErrorModal from "@/components/modals/error";
 import SuccessModal from "@/components/modals/success";
 import Button from "@/components/ui/button/Button";
-import { createInvoice } from "@/lib/apis/invoice";
+import { createInvoice, getInvoiceBankDetails } from "@/lib/apis/invoice";
 import { getCurrencyOptions } from "@/lib/currencies";
-import { useInvoiceStore } from "@/lib/store/invoiceStore";
+import {
+  InvoiceBankDetails,
+  useInvoiceStore,
+} from "@/lib/store/invoiceStore";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Product {
   name: string;
@@ -41,8 +44,42 @@ export default function CreateInvoicePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [bankConfigurationLoading, setBankConfigurationLoading] =
+    useState(true);
+  const [bankDetails, setBankDetails] =
+    useState<InvoiceBankDetails | null>(null);
+  const [bankDetailsConfigured, setBankDetailsConfigured] = useState(false);
+  const [bankConfigurationError, setBankConfigurationError] = useState("");
   const [successModal, setSuccessModal] = useState({ isOpen: false });
   const [errorModal, setErrorModal] = useState({ isOpen: false, message: "" });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadBankConfiguration = async () => {
+      try {
+        const response = await getInvoiceBankDetails();
+        if (cancelled) return;
+
+        setBankDetails(response?.data?.bankDetails || null);
+        setBankDetailsConfigured(Boolean(response?.data?.isConfigured));
+        setBankConfigurationError("");
+      } catch (error) {
+        if (cancelled) return;
+        const err = error instanceof Error ? error : new Error(String(error));
+        setBankConfigurationError(
+          err.message || "Unable to verify the invoice bank details."
+        );
+      } finally {
+        if (!cancelled) setBankConfigurationLoading(false);
+      }
+    };
+
+    loadBankConfiguration();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleProductsChange = (updatedProducts: Product[]) => {
     setProducts(updatedProducts);
@@ -66,6 +103,15 @@ export default function CreateInvoicePage() {
   const total = subtotal + vat;
 
   const handleSaveInvoice = async () => {
+    if (!bankDetailsConfigured) {
+      setErrorModal({
+        isOpen: true,
+        message:
+          "Configure the invoice payment bank details before generating a new invoice.",
+      });
+      return;
+    }
+
     // Invoice number is optional - backend will auto-generate if not provided
     if (!customerName || !customerAddress || products.length === 0) {
       setErrorModal({
@@ -165,6 +211,26 @@ export default function CreateInvoicePage() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Create Invoice" />
+      {!bankConfigurationLoading && !bankDetailsConfigured && (
+        <div className="mb-6 flex flex-col gap-4 rounded-xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-amber-900/40 dark:bg-amber-900/10">
+          <div>
+            <h2 className="font-semibold text-amber-900 dark:text-amber-200">
+              Invoice bank details are required
+            </h2>
+            <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+              {bankConfigurationError ||
+                "Add the payment account before generating a new invoice."}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/invoices")}
+            className="shrink-0"
+          >
+            Configure Bank Details
+          </Button>
+        </div>
+      )}
       <div className="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
           <h2 className="text-xl font-medium text-gray-800 dark:text-white">
@@ -269,11 +335,17 @@ export default function CreateInvoicePage() {
               issuedDate={issuedDate}
               dueDate={dueDate}
               notes={notes}
+              bankDetails={bankDetails}
+              disabled={
+                bankConfigurationLoading || !bankDetailsConfigured
+              }
             />
             <Button
               variant="primary"
               onClick={handleSaveInvoice}
-              disabled={loading}
+              disabled={
+                loading || bankConfigurationLoading || !bankDetailsConfigured
+              }
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

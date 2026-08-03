@@ -39,6 +39,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true,
             field: 'sms_config'
         },
+        invoiceBankDetails: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            field: 'invoice_bank_details'
+        },
         emailNotification: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
