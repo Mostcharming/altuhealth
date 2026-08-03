@@ -12,7 +12,7 @@ import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
 import { APP_CONFIG } from "@/lib/config";
 import { Staff, useStaffStore } from "@/lib/store/staffStore";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import EditStaff from "./editStaff";
 
 interface Company {
@@ -39,9 +39,15 @@ const StaffsTable: React.FC = () => {
   const setStaffs = useStaffStore((s) => s.setStaffs);
   const confirmModal = useModal();
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
+  const [bulkDeleteMode, setBulkDeleteMode] = useState<
+    "selected" | "company" | null
+  >(null);
+  const [deleting, setDeleting] = useState<boolean>(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const removeStaff = useStaffStore((s) => s.removeStaff);
   const token = useAuthStore((s) => s.token);
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
   const [errorMessage, setErrorMessage] = useState(
     "Failed to delete staff. Please try again."
   );
@@ -113,7 +119,9 @@ const StaffsTable: React.FC = () => {
       setStaffs(items);
       setTotalItems(data?.data?.count ?? 0);
       setHasNextPage(Boolean(data?.data?.hasNextPage));
-      setHasPreviousPage(Boolean(data?.data?.hasPreviousPage));
+      setHasPreviousPage(
+        Boolean(data?.data?.hasPreviousPage ?? data?.data?.hasPrevPage)
+      );
       setTotalPages(data?.data?.totalPages ?? 1);
     } catch (err) {
       console.warn("Staff fetch failed", err);
@@ -146,6 +154,28 @@ const StaffsTable: React.FC = () => {
     [companies, selectedCompanyId]
   );
 
+  const visibleStaffIds = React.useMemo(
+    () => staffs.map((staff) => staff.id),
+    [staffs]
+  );
+  const selectedStaffIdSet = React.useMemo(
+    () => new Set(selectedStaffIds),
+    [selectedStaffIds]
+  );
+  const selectedVisibleCount = visibleStaffIds.filter((id) =>
+    selectedStaffIdSet.has(id)
+  ).length;
+  const allVisibleStaffSelected =
+    visibleStaffIds.length > 0 &&
+    selectedVisibleCount === visibleStaffIds.length;
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate =
+        selectedVisibleCount > 0 && !allVisibleStaffSelected;
+    }
+  }, [allVisibleStaffSelected, loading, selectedVisibleCount]);
+
   const goToPage = (page: number): void => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
@@ -161,6 +191,25 @@ const StaffsTable: React.FC = () => {
   const handleSelectChange = (value: string) => {
     setLimit(Number(value));
     setCurrentPage(1);
+    setSelectedStaffIds([]);
+  };
+
+  const toggleStaffSelection = (staffId: string) => {
+    setSelectedStaffIds((current) =>
+      current.includes(staffId)
+        ? current.filter((id) => id !== staffId)
+        : [...current, staffId]
+    );
+  };
+
+  const toggleVisibleStaffSelection = () => {
+    setSelectedStaffIds((current) => {
+      if (allVisibleStaffSelected) {
+        return current.filter((id) => !visibleStaffIds.includes(id));
+      }
+
+      return [...new Set([...current, ...visibleStaffIds])];
+    });
   };
 
   const handleDownloadStaffList = async () => {
@@ -222,11 +271,30 @@ const StaffsTable: React.FC = () => {
 
   const handleDeleteModal = (id: string) => {
     setSelectedStaffId(id);
+    setBulkDeleteMode(null);
+    confirmModal.openModal();
+  };
+
+  const handleBulkDeleteModal = (mode: "selected" | "company") => {
+    if (mode === "selected" && selectedStaffIds.length === 0) {
+      setErrorMessage("Select at least one staff member to delete.");
+      errorModal.openModal();
+      return;
+    }
+    if (mode === "company" && !selectedCompanyId) {
+      setErrorMessage("Select a company before deleting its staff.");
+      errorModal.openModal();
+      return;
+    }
+
+    setSelectedStaffId(null);
+    setBulkDeleteMode(mode);
     confirmModal.openModal();
   };
 
   const handleCloseConfirm = () => {
     setSelectedStaffId(null);
+    setBulkDeleteMode(null);
     confirmModal.closeModal();
   };
 
@@ -238,17 +306,25 @@ const StaffsTable: React.FC = () => {
   const deleteStaff = async () => {
     if (!selectedStaffId) return;
     try {
-      setLoading(true);
+      setDeleting(true);
       const url = `/admin/staffs/${selectedStaffId}`;
       await apiClient(url, {
         method: "DELETE",
-        onLoading: (l) => setLoading(l),
       });
 
       removeStaff(selectedStaffId);
+      setSelectedStaffIds((current) =>
+        current.filter((id) => id !== selectedStaffId)
+      );
       setSelectedStaffId(null);
       confirmModal.closeModal();
       successModal.openModal();
+
+      if (staffs.length === 1 && currentPage > 1) {
+        setCurrentPage((page) => page - 1);
+      } else {
+        await fetchStaffs();
+      }
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
       setErrorMessage(
@@ -256,9 +332,93 @@ const StaffsTable: React.FC = () => {
       );
       errorModal.openModal();
     } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
+
+  const bulkDeleteStaffs = async () => {
+    if (!bulkDeleteMode) return;
+
+    try {
+      setDeleting(true);
+      const payload =
+        bulkDeleteMode === "company"
+          ? {
+              companyId: selectedCompanyId,
+              deleteAllForCompany: true,
+              confirmation: selectedCompanyId,
+            }
+          : {
+              staffIds: selectedStaffIds,
+              ...(selectedCompanyId ? { companyId: selectedCompanyId } : {}),
+            };
+      const data = await apiClient("/admin/staffs/bulk/delete", {
+        method: "POST",
+        body: payload,
+      });
+      const deletedIds: string[] = Array.isArray(data?.data?.deletedIds)
+        ? data.data.deletedIds
+        : [];
+      const deletedIdSet = new Set(deletedIds);
+      const currentPageWasDeleted =
+        staffs.length > 0 && staffs.every((staff) => deletedIdSet.has(staff.id));
+
+      setSelectedStaffIds([]);
+      setBulkDeleteMode(null);
+      confirmModal.closeModal();
+      successModal.openModal();
+
+      if (currentPageWasDeleted && currentPage > 1) {
+        setCurrentPage((page) => page - 1);
+      } else {
+        await fetchStaffs();
+      }
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      setErrorMessage(err.message || "Failed to delete staff records.");
+      errorModal.openModal();
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (selectedStaffId) {
+      void deleteStaff();
+      return;
+    }
+    void bulkDeleteStaffs();
+  };
+
+  const deleteConfirmation = React.useMemo(() => {
+    if (bulkDeleteMode === "company") {
+      return {
+        title: `Delete all ${selectedCompany?.name || "company"} staff?`,
+        message: `This will permanently delete every staff member for ${
+          selectedCompany?.name || "the selected company"
+        }, including linked enrollee and dependant records. This cannot be undone.`,
+        confirmLabel: "Delete company staff",
+      };
+    }
+
+    if (bulkDeleteMode === "selected") {
+      const count = selectedStaffIds.length;
+      return {
+        title: `Delete ${count} selected staff?`,
+        message: `This will permanently delete ${count} selected staff ${
+          count === 1 ? "member" : "members"
+        }, including linked enrollee and dependant records. This cannot be undone.`,
+        confirmLabel: `Delete ${count} staff`,
+      };
+    }
+
+    return {
+      title: "Delete staff member?",
+      message:
+        "This will permanently delete this staff member, including linked enrollee and dependant records. This cannot be undone.",
+      confirmLabel: "Delete staff",
+    };
+  }, [bulkDeleteMode, selectedCompany?.name, selectedStaffIds.length]);
 
   const handleCloseEdit = () => {
     setEditingStaff(null);
@@ -291,8 +451,8 @@ const StaffsTable: React.FC = () => {
                 {selectedCompanyId
                   ? `Download ${
                       selectedCompany?.name || "the selected company"
-                    } staff list with enrollee policy numbers.`
-                  : "Select a company to download an Excel staff list with enrollee policy numbers."}
+                    } staff list with enrollee and dependant details.`
+                  : "Select a company to download an Excel staff list with enrollee and dependant details."}
               </p>
             </div>
           </div>
@@ -329,6 +489,7 @@ const StaffsTable: React.FC = () => {
                 onChange={(value) => {
                   setSelectedCompanyId(value as string);
                   setCurrentPage(1);
+                  setSelectedStaffIds([]);
                 }}
                 defaultValue={selectedCompanyId}
               />
@@ -339,9 +500,11 @@ const StaffsTable: React.FC = () => {
                 placeholder="Search by name, email or staff ID..."
                 className="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 value={search}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setSearch(e.target.value)
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                  setSelectedStaffIds([]);
+                }}
               />
               <svg
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
@@ -369,6 +532,41 @@ const StaffsTable: React.FC = () => {
           </div>
         </div>
       </div>
+      <div className="flex flex-col gap-4 border-b border-amber-200 bg-amber-50 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-amber-900/50 dark:bg-amber-500/10">
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
+            How bulk delete works
+          </p>
+          <p className="mt-1 text-sm leading-6 text-amber-800 dark:text-amber-400">
+            Tick individual staff, then choose Delete selected. The checkbox in
+            the table heading selects the current page, and your selections stay
+            checked while you change pages. To remove everyone in one company,
+            select the company above and choose Delete company staff. Deletion
+            also removes linked enrollee and dependant records and cannot be
+            undone.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => handleBulkDeleteModal("selected")}
+            disabled={selectedStaffIds.length === 0 || deleting}
+            className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg border border-error-300 bg-white px-4 py-2.5 text-sm font-medium text-error-600 transition hover:bg-error-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-error-800 dark:bg-gray-900 dark:text-error-400 dark:hover:bg-error-500/10"
+          >
+            <TrashBinIcon />
+            Delete selected ({selectedStaffIds.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBulkDeleteModal("company")}
+            disabled={!selectedCompanyId || deleting}
+            className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-error-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-error-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <TrashBinIcon />
+            Delete company staff
+          </button>
+        </div>
+      </div>
       {loading ? (
         <SpinnerThree />
       ) : (
@@ -376,6 +574,17 @@ const StaffsTable: React.FC = () => {
           <table className="w-full table-auto">
             <thead>
               <tr className="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
+                <th className="w-12 p-4 text-left">
+                  <input
+                    ref={selectAllCheckboxRef}
+                    type="checkbox"
+                    checked={allVisibleStaffSelected}
+                    onChange={toggleVisibleStaffSelection}
+                    disabled={visibleStaffIds.length === 0}
+                    aria-label="Select all staff on this page"
+                    className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900"
+                  />
+                </th>
                 {headers.map((h) => (
                   <th
                     key={h.key}
@@ -394,8 +603,21 @@ const StaffsTable: React.FC = () => {
               {staffs.map((staff: Staff) => (
                 <tr
                   key={staff.id}
-                  className="transition hover:bg-gray-50 dark:hover:bg-gray-900"
+                  className={`transition hover:bg-gray-50 dark:hover:bg-gray-900 ${
+                    selectedStaffIdSet.has(staff.id)
+                      ? "bg-brand-50/60 dark:bg-brand-500/5"
+                      : ""
+                  }`}
                 >
+                  <td className="w-12 p-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedStaffIdSet.has(staff.id)}
+                      onChange={() => toggleStaffSelection(staff.id)}
+                      aria-label={`Select ${staff.firstName} ${staff.lastName}`}
+                      className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900"
+                    />
+                  </td>
                   <td className="p-4 whitespace-nowrap">
                     <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
                       {capitalizeWords(staff.firstName)}
@@ -582,9 +804,14 @@ const StaffsTable: React.FC = () => {
       </div>
       <ConfirmModal
         confirmModal={confirmModal}
-        handleSave={deleteStaff}
+        handleSave={confirmDelete}
         closeModal={handleCloseConfirm}
-        // message="Are you sure you want to delete this staff member? This action cannot be undone."
+        title={deleteConfirmation.title}
+        message={deleteConfirmation.message}
+        confirmLabel={deleteConfirmation.confirmLabel}
+        cancelLabel="Cancel"
+        destructive
+        loading={deleting}
       />
       <EditStaff
         isOpen={isOpen}

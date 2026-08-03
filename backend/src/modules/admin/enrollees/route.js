@@ -9,6 +9,7 @@ const {
     sendVerificationCode,
     verifyEnrollee,
     resendVerificationCode,
+    bulkResendEnrollmentNotifications,
     downloadIdCard
 } = require('./controller');
 
@@ -44,6 +45,7 @@ const router = require('express').Router();
 // Enrollee routes
 router.get('/', getEnrollees);
 router.get('/lookup', lookupEnrollee);
+router.post('/bulk/resend-enrollment-notification', bulkResendEnrollmentNotifications);
 router.get('/:enrolleeId', getEnrolleeById);
 router.post('/', createEnrollee);
 router.put('/:enrolleeId/basic/details', updateEnrolleeBasicDetails);
