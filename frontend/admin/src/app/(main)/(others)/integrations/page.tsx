@@ -28,6 +28,18 @@ interface IntegrationData {
 }
 
 const integrationDefaults = {
+  "flutterwave-production": {
+    title: "Flutterwave Production",
+    description:
+      "Connect your Flutterwave Production account to process live payments and manage transactions.",
+    icon: <FlutterwaveIcon />,
+  },
+  "flutterwave-sandbox": {
+    title: "Flutterwave Sandbox",
+    description:
+      "Connect your Flutterwave Sandbox account for payment testing and development.",
+    icon: <FlutterwaveIcon />,
+  },
   "stripe-production": {
     title: "Stripe Production",
     description:
@@ -66,30 +78,13 @@ function normalizeIntegrationName(name: string) {
 
 function getIntegrationDefaults(name: string) {
   const normalizedName = normalizeIntegrationName(name);
+  const providerKey = normalizedName.replace(/[^a-z0-9]/g, "");
   const configuredDefault =
     integrationDefaults[normalizedName as keyof typeof integrationDefaults];
 
   if (configuredDefault) return configuredDefault;
 
-  if (normalizedName.includes("stripe")) {
-    return {
-      title: name,
-      description:
-        "Connect your Stripe account to process payments and manage transactions.",
-      icon: <StripeIcon />,
-    };
-  }
-
-  if (normalizedName.includes("paypal")) {
-    return {
-      title: name,
-      description:
-        "Connect your PayPal account to process payments and manage transactions.",
-      icon: <PayPalIcon />,
-    };
-  }
-
-  if (normalizedName.includes("flutterwave")) {
+  if (providerKey.includes("flutterwave")) {
     const isTestEnvironment = /(sandbox|test|staging)/.test(normalizedName);
     return {
       title: name,
@@ -100,7 +95,25 @@ function getIntegrationDefaults(name: string) {
     };
   }
 
-  if (normalizedName.includes("heala")) {
+  if (providerKey.includes("stripe")) {
+    return {
+      title: name,
+      description:
+        "Connect your Stripe account to process payments and manage transactions.",
+      icon: <StripeIcon />,
+    };
+  }
+
+  if (providerKey.includes("paypal")) {
+    return {
+      title: name,
+      description:
+        "Connect your PayPal account to process payments and manage transactions.",
+      icon: <PayPalIcon />,
+    };
+  }
+
+  if (providerKey.includes("heala")) {
     return {
       title: name,
       description: "Connect Heala for enrollee virtual health consultations.",

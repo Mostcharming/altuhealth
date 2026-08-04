@@ -124,6 +124,105 @@ async function listPublicPlans(req, res, next) {
     }
 }
 
+async function getPublicPlanBenefits(req, res, next) {
+    try {
+        const {
+            Plan,
+            PlanBenefitCategory,
+            PlanBenefit,
+            BenefitCategory,
+            Benefit
+        } = req.models;
+        const { id } = req.params;
+
+        const plan = await Plan.findOne({
+            attributes: ['id', 'name', 'code', 'description'],
+            where: {
+                id,
+                isActive: true,
+                isApproved: true,
+                status: { [Op.in]: ['approved', 'active'] }
+            }
+        });
+
+        if (!plan) return res.fail('Plan not found', 404);
+
+        const [categoryLinks, benefitLinks] = await Promise.all([
+            PlanBenefitCategory.findAll({
+                attributes: ['benefitCategoryId'],
+                where: { planId: id }
+            }),
+            PlanBenefit.findAll({
+                attributes: ['benefitId'],
+                where: { planId: id }
+            })
+        ]);
+
+        const benefitIds = [...new Set(
+            benefitLinks.map(link => String(link.benefitId)).filter(Boolean)
+        )];
+        const benefits = benefitIds.length > 0
+            ? await Benefit.findAll({
+                attributes: [
+                    'id',
+                    'name',
+                    'description',
+                    'isCovered',
+                    'coverageType',
+                    'coverageValue',
+                    'benefitCategoryId'
+                ],
+                where: { id: { [Op.in]: benefitIds } },
+                order: [['name', 'ASC']]
+            })
+            : [];
+
+        const categoryIds = [...new Set([
+            ...categoryLinks.map(link => String(link.benefitCategoryId)),
+            ...benefits.map(benefit => String(benefit.benefitCategoryId))
+        ].filter(Boolean))];
+        const categories = categoryIds.length > 0
+            ? await BenefitCategory.findAll({
+                attributes: ['id', 'name'],
+                where: { id: { [Op.in]: categoryIds } },
+                order: [['name', 'ASC']]
+            })
+            : [];
+
+        const benefitsByCategory = benefits.reduce((acc, benefit) => {
+            const categoryId = String(benefit.benefitCategoryId);
+            acc[categoryId] = acc[categoryId] || [];
+            acc[categoryId].push(benefit.toJSON());
+            return acc;
+        }, {});
+
+        const serializedCategories = categories.map(category => {
+            const data = category.toJSON();
+            const categoryBenefits = benefitsByCategory[String(data.id)] || [];
+            return {
+                id: data.id,
+                name: data.name,
+                benefitCount: categoryBenefits.length,
+                benefits: categoryBenefits
+            };
+        });
+        const coveredBenefitCount = benefits.filter(benefit => benefit.isCovered).length;
+
+        return res.success({
+            plan: plan.toJSON(),
+            summary: {
+                categoryCount: serializedCategories.length,
+                benefitCount: benefits.length,
+                coveredBenefitCount
+            },
+            categories: serializedCategories
+        }, 'Plan benefits fetched');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 module.exports = {
-    listPublicPlans
+    listPublicPlans,
+    getPublicPlanBenefits
 };

@@ -10,9 +10,8 @@ import {
   type PlanCategory,
   type PlanCategoryOption,
 } from "@/lib/planMarket";
-import Link from "next/link";
 import type { ChangeEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type InferredPlanCategory = PlanCategory | "general";
 type PaymentProvider = "paystack" | "paypal" | "stripe";
@@ -29,6 +28,29 @@ type PublicPlan = {
   ageLimit?: number | null;
   dependentAgeLimit?: number | null;
   maxNumberOfDependents?: number | null;
+};
+
+type PublicBenefit = {
+  id: string;
+  name: string;
+  description?: string | null;
+  isCovered: boolean;
+  coverageType?: string | null;
+  coverageValue?: string | null;
+  benefitCategoryId: string;
+};
+
+type PublicBenefitCategory = {
+  id: string;
+  name: string;
+  benefitCount: number;
+  benefits: PublicBenefit[];
+};
+
+type PlanBenefitsSummary = {
+  categoryCount: number;
+  benefitCount: number;
+  coveredBenefitCount: number;
 };
 
 type CurrencyRate = {
@@ -71,6 +93,14 @@ type PlansResponse = {
     list?: PublicPlan[];
     displayCurrency?: string;
     currencyRates?: CurrencyRates;
+  };
+};
+
+type PlanBenefitsResponse = {
+  data?: {
+    plan?: Pick<PublicPlan, "id" | "name" | "code" | "description">;
+    summary?: PlanBenefitsSummary;
+    categories?: PublicBenefitCategory[];
   };
 };
 
@@ -389,6 +419,34 @@ function cycleToLabel(cycle?: string | null) {
   return "per year";
 }
 
+function formatCoverageType(
+  coverageType?: string | null,
+  coverageValue?: string | null,
+) {
+  const value = String(coverageValue || "").trim();
+
+  switch (coverageType) {
+    case "unlimited":
+      return "Unlimited";
+    case "times_per_year":
+      return value
+        ? `${value} time${value === "1" ? "" : "s"} per year`
+        : "Per year";
+    case "times_per_month":
+      return value
+        ? `${value} time${value === "1" ? "" : "s"} per month`
+        : "Per month";
+    case "quarterly":
+      return value ? `${value} per quarter` : "Quarterly";
+    case "amount_based":
+      return value ? `Amount limit: ${value}` : "Amount based";
+    case "limit_based":
+      return value ? `Limit: ${value}` : "Limit based";
+    default:
+      return value || "No limit specified";
+  }
+}
+
 function buildDisplayPlans(
   plans: PublicPlan[],
   displayCurrency: string,
@@ -534,6 +592,7 @@ function readReferralCodeFromUrl() {
 }
 
 export default function Plans() {
+  const benefitsSectionRef = useRef<HTMLElement>(null);
   const [availableCategories, setAvailableCategories] = useState<
     PlanCategoryOption[]
   >([]);
@@ -543,6 +602,16 @@ export default function Plans() {
   const [backendPlans, setBackendPlans] = useState<PublicPlan[]>([]);
   const [currencyRates, setCurrencyRates] = useState<CurrencyRates>({});
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
+  const [benefitsPlan, setBenefitsPlan] = useState<DisplayPlan | null>(null);
+  const [selectedBenefitsVariantId, setSelectedBenefitsVariantId] =
+    useState("");
+  const [benefitCategories, setBenefitCategories] = useState<
+    PublicBenefitCategory[]
+  >([]);
+  const [benefitsSummary, setBenefitsSummary] =
+    useState<PlanBenefitsSummary | null>(null);
+  const [isLoadingBenefits, setIsLoadingBenefits] = useState(false);
+  const [benefitsError, setBenefitsError] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<DisplayPlan | null>(null);
   const [selectedVariantPlanId, setSelectedVariantPlanId] = useState("");
   const [gateways, setGateways] = useState<PaymentGateway[]>([]);
@@ -574,6 +643,52 @@ export default function Plans() {
   const selectedVariant = selectedPlan?.rows.find(
     (row) => row.planId === selectedVariantPlanId,
   );
+  const selectedBenefitsVariant = benefitsPlan?.rows.find(
+    (row) => row.planId === selectedBenefitsVariantId,
+  );
+
+  useEffect(() => {
+    if (!selectedBenefitsVariantId) {
+      setBenefitCategories([]);
+      setBenefitsSummary(null);
+      setBenefitsError("");
+      setIsLoadingBenefits(false);
+      return;
+    }
+
+    let isCurrentRequest = true;
+
+    const fetchBenefits = async () => {
+      try {
+        setIsLoadingBenefits(true);
+        setBenefitsError("");
+        const response = (await apiClient(
+          `/public/plans/${encodeURIComponent(selectedBenefitsVariantId)}/benefits`,
+        )) as PlanBenefitsResponse;
+
+        if (!isCurrentRequest) return;
+        setBenefitCategories(response.data?.categories || []);
+        setBenefitsSummary(response.data?.summary || null);
+      } catch (error) {
+        if (!isCurrentRequest) return;
+        setBenefitCategories([]);
+        setBenefitsSummary(null);
+        setBenefitsError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load this plan's benefits.",
+        );
+      } finally {
+        if (isCurrentRequest) setIsLoadingBenefits(false);
+      }
+    };
+
+    fetchBenefits();
+
+    return () => {
+      isCurrentRequest = false;
+    };
+  }, [selectedBenefitsVariantId]);
 
   useEffect(() => {
     const referralCode = readReferralCodeFromUrl();
@@ -780,6 +895,8 @@ export default function Plans() {
 
   const handleCategoryChange = (category: PlanCategory) => {
     setSelectedCategory(category);
+    setBenefitsPlan(null);
+    setSelectedBenefitsVariantId("");
     const url = new URL(window.location.href);
     url.searchParams.set("planCategory", getPublicPlanCategoryKey(category));
     url.hash = "plans";
@@ -812,6 +929,32 @@ export default function Plans() {
     setSelectedVariantPlanId(plan.rows[0]?.planId || "");
     setModalError("");
     setModalSuccess("");
+  };
+
+  const openBenefits = (plan: DisplayPlan) => {
+    const initialPlanId = plan.rows.find((row) => row.planId)?.planId || "";
+    setBenefitsPlan(plan);
+    setSelectedBenefitsVariantId(initialPlanId);
+    setBenefitCategories([]);
+    setBenefitsSummary(null);
+    setBenefitsError("");
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        benefitsSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    });
+  };
+
+  const closeBenefits = () => {
+    setBenefitsPlan(null);
+    setSelectedBenefitsVariantId("");
+    setBenefitCategories([]);
+    setBenefitsSummary(null);
+    setBenefitsError("");
   };
 
   const handleProceedToPayment = async () => {
@@ -948,13 +1091,14 @@ export default function Plans() {
                         <span className="plan-check" aria-hidden="true">
                           +
                         </span>
-                        <Link
-                          href={`/benefits?planId=${encodeURIComponent(
-                            plan.sources[0]?.id || plan.id,
-                          )}`}
+                        <button
+                          type="button"
+                          onClick={() => openBenefits(plan)}
+                          aria-expanded={benefitsPlan?.id === plan.id}
+                          aria-controls="plan-benefits-details"
                         >
                           See more benefits
-                        </Link>
+                        </button>
                       </li>
                     </ul>
 
@@ -970,6 +1114,210 @@ export default function Plans() {
                 </div>
               ))}
             </div>
+
+            {benefitsPlan && (
+              <section
+                ref={benefitsSectionRef}
+                id="plan-benefits-details"
+                className="plan-benefits-panel"
+                aria-labelledby="plan-benefits-title"
+              >
+                <div className="plan-benefits-header">
+                  <div>
+                    <span>Full plan coverage</span>
+                    <h3 id="plan-benefits-title">
+                      {benefitsPlan.name} Benefits
+                    </h3>
+                    <p>
+                      Benefits are loaded directly from the selected plan&apos;s
+                      current coverage configuration.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="plan-benefits-close"
+                    onClick={closeBenefits}
+                    aria-label="Close plan benefits"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {benefitsPlan.rows.length > 1 && (
+                  <div
+                    className="plan-benefits-variants"
+                    aria-label="Plan options"
+                  >
+                    {benefitsPlan.rows.map((row) => (
+                      <button
+                        type="button"
+                        key={`${row.label}-${row.planId}`}
+                        className={
+                          row.planId === selectedBenefitsVariantId
+                            ? "active"
+                            : ""
+                        }
+                        onClick={() =>
+                          setSelectedBenefitsVariantId(row.planId || "")
+                        }
+                      >
+                        <span>{row.label}</span>
+                        <strong>{row.price}</strong>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="plan-benefits-summary" aria-live="polite">
+                  <div>
+                    <span>Selected option</span>
+                    <strong>
+                      {selectedBenefitsVariant?.label || benefitsPlan.name}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>Categories</span>
+                    <strong>{benefitsSummary?.categoryCount ?? "—"}</strong>
+                  </div>
+                  <div>
+                    <span>Configured benefits</span>
+                    <strong>{benefitsSummary?.benefitCount ?? "—"}</strong>
+                  </div>
+                  <div>
+                    <span>Covered</span>
+                    <strong>
+                      {benefitsSummary?.coveredBenefitCount ?? "—"}
+                    </strong>
+                  </div>
+                </div>
+
+                {isLoadingBenefits && (
+                  <div
+                    className="plan-benefits-loading"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span className="benefits-loading-spinner"></span>
+                    <div>
+                      <strong>Loading benefits from the database</strong>
+                      <p>
+                        This may take a moment for plans with many benefits.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {!isLoadingBenefits && benefitsError && (
+                  <div className="plan-benefits-error" role="alert">
+                    <strong>Benefits could not be loaded.</strong>
+                    <p>{benefitsError}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const planId = selectedBenefitsVariantId;
+                        setSelectedBenefitsVariantId("");
+                        window.setTimeout(
+                          () => setSelectedBenefitsVariantId(planId),
+                          0,
+                        );
+                      }}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+
+                {!isLoadingBenefits &&
+                  !benefitsError &&
+                  benefitCategories.length === 0 && (
+                    <div className="plan-benefits-empty">
+                      <strong>No benefits have been configured yet.</strong>
+                      <p>
+                        Please contact AltuHealth for the latest coverage
+                        details for this plan.
+                      </p>
+                    </div>
+                  )}
+
+                {!isLoadingBenefits &&
+                  !benefitsError &&
+                  benefitCategories.length > 0 && (
+                    <div className="plan-benefits-scroll">
+                      {benefitCategories.map((category) => (
+                        <section
+                          className="plan-benefit-category"
+                          key={category.id}
+                        >
+                          <div className="plan-benefit-category-header">
+                            <div>
+                              <span>Benefit category</span>
+                              <h4>{category.name}</h4>
+                            </div>
+                            <strong>
+                              {category.benefitCount}{" "}
+                              {category.benefitCount === 1
+                                ? "benefit"
+                                : "benefits"}
+                            </strong>
+                          </div>
+
+                          {category.benefits.length === 0 ? (
+                            <p className="plan-benefit-category-empty">
+                              No individual benefits are selected in this
+                              category.
+                            </p>
+                          ) : (
+                            <div className="plan-benefit-grid">
+                              {category.benefits.map((benefit) => (
+                                <article
+                                  className="plan-benefit-item"
+                                  key={benefit.id}
+                                >
+                                  <div className="plan-benefit-item-header">
+                                    <h5>{benefit.name}</h5>
+                                    <span
+                                      className={
+                                        benefit.isCovered
+                                          ? "covered"
+                                          : "not-covered"
+                                      }
+                                    >
+                                      {benefit.isCovered
+                                        ? "Covered"
+                                        : "Not covered"}
+                                    </span>
+                                  </div>
+                                  <p>
+                                    {benefit.description ||
+                                      "No additional description is available for this benefit."}
+                                  </p>
+                                  <dl>
+                                    <div>
+                                      <dt>Coverage</dt>
+                                      <dd>
+                                        {formatCoverageType(
+                                          benefit.coverageType,
+                                          benefit.coverageValue,
+                                        )}
+                                      </dd>
+                                    </div>
+                                    {benefit.coverageValue && (
+                                      <div>
+                                        <dt>Configured value</dt>
+                                        <dd>{benefit.coverageValue}</dd>
+                                      </div>
+                                    )}
+                                  </dl>
+                                </article>
+                              ))}
+                            </div>
+                          )}
+                        </section>
+                      ))}
+                    </div>
+                  )}
+              </section>
+            )}
 
             {!isLoadingPlans && visiblePlans.length === 0 && (
               <div className="plan-empty-state">
