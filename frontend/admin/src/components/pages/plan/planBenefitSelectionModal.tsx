@@ -1,7 +1,6 @@
 "use client";
 
 import ErrorModal from "@/components/modals/error";
-import SuccessModal from "@/components/modals/success";
 import { Modal } from "@/components/ui/modal";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
@@ -93,7 +92,6 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
 
   const errorModal = useModal();
   const openErrorModal = errorModal.openModal;
-  const successModal = useModal();
 
   const [allBenefits, setAllBenefits] = useState<Benefit[]>([]);
   const [selectedBenefits, setSelectedBenefits] = useState<string[]>([]);
@@ -111,8 +109,8 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
         response?.data?.list && Array.isArray(response.data.list)
           ? response.data.list
           : Array.isArray(response)
-          ? response
-          : [];
+            ? response
+            : [];
       setAllBenefits(items);
 
       // Pre-select benefits that are already associated with the plan
@@ -120,16 +118,14 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
         ? initialBenefitIdsKey.split(",")
         : [];
       const benefitsToSelect = items
-        .filter((benefit: Benefit) =>
-          initialIds.includes(String(benefit.id))
-        )
+        .filter((benefit: Benefit) => initialIds.includes(String(benefit.id)))
         .map((benefit: Benefit) => String(benefit.id));
 
       setSelectedBenefits(benefitsToSelect);
     } catch (err) {
       console.warn("Failed to fetch benefits", err);
       setErrorMessage(
-        err instanceof Error ? err.message : "Failed to fetch benefits"
+        err instanceof Error ? err.message : "Failed to fetch benefits",
       );
       openErrorModal();
     } finally {
@@ -147,7 +143,7 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
     setSelectedBenefits((prev) =>
       prev.includes(benefitId)
         ? prev.filter((id) => id !== benefitId)
-        : [...prev, benefitId]
+        : [...prev, benefitId],
     );
   };
 
@@ -158,16 +154,15 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
       setUpdating(true);
       const canonicalBenefitIds = [...new Set(selectedBenefits)];
       await syncPlanBenefits(planId, benefitCategoryId, canonicalBenefitIds);
-      successModal.openModal();
       onSuccess?.(
         canonicalBenefitIds,
         allBenefits.filter((benefit) =>
-          canonicalBenefitIds.includes(String(benefit.id))
-        )
+          canonicalBenefitIds.includes(String(benefit.id)),
+        ),
       );
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "An unexpected error occurred."
+        err instanceof Error ? err.message : "An unexpected error occurred.",
       );
       openErrorModal();
     } finally {
@@ -187,7 +182,7 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
   };
 
   const filteredBenefits = allBenefits.filter((benefit) =>
-    benefit.name.toLowerCase().includes(searchTerm.toLowerCase())
+    benefit.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const isAllSelected =
@@ -202,12 +197,17 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
       >
         <div className="px-2 mb-6">
           <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-            Select Benefits
+            Choose Benefits
           </h4>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Choose which benefits from <strong>{benefitCategoryName}</strong>{" "}
-            category to add to this plan.
-          </p>
+          <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-500/30 dark:bg-brand-500/10">
+            <p className="text-sm font-semibold text-brand-700 dark:text-brand-300">
+              Step 2 of 2: {benefitCategoryName}
+            </p>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              Select every benefit this plan covers in this category, then save.
+              You can return later to edit the selection.
+            </p>
+          </div>
         </div>
 
         <div className="mb-6">
@@ -274,13 +274,6 @@ const PlanBenefitSelectionModal: React.FC<BenefitSelectionModalProps> = ({
           </button>
         </div>
       </Modal>
-
-      <SuccessModal
-        successModal={successModal}
-        handleSuccessClose={() => {
-          successModal.closeModal();
-        }}
-      />
 
       <ErrorModal
         message={errorMessage}

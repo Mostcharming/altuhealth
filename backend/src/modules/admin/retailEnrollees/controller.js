@@ -190,7 +190,8 @@ async function getRetailEnrollees(req, res, next) {
                 { firstName: { [Op.iLike]: `%${search}%` } },
                 { lastName: { [Op.iLike]: `%${search}%` } },
                 { email: { [Op.iLike]: `%${search}%` } },
-                { phoneNumber: { [Op.iLike]: `%${search}%` } }
+                { phoneNumber: { [Op.iLike]: `%${search}%` } },
+                { policyNumber: { [Op.iLike]: `%${search}%` } }
             ];
         }
 
