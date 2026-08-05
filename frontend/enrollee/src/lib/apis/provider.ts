@@ -7,9 +7,11 @@ export interface Provider {
   email: string;
   phoneNumber: string;
   currentLocation: string;
+  country?: string;
   state: string;
   lga: string;
   address: string;
+  providerArea?: string;
   website?: string;
   status: "active" | "inactive" | "suspended" | "pending_approval";
   picture?: string;

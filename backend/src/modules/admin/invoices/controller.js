@@ -3,10 +3,77 @@
 const { Op } = require('sequelize');
 const { addAuditLog } = require('../../../utils/addAdminNotification');
 const { getUniqueInvoiceNumber } = require('../../../utils/invoiceNumberGenerator');
+const {
+    normalizeInvoiceBankDetails,
+    getMissingInvoiceBankDetailFields,
+    isInvoiceBankDetailsConfigured
+} = require('../../../utils/invoiceBankDetails');
+
+async function getOrCreateInvoiceSetting(GeneralSetting) {
+    let setting = await GeneralSetting.findOne();
+    if (!setting) {
+        setting = await GeneralSetting.create({ invoiceBankDetails: null });
+    }
+    return setting;
+}
+
+async function getInvoiceBankDetails(req, res, next) {
+    try {
+        const { GeneralSetting } = req.models;
+        const setting = await getOrCreateInvoiceSetting(GeneralSetting);
+        const bankDetails = normalizeInvoiceBankDetails(setting.invoiceBankDetails);
+        const missingFields = getMissingInvoiceBankDetailFields(bankDetails);
+
+        return res.success({
+            bankDetails,
+            isConfigured: missingFields.length === 0,
+            missingFields
+        }, 'Invoice bank details retrieved');
+    } catch (err) {
+        return next(err);
+    }
+}
+
+async function updateInvoiceBankDetails(req, res, next) {
+    try {
+        const { GeneralSetting } = req.models;
+        const bankDetails = normalizeInvoiceBankDetails(
+            req.body && req.body.bankDetails ? req.body.bankDetails : req.body
+        );
+        const missingFields = getMissingInvoiceBankDetailFields(bankDetails);
+
+        if (missingFields.length > 0) {
+            return res.fail(
+                `${missingFields.map(field => field.label).join(', ')} ${missingFields.length === 1 ? 'is' : 'are'} required`,
+                400,
+                { missingFields }
+            );
+        }
+
+        const setting = await getOrCreateInvoiceSetting(GeneralSetting);
+        await setting.update({ invoiceBankDetails: bankDetails });
+
+        await addAuditLog(req.models, {
+            action: 'invoice.bankDetails.update',
+            message: 'Invoice bank details updated',
+            userId: req.user && req.user.id ? req.user.id : null,
+            userType: req.user && req.user.type ? req.user.type : null,
+            meta: { settingId: setting.id }
+        });
+
+        return res.success({
+            bankDetails,
+            isConfigured: true,
+            missingFields: []
+        }, 'Invoice bank details updated');
+    } catch (err) {
+        return next(err);
+    }
+}
 
 async function createInvoice(req, res, next) {
     try {
-        const { Invoice, InvoiceLineItem, Enrollee, RetailEnrollee } = req.models;
+        const { Invoice, InvoiceLineItem, Enrollee, RetailEnrollee, GeneralSetting } = req.models;
         const {
             invoiceNumber,
             enrolleeId,
@@ -25,6 +92,20 @@ async function createInvoice(req, res, next) {
 
         if (!customerName) return res.fail('`customerName` is required', 400);
         if (!lineItems || lineItems.length === 0) return res.fail('At least one line item is required', 400);
+
+        const setting = await GeneralSetting.findOne();
+        const bankDetails = normalizeInvoiceBankDetails(
+            setting ? setting.invoiceBankDetails : null
+        );
+        const missingBankDetailFields = getMissingInvoiceBankDetailFields(bankDetails);
+
+        if (missingBankDetailFields.length > 0) {
+            return res.fail(
+                'Configure invoice bank details before generating a new invoice',
+                409,
+                { missingFields: missingBankDetailFields }
+            );
+        }
 
         // Validate line items
         for (let i = 0; i < lineItems.length; i++) {
@@ -86,6 +167,7 @@ async function createInvoice(req, res, next) {
             currency: currency || 'NGN',
             notes: notes || null,
             description: description || null,
+            bankDetails,
             issuedBy: (req.user && req.user.id) ? req.user.id : null,
             issuedByType: (req.user && req.user.type) ? req.user.type : 'System'
         });
@@ -289,7 +371,7 @@ async function listInvoices(req, res, next) {
 
 async function getInvoice(req, res, next) {
     try {
-        const { Invoice, InvoiceLineItem, Admin } = req.models;
+        const { Invoice, InvoiceLineItem, Admin, GeneralSetting } = req.models;
         const { id } = req.params;
 
         const invoice = await Invoice.findByPk(id, {
@@ -313,7 +395,22 @@ async function getInvoice(req, res, next) {
 
         if (!invoice) return res.fail('Invoice not found', 404);
 
-        return res.success(invoice.toJSON());
+        const data = invoice.toJSON();
+        const storedBankDetails = normalizeInvoiceBankDetails(data.bankDetails);
+
+        if (isInvoiceBankDetailsConfigured(storedBankDetails)) {
+            data.bankDetails = storedBankDetails;
+        } else {
+            const setting = await GeneralSetting.findOne();
+            const currentBankDetails = normalizeInvoiceBankDetails(
+                setting ? setting.invoiceBankDetails : null
+            );
+            data.bankDetails = isInvoiceBankDetailsConfigured(currentBankDetails)
+                ? currentBankDetails
+                : null;
+        }
+
+        return res.success(data);
     } catch (err) {
         return next(err);
     }
@@ -585,6 +682,8 @@ async function cancelInvoice(req, res, next) {
 }
 
 module.exports = {
+    getInvoiceBankDetails,
+    updateInvoiceBankDetails,
     createInvoice,
     updateInvoice,
     deleteInvoice,

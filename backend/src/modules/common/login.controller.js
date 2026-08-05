@@ -1,5 +1,9 @@
 const { signToken } = require('../../middlewares/common/security');
 const Sequelize = require('sequelize');
+const {
+    normalizeEmailIdentifier,
+    normalizePolicyIdentifier
+} = require('../../utils/loginIdentifier');
 
 const makeLogin = (modelOrKey, opts = {}) => {
     const policyModelKey = opts.policyModelKey || 'PolicyNumber';
@@ -8,9 +12,11 @@ const makeLogin = (modelOrKey, opts = {}) => {
     return async (req, res, next) => {
         try {
             const { email, policyNumber, password, remember, location } = req.body || {};
+            const lookupEmail = normalizeEmailIdentifier(email);
+            const lookupPolicyNumber = normalizePolicyIdentifier(policyNumber);
 
             if (!password) return res.fail('Password is required', 400);
-            if (!email && !policyNumber) return res.fail('Provide email or policyNumber', 400);
+            if (!lookupEmail && !lookupPolicyNumber) return res.fail('Provide email or policyNumber', 400);
 
             let UserModel = null;
             if (typeof modelOrKey === 'string') {
@@ -22,18 +28,15 @@ const makeLogin = (modelOrKey, opts = {}) => {
 
             let user = null;
 
-            if (policyNumber) {
+            if (lookupPolicyNumber) {
                 const PolicyModel = req.models && req.models[policyModelKey];
                 if (!PolicyModel) return res.fail('Server configuration error (Policy model missing)', 500);
-
-                const lookupPolicyNumber = (typeof policyNumber === 'string') ? policyNumber.toUpperCase() : policyNumber;
 
                 const policy = await PolicyModel.findOne({ where: { policyNumber: lookupPolicyNumber } });
                 if (!policy || policy.userType !== userType) return res.fail('Invalid credentials', 401);
 
                 user = await UserModel.findByPk(policy.userId);
-            } else if (email) {
-                const lookupEmail = (typeof email === 'string') ? email.toLowerCase() : email;
+            } else if (lookupEmail) {
                 try {
                     user = await UserModel.findOne({
                         where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), lookupEmail)

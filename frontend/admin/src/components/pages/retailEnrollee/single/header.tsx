@@ -37,29 +37,7 @@ export default function RetailEnrolleeHeader({
     }
   };
 
-  const handleViewIdCard = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient(
-        `/admin/retail-enrollees/${data?.id}/download-id-card`,
-        {
-          method: "GET",
-          onLoading: (l: boolean) => setLoading(l),
-        }
-      );
-
-      if (response?.data.idCardUrl) {
-        setShowIdCard(true);
-      }
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to fetch ID card"
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleViewIdCard = () => setShowIdCard(true);
 
   const handleResendVerification = async () => {
     try {
@@ -70,12 +48,12 @@ export default function RetailEnrolleeHeader({
           method: "POST",
           body: { via: "email" },
           onLoading: (l: boolean) => setLoading(l),
-        }
+        },
       );
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Failed to send verification code"
+        err instanceof Error ? err.message : "Failed to send verification code",
       );
       errorModal.openModal();
     } finally {
@@ -99,7 +77,7 @@ export default function RetailEnrolleeHeader({
             <span className="text-base font-medium text-gray-700 dark:text-gray-400">
               Name:{" "}
               {capitalizeWords(
-                data?.firstName + data?.middleName + data?.lastName
+                data?.firstName + data?.middleName + data?.lastName,
               )}
             </span>
           </div>
@@ -119,7 +97,7 @@ export default function RetailEnrolleeHeader({
             disabled={loading}
             className={getButtonClasses("not")}
           >
-            {loading ? "Processing..." : "View ID card"}
+            View ID Card
           </button>
 
           <button

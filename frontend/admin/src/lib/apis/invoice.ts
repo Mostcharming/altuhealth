@@ -1,5 +1,26 @@
 import { apiClient } from "@/lib/apiClient";
-import { Invoice } from "@/lib/store/invoiceStore";
+import {
+  Invoice,
+  InvoiceBankDetails,
+} from "@/lib/store/invoiceStore";
+
+export async function getInvoiceBankDetails() {
+  return apiClient("/admin/invoices/bank-details", {
+    method: "GET",
+  });
+}
+
+export async function updateInvoiceBankDetails(
+  bankDetails: InvoiceBankDetails
+) {
+  return apiClient("/admin/invoices/bank-details", {
+    method: "PUT",
+    body: { bankDetails },
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
 
 export async function fetchInvoices(params: {
   limit?: number;

@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const notify = require('../../utils/notify');
+const { Op } = require('sequelize');
 
 const getModelAttributes = (model) => {
     if (!model) return {};
@@ -15,17 +15,21 @@ const getPasswordField = (model) => {
 };
 
 const makeResetPassword = (modelOrKey, opts = {}) => {
-    const policyModelKey = opts.policyModelKey || 'PolicyNumber';
     const userType = opts.userType || (typeof modelOrKey === 'string' ? modelOrKey : 'Admin');
-    const templateName = opts.templateName || 'password-reset-success';
+    const allowedUserTypes = Array.isArray(opts.allowedUserTypes) ? opts.allowedUserTypes : null;
+    const tokenMaxAgeMinutes = Number(opts.tokenMaxAgeMinutes) || null;
+    const minimumPasswordLength = Number(opts.minimumPasswordLength) || 1;
 
     return async (req, res, next) => {
         try {
-            // only token and new password are required now
             const { token, password } = req.body || {};
+            const normalizedToken = typeof token === 'string' ? token.trim() : token;
 
-            if (!token) return res.fail('Verification token is required', 400);
+            if (!normalizedToken) return res.fail('Verification token is required', 400);
             if (!password) return res.fail('Password is required', 400);
+            if (typeof password !== 'string' || password.length < minimumPasswordLength) {
+                return res.fail(`Password must be at least ${minimumPasswordLength} characters long`, 400);
+            }
 
             let UserModel = null;
             if (typeof modelOrKey === 'string') {
@@ -38,15 +42,26 @@ const makeResetPassword = (modelOrKey, opts = {}) => {
             const { PasswordReset } = req.models || {};
             if (!PasswordReset) return res.fail('Server configuration error (PasswordReset model missing)', 500);
 
-            // find the reset entry by token (we'll extract the userId from it)
-            const resetEntry = await PasswordReset.findOne({ where: { token, isUsed: false } });
-            if (!resetEntry) return res.fail('Invalid or used verification token', 401);
+            const resetWhere = { token: normalizedToken, isUsed: false };
+            if (tokenMaxAgeMinutes) {
+                resetWhere.createdAt = {
+                    [Op.gte]: new Date(Date.now() - tokenMaxAgeMinutes * 60 * 1000)
+                };
+            }
 
-            // get the user id and user type from the reset entry
+            const resetEntry = await PasswordReset.findOne({
+                where: resetWhere,
+                order: [['createdAt', 'DESC']]
+            });
+            if (!resetEntry) return res.fail('Invalid, expired, or used verification code', 401);
+
             const userId = resetEntry.userId;
             const userTypeFromReset = resetEntry.userType || userType;
 
-            // Prefer a model keyed by the userType from the reset entry if available
+            if (allowedUserTypes && !allowedUserTypes.includes(userTypeFromReset)) {
+                return res.fail('Invalid, expired, or used verification code', 401);
+            }
+
             if (req.models && req.models[userTypeFromReset]) {
                 UserModel = req.models[userTypeFromReset];
             }
@@ -71,13 +86,6 @@ const makeResetPassword = (modelOrKey, opts = {}) => {
             } catch (e) {
                 console.error('Failed to update password or mark token used:', e && e.message ? e.message : e);
                 return res.fail('Failed to reset password', 500);
-            }
-
-            try {
-                // notify using the userType from the reset entry when available
-                // await notify(user, userTypeFromReset, templateName, null, 'email', true);
-            } catch (e) {
-                console.error('Failed to send password reset confirmation notification:', e && e.message ? e.message : e);
             }
 
             return res.success({}, 'Password has been reset');

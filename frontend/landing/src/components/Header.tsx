@@ -3,6 +3,7 @@
 import {
   detectVisitorCountryCode,
   getPlanCategoriesForCountry,
+  getPublicPlanCategoryKey,
   type PlanCategory,
   type PlanCategoryOption,
 } from "@/lib/planMarket";
@@ -13,7 +14,9 @@ import { useEffect, useState } from "react";
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const [planCategories, setPlanCategories] = useState<PlanCategoryOption[]>([]);
+  const [planCategories, setPlanCategories] = useState<PlanCategoryOption[]>(
+    [],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -42,7 +45,8 @@ export default function Header() {
   };
 
   const goToPlanCategory = (category: PlanCategory) => {
-    const target = `/?planCategory=${category}#plans`;
+    const publicCategory = getPublicPlanCategoryKey(category);
+    const target = `/?planCategory=${publicCategory}#plans`;
 
     if (pathname !== "/") {
       router.push(target);
@@ -50,7 +54,7 @@ export default function Header() {
     }
 
     const url = new URL(window.location.href);
-    url.searchParams.set("planCategory", category);
+    url.searchParams.set("planCategory", publicCategory);
     url.hash = "plans";
     window.history.replaceState({}, "", url.toString());
     window.dispatchEvent(

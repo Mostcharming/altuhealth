@@ -3,6 +3,8 @@ import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import { useModal } from "@/hooks/useModal";
 import { getCurrencyByCode } from "@/lib/currencies";
+import { InvoiceBankDetails } from "@/lib/store/invoiceStore";
+import InvoiceBankDetailsDisplay from "@/components/pages/invoice/InvoiceBankDetailsDisplay";
 
 interface Product {
   name: string;
@@ -26,6 +28,8 @@ interface InvoiceData {
   dueDate?: string;
   currency?: string;
   notes?: string;
+  bankDetails?: InvoiceBankDetails | null;
+  disabled?: boolean;
 }
 
 export default function InvoicePreviewModal({
@@ -41,6 +45,8 @@ export default function InvoicePreviewModal({
   dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(),
   currency = "NGN",
   notes = "",
+  bankDetails = null,
+  disabled = false,
 }: InvoiceData = {}) {
   const { isOpen, openModal, closeModal } = useModal();
   const currencyData = getCurrencyByCode(currency);
@@ -51,7 +57,7 @@ export default function InvoicePreviewModal({
 
   return (
     <>
-      <Button variant="outline" onClick={openModal}>
+      <Button variant="outline" onClick={openModal} disabled={disabled}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="20"
@@ -228,6 +234,11 @@ export default function InvoicePreviewModal({
               </ul>
             </div>
           </div>
+
+          <InvoiceBankDetailsDisplay
+            bankDetails={bankDetails}
+            className="mb-6"
+          />
 
           {/* Notes Section */}
           {notes && (

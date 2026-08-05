@@ -26,21 +26,33 @@ class Email extends NotifyProcess {
     async send() {
         const message = await this.getMessage();
 
-        if (this.settings.emailNotification && message) {
-            const mailConfig = typeof this.settings.mailConfig === 'string'
-                ? JSON.parse(this.settings.mailConfig)
-                : this.settings.mailConfig;
-
-            const methodName = mailConfig.name;
-            const method = this.mailMethods(methodName);
-
-            try {
-                await this[method]();
-                await this.createLogEntry('email');
-            } catch (error) {
-                await this.createErrorLog(error.message);
-            }
+        if (!this.settings.emailNotification || !message) {
+            return false;
         }
+
+        const mailConfig = typeof this.settings.mailConfig === 'string'
+            ? JSON.parse(this.settings.mailConfig)
+            : this.settings.mailConfig;
+
+        const methodName = mailConfig.name;
+        const method = this.mailMethods(methodName);
+
+        try {
+            await this[method]();
+        } catch (error) {
+            await this.createErrorLog(error.message);
+            return false;
+        }
+
+        try {
+            if (this.createLog) {
+                await this.createLogEntry('email');
+            }
+        } catch (error) {
+            await this.createErrorLog(`Email sent but notification logging failed: ${error.message}`);
+        }
+
+        return true;
     }
 
     mailMethods(name) {

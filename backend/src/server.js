@@ -58,6 +58,7 @@ const configuredCorsOrigins = process.env.CORS_ORIGIN
   : defaultCorsOrigins;
 
 const allowedCorsOriginPatterns = [
+  /^http:\/\/localhost(?::\d+)?$/,
   /^http:\/\/192\.168\.1\.156(?::\d+)?$/,
 ];
 
@@ -97,7 +98,7 @@ app.use(cors({
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 1000,
+  max: 5000,
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,

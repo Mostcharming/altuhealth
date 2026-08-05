@@ -49,6 +49,7 @@ router.use('/appointments', require('./appointments/route'));
 router.use('/admission-trackers', require('./admissionTrackers/route'));
 router.use('/invoices', require('./invoices/route'));
 router.use('/payments', require('./payments/route'));
+router.use('/pharmacy-requests', require('./pharmacyRequests/route'));
 router.use('/messages', require('./messages/route'));
 router.use('/referrers', require('./referrers/route'));
 router.use('/referral-programs', require('./referralPrograms/route'));

@@ -10,6 +10,7 @@ const {
     parseBulkStaffFile,
     prepareStaffRow
 } = require('./bulkUpload');
+const { buildCompanyStaffWorkbook } = require('./staffExport');
 
 async function runWithConcurrency(items, concurrency, worker) {
     let cursor = 0;
@@ -224,13 +225,16 @@ async function createStaff(req, res, next) {
 }
 
 async function updateStaff(req, res, next) {
+    let transaction;
     try {
-        const { Staff, Company, CompanySubsidiary, Subscription } = req.models;
+        const { Staff, Company, CompanySubsidiary, Subscription, Enrollee } = req.models;
         const { id } = req.params;
         const { firstName, middleName, lastName, email, phoneNumber, staffId, companyId, subsidiaryId, enrollmentStatus, isNotified, notifiedAt, isActive, dateOfBirth, maxDependents, preexistingMedicalRecords, subscriptionId } = req.body || {};
 
         const staff = await Staff.findByPk(id);
         if (!staff) return res.fail('Staff not found', 404);
+
+        const enrollee = await Enrollee.findOne({ where: { staffId: staff.id } });
 
         const updates = {};
 
@@ -242,6 +246,13 @@ async function updateStaff(req, res, next) {
             if (email) {
                 const existingEmail = await Staff.findOne({ where: { email, id: { [Op.ne]: id } } });
                 if (existingEmail) return res.fail('Email already exists', 400);
+
+                if (enrollee) {
+                    const existingEnrolleeEmail = await Enrollee.findOne({
+                        where: { email, id: { [Op.ne]: enrollee.id } }
+                    });
+                    if (existingEnrolleeEmail) return res.fail('Email already exists for another enrollee', 400);
+                }
             }
             updates.email = email || null;
         }
@@ -307,18 +318,62 @@ async function updateStaff(req, res, next) {
             updates.subscriptionId = subscriptionId || null;
         }
 
-        await staff.update(updates);
+        const enrolleeUpdates = {};
+        const enrolleeSyncFields = [
+            'firstName',
+            'middleName',
+            'lastName',
+            'email',
+            'phoneNumber',
+            'companyId',
+            'dateOfBirth',
+            'maxDependents',
+            'preexistingMedicalRecords',
+            'isActive'
+        ];
+
+        if (enrollee) {
+            for (const field of enrolleeSyncFields) {
+                if (!Object.prototype.hasOwnProperty.call(updates, field)) continue;
+
+                // Enrollee email, phone number, and date of birth are required by
+                // the schema. Do not erase an existing required value when the
+                // optional staff field is cleared.
+                if (['email', 'phoneNumber', 'dateOfBirth'].includes(field) && !updates[field]) {
+                    continue;
+                }
+
+                enrolleeUpdates[field] = updates[field];
+            }
+        }
+
+        transaction = await Staff.sequelize.transaction();
+
+        await staff.update(updates, { transaction });
+
+        if (enrollee && Object.keys(enrolleeUpdates).length > 0) {
+            await enrollee.update(enrolleeUpdates, { transaction });
+        }
+
+        await transaction.commit();
 
         await addAuditLog(req.models, {
             action: 'staff.update',
-            message: `Staff ${staff.firstName} ${staff.lastName} updated`,
+            message: `Staff ${staff.firstName} ${staff.lastName} updated${enrollee ? ' and linked enrollee synchronized' : ''}`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { staffId: staff.id }
+            meta: {
+                staffId: staff.id,
+                enrolleeId: enrollee?.id || null,
+                synchronizedFields: Object.keys(enrolleeUpdates)
+            }
         });
 
-        return res.success({ staff }, 'Staff updated');
+        return res.success({ staff }, enrollee ? 'Staff and linked enrollee updated' : 'Staff updated');
     } catch (err) {
+        if (transaction && !transaction.finished) {
+            await transaction.rollback();
+        }
         return next(err);
     }
 }
@@ -343,6 +398,131 @@ async function deleteStaff(req, res, next) {
 
         return res.success(null, 'Staff deleted');
     } catch (err) {
+        return next(err);
+    }
+}
+
+async function bulkDeleteStaffs(req, res, next) {
+    let transaction;
+    try {
+        const { Staff, Company } = req.models;
+        const {
+            staffIds: requestedStaffIds,
+            companyId: requestedCompanyId,
+            deleteAllForCompany = false,
+            confirmation
+        } = req.body || {};
+
+        const companyId = typeof requestedCompanyId === 'string'
+            ? requestedCompanyId.trim()
+            : '';
+        const staffIds = Array.isArray(requestedStaffIds)
+            ? [...new Set(
+                requestedStaffIds
+                    .filter((id) => typeof id === 'string')
+                    .map((id) => id.trim())
+                    .filter(Boolean)
+            )]
+            : [];
+
+        let company = null;
+        let where;
+        let deletionScope;
+
+        if (deleteAllForCompany === true) {
+            if (!companyId) {
+                return res.fail('`companyId` is required to delete all staff for a company', 400);
+            }
+            if (confirmation !== companyId) {
+                return res.fail('Company deletion confirmation does not match the selected company', 400);
+            }
+
+            company = await Company.findByPk(companyId);
+            if (!company) return res.fail('Company not found', 404);
+
+            where = { companyId };
+            deletionScope = 'company';
+        } else {
+            if (staffIds.length === 0) {
+                return res.fail('Select at least one staff member to delete', 400);
+            }
+            if (staffIds.length > 1000) {
+                return res.fail('A maximum of 1,000 selected staff can be deleted at once', 400);
+            }
+
+            where = {
+                id: { [Op.in]: staffIds },
+                ...(companyId ? { companyId } : {})
+            };
+            deletionScope = 'selected';
+        }
+
+        const staffs = await Staff.findAll({
+            where,
+            attributes: ['id', 'firstName', 'lastName', 'companyId']
+        });
+
+        if (deletionScope === 'selected' && staffs.length !== staffIds.length) {
+            return res.fail(
+                companyId
+                    ? 'One or more selected staff do not belong to the selected company or no longer exist'
+                    : 'One or more selected staff no longer exist',
+                409
+            );
+        }
+
+        const deletedIds = staffs.map((staff) => staff.id);
+        if (deletedIds.length === 0) {
+            return res.success(
+                { deletedCount: 0, deletedIds: [], scope: deletionScope, companyId: companyId || null },
+                'No staff records found to delete'
+            );
+        }
+
+        transaction = await Staff.sequelize.transaction();
+        const deletedCount = await Staff.destroy({
+            where: { id: { [Op.in]: deletedIds } },
+            transaction
+        });
+        if (deletedCount !== deletedIds.length) {
+            throw new Error('Staff records changed during bulk deletion. Please try again.');
+        }
+        await transaction.commit();
+
+        try {
+            await addAuditLog(req.models, {
+                action: deletionScope === 'company' ? 'staff.bulk_delete_company' : 'staff.bulk_delete',
+                message: deletionScope === 'company'
+                    ? `${deletedIds.length} staff record(s) deleted for company ${company.name}`
+                    : `${deletedIds.length} selected staff record(s) deleted`,
+                userId: (req.user && req.user.id) ? req.user.id : null,
+                userType: (req.user && req.user.type) ? req.user.type : null,
+                meta: {
+                    scope: deletionScope,
+                    companyId: companyId || null,
+                    staffIds: deletedIds,
+                    deletedCount: deletedIds.length
+                }
+            });
+        } catch (auditError) {
+            // The delete has already committed, so do not report it as failed if
+            // only the audit log write fails.
+            console.error('Failed to record staff bulk deletion audit log:', auditError);
+        }
+
+        return res.success(
+            {
+                deletedCount: deletedIds.length,
+                deletedIds,
+                scope: deletionScope,
+                companyId: companyId || null
+            },
+            `${deletedIds.length} staff record(s) deleted successfully`
+        );
+    } catch (err) {
+        if (transaction && !transaction.finished) {
+            await transaction.rollback();
+        }
         return next(err);
     }
 }
@@ -586,7 +766,7 @@ async function downloadCompanyEnrollees(req, res, next) {
 
 async function downloadCompanyStaffs(req, res, next) {
     try {
-        const { Staff, Enrollee, Company, CompanySubsidiary, Subscription } = req.models;
+        const { Staff, Enrollee, EnrolleeDependent, Company, CompanySubsidiary, Subscription } = req.models;
         const { companyId } = req.params;
 
         if (!companyId) return res.fail('`companyId` is required', 400);
@@ -621,7 +801,34 @@ async function downloadCompanyStaffs(req, res, next) {
                     model: Enrollee,
                     as: 'enrollee',
                     attributes: ['id', 'policyNumber', 'gender', 'isActive', 'createdAt'],
-                    required: false
+                    required: false,
+                    include: [
+                        {
+                            model: EnrolleeDependent,
+                            as: 'dependents',
+                            attributes: [
+                                'id',
+                                'policyNumber',
+                                'firstName',
+                                'middleName',
+                                'lastName',
+                                'dateOfBirth',
+                                'gender',
+                                'relationshipToEnrollee',
+                                'phoneNumber',
+                                'email',
+                                'occupation',
+                                'maritalStatus',
+                                'preexistingMedicalRecords',
+                                'enrollmentDate',
+                                'expirationDate',
+                                'isVerified',
+                                'isActive',
+                                'createdAt'
+                            ],
+                            required: false
+                        }
+                    ]
                 },
                 {
                     model: Company,
@@ -649,46 +856,7 @@ async function downloadCompanyStaffs(req, res, next) {
             return res.fail('No staff found for this company', 404);
         }
 
-        const formatDate = (value) => value ? new Date(value).toISOString().split('T')[0] : '';
-        const rows = staffs.map((staff, index) => {
-            const item = staff.toJSON();
-            return {
-                'S/N': index + 1,
-                'Policy Number': item.enrollee?.policyNumber || '',
-                'First Name': item.firstName || '',
-                'Middle Name': item.middleName || '',
-                'Last Name': item.lastName || '',
-                Email: item.email || '',
-                'Phone Number': item.phoneNumber || '',
-                'Staff ID': item.staffId || '',
-                Company: item.Company?.name || company.name || '',
-                Subsidiary: item.CompanySubsidiary?.name || '',
-                Subscription: item.Subscription?.code || '',
-                'Subscription Status': item.Subscription?.status || '',
-                'Subscription Start Date': formatDate(item.Subscription?.startDate),
-                'Subscription End Date': formatDate(item.Subscription?.endDate),
-                'Date of Birth': formatDate(item.dateOfBirth),
-                Gender: item.enrollee?.gender || '',
-                'Max Dependents': item.maxDependents ?? '',
-                'Pre-existing Medical Records': item.preexistingMedicalRecords || '',
-                'Enrollment Status': item.enrollmentStatus || '',
-                Notified: item.isNotified ? 'Yes' : 'No',
-                'Notified At': formatDate(item.notifiedAt),
-                Status: item.isActive ? 'Active' : 'Inactive',
-                'Enrollee Status': item.enrollee ? (item.enrollee.isActive ? 'Active' : 'Inactive') : '',
-                'Created At': formatDate(item.createdAt)
-            };
-        });
-
-        const XLSX = require('xlsx');
-        const worksheet = XLSX.utils.json_to_sheet(rows);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff List');
-
-        const buffer = XLSX.write(workbook, {
-            bookType: 'xlsx',
-            type: 'buffer'
-        });
+        const { buffer, dependantCount } = buildCompanyStaffWorkbook(staffs, company);
 
         const safeCompanyName = String(company.name || 'company')
             .replace(/[^a-z0-9]+/gi, '-')
@@ -701,7 +869,11 @@ async function downloadCompanyStaffs(req, res, next) {
             message: `Downloaded staff list for company ${company.name}`,
             userId: (req.user && req.user.id) ? req.user.id : null,
             userType: (req.user && req.user.type) ? req.user.type : null,
-            meta: { companyId, staffCount: staffs.length }
+            meta: {
+                companyId,
+                staffCount: staffs.length,
+                dependantCount
+            }
         });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -1183,6 +1355,7 @@ module.exports = {
     createStaff,
     updateStaff,
     deleteStaff,
+    bulkDeleteStaffs,
     listStaffs,
     getStaff,
     getEnrollmentStatusOptions,

@@ -37,29 +37,7 @@ export default function RetailEnrolleeDependentPHeader({
     }
   };
 
-  const handleViewIdCard = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient(
-        `/admin/retail-enrollee-dependents/${data?.id}/download-id-card`,
-        {
-          method: "GET",
-          onLoading: (l: boolean) => setLoading(l),
-        }
-      );
-
-      if (response?.data.idCardUrl) {
-        setShowIdCard(true);
-      }
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to fetch ID card"
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleViewIdCard = () => setShowIdCard(true);
 
   const handleResendVerification = async () => {
     try {
@@ -70,12 +48,12 @@ export default function RetailEnrolleeDependentPHeader({
           method: "POST",
           body: { via: "email" },
           onLoading: (l: boolean) => setLoading(l),
-        }
+        },
       );
       successModal.openModal();
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Failed to send verification code"
+        err instanceof Error ? err.message : "Failed to send verification code",
       );
       errorModal.openModal();
     } finally {
@@ -153,7 +131,11 @@ export default function RetailEnrolleeDependentPHeader({
           lastName: data?.lastName || "",
           gender: data?.gender || "M",
           pictureUrl: data?.pictureUrl,
-          plan: data?.RetailEnrollee?.name || "",
+          plan:
+            data?.plan?.name ||
+            data?.Plan?.name ||
+            data?.RetailEnrollee?.plan?.name ||
+            "",
         }}
       />
 

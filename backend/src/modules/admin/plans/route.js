@@ -12,10 +12,12 @@ router.put('/:id', Plans.updatePlan);
 router.delete('/:id', Plans.deletePlan);
 
 // Benefit categories
+router.put('/:id/benefit-categories', Plans.syncBenefitCategories);
 router.post('/benefit-categories/add', Plans.addBenefitCategory);
 router.delete('/benefit-categories/:planId/:benefitCategoryId', Plans.removeBenefitCategory);
 
 // Individual benefits
+router.put('/:planId/benefit-categories/:benefitCategoryId/benefits', Plans.syncBenefits);
 router.post('/benefits/add', Plans.addBenefit);
 router.delete('/benefits/:planId/:benefitId', Plans.removeBenefit);
 

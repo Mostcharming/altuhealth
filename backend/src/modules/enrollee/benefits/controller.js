@@ -233,20 +233,27 @@ async function getEnrolleeBenefits(req, res, next) {
 
         // Format benefits response - only include fields present in database
         const formattedBenefits = benefits.map(benefit => {
+            const benefitCategoryId = benefit.benefitCategoryId ?? benefit.benefit_category_id;
+            const benefitCategory = benefit.benefitCategory?.name ?? benefit['benefitCategory.name'];
+            const isCovered = benefit.isCovered ?? benefit.is_covered;
+            const createdAt = benefit.createdAt ?? benefit.created_at;
+            const updatedAt = benefit.updatedAt ?? benefit.updated_at;
+            const coverageType = benefit.coverageType ?? benefit.coverage_type;
+            const coverageValue = benefit.coverageValue ?? benefit.coverage_value;
             const formatted = {
                 id: benefit.id,
                 name: benefit.name,
-                benefitCategoryId: benefit.benefit_category_id,
-                benefitCategory: benefit.benefitCategory?.name,
-                isCovered: benefit.is_covered,
-                createdAt: benefit.created_at,
-                updatedAt: benefit.updated_at,
+                benefitCategoryId,
+                benefitCategory,
+                isCovered: isCovered === true,
+                createdAt,
+                updatedAt,
             };
 
             // Only add optional fields if they exist and are not null
             if (benefit.description) formatted.description = benefit.description;
-            if (benefit.coverage_type) formatted.coverageType = benefit.coverage_type;
-            if (benefit.coverage_value) formatted.coverageValue = benefit.coverage_value;
+            if (coverageType) formatted.coverageType = coverageType;
+            if (coverageValue) formatted.coverageValue = coverageValue;
 
             return formatted;
         });

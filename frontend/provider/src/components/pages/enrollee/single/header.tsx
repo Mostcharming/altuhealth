@@ -1,20 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import ErrorModal from "@/components/modals/error";
 import IdCardModal from "@/components/modals/idCardModal";
-import SuccessModal from "@/components/modals/success";
-import { useModal } from "@/hooks/useModal";
-import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import Image from "next/image";
 import { useState } from "react";
 
 export default function SinglePHeader({ data }: { data: any }) {
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [showIdCard, setShowIdCard] = useState(false);
-  const successModal = useModal();
-  const errorModal = useModal();
 
   const getButtonClasses = (status: string) => {
     const baseClasses =
@@ -28,29 +20,7 @@ export default function SinglePHeader({ data }: { data: any }) {
     }
   };
 
-  const handleDownloadIdCard = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient(
-        `/admin/enrollees/${data?.id}/download-id-card`,
-        {
-          method: "GET",
-          onLoading: (l: boolean) => setLoading(l),
-        },
-      );
-
-      if (response?.data.idCardUrl) {
-        setShowIdCard(true);
-      }
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to fetch ID card",
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleViewIdCard = () => setShowIdCard(true);
 
   return (
     <>
@@ -81,11 +51,10 @@ export default function SinglePHeader({ data }: { data: any }) {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={handleDownloadIdCard}
-            disabled={loading}
+            onClick={handleViewIdCard}
             className={getButtonClasses("not")}
           >
-            {loading ? "Processing..." : "View ID card"}
+            View ID Card
           </button>
 
           {/* <button
@@ -98,21 +67,6 @@ export default function SinglePHeader({ data }: { data: any }) {
         </div>
       </div>
 
-      <SuccessModal
-        successModal={successModal}
-        handleSuccessClose={() => {
-          successModal.closeModal();
-        }}
-      />
-
-      <ErrorModal
-        message={errorMessage}
-        errorModal={errorModal}
-        handleErrorClose={() => {
-          errorModal.closeModal();
-        }}
-      />
-
       <IdCardModal
         isOpen={showIdCard}
         onClose={() => setShowIdCard(false)}
@@ -122,7 +76,11 @@ export default function SinglePHeader({ data }: { data: any }) {
           lastName: data?.lastName || "",
           gender: data?.gender || "M",
           pictureUrl: data?.pictureUrl,
-          plan: data?.plan || "",
+          plan:
+            data?.CompanyPlan?.name ||
+            data?.companyPlan?.name ||
+            data?.plan?.name ||
+            (typeof data?.plan === "string" ? data.plan : ""),
         }}
       />
     </>

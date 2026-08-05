@@ -1,9 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import ErrorModal from "@/components/modals/error";
 import IdCardModal from "@/components/modals/idCardModal";
-import { useModal } from "@/hooks/useModal";
-import { apiClient } from "@/lib/apiClient";
 import capitalizeWords from "@/lib/capitalize";
 import { useState } from "react";
 
@@ -17,34 +14,9 @@ const formatDate = (date: string | null | undefined) => {
 };
 
 export default function RetailEnrolleeDetails({ data }: { data: any }) {
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [showIdCard, setShowIdCard] = useState(false);
-  const errorModal = useModal();
 
-  const handleViewIdCard = async () => {
-    try {
-      setLoading(true);
-      const response = await apiClient(
-        `/admin/retail-enrollees/${data?.id}/download-id-card`,
-        {
-          method: "GET",
-          onLoading: (l: boolean) => setLoading(l),
-        }
-      );
-
-      if (response?.data.idCardUrl) {
-        setShowIdCard(true);
-      }
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to fetch ID card"
-      );
-      errorModal.openModal();
-    } finally {
-      setLoading(false);
-    }
-  };
+  const handleViewIdCard = () => setShowIdCard(true);
 
   const DetailRow = ({
     label,
@@ -170,23 +142,14 @@ export default function RetailEnrolleeDetails({ data }: { data: any }) {
             <span className="w-1/2 sm:w-2/3">
               <button
                 onClick={handleViewIdCard}
-                disabled={loading}
                 className="shadow-theme-xs inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-50"
               >
-                {loading ? "Processing..." : "View ID Card"}
+                View ID Card
               </button>
             </span>
           </li>
         </ul>
       </div>
-
-      <ErrorModal
-        message={errorMessage}
-        errorModal={errorModal}
-        handleErrorClose={() => {
-          errorModal.closeModal();
-        }}
-      />
 
       <IdCardModal
         isOpen={showIdCard}

@@ -8,9 +8,10 @@ const config = require('../config');
  * @param {object} opts
  * @param {string} opts.title - Notification title (required)
  * @param {string|null} [opts.clickUrl=null] - Optional URL to open when notification is clicked. If a relative path (e.g. 'role' or '/role') it will be prefixed with the configured front-end URL.
+ * @param {object|null} [opts.transaction=null] - Optional Sequelize transaction.
  * @returns {Promise<object>} created AdminNotification instance
  */
-async function addAdminNotification(models, { title, clickUrl = null } = {}) {
+async function addAdminNotification(models, { title, clickUrl = null, transaction = null } = {}) {
     if (!models || !models.AdminNotification) {
         throw new Error('models.AdminNotification is required');
     }
@@ -53,7 +54,7 @@ async function addAdminNotification(models, { title, clickUrl = null } = {}) {
     };
 
     // Allow caller to handle errors — bubble up any DB errors with context
-    const notif = await models.AdminNotification.create(payload);
+    const notif = await models.AdminNotification.create(payload, transaction ? { transaction } : undefined);
     return notif;
 }
 

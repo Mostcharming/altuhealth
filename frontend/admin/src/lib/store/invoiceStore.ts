@@ -19,6 +19,15 @@ export interface InvoiceLineItem {
   lineTotal?: number | string;
 }
 
+export interface InvoiceBankDetails {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  sortCode?: string;
+  swiftCode?: string;
+  paymentInstructions?: string;
+}
+
 export interface Invoice {
   id: string;
   invoiceNumber: string;
@@ -44,6 +53,7 @@ export interface Invoice {
   currency?: string;
   notes?: string | null;
   description?: string | null;
+  bankDetails?: InvoiceBankDetails | null;
   issuedBy?: string | null;
   issuedByType?: string;
   issuedByAdmin?: {

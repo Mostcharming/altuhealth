@@ -87,8 +87,9 @@ export default function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    const normalizedIdentifier = identifier.replace(/\s+/g, "");
 
-    if (!identifier || !password) {
+    if (!normalizedIdentifier || !password) {
       setToast({
         variant: "error",
         title: "Missing Fields",
@@ -107,7 +108,7 @@ export default function SignInForm() {
         currentLocation = await getLocationName(coords.lat, coords.lon);
       }
 
-      const isEmail = /\S+@\S+\.\S+/.test(identifier);
+      const isEmail = /\S+@\S+\.\S+/.test(normalizedIdentifier);
 
       const bodyPayload: any = {
         password,
@@ -120,9 +121,9 @@ export default function SignInForm() {
       };
 
       if (isEmail) {
-        bodyPayload.email = identifier;
+        bodyPayload.email = normalizedIdentifier;
       } else {
-        bodyPayload.policyNumber = identifier;
+        bodyPayload.policyNumber = normalizedIdentifier;
       }
 
       const data = await apiClient("/admin/auth/login", {
@@ -209,7 +210,9 @@ export default function SignInForm() {
                   placeholder="Email or Policy Number"
                   type="text"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={(e) =>
+                    setIdentifier(e.target.value.replace(/\s+/g, ""))
+                  }
                 />
               </div>
 

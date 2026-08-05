@@ -8,6 +8,7 @@ import { Invoice } from "@/lib/store/invoiceStore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import InvoiceDetailsTable from "./InvoiceDetailsTable";
+import InvoiceBankDetailsDisplay from "./InvoiceBankDetailsDisplay";
 
 interface InvoiceDetailsPageProps {
   invoiceId: string;
@@ -230,6 +231,11 @@ export default function InvoiceDetailsPage({
             </>
           )}
         </div>
+
+        <InvoiceBankDetailsDisplay
+          bankDetails={invoice.bankDetails}
+          className="mb-6"
+        />
 
         {/* Notes Section */}
         {invoice.notes && (

@@ -16,6 +16,13 @@ export interface Provider {
   name: string;
 }
 
+export interface PlanBenefit {
+  id: string;
+  name: string;
+  description?: string;
+  benefitCategoryId: string;
+}
+
 export interface Plan {
   id: string;
   name: string;
@@ -36,6 +43,7 @@ export interface Plan {
   createdAt?: string;
   updatedAt?: string;
   benefitCategories?: BenefitCategory[];
+  benefits?: PlanBenefit[];
   exclusions?: Exclusion[];
   providers?: Provider[];
 }

@@ -1,8 +1,4 @@
-export type PlanCategory =
-  | "retail"
-  | "diaspora"
-  | "geriatric"
-  | "corporate";
+export type PlanCategory = "retail" | "diaspora" | "geriatric" | "corporate";
 
 export type PlanCategoryOption = {
   key: PlanCategory;
@@ -22,15 +18,16 @@ const nigeriaPlanCategories: PlanCategory[] = [
   "geriatric",
 ];
 
-const internationalPlanCategories: PlanCategory[] = [
-  "diaspora",
-  "geriatric",
-];
+const internationalPlanCategories: PlanCategory[] = ["diaspora", "geriatric"];
 
 let visitorCountryPromise: Promise<string | null> | null = null;
 
 export function getPlanCategoryLabel(category: PlanCategory) {
   return planCategoryLabels[category];
+}
+
+export function getPublicPlanCategoryKey(category: PlanCategory) {
+  return category === "diaspora" ? "retail" : category;
 }
 
 export function getPlanCategoriesForCountry(

@@ -8,6 +8,7 @@ export async function fetchEnrollees(params: {
   isActive?: boolean;
   companyId?: string;
   companyPlanId?: string;
+  subscriptionId?: string;
 }) {
   const queryParams = new URLSearchParams();
   if (params.limit) queryParams.append("limit", String(params.limit));
@@ -18,6 +19,8 @@ export async function fetchEnrollees(params: {
   if (params.companyId) queryParams.append("companyId", params.companyId);
   if (params.companyPlanId)
     queryParams.append("companyPlanId", params.companyPlanId);
+  if (params.subscriptionId)
+    queryParams.append("subscriptionId", params.subscriptionId);
 
   return apiClient(`/admin/enrollees?${queryParams.toString()}`, {
     method: "GET",

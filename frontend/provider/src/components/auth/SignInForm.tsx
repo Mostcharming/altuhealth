@@ -87,8 +87,9 @@ export default function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    const normalizedIdentifier = identifier.replace(/\s+/g, "");
 
-    if (!identifier || !password) {
+    if (!normalizedIdentifier || !password) {
       setToast({
         variant: "error",
         title: "Missing Fields",
@@ -106,7 +107,7 @@ export default function SignInForm() {
       }
 
       const bodyPayload: any = {
-        policyNumber: identifier,
+        policyNumber: normalizedIdentifier,
         password,
         remember: isChecked,
         location: {
@@ -199,7 +200,9 @@ export default function SignInForm() {
                   placeholder="Policy Number"
                   type="text"
                   value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  onChange={(e) =>
+                    setIdentifier(e.target.value.replace(/\s+/g, ""))
+                  }
                 />
               </div>
 

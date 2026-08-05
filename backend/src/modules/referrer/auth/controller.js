@@ -3,9 +3,13 @@
 const bcrypt = require('bcrypt');
 const Sequelize = require('sequelize');
 const { signToken } = require('../../../middlewares/common/security');
+const {
+    normalizeEmailIdentifier,
+    removeIdentifierWhitespace
+} = require('../../../utils/loginIdentifier');
 
-const normalizeEmail = (email) => (typeof email === 'string' ? email.trim().toLowerCase() : null);
-const normalizePhone = (phoneNumber) => (typeof phoneNumber === 'string' ? phoneNumber.trim() : null);
+const normalizeEmail = normalizeEmailIdentifier;
+const normalizePhone = removeIdentifierWhitespace;
 
 const toSafeReferrer = (referrer) => ({
     id: referrer.id,
@@ -107,13 +111,14 @@ const login = async (req, res, next) => {
     try {
         const { Referrer } = req.models;
         const { email, phoneNumber, password } = req.body || {};
+        const lookupEmail = normalizeEmail(email);
+        const lookupPhone = normalizePhone(phoneNumber);
 
         if (!password) return res.fail('Password is required', 400);
-        if (!email && !phoneNumber) return res.fail('Provide email or phoneNumber', 400);
+        if (!lookupEmail && !lookupPhone) return res.fail('Provide email or phoneNumber', 400);
 
         let referrer = null;
-        if (email) {
-            const lookupEmail = normalizeEmail(email);
+        if (lookupEmail) {
             referrer = await Referrer.findOne({
                 where: {
                     isDeleted: false,
@@ -124,7 +129,7 @@ const login = async (req, res, next) => {
             referrer = await Referrer.findOne({
                 where: {
                     isDeleted: false,
-                    phoneNumber: normalizePhone(phoneNumber)
+                    phoneNumber: lookupPhone
                 }
             });
         }
