@@ -11,12 +11,22 @@ module.exports = (sequelize, DataTypes) => {
         },
         enrolleeId: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
             references: {
                 model: 'enrollees',
                 key: 'id'
             },
             field: 'enrollee_id'
+        },
+        retailEnrolleeId: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            unique: true,
+            references: {
+                model: 'retail_enrollees',
+                key: 'id'
+            },
+            field: 'retail_enrollee_id'
         },
         lastPeriodDate: {
             type: DataTypes.DATE,

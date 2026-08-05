@@ -2,12 +2,30 @@
 
 const { Op } = require('sequelize');
 
+function resolveMedicalHistoryContext(req) {
+    if (req.user?.type === 'RetailEnrollee') {
+        return {
+            model: req.models.RetailEnrolleeMedicalHistory,
+            ownerKey: 'retailEnrolleeId'
+        };
+    }
+    if (req.user?.type === 'Enrollee') {
+        return {
+            model: req.models.EnrolleeMedicalHistory,
+            ownerKey: 'enrolleeId'
+        };
+    }
+    return null;
+}
+
 async function listMedicalHistory(req, res, next) {
     try {
-        const { EnrolleeMedicalHistory, Provider, Diagnosis } = req.models;
+        const { Provider, Diagnosis } = req.models;
+        const context = resolveMedicalHistoryContext(req);
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context?.model) return res.fail('Unsupported enrollee account type', 403);
 
         const { limit = 10, page = 1, q, status } = req.query;
 
@@ -17,7 +35,7 @@ async function listMedicalHistory(req, res, next) {
         const offset = isAll ? 0 : (pageNum - 1) * limitNum;
 
         const where = {
-            enrolleeId // Only show medical history for the current enrollee
+            [context.ownerKey]: enrolleeId
         };
 
         if (status) {
@@ -31,7 +49,7 @@ async function listMedicalHistory(req, res, next) {
             ];
         }
 
-        const total = await EnrolleeMedicalHistory.count({ where });
+        const total = await context.model.count({ where });
 
         const findOptions = {
             where,
@@ -55,7 +73,7 @@ async function listMedicalHistory(req, res, next) {
             findOptions.offset = Number(offset);
         }
 
-        const records = await EnrolleeMedicalHistory.findAll(findOptions);
+        const records = await context.model.findAll(findOptions);
         const data = records.map(record => record.toJSON());
 
         const hasPrevPage = !isAll && pageNum > 1;
@@ -78,13 +96,15 @@ async function listMedicalHistory(req, res, next) {
 
 async function getMedicalHistory(req, res, next) {
     try {
-        const { EnrolleeMedicalHistory, Provider, Diagnosis } = req.models;
+        const { Provider, Diagnosis } = req.models;
+        const context = resolveMedicalHistoryContext(req);
         const { id } = req.params;
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context?.model) return res.fail('Unsupported enrollee account type', 403);
 
-        const record = await EnrolleeMedicalHistory.findByPk(id, {
+        const record = await context.model.findByPk(id, {
             include: [
                 {
                     model: Provider,
@@ -102,7 +122,7 @@ async function getMedicalHistory(req, res, next) {
         if (!record) return res.fail('Medical history record not found', 404);
 
         // Ensure enrollee can only see their own medical history
-        if (record.enrolleeId !== enrolleeId) {
+        if (record[context.ownerKey] !== enrolleeId) {
             return res.fail('Unauthorized access to this medical history record', 403);
         }
 

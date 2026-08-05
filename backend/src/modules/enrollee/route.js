@@ -16,6 +16,7 @@ router.use('/dashboard', require('./dashboard/route'));
 router.use('/dependents', require('./enrolleeDependents/route'));
 router.use('/integrations', require('./integrations/route'));
 router.use('/medical-history', require('./medicalHistory/route'));
+router.use('/subscriptions', require('./subscriptions/route'));
 router.use('/tickets', require('../common/tickets/route'));
 router.use('/notifications', require('./notifications/route'));
 router.use('/womens-health', require('./womensHealth/route'));

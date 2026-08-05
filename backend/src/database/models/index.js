@@ -466,6 +466,9 @@ function defineModels(sequelize) {
   Enrollee.hasMany(Appointment, { foreignKey: "enrolleeId", as: 'appointments' });
   Appointment.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
 
+  RetailEnrollee.hasMany(Appointment, { foreignKey: "retailEnrolleeId", as: 'appointments' });
+  Appointment.belongsTo(RetailEnrollee, { foreignKey: "retailEnrolleeId" });
+
   // Appointment <-> Provider one-to-many
   Provider.hasMany(Appointment, { foreignKey: "providerId", as: 'appointments' });
   Appointment.belongsTo(Provider, { foreignKey: "providerId" });
@@ -596,6 +599,8 @@ function defineModels(sequelize) {
   // PeriodTracker <-> Enrollee one-to-one
   Enrollee.hasOne(PeriodTracker, { foreignKey: "enrolleeId", as: 'periodTracker' });
   PeriodTracker.belongsTo(Enrollee, { foreignKey: "enrolleeId" });
+  RetailEnrollee.hasOne(PeriodTracker, { foreignKey: "retailEnrolleeId", as: 'periodTracker' });
+  PeriodTracker.belongsTo(RetailEnrollee, { foreignKey: "retailEnrolleeId" });
 
   return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, ProviderNotification, EnrolleeNotification, EnrolleeDependentNotification, RetailEnrolleeNotification, RetailEnrolleeDependentNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, CurrencyRate, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, AuthorizationCodeRendered, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeDependentMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning, EnrolleeDependentMedicalHistory, Ticket, TicketMessage, Integration, PeriodTracker };
 }

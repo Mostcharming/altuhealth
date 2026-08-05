@@ -67,10 +67,181 @@ function resolveRenewalDate(enrollee) {
     );
 }
 
+async function getRetailDashboardData(req, res, next) {
+    try {
+        const {
+            RetailEnrollee,
+            RetailEnrolleeSubscription,
+            RetailEnrolleeMedicalHistory,
+            RetailEnrolleeDependent,
+            Appointment,
+            Provider,
+            Plan,
+            PlanBenefit,
+            AuthorizationCode
+        } = req.models || {};
+        const enrolleeId = req.user?.id;
+        const enrollee = await RetailEnrollee.findByPk(enrolleeId, {
+            include: [{ model: Plan, as: 'plan', required: false }]
+        });
+        if (!enrollee) return res.fail('Retail enrollee not found', 404);
+
+        const now = new Date();
+        const thisMonthStart = startOfMonth(now);
+        const nextMonthStart = startOfNextMonth(now);
+        const { start: previousMonthStart, end: previousMonthEnd } = previousMonthRange(now);
+        const yearStart = startOfYear(now);
+        const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
+        const [currentSubscription, histories, dependentCount, authorizationCodes, totalBenefits, upcomingAppointments] = await Promise.all([
+            RetailEnrolleeSubscription.findOne({
+                where: { retailEnrolleeId: enrolleeId },
+                include: [{ model: Plan, as: 'plan', required: false }],
+                order: [['subscriptionEndDate', 'DESC'], ['createdAt', 'DESC']]
+            }),
+            RetailEnrolleeMedicalHistory.findAll({
+                where: { retailEnrolleeId: enrolleeId },
+                attributes: ['id', 'serviceDate', 'status']
+            }),
+            RetailEnrolleeDependent.count({
+                where: { retailEnrolleeId: enrolleeId, isActive: true }
+            }),
+            AuthorizationCode.findAll({
+                where: { retailEnrolleeId: enrolleeId },
+                attributes: ['id', 'status', 'isUsed', 'usedAt', 'createdAt', 'updatedAt']
+            }),
+            enrollee.planId
+                ? PlanBenefit.count({ where: { planId: enrollee.planId } })
+                : Promise.resolve(0),
+            Appointment.findAll({
+                where: {
+                    retailEnrolleeId: enrolleeId,
+                    status: { [Op.in]: ['pending', 'approved', 'rescheduled'] },
+                    appointmentDateTime: { [Op.gte]: now }
+                },
+                include: Provider
+                    ? [{ model: Provider, attributes: ['id', 'name'], required: false }]
+                    : [],
+                order: [['appointmentDateTime', 'ASC']],
+                limit: 5
+            })
+        ]);
+
+        const visitDates = histories
+            .map((record) => new Date(record.serviceDate))
+            .filter((date) => !Number.isNaN(date.getTime()));
+        const currentVisits = visitDates.filter((date) => isWithin(date, thisMonthStart, nextMonthStart)).length;
+        const previousVisits = visitDates.filter((date) => isWithin(date, previousMonthStart, previousMonthEnd)).length;
+        const monthlyVisits = Array(12).fill(0);
+        visitDates.forEach((date) => {
+            if (isWithin(date, yearStart, yearEnd)) monthlyVisits[date.getMonth()] += 1;
+        });
+        const usedAuthorizations = authorizationCodes.filter((code) => code.isUsed || code.status === 'used');
+        const currentServices = usedAuthorizations.filter((code) => {
+            const date = new Date(code.usedAt || code.updatedAt || code.createdAt);
+            return isWithin(date, thisMonthStart, nextMonthStart);
+        }).length;
+        const previousServices = usedAuthorizations.filter((code) => {
+            const date = new Date(code.usedAt || code.updatedAt || code.createdAt);
+            return isWithin(date, previousMonthStart, previousMonthEnd);
+        }).length;
+        const renewalDate = currentSubscription?.subscriptionEndDate
+            ? new Date(currentSubscription.subscriptionEndDate)
+            : enrollee.subscriptionEndDate
+                ? new Date(enrollee.subscriptionEndDate)
+                : null;
+        const validRenewalDate = renewalDate && !Number.isNaN(renewalDate.getTime())
+            ? renewalDate
+            : null;
+        const daysUntilRenewal = validRenewalDate
+            ? Math.max(0, Math.ceil((validRenewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+            : 0;
+        const plan = currentSubscription?.plan || enrollee.plan;
+        const usedPercentage = percent(usedAuthorizations.length, authorizationCodes.length);
+
+        return res.success({
+            enrollee: {
+                firstName: enrollee.firstName,
+                lastName: enrollee.lastName,
+                policyNumber: enrollee.policyNumber
+            },
+            metrics: [
+                {
+                    id: 1,
+                    title: 'Medical Visits',
+                    value: String(currentVisits),
+                    comparisonText: 'this month',
+                    ...change(currentVisits, previousVisits)
+                },
+                {
+                    id: 2,
+                    title: 'Healthcare Services',
+                    value: String(currentServices),
+                    comparisonText: 'this month',
+                    ...change(currentServices, previousServices)
+                },
+                {
+                    id: 3,
+                    title: 'Covered Dependents',
+                    value: String(dependentCount),
+                    comparisonText: 'active',
+                    change: '+0%',
+                    direction: 'neutral'
+                }
+            ],
+            statisticsChart: {
+                medicationsClaimed: 0,
+                medicationsPercentage: 0,
+                visitsCompleted: visitDates.length,
+                visitsPercentage: percent(currentVisits, visitDates.length),
+                monthlyData: { medications: Array(12).fill(0), visits: monthlyVisits }
+            },
+            healthPlan: {
+                daysUntilRenewal,
+                renewalDate: validRenewalDate ? validRenewalDate.toISOString() : null,
+                status: !enrollee.isActive
+                    ? 'Inactive'
+                    : validRenewalDate && validRenewalDate < now
+                        ? 'Expired'
+                        : 'Active',
+                name: plan?.name || null,
+                currency: plan?.currency || null
+            },
+            benefits: {
+                totalBenefits,
+                authorizationRequests: authorizationCodes.length,
+                usedAuthorizations: usedAuthorizations.length,
+                activeAuthorizations: authorizationCodes.filter((code) => code.status === 'active').length,
+                usedPercentage,
+                remainingPercentage: authorizationCodes.length ? 100 - usedPercentage : 0
+            },
+            appointments: upcomingAppointments.map((appointment) => {
+                const value = appointment.toJSON();
+                const appointmentDate = new Date(value.appointmentDateTime);
+                return {
+                    id: value.id,
+                    title: value.complaint || 'Appointment',
+                    date: appointmentDate.toISOString(),
+                    time: appointmentDate.toLocaleTimeString('en-NG', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }),
+                    status: value.status,
+                    doctor: value.Provider?.name || 'Assigned provider'
+                };
+            })
+        }, 'Dashboard data fetched successfully');
+    } catch (error) {
+        return next(error);
+    }
+}
+
 /**
  * Get live dashboard data for the authenticated enrollee.
  */
 exports.getDashboardData = async (req, res, next) => {
+    if (req.user?.type === 'RetailEnrollee') {
+        return getRetailDashboardData(req, res, next);
+    }
     try {
         const {
             Enrollee,

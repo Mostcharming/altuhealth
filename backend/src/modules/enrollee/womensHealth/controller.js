@@ -2,18 +2,29 @@
 
 const { Op } = require('sequelize');
 
+function resolveOwner(req) {
+    if (req.user?.type === 'RetailEnrollee') {
+        return { ownerKey: 'retailEnrolleeId', ownerId: req.user.id };
+    }
+    if (req.user?.type === 'Enrollee') {
+        return { ownerKey: 'enrolleeId', ownerId: req.user.id };
+    }
+    return null;
+}
+
 /**
  * Get or create period tracker for the current enrollee
  */
 async function getPeriodTracker(req, res, next) {
     try {
         const { PeriodTracker } = req.models;
-        const enrolleeId = req.user?.id;
+        const owner = resolveOwner(req);
+        const enrolleeId = owner?.ownerId;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
 
         let tracker = await PeriodTracker.findOne({
-            where: { enrolleeId }
+            where: { [owner.ownerKey]: enrolleeId }
         });
 
         if (!tracker) {
@@ -33,13 +44,14 @@ async function getPeriodTracker(req, res, next) {
 async function createPeriodTracker(req, res, next) {
     try {
         const { PeriodTracker } = req.models;
-        const enrolleeId = req.user?.id;
+        const owner = resolveOwner(req);
+        const enrolleeId = owner?.ownerId;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
 
         // Check if tracker already exists
         let existingTracker = await PeriodTracker.findOne({
-            where: { enrolleeId }
+            where: { [owner.ownerKey]: enrolleeId }
         });
 
         if (existingTracker) {
@@ -65,7 +77,7 @@ async function createPeriodTracker(req, res, next) {
         );
 
         const tracker = await PeriodTracker.create({
-            enrolleeId,
+            [owner.ownerKey]: enrolleeId,
             lastPeriodDate: new Date(lastPeriodDate),
             cycleLength,
             periodDuration,
@@ -89,7 +101,8 @@ async function createPeriodTracker(req, res, next) {
 async function updatePeriodTracker(req, res, next) {
     try {
         const { PeriodTracker } = req.models;
-        const enrolleeId = req.user?.id;
+        const owner = resolveOwner(req);
+        const enrolleeId = owner?.ownerId;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
 
@@ -101,7 +114,7 @@ async function updatePeriodTracker(req, res, next) {
         } = req.body;
 
         let tracker = await PeriodTracker.findOne({
-            where: { enrolleeId }
+            where: { [owner.ownerKey]: enrolleeId }
         });
 
         if (!tracker) {
@@ -143,12 +156,13 @@ async function updatePeriodTracker(req, res, next) {
 async function getPeriodEvents(req, res, next) {
     try {
         const { PeriodTracker } = req.models;
-        const enrolleeId = req.user?.id;
+        const owner = resolveOwner(req);
+        const enrolleeId = owner?.ownerId;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
 
         const tracker = await PeriodTracker.findOne({
-            where: { enrolleeId }
+            where: { [owner.ownerKey]: enrolleeId }
         });
 
         if (!tracker) {

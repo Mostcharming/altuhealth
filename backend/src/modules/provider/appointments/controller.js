@@ -1,12 +1,15 @@
 'use strict';
 
 const { Op } = require('sequelize');
-const { addEnrolleeNotification } = require('../../../utils/addNotifications');
+const {
+    addEnrolleeNotification,
+    addRetailEnrolleeNotification
+} = require('../../../utils/addNotifications');
 const notify = require('../../../utils/notify');
 
 async function listAppointments(req, res, next) {
     try {
-        const { Appointment, Enrollee, Provider, Company, CompanySubsidiary } = req.models;
+        const { Appointment, Enrollee, RetailEnrollee, Provider, Company, CompanySubsidiary } = req.models;
         const providerId = req.user?.id;
 
         if (!providerId) return res.fail('Provider ID is required', 400);
@@ -41,6 +44,11 @@ async function listAppointments(req, res, next) {
             include: [
                 {
                     model: Enrollee,
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
+                    required: false
+                },
+                {
+                    model: RetailEnrollee,
                     attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
                     required: false
                 },
@@ -86,7 +94,7 @@ async function listAppointments(req, res, next) {
 
 async function getAppointment(req, res, next) {
     try {
-        const { Appointment, Enrollee, Company, CompanySubsidiary } = req.models;
+        const { Appointment, Enrollee, RetailEnrollee, Company, CompanySubsidiary } = req.models;
         const { id } = req.params;
         const providerId = req.user?.id;
 
@@ -96,6 +104,11 @@ async function getAppointment(req, res, next) {
             include: [
                 {
                     model: Enrollee,
+                    attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
+                    required: false
+                },
+                {
+                    model: RetailEnrollee,
                     attributes: ['id', 'firstName', 'lastName', 'email', 'phoneNumber'],
                     required: false
                 },
@@ -128,7 +141,7 @@ async function getAppointment(req, res, next) {
 
 async function updateAppointmentStatus(req, res, next) {
     try {
-        const { Appointment, Enrollee, Provider } = req.models;
+        const { Appointment, Enrollee, RetailEnrollee, Provider } = req.models;
         const { id } = req.params;
         const providerId = req.user?.id;
 
@@ -171,7 +184,10 @@ async function updateAppointmentStatus(req, res, next) {
 
         // Send notifications to enrollee (non-blocking)
         try {
-            const enrollee = await Enrollee.findByPk(appointment.enrolleeId);
+            const isRetailEnrollee = Boolean(appointment.retailEnrolleeId);
+            const enrollee = isRetailEnrollee
+                ? await RetailEnrollee.findByPk(appointment.retailEnrolleeId)
+                : await Enrollee.findByPk(appointment.enrolleeId);
             const provider = await Provider.findByPk(providerId);
 
             if (enrollee && provider) {
@@ -232,20 +248,30 @@ async function updateAppointmentStatus(req, res, next) {
                     else if (status === 'attended') notificationType = 'appointment_attended';
                     else if (status === 'missed') notificationType = 'appointment_missed';
 
-                    await addEnrolleeNotification(req.models, {
-                        enrolleeId: appointment.enrolleeId,
+                    const notification = {
                         title: notificationTitle,
                         message: status === 'rejected'
                             ? `Your appointment on ${formattedDateTime} has been declined. Reason: ${rejectionReason}`
                             : `Your appointment on ${formattedDateTime} status has been updated to: ${status}`,
                         clickUrl: `appointments/${id}`,
                         notificationType
-                    });
+                    };
+                    if (isRetailEnrollee) {
+                        await addRetailEnrolleeNotification(req.models, {
+                            retailEnrolleeId: appointment.retailEnrolleeId,
+                            ...notification
+                        });
+                    } else {
+                        await addEnrolleeNotification(req.models, {
+                            enrolleeId: appointment.enrolleeId,
+                            ...notification
+                        });
+                    }
 
                     // Send email notification to enrollee
                     await notify(
                         enrollee,
-                        'Enrollee',
+                        isRetailEnrollee ? 'RetailEnrollee' : 'Enrollee',
                         templateName,
                         shortCodes,
                         ['email'],

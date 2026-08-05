@@ -10,10 +10,10 @@ import {
 } from "lucide-react-native";
 
 export const enrolleeStats = [
-  { label: "Plan", value: "Not available - Unknown" },
-  { label: "Dependents", value: "2" },
-  { label: "Appointments", value: "1" },
-  { label: "Open tickets", value: "0" },
+  { label: "Plan", value: "Not available" },
+  { label: "Renewal", value: "?" },
+  { label: "Benefits", value: "?" },
+  { label: "Appointments", value: "?" },
 ];
 
 export const quickActions = [

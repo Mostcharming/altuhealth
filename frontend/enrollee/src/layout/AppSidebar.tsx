@@ -31,6 +31,7 @@ type NavItem = {
   path?: string;
   new?: boolean;
   requiresDependentVisitAccess?: boolean;
+  requiresRetailEnrollee?: boolean;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
@@ -74,6 +75,12 @@ const navItems: NavItem[] = [
     icon: <TruckDelivery />,
     path: "/hospital-list",
   },
+  {
+    name: "Subscription & Plans",
+    icon: <CartIcon />,
+    path: "/subscription",
+    requiresRetailEnrollee: true,
+  },
 
   // Women's Health
   {
@@ -104,6 +111,7 @@ const AppSidebar: React.FC = () => {
   const dependentVisitNotificationsEnabled = useAuthStore(
     (state) => state.user?.dependentVisitNotificationsEnabled,
   );
+  const userType = useAuthStore((state) => state.user?.type);
 
   // Allow all menu items (no privilege check needed for providers)
   const allowedMenuNames = useMemo(() => {
@@ -119,9 +127,10 @@ const AppSidebar: React.FC = () => {
         (item) =>
           allowedMenuNames.has(item.name) &&
           (!item.requiresDependentVisitAccess ||
-            dependentVisitNotificationsEnabled === true),
+            dependentVisitNotificationsEnabled === true) &&
+          (!item.requiresRetailEnrollee || userType === "RetailEnrollee"),
       ),
-    [allowedMenuNames, dependentVisitNotificationsEnabled],
+    [allowedMenuNames, dependentVisitNotificationsEnabled, userType],
   );
 
   const healthcareItems = useMemo(
@@ -140,7 +149,7 @@ const AppSidebar: React.FC = () => {
   const coverageItems = useMemo(
     () =>
       filteredNavItems.filter((item) =>
-        ["Enrollee Benefits", "Hospital List"].includes(item.name),
+        ["Enrollee Benefits", "Hospital List", "Subscription & Plans"].includes(item.name),
       ),
     [filteredNavItems],
   );

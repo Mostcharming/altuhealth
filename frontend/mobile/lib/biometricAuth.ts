@@ -10,13 +10,20 @@ type StoredSession = {
 };
 
 export async function saveBiometricSession(session: StoredSession) {
+  if (Platform.OS === "web") return;
   await SecureStore.setItemAsync(
     BIOMETRIC_SESSION_KEY,
     JSON.stringify(session)
   );
 }
 
+export async function clearBiometricSession() {
+  if (Platform.OS === "web") return;
+  await SecureStore.deleteItemAsync(BIOMETRIC_SESSION_KEY);
+}
+
 export async function getBiometricSession() {
+  if (Platform.OS === "web") return null;
   const raw = await SecureStore.getItemAsync(BIOMETRIC_SESSION_KEY);
   if (!raw) {
     return null;
@@ -31,6 +38,7 @@ export async function getBiometricSession() {
 }
 
 export async function canUseBiometrics() {
+  if (Platform.OS === "web") return false;
   const [hasHardware, isEnrolled] = await Promise.all([
     LocalAuthentication.hasHardwareAsync(),
     LocalAuthentication.isEnrolledAsync(),

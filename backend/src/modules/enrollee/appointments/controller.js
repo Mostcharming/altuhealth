@@ -4,12 +4,32 @@ const { Op } = require('sequelize');
 const { addProviderNotification } = require('../../../utils/addNotifications');
 const notify = require('../../../utils/notify');
 
+function resolveAppointmentContext(req) {
+    if (req.user?.type === 'RetailEnrollee') {
+        return {
+            ownerKey: 'retailEnrolleeId',
+            accountModel: req.models.RetailEnrollee,
+            accountType: 'RetailEnrollee'
+        };
+    }
+    if (req.user?.type === 'Enrollee') {
+        return {
+            ownerKey: 'enrolleeId',
+            accountModel: req.models.Enrollee,
+            accountType: 'Enrollee'
+        };
+    }
+    return null;
+}
+
 async function createAppointment(req, res, next) {
     try {
-        const { Appointment, Enrollee, Provider } = req.models;
+        const { Appointment, Provider } = req.models;
+        const context = resolveAppointmentContext(req);
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
         const {
             providerId,
@@ -22,7 +42,7 @@ async function createAppointment(req, res, next) {
         if (!appointmentDateTime) return res.fail('`appointmentDateTime` is required', 400);
 
         const appointment = await Appointment.create({
-            enrolleeId,
+            [context.ownerKey]: enrolleeId,
             providerId,
             complaint,
             appointmentDateTime,
@@ -32,7 +52,7 @@ async function createAppointment(req, res, next) {
 
         // Fetch enrollee and provider details for notifications (non-blocking)
         try {
-            const enrollee = await Enrollee.findByPk(enrolleeId);
+            const enrollee = await context.accountModel.findByPk(enrolleeId);
             const provider = await Provider.findByPk(providerId);
 
             if (enrollee && provider) {
@@ -88,10 +108,12 @@ async function createAppointment(req, res, next) {
 
 async function listAppointments(req, res, next) {
     try {
-        const { Appointment, Enrollee, Provider, Company, CompanySubsidiary } = req.models;
+        const { Appointment, Provider, Company, CompanySubsidiary } = req.models;
+        const context = resolveAppointmentContext(req);
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
         const { limit = 10, page = 1, q, status } = req.query;
 
@@ -101,7 +123,7 @@ async function listAppointments(req, res, next) {
         const offset = isAll ? 0 : (pageNum - 1) * limitNum;
 
         const where = {
-            enrolleeId // Only show appointments for the current enrollee
+            [context.ownerKey]: enrolleeId
         };
 
         if (status) {
@@ -169,10 +191,12 @@ async function listAppointments(req, res, next) {
 async function getAppointment(req, res, next) {
     try {
         const { Appointment, Provider, Company, CompanySubsidiary } = req.models;
+        const context = resolveAppointmentContext(req);
         const { id } = req.params;
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
         const appointment = await Appointment.findByPk(id, {
             include: [
@@ -198,7 +222,7 @@ async function getAppointment(req, res, next) {
         if (!appointment) return res.fail('Appointment not found', 404);
 
         // Ensure enrollee can only see their own appointments
-        if (appointment.enrolleeId !== enrolleeId) {
+        if (appointment[context.ownerKey] !== enrolleeId) {
             return res.fail('Unauthorized access to this appointment', 403);
         }
 
@@ -211,16 +235,18 @@ async function getAppointment(req, res, next) {
 async function updateAppointment(req, res, next) {
     try {
         const { Appointment } = req.models;
+        const context = resolveAppointmentContext(req);
         const { id } = req.params;
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
         const appointment = await Appointment.findByPk(id);
         if (!appointment) return res.fail('Appointment not found', 404);
 
         // Ensure enrollee can only update their own appointments
-        if (appointment.enrolleeId !== enrolleeId) {
+        if (appointment[context.ownerKey] !== enrolleeId) {
             return res.fail('Unauthorized access to this appointment', 403);
         }
 
@@ -256,17 +282,19 @@ async function updateAppointment(req, res, next) {
 
 async function cancelAppointment(req, res, next) {
     try {
-        const { Appointment, Enrollee, Provider } = req.models;
+        const { Appointment, Provider } = req.models;
+        const context = resolveAppointmentContext(req);
         const { id } = req.params;
         const enrolleeId = req.user?.id;
 
         if (!enrolleeId) return res.fail('Enrollee ID is required', 400);
+        if (!context) return res.fail('Unsupported enrollee account type', 403);
 
         const appointment = await Appointment.findByPk(id);
         if (!appointment) return res.fail('Appointment not found', 404);
 
         // Ensure enrollee can only cancel their own appointments
-        if (appointment.enrolleeId !== enrolleeId) {
+        if (appointment[context.ownerKey] !== enrolleeId) {
             return res.fail('Unauthorized access to this appointment', 403);
         }
 
@@ -281,7 +309,7 @@ async function cancelAppointment(req, res, next) {
 
         // Send notifications to provider (non-blocking)
         try {
-            const enrollee = await Enrollee.findByPk(enrolleeId);
+            const enrollee = await context.accountModel.findByPk(enrolleeId);
             const provider = await Provider.findByPk(appointment.providerId);
 
             if (enrollee && provider) {

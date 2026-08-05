@@ -68,6 +68,36 @@ function getOrigin(req) {
     return process.env.LANDING_URL || 'https://landing.altuhealth.com';
 }
 
+function getCheckoutReturnUrl(req) {
+    const requested = String(req.body?.returnUrl || '').trim();
+
+    if (requested && req.user?.type === 'RetailEnrollee') {
+        try {
+            const parsed = new URL(requested);
+            if (['altuhealth:', 'exp:'].includes(parsed.protocol)) {
+                return requested;
+            }
+        } catch (err) {
+            const requestOrigin = req.get('origin');
+            const portalOrigin = new URL(
+                process.env.FE_ENROLLEE_URL || 'https://enrollee.altuhealth.com'
+            ).origin;
+            if (
+                ['http:', 'https:'].includes(parsed.protocol)
+                && [requestOrigin, portalOrigin].filter(Boolean).includes(parsed.origin)
+            ) return requested;
+            // Fall back to the caller origin when the supplied URL is invalid.
+        }
+    }
+
+    return `${getOrigin(req)}/`;
+}
+
+function withCheckoutParams(returnUrl, params) {
+    const separator = returnUrl.includes('?') ? '&' : '?';
+    return `${returnUrl}${separator}${params}`;
+}
+
 function getPaypalBaseUrl(integration) {
     return integration.base_url || (integrationIsProduction(integration) ? 'https://api.paypal.com' : 'https://api.sandbox.paypal.com');
 }
@@ -94,7 +124,7 @@ async function getPaypalAccessToken(integration) {
 
 async function createPaypalCheckout(req, integration, plan) {
     const accessToken = await getPaypalAccessToken(integration);
-    const origin = getOrigin(req);
+    const returnUrl = getCheckoutReturnUrl(req);
     const response = await axios.post(
         `${getPaypalBaseUrl(integration)}/v2/checkout/orders`,
         {
@@ -110,8 +140,8 @@ async function createPaypalCheckout(req, integration, plan) {
                 }
             ],
             application_context: {
-                return_url: `${origin}/?payment_status=success&gateway=paypal`,
-                cancel_url: `${origin}/?payment_status=cancelled&gateway=paypal`,
+                return_url: withCheckoutParams(returnUrl, 'payment_status=success&gateway=paypal'),
+                cancel_url: withCheckoutParams(returnUrl, 'payment_status=cancelled&gateway=paypal'),
                 user_action: 'PAY_NOW'
             }
         },
@@ -133,12 +163,12 @@ async function createPaypalCheckout(req, integration, plan) {
 }
 
 async function createStripeCheckout(req, integration, plan) {
-    const origin = getOrigin(req);
+    const returnUrl = getCheckoutReturnUrl(req);
     const secret = integration.secret_key || integration.api_secret;
     const params = new URLSearchParams();
     params.append('mode', 'payment');
-    params.append('success_url', `${origin}/?payment_status=success&gateway=stripe&session_id={CHECKOUT_SESSION_ID}`);
-    params.append('cancel_url', `${origin}/?payment_status=cancelled&gateway=stripe`);
+    params.append('success_url', withCheckoutParams(returnUrl, 'payment_status=success&gateway=stripe&session_id={CHECKOUT_SESSION_ID}'));
+    params.append('cancel_url', withCheckoutParams(returnUrl, 'payment_status=cancelled&gateway=stripe'));
     params.append('line_items[0][quantity]', '1');
     params.append('line_items[0][price_data][currency]', String(plan.currency || 'GBP').toLowerCase());
     params.append('line_items[0][price_data][unit_amount]', String(Math.round(getPlanAmount(plan) * 100)));
@@ -159,7 +189,7 @@ async function createStripeCheckout(req, integration, plan) {
 }
 
 async function createPaystackCheckout(req, integration, plan, email) {
-    const origin = getOrigin(req);
+    const returnUrl = getCheckoutReturnUrl(req);
     const secret = integration.secret_key || integration.api_secret || integration.api_key;
     if (!secret) throw new Error('Paystack secret key is not configured');
 
@@ -169,7 +199,7 @@ async function createPaystackCheckout(req, integration, plan, email) {
             email,
             amount: Math.round(getPlanAmount(plan) * 100),
             currency: plan.currency || 'NGN',
-            callback_url: `${origin}/?payment_status=success&gateway=paystack`,
+            callback_url: withCheckoutParams(returnUrl, 'payment_status=success&gateway=paystack'),
             metadata: {
                 planId: plan.id,
                 planName: plan.name
@@ -483,5 +513,18 @@ async function completePurchase(req, res, next) {
 module.exports = {
     listGateways,
     createCheckout,
-    completePurchase
+    completePurchase,
+    checkoutHelpers: {
+        getActiveGatewayIntegrations,
+        chooseIntegration,
+        getPlanAmount,
+        createPaypalCheckout,
+        createStripeCheckout,
+        createPaystackCheckout,
+        verifyStripePayment,
+        capturePaypalPayment,
+        verifyPaystackPayment,
+        getProvidersForCurrency,
+        getGatewayLabel
+    }
 };

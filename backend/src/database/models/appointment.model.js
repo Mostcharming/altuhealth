@@ -11,12 +11,21 @@ module.exports = (sequelize, DataTypes) => {
         },
         enrolleeId: {
             type: DataTypes.UUID,
-            allowNull: false,
+            allowNull: true,
             references: {
                 model: 'enrollees',
                 key: 'id'
             },
             field: 'enrollee_id'
+        },
+        retailEnrolleeId: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'retail_enrollees',
+                key: 'id'
+            },
+            field: 'retail_enrollee_id'
         },
         providerId: {
             type: DataTypes.UUID,
