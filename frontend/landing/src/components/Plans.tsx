@@ -357,22 +357,32 @@ function inferPlanCategory(plan: PublicPlan): InferredPlanCategory {
 
 function getVariantLabel(plan: PublicPlan) {
   const definition = getPlanNameDefinition(plan);
-  const text = normalizePlanName(plan.name || "");
+  const variantTexts = [plan.code, plan.name, plan.description]
+    .map((value) => normalizePlanName(value || ""))
+    .filter(Boolean);
 
   if (definition?.family === "senior") {
-    if (text.includes("couple")) return "Couple";
-    if (text.includes("single parent")) return "Single Parent";
-    return plan.allowDependentEnrolee ? "Couple" : "Single Parent";
+    for (const text of variantTexts) {
+      if (text.includes("couple")) return "Couple";
+      if (text.includes("single parent") || text.includes("single")) {
+        return "Single";
+      }
+    }
+    return "Plan";
   }
 
   if (definition?.family === "vital") {
-    if (text.includes("family")) return "Family";
-    if (text.includes("individual")) return "Individual";
-    return plan.allowDependentEnrolee ? "Family" : "Individual";
+    for (const text of variantTexts) {
+      if (text.includes("family")) return "Family";
+      if (text.includes("individual")) return "Individual";
+    }
+    return "Plan";
   }
 
   if (definition?.family === "altu") {
-    const individualCountFromName = text.match(/\b([1-4])\s+individuals?\b/);
+    const individualCountFromName = variantTexts
+      .map((text) => text.match(/\b([1-4])\s+individuals?\b/))
+      .find(Boolean);
     const dependentCount = Number(plan.maxNumberOfDependents);
     const individualCount = individualCountFromName
       ? Number(individualCountFromName[1])
@@ -383,10 +393,12 @@ function getVariantLabel(plan: PublicPlan) {
     return `${individualCount} ${individualCount === 1 ? "Individual" : "Individuals"}`;
   }
 
-  if (text.includes("family")) return "Family";
-  if (text.includes("couple")) return "Couple";
-  if (text.includes("single")) return "Single";
-  if (text.includes("individual")) return "Individual";
+  for (const text of variantTexts) {
+    if (text.includes("family")) return "Family";
+    if (text.includes("couple")) return "Couple";
+    if (text.includes("single")) return "Single";
+    if (text.includes("individual")) return "Individual";
+  }
   return "Plan";
 }
 
@@ -406,7 +418,7 @@ function getRowOrder(plan: PublicPlan) {
   if (definition?.family === "altu") {
     return Number.parseInt(label, 10) || 999;
   }
-  if (label === "Single Parent" || label === "Individual") return 1;
+  if (label === "Single" || label === "Individual") return 1;
   if (label === "Couple" || label === "Family") return 2;
   return 999;
 }
