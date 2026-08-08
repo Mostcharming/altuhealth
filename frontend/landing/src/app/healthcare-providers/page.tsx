@@ -149,6 +149,11 @@ export default function HealthcareProvidersPage() {
     });
   }, [providers, searchQuery, selectedLga, selectedState]);
 
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 ||
+    selectedState !== ALL_STATES ||
+    selectedLga !== ALL_LGAS;
+
   const fetchProviders = useCallback(async () => {
     try {
       setIsLoadingProviders(true);
@@ -281,13 +286,15 @@ export default function HealthcareProvidersPage() {
             </div>
 
             <div className="provider-results-heading">
-              <span>
-                {isLoadingProviders
-                  ? "Loading providers"
-                  : `Showing ${visibleProviders.length} provider${
-                      visibleProviders.length === 1 ? "" : "s"
-                    }`}
-              </span>
+              {hasActiveFilters && (
+                <span>
+                  {isLoadingProviders
+                    ? "Loading providers"
+                    : `Showing ${visibleProviders.length} provider${
+                        visibleProviders.length === 1 ? "" : "s"
+                      }`}
+                </span>
+              )}
               <h2>{getResultsTitle(selectedState, selectedLga)}</h2>
             </div>
 
