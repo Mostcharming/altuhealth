@@ -59,10 +59,6 @@ function compactLocation(values: Array<string | undefined>) {
     .join(", ");
 }
 
-function formatCount(value: number) {
-  return new Intl.NumberFormat("en").format(value);
-}
-
 function getProviderLocation(provider: PublicProvider) {
   return compactLocation([
     provider.providerArea,
@@ -100,6 +96,7 @@ function getResultsTitle(selectedState: string, selectedLga: string) {
 export default function HealthcareProvidersPage() {
   const [providers, setProviders] = useState<PublicProvider[]>([]);
   const [backendStates, setBackendStates] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedState, setSelectedState] = useState(ALL_STATES);
   const [selectedLga, setSelectedLga] = useState(ALL_LGAS);
   const [isLoadingProviders, setIsLoadingProviders] = useState(true);
@@ -123,22 +120,34 @@ export default function HealthcareProvidersPage() {
   }, [providers, selectedState]);
 
   const visibleProviders = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+
     return providers.filter((provider) => {
       const stateMatches =
         selectedState === ALL_STATES || provider.state === selectedState;
       const lgaMatches =
         selectedLga === ALL_LGAS || provider.lga === selectedLga;
-      return stateMatches && lgaMatches;
-    });
-  }, [providers, selectedLga, selectedState]);
+      const searchMatches =
+        !query ||
+        [
+          provider.name,
+          provider.type,
+          provider.categoryLabel,
+          provider.address,
+          provider.currentLocation,
+          provider.providerArea,
+          provider.lga,
+          provider.state,
+          provider.country,
+        ].some((value) =>
+          String(value || "")
+            .toLocaleLowerCase()
+            .includes(query),
+        );
 
-  const summary = useMemo(() => {
-    return {
-      providerCount: providers.length,
-      stateCount: states.length,
-      lgaCount: uniqueSorted(providers.map((provider) => provider.lga)).length,
-    };
-  }, [providers, states.length]);
+      return stateMatches && lgaMatches && searchMatches;
+    });
+  }, [providers, searchQuery, selectedLga, selectedState]);
 
   const fetchProviders = useCallback(async () => {
     try {
@@ -195,6 +204,7 @@ export default function HealthcareProvidersPage() {
               </p>
             </div>
 
+            {/* Provider count summary hidden by request.
             <div className="providers-summary">
               <div>
                 <strong>
@@ -217,12 +227,24 @@ export default function HealthcareProvidersPage() {
                 <span>LGAs</span>
               </div>
             </div>
+            */}
           </div>
         </section>
 
         <section className="provider-finder">
           <div className="container">
             <div className="provider-finder-panel">
+              <div className="provider-filter">
+                <label htmlFor="provider-search">Search providers</label>
+                <input
+                  id="provider-search"
+                  type="search"
+                  value={searchQuery}
+                  placeholder="Name, type, or location"
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                />
+              </div>
+
               <div className="provider-filter">
                 <label htmlFor="state">State</label>
                 <select
@@ -295,7 +317,7 @@ export default function HealthcareProvidersPage() {
               <div className="provider-empty-state">
                 <h3>No providers found</h3>
                 <p>
-                  There are no active providers for the selected location yet.
+                  No active providers match your search and selected location.
                 </p>
               </div>
             ) : (

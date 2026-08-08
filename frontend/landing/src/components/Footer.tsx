@@ -29,6 +29,12 @@ export default function Footer() {
                 <Link href="/healthcare-providers">Providers</Link>
               </li>
               <li>
+                <Link href="/diaspora">Diaspora</Link>
+              </li>
+              <li>
+                <Link href="/faqs">FAQs</Link>
+              </li>
+              <li>
                 Careers
               </li>
             </ul>

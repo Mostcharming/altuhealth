@@ -1,21 +1,27 @@
-import TalkToDoctorPrompt from "@/components/TalkToDoctorPrompt";
+import Link from "next/link";
 
 export default function Hero() {
   return (
     <section className="hero" id="home">
       <div className="container hero-grid">
         <div>
-          <div className="badge">Built on trust and secure access</div>
-
           <h2>
-            Building Trust in Healthcare Coverage
-            <span> Across Nigeria.</span>
+            Healthcare Coverage for Nigerians at Home and Loved Ones Abroad
           </h2>
 
-          <p>
-            AltuHealth delivers trusted, excellent, reliable, affordable and
-            technology-powered healthcare coverage solutions for individuals,
-            families, SMEs, and enterprises across Nigeria.
+          <p className="hero-description">
+            Whether you live in Nigeria or anywhere in the world, AltuHealth
+            makes it easy to protect the people who matter most.
+          </p>
+
+          <p className="hero-description">
+            We provide trusted, technology-driven healthcare coverage for
+            individuals, families, businesses, and Nigerians in the diaspora
+            who want quality healthcare for their loved ones back home.
+          </p>
+
+          <p className="hero-tagline">
+            Affordable. Reliable. Nationwide. Available 24/7.
           </p>
 
           <div className="hero-buttons">
@@ -23,16 +29,16 @@ export default function Hero() {
               Explore Plans
             </a>
 
-            <a
-              href="https://wa.me/2348107599978"
+            <Link
+              href="/?planCategory=retail#plans"
               className="btn btn-outline"
-              target="_blank"
-              rel="noopener noreferrer"
             >
-              WhatsApp Us
-            </a>
+              Buy for Family in Nigeria
+            </Link>
 
-            <TalkToDoctorPrompt className="btn btn-outline" />
+            <Link href="/contact" className="btn btn-outline">
+              Talk to an Advisor
+            </Link>
           </div>
         </div>
 
