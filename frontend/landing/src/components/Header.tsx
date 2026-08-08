@@ -17,6 +17,7 @@ export default function Header() {
   const [planCategories, setPlanCategories] = useState<PlanCategoryOption[]>(
     [],
   );
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -32,7 +33,24 @@ export default function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMobileMenuOpen]);
+
   const scrollToSection = (sectionId: string) => {
+    setIsMobileMenuOpen(false);
+
     if (pathname !== "/") {
       router.push(`/#${sectionId}`);
       return;
@@ -45,6 +63,7 @@ export default function Header() {
   };
 
   const goToPlanCategory = (category: PlanCategory) => {
+    setIsMobileMenuOpen(false);
     const publicCategory = getPublicPlanCategoryKey(category);
     const target = `/?planCategory=${publicCategory}#plans`;
 
@@ -66,17 +85,60 @@ export default function Header() {
   return (
     <header>
       <div className="container">
-        <nav>
+        <nav aria-label="Primary navigation">
           <div className="logo">
-            <Link href="/" aria-label="AltuHealth home">
+            <Link
+              href="/"
+              aria-label="AltuHealth home"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
               <img src="/images/main/Darkversion.svg" alt="AltuHealth" />
             </Link>
           </div>
 
-          <div className="nav-links">
-            <a onClick={() => scrollToSection("home")}>Home</a>
-            <a onClick={() => scrollToSection("about")}>About</a>
-            <Link href="/healthcare-providers">Healthcare Providers</Link>
+          <button
+            type="button"
+            className="mobile-menu-toggle"
+            aria-controls="primary-navigation-links"
+            aria-expanded={isMobileMenuOpen}
+            aria-label={
+              isMobileMenuOpen
+                ? "Close navigation menu"
+                : "Open navigation menu"
+            }
+            onClick={() => setIsMobileMenuOpen((isOpen) => !isOpen)}
+          >
+            <span className="mobile-menu-icon" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </button>
+
+          <div
+            id="primary-navigation-links"
+            className={`nav-links${isMobileMenuOpen ? " mobile-open" : ""}`}
+          >
+            <button
+              type="button"
+              className="nav-section-link"
+              onClick={() => scrollToSection("home")}
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              className="nav-section-link"
+              onClick={() => scrollToSection("about")}
+            >
+              About
+            </button>
+            <Link
+              href="/healthcare-providers"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Healthcare Providers
+            </Link>
             <div className="nav-plan-menu">
               <button type="button" onClick={() => scrollToSection("plans")}>
                 Plans
@@ -93,15 +155,49 @@ export default function Header() {
                 ))}
               </div>
             </div>
-            <Link href="/diaspora">Diaspora</Link>
-            <a onClick={() => scrollToSection("services")}>Services</a>
-            <Link href="/partnership-program">Partners</Link>
-            <a onClick={() => scrollToSection("team")}>Management</a>
-            <Link href="/faqs">FAQs</Link>
-            <Link href="/contact">Contact</Link>
+            <Link href="/diaspora" onClick={() => setIsMobileMenuOpen(false)}>
+              Diaspora
+            </Link>
+            <button
+              type="button"
+              className="nav-section-link"
+              onClick={() => scrollToSection("services")}
+            >
+              Services
+            </button>
+            <Link
+              href="/partnership-program"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Partners
+            </Link>
+            <button
+              type="button"
+              className="nav-section-link"
+              onClick={() => scrollToSection("team")}
+            >
+              Management
+            </button>
+            <Link href="/faqs" onClick={() => setIsMobileMenuOpen(false)}>
+              FAQs
+            </Link>
+            <Link href="/contact" onClick={() => setIsMobileMenuOpen(false)}>
+              Contact
+            </Link>
+            <button
+              type="button"
+              className="nav-btn mobile-nav-cta"
+              onClick={() => scrollToSection("plans")}
+            >
+              Get Covered
+            </button>
           </div>
 
-          <button className="nav-btn" onClick={() => scrollToSection("plans")}>
+          <button
+            type="button"
+            className="nav-btn desktop-nav-cta"
+            onClick={() => scrollToSection("plans")}
+          >
             Get Covered
           </button>
         </nav>
