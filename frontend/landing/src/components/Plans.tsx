@@ -10,7 +10,7 @@ import {
   type PlanCategory,
   type PlanCategoryOption,
 } from "@/lib/planMarket";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type InferredPlanCategory = PlanCategory | "general";
@@ -1023,7 +1023,9 @@ export default function Plans() {
     setBenefitsError("");
   };
 
-  const handleProceedToPayment = async () => {
+  const handleProceedToPayment = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (!selectedVariantPlanId) {
       setModalError("Select a plan option before choosing a payment gateway.");
       return;
@@ -1477,7 +1479,10 @@ export default function Plans() {
               </p>
             </div>
 
-            <form className="plan-modal-form">
+            <form
+              className="plan-modal-form"
+              onSubmit={handleProceedToPayment}
+            >
               <input
                 type="hidden"
                 name="planId"
@@ -1535,7 +1540,7 @@ export default function Plans() {
                 required
               />
               <label className="plan-date-field">
-                <span>Date of Birth</span>
+                <span>Date of Birth (required)</span>
                 <input
                   type="date"
                   name="dateOfBirth"
@@ -1626,9 +1631,8 @@ export default function Plans() {
               </div>
 
               <button
-                type="button"
+                type="submit"
                 className="buy-btn"
-                onClick={handleProceedToPayment}
                 disabled={
                   isProcessingPayment ||
                   isLoadingGateways ||
