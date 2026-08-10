@@ -57,6 +57,64 @@ function getPlanAmount(plan) {
     return Number(plan.annualPremiumPrice || 0);
 }
 
+function normalizeCurrency(value, fallback = '') {
+    const currency = String(value || '').trim().toUpperCase();
+    return /^[A-Z]{3}$/.test(currency) ? currency : fallback;
+}
+
+function getPlainPlan(plan) {
+    if (typeof plan?.get === 'function') return plan.get({ plain: true });
+    if (typeof plan?.toJSON === 'function') return plan.toJSON();
+    return { ...plan };
+}
+
+function roundPaymentAmount(amount) {
+    return Math.round((Number(amount) + Number.EPSILON) * 100) / 100;
+}
+
+async function resolveCheckoutPlan(plan, requestedCurrency, CurrencyRate) {
+    const sourceCurrency = normalizeCurrency(plan.currency, 'NGN');
+    const targetCurrency = normalizeCurrency(requestedCurrency, sourceCurrency);
+    const sourceAmount = getPlanAmount(plan);
+    const plainPlan = getPlainPlan(plan);
+
+    if (targetCurrency === sourceCurrency) {
+        return {
+            ...plainPlan,
+            annualPremiumPrice: sourceAmount,
+            currency: sourceCurrency,
+            sourceAmount,
+            sourceCurrency
+        };
+    }
+
+    if (targetCurrency !== 'NGN') {
+        throw new Error(`Checkout conversion to ${targetCurrency} is not supported`);
+    }
+
+    const sourceRate = sourceCurrency === 'NGN'
+        ? { rateToNgn: 1 }
+        : await CurrencyRate.findOne({
+            where: {
+                currencyCode: sourceCurrency,
+                isActive: true
+            }
+        });
+    const rateToNgn = Number(sourceRate?.rateToNgn);
+
+    if (!Number.isFinite(rateToNgn) || rateToNgn <= 0) {
+        throw new Error(`An active ${sourceCurrency} to NGN exchange rate is required`);
+    }
+
+    return {
+        ...plainPlan,
+        annualPremiumPrice: roundPaymentAmount(sourceAmount * rateToNgn),
+        currency: 'NGN',
+        sourceAmount,
+        sourceCurrency
+    };
+}
+
 function parseDateOfBirth(value) {
     if (value instanceof Date && !Number.isNaN(value.getTime())) {
         return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
@@ -299,7 +357,11 @@ async function createFlutterwaveCheckout(req, integration, plan, customer) {
             },
             meta: {
                 planId: plan.id,
-                planName: plan.name
+                planName: plan.name,
+                paymentAmount: amount.toFixed(2),
+                paymentCurrency: currency,
+                sourceAmount: Number(plan.sourceAmount ?? amount).toFixed(2),
+                sourceCurrency: normalizeCurrency(plan.sourceCurrency, currency)
             },
             customizations: {
                 title: 'AltuHealth Plan Payment',
@@ -376,7 +438,8 @@ async function verifyFlutterwavePayment(integration, transactionId, {
     expectedAmount,
     expectedCurrency,
     expectedPlanId,
-    expectedEmail
+    expectedEmail,
+    requireCheckoutAmount = false
 } = {}) {
     const secret = getFlutterwaveSecret(integration);
     if (!secret) throw new Error('Flutterwave secret key is not configured');
@@ -403,8 +466,20 @@ async function verifyFlutterwavePayment(integration, transactionId, {
     }
 
     const amount = Number(data.amount ?? data.charged_amount ?? 0);
-    if (expectedAmount !== undefined && (!Number.isFinite(amount) || amount + 0.01 < Number(expectedAmount))) {
+    const checkoutAmount = Number(data.meta?.paymentAmount);
+    const hasCheckoutAmount = Number.isFinite(checkoutAmount) && checkoutAmount > 0;
+    if (requireCheckoutAmount && !hasCheckoutAmount) {
+        throw new Error('Flutterwave checkout amount could not be verified');
+    }
+    const amountToVerify = hasCheckoutAmount ? checkoutAmount : expectedAmount;
+    if (amountToVerify !== undefined && (!Number.isFinite(amount) || amount + 0.01 < Number(amountToVerify))) {
         throw new Error('Flutterwave payment amount does not match the selected plan');
+    }
+    if (
+        data.meta?.paymentCurrency
+        && currency !== normalizeCurrency(data.meta.paymentCurrency)
+    ) {
+        throw new Error('Flutterwave payment currency does not match this checkout');
     }
     if (expectedPlanId && String(data.meta?.planId || '') !== String(expectedPlanId)) {
         throw new Error('Flutterwave payment plan does not match the selected plan');
@@ -456,10 +531,11 @@ async function listGateways(req, res, next) {
 
 async function createCheckout(req, res, next) {
     try {
-        const { Plan, Integration, RetailEnrollee } = req.models;
+        const { Plan, Integration, RetailEnrollee, CurrencyRate } = req.models;
         const {
             planId,
             gateway,
+            paymentCurrency,
             firstName,
             lastName,
             email,
@@ -478,7 +554,13 @@ async function createCheckout(req, res, next) {
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
         const gatewayProvider = String(gateway).toLowerCase();
-        const gatewayError = validateGatewayForPlan(plan, gatewayProvider);
+        let checkoutPlan;
+        try {
+            checkoutPlan = await resolveCheckoutPlan(plan, paymentCurrency, CurrencyRate);
+        } catch (conversionError) {
+            return res.fail(conversionError.message, 400);
+        }
+        const gatewayError = validateGatewayForPlan(checkoutPlan, gatewayProvider);
         if (gatewayError) return res.fail(gatewayError, 400);
 
         const dateOfBirthResult = validateDateOfBirthForPlan(dateOfBirth, plan);
@@ -494,19 +576,26 @@ async function createCheckout(req, res, next) {
         if (!selected) return res.fail('Selected payment gateway is not available', 400);
 
         const checkout = selected.provider === 'flutterwave'
-            ? await createFlutterwaveCheckout(req, selected.integration, plan, {
+            ? await createFlutterwaveCheckout(req, selected.integration, checkoutPlan, {
                 firstName,
                 lastName,
                 email,
                 phoneNumber
             })
             : selected.provider === 'paypal'
-                ? await createPaypalCheckout(req, selected.integration, plan)
-                : await createStripeCheckout(req, selected.integration, plan);
+                ? await createPaypalCheckout(req, selected.integration, checkoutPlan)
+                : await createStripeCheckout(req, selected.integration, checkoutPlan);
 
         return res.success({
             gateway: selected.provider,
-            plan: { id: plan.id, name: plan.name, amount: getPlanAmount(plan), currency: plan.currency },
+            plan: {
+                id: plan.id,
+                name: plan.name,
+                amount: getPlanAmount(checkoutPlan),
+                currency: checkoutPlan.currency,
+                sourceAmount: checkoutPlan.sourceAmount,
+                sourceCurrency: checkoutPlan.sourceCurrency
+            },
             ...checkout
         }, 'Checkout created');
     } catch (err) {
@@ -541,8 +630,10 @@ async function completePurchase(req, res, next) {
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
         const gatewayProvider = String(gateway).toLowerCase();
-        const gatewayError = validateGatewayForPlan(plan, gatewayProvider);
-        if (gatewayError) return res.fail(gatewayError, 400);
+        if (gatewayProvider !== 'flutterwave') {
+            const gatewayError = validateGatewayForPlan(plan, gatewayProvider);
+            if (gatewayError) return res.fail(gatewayError, 400);
+        }
 
         const dateOfBirthResult = validateDateOfBirthForPlan(dateOfBirth, plan);
         if (dateOfBirthResult.error) return res.fail(dateOfBirthResult.error, 400);
@@ -554,20 +645,25 @@ async function completePurchase(req, res, next) {
         const payment = selected.provider === 'flutterwave'
             ? await verifyFlutterwavePayment(selected.integration, req.body?.transactionId, {
                 checkoutReference,
-                expectedAmount: getPlanAmount(plan),
-                expectedCurrency: plan.currency || 'NGN',
+                expectedAmount: normalizeCurrency(plan.currency, 'NGN') === 'NGN'
+                    ? getPlanAmount(plan)
+                    : undefined,
+                expectedCurrency: 'NGN',
                 expectedPlanId: plan.id,
-                expectedEmail: email
+                expectedEmail: email,
+                requireCheckoutAmount: normalizeCurrency(plan.currency, 'NGN') !== 'NGN'
             })
             : selected.provider === 'paypal'
                 ? await capturePaypalPayment(selected.integration, checkoutReference)
                 : await verifyStripePayment(selected.integration, checkoutReference);
 
-        if (String(payment.currency || '').toUpperCase() !== String(plan.currency || 'NGN').toUpperCase()) {
-            return res.fail('Payment currency does not match the selected plan', 400);
-        }
-        if (Number(payment.amount || 0) + 0.01 < getPlanAmount(plan)) {
-            return res.fail('Payment amount does not match the selected plan', 400);
+        if (selected.provider !== 'flutterwave') {
+            if (String(payment.currency || '').toUpperCase() !== String(plan.currency || 'NGN').toUpperCase()) {
+                return res.fail('Payment currency does not match the selected plan', 400);
+            }
+            if (Number(payment.amount || 0) + 0.01 < getPlanAmount(plan)) {
+                return res.fail('Payment amount does not match the selected plan', 400);
+            }
         }
 
         const existingPayment = await RetailEnrolleeSubscription.findOne({
@@ -714,6 +810,7 @@ module.exports = {
         getProvidersForCurrency,
         getGatewayLabel,
         validateGatewayForPlan,
+        resolveCheckoutPlan,
         parseDateOfBirth,
         calculateAge,
         validateDateOfBirthForPlan

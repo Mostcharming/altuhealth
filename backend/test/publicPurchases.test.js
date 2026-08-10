@@ -21,6 +21,33 @@ test('NGN checkout exposes Flutterwave and rejects other local gateways', () => 
     );
 });
 
+test('a foreign-currency plan can be converted to an NGN Flutterwave checkout', async () => {
+    const convertedPlan = await checkoutHelpers.resolveCheckoutPlan(
+        {
+            id: 'plan-gbp-1',
+            name: 'Diaspora Single',
+            annualPremiumPrice: '25.00',
+            currency: 'GBP'
+        },
+        'NGN',
+        {
+            async findOne(options) {
+                assert.deepEqual(options.where, {
+                    currencyCode: 'GBP',
+                    isActive: true
+                });
+                return { rateToNgn: '1808.3184' };
+            }
+        }
+    );
+
+    assert.equal(convertedPlan.annualPremiumPrice, 45207.96);
+    assert.equal(convertedPlan.currency, 'NGN');
+    assert.equal(convertedPlan.sourceAmount, 25);
+    assert.equal(convertedPlan.sourceCurrency, 'GBP');
+    assert.equal(checkoutHelpers.validateGatewayForPlan(convertedPlan, 'flutterwave'), null);
+});
+
 test('active Flutterwave database integration is discovered from its name and provider config', async () => {
     const integration = {
         name: 'Flutterwave',
@@ -115,6 +142,10 @@ test('Flutterwave checkout is created server-side without using the encryption k
     assert.equal(request.body.amount, 100000);
     assert.equal(request.body.currency, 'NGN');
     assert.equal(request.body.customer.email, 'ada@example.com');
+    assert.equal(request.body.meta.paymentAmount, '100000.00');
+    assert.equal(request.body.meta.paymentCurrency, 'NGN');
+    assert.equal(request.body.meta.sourceAmount, '100000.00');
+    assert.equal(request.body.meta.sourceCurrency, 'NGN');
     assert.equal(request.body.payload_hash.length, 64);
     assert.match(request.body.redirect_url, /gateway=flutterwave/);
     assert.equal(checkout.checkoutUrl, 'https://checkout.flutterwave.test/hosted');
@@ -136,7 +167,11 @@ test('Flutterwave verification checks status, reference, amount, and currency', 
                 status: 'successful',
                 amount: 100000,
                 currency: 'NGN',
-                meta: { planId: 'plan-1' },
+                meta: {
+                    planId: 'plan-1',
+                    paymentAmount: '100000.00',
+                    paymentCurrency: 'NGN'
+                },
                 customer: { email: 'ada@example.com' }
             }
         }
@@ -150,7 +185,8 @@ test('Flutterwave verification checks status, reference, amount, and currency', 
             expectedAmount: 100000,
             expectedCurrency: 'NGN',
             expectedPlanId: 'plan-1',
-            expectedEmail: 'ada@example.com'
+            expectedEmail: 'ada@example.com',
+            requireCheckoutAmount: true
         }
     );
     assert.deepEqual(payment, {

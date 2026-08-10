@@ -1072,6 +1072,7 @@ export default function Plans() {
         body: {
           planId: selectedVariantPlanId,
           gateway: selectedGateway,
+          paymentCurrency: selectedVariant?.paymentCurrency,
           firstName: planForm.firstName,
           lastName: planForm.lastName,
           email: planForm.email,
