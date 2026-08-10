@@ -2,6 +2,7 @@
 
 const axios = require('axios');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const notify = require('../../../utils/notify');
 const generateCode = require('../../../utils/verificationCode');
 const { getUniquePolicyNumber } = require('../../../utils/policyNumberGenerator');
@@ -9,13 +10,13 @@ const { getNextSubscriptionReferenceNumber } = require('../../../utils/subscript
 const { calculateEndDateFromCycle, generatePaymentReference } = require('../../../utils/subscriptionCalculationHelper');
 
 const INTERNATIONAL_GATEWAYS = ['paypal', 'stripe'];
-const LOCAL_GATEWAYS = ['paystack'];
+const LOCAL_GATEWAYS = ['flutterwave'];
 const ALL_GATEWAYS = [...LOCAL_GATEWAYS, ...INTERNATIONAL_GATEWAYS];
 
 function getGatewayName(integration) {
     const name = String(integration.name || '').toLowerCase();
     const provider = String(integration.additional_config?.provider || '').toLowerCase();
-    if (name.includes('paystack') || provider.includes('paystack')) return 'paystack';
+    if (name.includes('flutterwave') || provider.includes('flutterwave')) return 'flutterwave';
     if (name.includes('paypal') || provider.includes('paypal')) return 'paypal';
     if (name.includes('stripe') || provider.includes('stripe')) return 'stripe';
     return null;
@@ -56,6 +57,73 @@ function getPlanAmount(plan) {
     return Number(plan.annualPremiumPrice || 0);
 }
 
+function parseDateOfBirth(value) {
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+        return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+    }
+
+    const normalized = String(value || '').trim();
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+    if (!match) return null;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (
+        date.getUTCFullYear() !== year
+        || date.getUTCMonth() !== month - 1
+        || date.getUTCDate() !== day
+    ) return null;
+
+    return date;
+}
+
+function calculateAge(dateOfBirth, now = new Date()) {
+    let age = now.getUTCFullYear() - dateOfBirth.getUTCFullYear();
+    const birthdayHasPassed = now.getUTCMonth() > dateOfBirth.getUTCMonth()
+        || (
+            now.getUTCMonth() === dateOfBirth.getUTCMonth()
+            && now.getUTCDate() >= dateOfBirth.getUTCDate()
+        );
+    if (!birthdayHasPassed) age -= 1;
+    return age;
+}
+
+function validateDateOfBirthForPlan(value, plan, now = new Date()) {
+    const dateOfBirth = parseDateOfBirth(value);
+    if (!dateOfBirth) {
+        return { error: '`dateOfBirth` must be a valid date in YYYY-MM-DD format' };
+    }
+
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    if (dateOfBirth > today) {
+        return { error: '`dateOfBirth` cannot be in the future' };
+    }
+
+    const age = calculateAge(dateOfBirth, today);
+    const ageLimit = plan?.ageLimit === null || plan?.ageLimit === undefined
+        ? null
+        : Number(plan.ageLimit);
+    if (Number.isFinite(ageLimit) && age > ageLimit) {
+        return { error: `This plan is only available to enrollees aged ${ageLimit} or younger` };
+    }
+
+    return { dateOfBirth, age };
+}
+
+function validateGatewayForPlan(plan, gateway) {
+    const currency = String(plan.currency || 'NGN').toUpperCase();
+    const provider = String(gateway || '').toLowerCase();
+    if (currency === 'NGN' && provider !== 'flutterwave') {
+        return 'NGN plans must be paid with Flutterwave';
+    }
+    if (currency !== 'NGN' && provider === 'flutterwave') {
+        return 'Flutterwave is only available for NGN plans';
+    }
+    return null;
+}
+
 function getOrigin(req) {
     const origin = req.get('origin') || req.get('referer');
     if (origin) {
@@ -77,7 +145,6 @@ function getCheckoutReturnUrl(req) {
             if (['altuhealth:', 'exp:'].includes(parsed.protocol)) {
                 return requested;
             }
-        } catch (err) {
             const requestOrigin = req.get('origin');
             const portalOrigin = new URL(
                 process.env.FE_ENROLLEE_URL || 'https://enrollee.altuhealth.com'
@@ -86,6 +153,7 @@ function getCheckoutReturnUrl(req) {
                 ['http:', 'https:'].includes(parsed.protocol)
                 && [requestOrigin, portalOrigin].filter(Boolean).includes(parsed.origin)
             ) return requested;
+        } catch (err) {
             // Fall back to the caller origin when the supplied URL is invalid.
         }
     }
@@ -102,8 +170,20 @@ function getPaypalBaseUrl(integration) {
     return integration.base_url || (integrationIsProduction(integration) ? 'https://api.paypal.com' : 'https://api.sandbox.paypal.com');
 }
 
-function getPaystackBaseUrl(integration) {
-    return integration.base_url || 'https://api.paystack.co';
+function getFlutterwaveBaseUrl(integration) {
+    return integration.base_url || 'https://api.flutterwave.com';
+}
+
+function getFlutterwaveSecret(integration) {
+    return integration.secret_key || integration.api_secret;
+}
+
+function createFlutterwavePayloadHash({ amount, currency, email, transactionReference, secret }) {
+    const hashedSecret = crypto.createHash('sha256').update(secret, 'utf8').digest('hex');
+    return crypto
+        .createHash('sha256')
+        .update(`${amount}${currency}${email}${transactionReference}${hashedSecret}`, 'utf8')
+        .digest('hex');
 }
 
 async function getPaypalAccessToken(integration) {
@@ -188,21 +268,46 @@ async function createStripeCheckout(req, integration, plan) {
     };
 }
 
-async function createPaystackCheckout(req, integration, plan, email) {
+async function createFlutterwaveCheckout(req, integration, plan, customer) {
     const returnUrl = getCheckoutReturnUrl(req);
-    const secret = integration.secret_key || integration.api_secret || integration.api_key;
-    if (!secret) throw new Error('Paystack secret key is not configured');
+    const secret = getFlutterwaveSecret(integration);
+    if (!secret) throw new Error('Flutterwave secret key is not configured');
+
+    const amount = getPlanAmount(plan);
+    const currency = String(plan.currency || 'NGN').toUpperCase();
+    const transactionReference = generatePaymentReference();
+    const email = String(customer.email || '').trim();
+    const payloadHash = createFlutterwavePayloadHash({
+        amount,
+        currency,
+        email,
+        transactionReference,
+        secret
+    });
 
     const response = await axios.post(
-        `${getPaystackBaseUrl(integration)}/transaction/initialize`,
+        `${getFlutterwaveBaseUrl(integration)}/v3/payments`,
         {
-            email,
-            amount: Math.round(getPlanAmount(plan) * 100),
-            currency: plan.currency || 'NGN',
-            callback_url: withCheckoutParams(returnUrl, 'payment_status=success&gateway=paystack'),
-            metadata: {
+            tx_ref: transactionReference,
+            amount,
+            currency,
+            redirect_url: withCheckoutParams(returnUrl, 'payment_status=callback&gateway=flutterwave'),
+            customer: {
+                email,
+                name: [customer.firstName, customer.lastName].filter(Boolean).join(' '),
+                phonenumber: customer.phoneNumber
+            },
+            meta: {
                 planId: plan.id,
                 planName: plan.name
+            },
+            customizations: {
+                title: 'AltuHealth Plan Payment',
+                description: plan.name
+            },
+            payload_hash: payloadHash,
+            configurations: {
+                max_retry_attempt: 5
             }
         },
         {
@@ -214,13 +319,13 @@ async function createPaystackCheckout(req, integration, plan, email) {
     );
 
     const data = response.data?.data || {};
-    if (!data.authorization_url || !data.reference) {
-        throw new Error('Paystack authorization URL was not returned');
+    if (response.data?.status !== 'success' || !data.link) {
+        throw new Error('Flutterwave checkout URL was not returned');
     }
 
     return {
-        checkoutUrl: data.authorization_url,
-        checkoutReference: data.reference
+        checkoutUrl: data.link,
+        checkoutReference: transactionReference
     };
 }
 
@@ -266,31 +371,62 @@ async function capturePaypalPayment(integration, checkoutReference) {
     };
 }
 
-async function verifyPaystackPayment(integration, checkoutReference) {
-    const secret = integration.secret_key || integration.api_secret || integration.api_key;
-    if (!secret) throw new Error('Paystack secret key is not configured');
+async function verifyFlutterwavePayment(integration, transactionId, {
+    checkoutReference,
+    expectedAmount,
+    expectedCurrency,
+    expectedPlanId,
+    expectedEmail
+} = {}) {
+    const secret = getFlutterwaveSecret(integration);
+    if (!secret) throw new Error('Flutterwave secret key is not configured');
+    if (!transactionId) throw new Error('Flutterwave transaction ID is required');
 
     const response = await axios.get(
-        `${getPaystackBaseUrl(integration)}/transaction/verify/${encodeURIComponent(checkoutReference)}`,
+        `${getFlutterwaveBaseUrl(integration)}/v3/transactions/${encodeURIComponent(transactionId)}/verify`,
         {
             headers: { Authorization: `Bearer ${secret}` }
         }
     );
 
     const data = response.data?.data || {};
-    if (data.status !== 'success') {
-        throw new Error('Paystack payment is not completed');
+    if (response.data?.status !== 'success' || data.status !== 'successful') {
+        throw new Error('Flutterwave payment is not completed');
+    }
+    if (checkoutReference && String(data.tx_ref) !== String(checkoutReference)) {
+        throw new Error('Flutterwave transaction reference does not match this checkout');
+    }
+
+    const currency = String(data.currency || '').toUpperCase();
+    if (expectedCurrency && currency !== String(expectedCurrency).toUpperCase()) {
+        throw new Error('Flutterwave payment currency does not match the selected plan');
+    }
+
+    const amount = Number(data.amount ?? data.charged_amount ?? 0);
+    if (expectedAmount !== undefined && (!Number.isFinite(amount) || amount + 0.01 < Number(expectedAmount))) {
+        throw new Error('Flutterwave payment amount does not match the selected plan');
+    }
+    if (expectedPlanId && String(data.meta?.planId || '') !== String(expectedPlanId)) {
+        throw new Error('Flutterwave payment plan does not match the selected plan');
+    }
+    if (
+        expectedEmail
+        && String(data.customer?.email || '').trim().toLowerCase()
+            !== String(expectedEmail).trim().toLowerCase()
+    ) {
+        throw new Error('Flutterwave payment customer does not match this checkout');
     }
 
     return {
-        transactionId: data.id ? String(data.id) : checkoutReference,
-        amount: Number(data.amount || 0) / 100,
-        currency: String(data.currency || 'NGN').toUpperCase()
+        transactionId: data.id ? String(data.id) : String(transactionId),
+        transactionReference: data.tx_ref || checkoutReference,
+        amount,
+        currency
     };
 }
 
 function getGatewayLabel(provider) {
-    if (provider === 'paystack') return 'Paystack';
+    if (provider === 'flutterwave') return 'Flutterwave';
     if (provider === 'paypal') return 'PayPal';
     return 'Stripe';
 }
@@ -321,23 +457,32 @@ async function listGateways(req, res, next) {
 async function createCheckout(req, res, next) {
     try {
         const { Plan, Integration, RetailEnrollee } = req.models;
-        const { planId, gateway, email, phoneNumber } = req.body || {};
+        const {
+            planId,
+            gateway,
+            firstName,
+            lastName,
+            email,
+            phoneNumber,
+            dateOfBirth
+        } = req.body || {};
 
         if (!planId) return res.fail('`planId` is required', 400);
         if (!gateway) return res.fail('`gateway` is required', 400);
+        if (!firstName) return res.fail('`firstName` is required', 400);
+        if (!lastName) return res.fail('`lastName` is required', 400);
         if (!email) return res.fail('`email` is required', 400);
         if (!phoneNumber) return res.fail('`phoneNumber` is required', 400);
+        if (!dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
 
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
-        const planCurrency = String(plan.currency || 'NGN').toUpperCase();
         const gatewayProvider = String(gateway).toLowerCase();
-        if (planCurrency === 'NGN' && gatewayProvider !== 'paystack') {
-            return res.fail('NGN plans must be paid with Paystack', 400);
-        }
-        if (planCurrency !== 'NGN' && gatewayProvider === 'paystack') {
-            return res.fail('Paystack is only available for NGN plans', 400);
-        }
+        const gatewayError = validateGatewayForPlan(plan, gatewayProvider);
+        if (gatewayError) return res.fail(gatewayError, 400);
+
+        const dateOfBirthResult = validateDateOfBirthForPlan(dateOfBirth, plan);
+        if (dateOfBirthResult.error) return res.fail(dateOfBirthResult.error, 400);
 
         const existingEmail = await RetailEnrollee.findOne({ where: { email } });
         if (existingEmail) return res.fail('Email already exists', 400);
@@ -348,8 +493,13 @@ async function createCheckout(req, res, next) {
         const selected = chooseIntegration(items, gatewayProvider);
         if (!selected) return res.fail('Selected payment gateway is not available', 400);
 
-        const checkout = selected.provider === 'paystack'
-            ? await createPaystackCheckout(req, selected.integration, plan, email)
+        const checkout = selected.provider === 'flutterwave'
+            ? await createFlutterwaveCheckout(req, selected.integration, plan, {
+                firstName,
+                lastName,
+                email,
+                phoneNumber
+            })
             : selected.provider === 'paypal'
                 ? await createPaypalCheckout(req, selected.integration, plan)
                 : await createStripeCheckout(req, selected.integration, plan);
@@ -375,6 +525,7 @@ async function completePurchase(req, res, next) {
             lastName,
             phoneNumber,
             email,
+            dateOfBirth,
             referralCode
         } = req.body || {};
 
@@ -385,32 +536,68 @@ async function completePurchase(req, res, next) {
         if (!lastName) return res.fail('`lastName` is required', 400);
         if (!phoneNumber) return res.fail('`phoneNumber` is required', 400);
         if (!email) return res.fail('`email` is required', 400);
+        if (!dateOfBirth) return res.fail('`dateOfBirth` is required', 400);
 
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
-        const planCurrency = String(plan.currency || 'NGN').toUpperCase();
         const gatewayProvider = String(gateway).toLowerCase();
-        if (planCurrency === 'NGN' && gatewayProvider !== 'paystack') {
-            return res.fail('NGN plans must be paid with Paystack', 400);
+        const gatewayError = validateGatewayForPlan(plan, gatewayProvider);
+        if (gatewayError) return res.fail(gatewayError, 400);
+
+        const dateOfBirthResult = validateDateOfBirthForPlan(dateOfBirth, plan);
+        if (dateOfBirthResult.error) return res.fail(dateOfBirthResult.error, 400);
+
+        const items = await getActiveGatewayIntegrations(Integration);
+        const selected = chooseIntegration(items, gatewayProvider);
+        if (!selected) return res.fail('Selected payment gateway is not available', 400);
+
+        const payment = selected.provider === 'flutterwave'
+            ? await verifyFlutterwavePayment(selected.integration, req.body?.transactionId, {
+                checkoutReference,
+                expectedAmount: getPlanAmount(plan),
+                expectedCurrency: plan.currency || 'NGN',
+                expectedPlanId: plan.id,
+                expectedEmail: email
+            })
+            : selected.provider === 'paypal'
+                ? await capturePaypalPayment(selected.integration, checkoutReference)
+                : await verifyStripePayment(selected.integration, checkoutReference);
+
+        if (String(payment.currency || '').toUpperCase() !== String(plan.currency || 'NGN').toUpperCase()) {
+            return res.fail('Payment currency does not match the selected plan', 400);
         }
-        if (planCurrency !== 'NGN' && gatewayProvider === 'paystack') {
-            return res.fail('Paystack is only available for NGN plans', 400);
+        if (Number(payment.amount || 0) + 0.01 < getPlanAmount(plan)) {
+            return res.fail('Payment amount does not match the selected plan', 400);
+        }
+
+        const existingPayment = await RetailEnrolleeSubscription.findOne({
+            where: {
+                paymentGatewayProvider: selected.provider,
+                paymentGatewayTransactionId: payment.transactionId
+            }
+        });
+        if (existingPayment) {
+            const existingEnrollee = await RetailEnrollee.findByPk(existingPayment.retailEnrolleeId);
+            if (existingEnrollee && String(existingEnrollee.email).toLowerCase() === String(email).toLowerCase()) {
+                return res.success({
+                    enrollee: {
+                        id: existingEnrollee.id,
+                        firstName: existingEnrollee.firstName,
+                        lastName: existingEnrollee.lastName,
+                        email: existingEnrollee.email,
+                        policyNumber: existingEnrollee.policyNumber
+                    },
+                    subscription: existingPayment.toJSON(),
+                    loginLink: 'https://enrollee.altuhealth.com/signin'
+                }, 'Purchase was already completed and the account is ready');
+            }
+            return res.fail('This payment transaction has already been used', 409);
         }
 
         const existingEmail = await RetailEnrollee.findOne({ where: { email } });
         if (existingEmail) return res.fail('Email already exists', 400);
         const existingPhone = await RetailEnrollee.findOne({ where: { phoneNumber } });
         if (existingPhone) return res.fail('Phone number already exists', 400);
-
-        const items = await getActiveGatewayIntegrations(Integration);
-        const selected = chooseIntegration(items, gatewayProvider);
-        if (!selected) return res.fail('Selected payment gateway is not available', 400);
-
-        const payment = selected.provider === 'paystack'
-            ? await verifyPaystackPayment(selected.integration, checkoutReference)
-            : selected.provider === 'paypal'
-                ? await capturePaypalPayment(selected.integration, checkoutReference)
-                : await verifyStripePayment(selected.integration, checkoutReference);
 
         const rawPassword = generateCode(10, { letters: true, numbers: true });
         const hashedPassword = await bcrypt.hash(rawPassword, 10);
@@ -430,7 +617,7 @@ async function completePurchase(req, res, next) {
                 policyNumber,
                 phoneNumber,
                 email,
-                dateOfBirth: new Date('1900-01-01'),
+                dateOfBirth: dateOfBirthResult.dateOfBirth,
                 state: null,
                 lga: null,
                 country: plan.currency === 'GBP' ? 'United Kingdom' : null,
@@ -447,7 +634,7 @@ async function completePurchase(req, res, next) {
             }, { transaction });
 
             const referenceNumber = await getNextSubscriptionReferenceNumber(RetailEnrolleeSubscription);
-            const transactionReference = generatePaymentReference();
+            const transactionReference = payment.transactionReference || generatePaymentReference();
             subscription = await RetailEnrolleeSubscription.create({
                 referenceNumber,
                 retailEnrolleeId: enrollee.id,
@@ -520,11 +707,15 @@ module.exports = {
         getPlanAmount,
         createPaypalCheckout,
         createStripeCheckout,
-        createPaystackCheckout,
+        createFlutterwaveCheckout,
         verifyStripePayment,
         capturePaypalPayment,
-        verifyPaystackPayment,
+        verifyFlutterwavePayment,
         getProvidersForCurrency,
-        getGatewayLabel
+        getGatewayLabel,
+        validateGatewayForPlan,
+        parseDateOfBirth,
+        calculateAge,
+        validateDateOfBirthForPlan
     }
 };

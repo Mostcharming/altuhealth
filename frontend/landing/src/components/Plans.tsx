@@ -14,7 +14,7 @@ import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type InferredPlanCategory = PlanCategory | "general";
-type PaymentProvider = "paystack" | "paypal" | "stripe";
+type PaymentProvider = "flutterwave" | "paypal" | "stripe";
 
 type PublicPlan = {
   id: string;
@@ -603,6 +603,35 @@ function readReferralCodeFromUrl() {
   );
 }
 
+function calculateAgeFromDateInput(value: string, today = new Date()) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+
+  const parsed = new Date(year, month - 1, day);
+  if (
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day
+  ) {
+    return null;
+  }
+
+  let age = today.getFullYear() - year;
+  const birthdayHasPassed =
+    today.getMonth() > month - 1 ||
+    (today.getMonth() === month - 1 && today.getDate() >= day);
+  if (!birthdayHasPassed) age -= 1;
+  return age;
+}
+
+function getTodayDateInputValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function Plans() {
   const benefitsSectionRef = useRef<HTMLElement>(null);
   const [availableCategories, setAvailableCategories] = useState<
@@ -640,6 +669,7 @@ export default function Plans() {
     lastName: "",
     email: "",
     phone: "",
+    dateOfBirth: "",
     referralCode: "",
   });
 
@@ -654,6 +684,9 @@ export default function Plans() {
 
   const selectedVariant = selectedPlan?.rows.find(
     (row) => row.planId === selectedVariantPlanId,
+  );
+  const selectedVariantPlan = selectedPlan?.sources.find(
+    (plan) => plan.id === selectedVariantPlanId,
   );
   const selectedBenefitsVariant = benefitsPlan?.rows.find(
     (row) => row.planId === selectedBenefitsVariantId,
@@ -769,12 +802,30 @@ export default function Plans() {
           checkoutReference: string;
           form: typeof planForm;
         };
+
+        if (
+          pending.gateway === "flutterwave" &&
+          params.get("status") !== "successful"
+        ) {
+          window.localStorage.removeItem("altu_pending_purchase");
+          setModalError("Payment was not completed. No account was created.");
+          return;
+        }
+
         const checkoutReference =
           pending.gateway === "stripe"
             ? params.get("session_id") || pending.checkoutReference
-            : pending.gateway === "paystack"
-              ? params.get("reference") || pending.checkoutReference
+            : pending.gateway === "flutterwave"
+              ? params.get("tx_ref") || pending.checkoutReference
               : params.get("token") || pending.checkoutReference;
+        const transactionId =
+          pending.gateway === "flutterwave"
+            ? params.get("transaction_id")
+            : undefined;
+
+        if (pending.gateway === "flutterwave" && !transactionId) {
+          throw new Error("Flutterwave did not return a transaction ID.");
+        }
 
         const response = (await apiClient("/public/purchases/complete", {
           method: "POST",
@@ -782,10 +833,12 @@ export default function Plans() {
             planId: pending.planId,
             gateway: pending.gateway,
             checkoutReference,
+            transactionId,
             firstName: pending.form.firstName,
             lastName: pending.form.lastName,
             email: pending.form.email,
             phoneNumber: pending.form.phone,
+            dateOfBirth: pending.form.dateOfBirth,
             referralCode: pending.form.referralCode,
           },
         })) as CompletePurchaseResponse;
@@ -932,6 +985,7 @@ export default function Plans() {
       lastName: "",
       email: "",
       phone: "",
+      dateOfBirth: "",
       referralCode: referralCodeFromUrl,
     });
   };
@@ -977,7 +1031,7 @@ export default function Plans() {
     if (!selectedGateway) {
       setModalError(
         selectedVariant?.paymentCurrency === "NGN" && gateways.length === 0
-          ? "Paystack is not available yet for Naira payments."
+          ? "Flutterwave is not available yet for Naira payments."
           : "Select a payment gateway.",
       );
       return;
@@ -986,9 +1040,25 @@ export default function Plans() {
       !planForm.firstName ||
       !planForm.lastName ||
       !planForm.email ||
-      !planForm.phone
+      !planForm.phone ||
+      !planForm.dateOfBirth
     ) {
-      setModalError("Fill in your name, email, and phone number.");
+      setModalError("Fill in your name, email, phone number, and date of birth.");
+      return;
+    }
+
+    const enrolleeAge = calculateAgeFromDateInput(planForm.dateOfBirth);
+    if (enrolleeAge === null || enrolleeAge < 0) {
+      setModalError("Enter a valid date of birth that is not in the future.");
+      return;
+    }
+    if (
+      selectedVariantPlan?.ageLimit != null &&
+      enrolleeAge > Number(selectedVariantPlan.ageLimit)
+    ) {
+      setModalError(
+        `This plan is only available to enrollees aged ${selectedVariantPlan.ageLimit} or younger.`,
+      );
       return;
     }
 
@@ -1000,8 +1070,11 @@ export default function Plans() {
         body: {
           planId: selectedVariantPlanId,
           gateway: selectedGateway,
+          firstName: planForm.firstName,
+          lastName: planForm.lastName,
           email: planForm.email,
           phoneNumber: planForm.phone,
+          dateOfBirth: planForm.dateOfBirth,
         },
       })) as CheckoutResponse;
 
@@ -1459,7 +1532,24 @@ export default function Plans() {
                 placeholder="Phone Number"
                 value={planForm.phone}
                 onChange={handlePlanInputChange}
+                required
               />
+              <label className="plan-date-field">
+                <span>Date of Birth</span>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  max={getTodayDateInputValue()}
+                  value={planForm.dateOfBirth}
+                  onChange={handlePlanInputChange}
+                  required
+                />
+              </label>
+              {selectedVariantPlan?.ageLimit != null && (
+                <p className="plan-field-help">
+                  Maximum eligible age for this plan: {selectedVariantPlan.ageLimit}
+                </p>
+              )}
               <input
                 type="text"
                 name="referralCode"
@@ -1496,7 +1586,7 @@ export default function Plans() {
                     gateways.length === 0 &&
                     selectedVariant?.paymentCurrency === "NGN" && (
                       <button type="button" className="unavailable" disabled>
-                        <span>Paystack</span>
+                        <span>Flutterwave</span>
                         <small>Not available yet</small>
                       </button>
                     )}

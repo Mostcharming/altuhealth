@@ -155,6 +155,11 @@ module.exports = (sequelize, DataTypes) => {
             },
             {
                 fields: ['date_paid']
+            },
+            {
+                name: 'retail_enrollee_subscriptions_gateway_transaction_unique',
+                unique: true,
+                fields: ['payment_gateway_provider', 'payment_gateway_transaction_id']
             }
         ]
     });

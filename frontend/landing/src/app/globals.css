@@ -1286,6 +1286,17 @@ section {
   box-shadow: 0 0 0 4px rgba(30, 99, 233, 0.1);
 }
 
+.plan-date-field {
+  display: grid;
+  gap: 5px;
+}
+
+.plan-date-field > span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .plan-modal-instructions {
   border: 1px solid #deebff;
   border-radius: 14px;
@@ -1296,9 +1307,16 @@ section {
 .plan-modal-form .plan-choice-group,
 .plan-modal-form .plan-modal-instructions,
 .plan-modal-form .plan-modal-error,
+.plan-modal-form .plan-field-help,
 .plan-modal-form .buy-btn,
 .plan-modal-form input[type="hidden"] {
   grid-column: 1 / -1;
+}
+
+.plan-field-help {
+  margin: -2px 2px 2px;
+  color: #64748b;
+  font-size: 12px;
 }
 
 .plan-modal-instructions strong {

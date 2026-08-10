@@ -427,6 +427,7 @@ export async function completeSubscriptionCheckout(data: {
   planId: string;
   gateway: string;
   checkoutReference: string;
+  transactionId?: string | null;
   mode: "renew" | "change";
 }) {
   return getData<{ subscription: RetailSubscription }>(

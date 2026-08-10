@@ -58,18 +58,6 @@ function subscriptionSummary(subscription) {
     };
 }
 
-function validateGatewayForPlan(plan, gateway) {
-    const currency = String(plan.currency || 'NGN').toUpperCase();
-    const provider = String(gateway || '').toLowerCase();
-    if (currency === 'NGN' && provider !== 'paystack') {
-        return 'NGN plans must be paid with Paystack';
-    }
-    if (currency !== 'NGN' && provider === 'paystack') {
-        return 'Paystack is only available for NGN plans';
-    }
-    return null;
-}
-
 async function findAvailablePlans(Plan) {
     return Plan.findAll({
         where: {
@@ -144,15 +132,23 @@ async function createCheckout(req, res, next) {
         if (!plan) return res.fail('Plan not found or unavailable', 404);
         if (!enrollee) return res.fail('Retail enrollee not found', 404);
 
-        const gatewayError = validateGatewayForPlan(plan, gateway);
+        const gatewayError = checkoutHelpers.validateGatewayForPlan(plan, gateway);
         if (gatewayError) return res.fail(gatewayError, 400);
+
+        const eligibility = checkoutHelpers.validateDateOfBirthForPlan(enrollee.dateOfBirth, plan);
+        if (eligibility.error) return res.fail(eligibility.error, 400);
 
         const items = await checkoutHelpers.getActiveGatewayIntegrations(req.models.Integration);
         const selected = checkoutHelpers.chooseIntegration(items, String(gateway).toLowerCase());
         if (!selected) return res.fail('Selected payment gateway is not available', 400);
 
-        const checkout = selected.provider === 'paystack'
-            ? await checkoutHelpers.createPaystackCheckout(req, selected.integration, plan, enrollee.email)
+        const checkout = selected.provider === 'flutterwave'
+            ? await checkoutHelpers.createFlutterwaveCheckout(req, selected.integration, plan, {
+                firstName: enrollee.firstName,
+                lastName: enrollee.lastName,
+                email: enrollee.email,
+                phoneNumber: enrollee.phoneNumber
+            })
             : selected.provider === 'paypal'
                 ? await checkoutHelpers.createPaypalCheckout(req, selected.integration, plan)
                 : await checkoutHelpers.createStripeCheckout(req, selected.integration, plan);
@@ -170,7 +166,7 @@ async function createCheckout(req, res, next) {
 async function completeCheckout(req, res, next) {
     try {
         if (!ensureRetailEnrollee(req, res)) return;
-        const { planId, gateway, checkoutReference, mode = 'renew' } = req.body || {};
+        const { planId, gateway, checkoutReference, transactionId, mode = 'renew' } = req.body || {};
         if (!planId) return res.fail('`planId` is required', 400);
         if (!gateway) return res.fail('`gateway` is required', 400);
         if (!checkoutReference) return res.fail('`checkoutReference` is required', 400);
@@ -202,15 +198,24 @@ async function completeCheckout(req, res, next) {
         if (!plan) return res.fail('Plan not found or unavailable', 404);
         if (!enrollee) return res.fail('Retail enrollee not found', 404);
 
-        const gatewayError = validateGatewayForPlan(plan, gateway);
+        const gatewayError = checkoutHelpers.validateGatewayForPlan(plan, gateway);
         if (gatewayError) return res.fail(gatewayError, 400);
+
+        const eligibility = checkoutHelpers.validateDateOfBirthForPlan(enrollee.dateOfBirth, plan);
+        if (eligibility.error) return res.fail(eligibility.error, 400);
 
         const items = await checkoutHelpers.getActiveGatewayIntegrations(Integration);
         const selected = checkoutHelpers.chooseIntegration(items, String(gateway).toLowerCase());
         if (!selected) return res.fail('Selected payment gateway is not available', 400);
 
-        const payment = selected.provider === 'paystack'
-            ? await checkoutHelpers.verifyPaystackPayment(selected.integration, checkoutReference)
+        const payment = selected.provider === 'flutterwave'
+            ? await checkoutHelpers.verifyFlutterwavePayment(selected.integration, transactionId, {
+                checkoutReference,
+                expectedAmount: checkoutHelpers.getPlanAmount(plan),
+                expectedCurrency: plan.currency || 'NGN',
+                expectedPlanId: plan.id,
+                expectedEmail: enrollee.email
+            })
             : selected.provider === 'paypal'
                 ? await checkoutHelpers.capturePaypalPayment(selected.integration, checkoutReference)
                 : await checkoutHelpers.verifyStripePayment(selected.integration, checkoutReference);
@@ -256,7 +261,7 @@ async function completeCheckout(req, res, next) {
                 subscriptionStartDate,
                 subscriptionEndDate,
                 paymentMethod: 'card',
-                transactionReference: generatePaymentReference(),
+                transactionReference: payment.transactionReference || generatePaymentReference(),
                 paymentGatewayProvider: selected.provider,
                 paymentGatewayTransactionId: payment.transactionId,
                 status: 'active',

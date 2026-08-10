@@ -163,12 +163,30 @@ export default function SubscriptionPage() {
       }
 
       const session = JSON.parse(stored) as CheckoutSession;
+      if (
+        session.gateway === "flutterwave" &&
+        query.get("status") !== "successful"
+      ) {
+        sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);
+        setError("Payment was not completed. Your current subscription is unchanged.");
+        return;
+      }
+
       const reference =
+        query.get("tx_ref") ||
         query.get("reference") ||
         query.get("trxref") ||
         query.get("session_id") ||
         query.get("token") ||
         session.checkoutReference;
+      const transactionId =
+        session.gateway === "flutterwave"
+          ? query.get("transaction_id")
+          : undefined;
+      if (session.gateway === "flutterwave" && !transactionId) {
+        setError("Flutterwave did not return a transaction ID. Contact support if you were charged.");
+        return;
+      }
       setProcessing(true);
       setError("");
       try {
@@ -178,6 +196,7 @@ export default function SubscriptionPage() {
             planId: session.planId,
             gateway: session.gateway,
             checkoutReference: reference,
+            transactionId,
             mode: session.mode,
           },
         });

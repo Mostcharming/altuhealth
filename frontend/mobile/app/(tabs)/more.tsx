@@ -184,17 +184,34 @@ export default function More() {
         setError("Payment was cancelled.");
         return;
       }
+      if (
+        selectedGateway === "flutterwave" &&
+        callback.searchParams.get("status") !== "successful"
+      ) {
+        setError("Payment was not completed.");
+        return;
+      }
       const reference =
+        callback.searchParams.get("tx_ref") ||
         callback.searchParams.get("reference") ||
         callback.searchParams.get("trxref") ||
         callback.searchParams.get("session_id") ||
         callback.searchParams.get("token") ||
         checkout.checkoutReference;
+      const transactionId =
+        selectedGateway === "flutterwave"
+          ? callback.searchParams.get("transaction_id")
+          : undefined;
+      if (selectedGateway === "flutterwave" && !transactionId) {
+        setError("Flutterwave did not return a transaction ID. Contact support if you were charged.");
+        return;
+      }
       const mode = subscription?.current?.planId === selectedPlan.id ? "renew" : "change";
       await completeSubscriptionCheckout({
         planId: selectedPlan.id,
         gateway: selectedGateway,
         checkoutReference: reference,
+        transactionId,
         mode,
       });
       const refreshed = await fetchSubscriptionOverview();
