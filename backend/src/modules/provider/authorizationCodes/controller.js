@@ -1,5 +1,6 @@
 'use strict';
 
+const { Op } = require('sequelize');
 const authorizationCodeGenerator = require('../../../utils/authorizationCodeGenerator');
 const config = require('../../../config');
 const { addAdminNotification, addAuditLog } = require('../../../utils/addAdminNotification');
@@ -15,6 +16,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 function toMoney(value) {
     const amount = Number(value || 0);
     return Number.isFinite(amount) ? amount : 0;
+}
+
+function toPositiveInt(value, fallback) {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function normalizeMemberPayload(body) {
@@ -341,6 +347,108 @@ async function createAuthorizationCode(req, res, next) {
     }
 }
 
+async function listAuthorizationCodes(req, res, next) {
+    try {
+        const {
+            AuthorizationCode,
+            Enrollee,
+            Provider,
+            Diagnosis,
+            Company,
+            CompanyPlan,
+            Admin
+        } = req.models;
+        const providerId = req.user?.id;
+        const {
+            limit = 10,
+            page = 1,
+            q,
+            enrolleeId,
+            authorizationType,
+            status,
+            companyId,
+            isUsed
+        } = req.query || {};
+
+        if (!providerId) return res.fail('Provider ID is required', 400);
+
+        const limitNum = Math.min(toPositiveInt(limit, 10), 100);
+        const pageNum = toPositiveInt(page, 1);
+        const offset = (pageNum - 1) * limitNum;
+        const where = { providerId };
+
+        if (q) {
+            where[Op.or] = [
+                { authorizationCode: { [Op.iLike]: `%${q}%` } },
+                { reasonForCode: { [Op.iLike]: `%${q}%` } },
+                { notes: { [Op.iLike]: `%${q}%` } }
+            ];
+        }
+        if (enrolleeId) where.enrolleeId = enrolleeId;
+        if (authorizationType) where.authorizationType = authorizationType;
+        if (status) where.status = status;
+        if (companyId) where.companyId = companyId;
+        if (isUsed !== undefined) where.isUsed = isUsed === 'true' || isUsed === true;
+
+        const [total, authorizationCodes] = await Promise.all([
+            AuthorizationCode.count({ where }),
+            AuthorizationCode.findAll({
+                where,
+                limit: limitNum,
+                offset,
+                order: [['createdAt', 'DESC']],
+                include: [
+                    {
+                        model: Enrollee,
+                        attributes: ['id', 'firstName', 'lastName', 'policyNumber', 'email'],
+                        required: false
+                    },
+                    {
+                        model: Provider,
+                        attributes: ['id', 'name', 'code', 'email'],
+                        required: false
+                    },
+                    {
+                        model: Diagnosis,
+                        attributes: ['id', 'name'],
+                        required: false
+                    },
+                    {
+                        model: Company,
+                        attributes: ['id', 'name'],
+                        required: false
+                    },
+                    {
+                        model: CompanyPlan,
+                        attributes: ['id', 'name'],
+                        required: false
+                    },
+                    {
+                        model: Admin,
+                        attributes: ['id', 'firstName', 'lastName', 'email'],
+                        as: 'approver',
+                        required: false
+                    }
+                ]
+            })
+        ]);
+
+        const totalPages = total > 0 ? Math.ceil(total / limitNum) : 1;
+
+        return res.success({
+            list: authorizationCodes.map((authorizationCode) => authorizationCode.toJSON()),
+            count: total,
+            page: pageNum,
+            limit: limitNum,
+            totalPages,
+            hasNextPage: offset + authorizationCodes.length < total,
+            hasPreviousPage: pageNum > 1
+        }, 'Authorization codes retrieved');
+    } catch (err) {
+        return next(err);
+    }
+}
+
 async function getAuthorizationCode(req, res, next) {
     try {
         const {
@@ -421,5 +529,6 @@ async function getAuthorizationCode(req, res, next) {
 
 module.exports = {
     createAuthorizationCode,
+    listAuthorizationCodes,
     getAuthorizationCode
 };

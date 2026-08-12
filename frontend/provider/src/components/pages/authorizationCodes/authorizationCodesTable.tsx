@@ -8,7 +8,6 @@ import SuccessModal from "@/components/modals/success";
 import SpinnerThree from "@/components/ui/spinner/SpinnerThree";
 import { useModal } from "@/hooks/useModal";
 import { apiClient } from "@/lib/apiClient";
-import { useAuthStore } from "@/lib/authStore";
 import capitalizeWords from "@/lib/capitalize";
 import { useAuthorizationCodeStore } from "@/lib/store/authorizationCodeStore";
 import { EyeIcon } from "@/icons";
@@ -93,7 +92,6 @@ const AuthorizationCodesTable: React.FC = () => {
     "Type policy number or email.",
   );
   const enrolleeLookupRequestIdRef = useRef(0);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   // const [providers, setProviders] = useState<Provider[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -143,12 +141,6 @@ const AuthorizationCodesTable: React.FC = () => {
     { key: "validFrom", label: "Valid From" },
     { key: "actions", label: "Actions" },
   ];
-  const user = useAuthStore((s) => s.user);
-  // Fetch filter data on mount
-  useEffect(() => {
-    setSelectedProviderId(user?.id || "");
-  }, [user?.id]);
-
   const fetch = useCallback(async () => {
     try {
       setLoading(true);
@@ -158,10 +150,9 @@ const AuthorizationCodesTable: React.FC = () => {
       if (currentPage) params.append("page", String(currentPage));
       if (search) params.append("q", search);
       if (selectedEnrolleeId) params.append("enrolleeId", selectedEnrolleeId);
-      if (selectedProviderId) params.append("providerId", selectedProviderId);
       if (selectedStatus) params.append("status", selectedStatus);
 
-      const url = `/admin/authorization-codes?${params.toString()}`;
+      const url = `/provider/authorization-codes?${params.toString()}`;
 
       const data = await apiClient(url, {
         method: "GET",
@@ -190,7 +181,6 @@ const AuthorizationCodesTable: React.FC = () => {
     currentPage,
     search,
     selectedEnrolleeId,
-    selectedProviderId,
     selectedStatus,
     setAuthorizationCodesStore,
   ]);
