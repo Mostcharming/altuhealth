@@ -1,5 +1,5 @@
 const bcrypt = require('bcrypt');
-const { Op } = require('sequelize');
+const { Op, fn, col, where: sequelizeWhere } = require('sequelize');
 const { addAdminNotification, addAuditLog } = require('../../../utils/addAdminNotification');
 const notify = require('../../../utils/notify');
 const generateCode = require('../../../utils/verificationCode');
@@ -144,32 +144,86 @@ async function createAdmin(req, res, next) {
         // password is optional; auto-generate if not provided
         if (!firstName || !lastName || !email) return res.fail('firstName, lastName and email are required', 400);
 
-        const existing = await Admin.findOne({ where: { email } });
-        if (existing) return res.fail('Email already in use', 400);
+        const normalizedEmail = String(email).trim().toLowerCase();
+        if (!normalizedEmail) return res.fail('firstName, lastName and email are required', 400);
 
         const rawPassword = (password && typeof password === 'string' && password.trim() !== '') ? password : generateCode(10, { letters: true, numbers: true });
         const hashed = await bcrypt.hash(rawPassword, 10);
 
-        const admin = await Admin.create({ firstName, lastName, email, passwordHash: hashed, phoneNumber: phoneNumber || null, status: status || 'active' });
+        let admin;
+        let wasRestored = false;
+        let validationError = null;
 
-        // optional role assign
-        if (roleId) {
-            const role = await Role.findByPk(roleId);
-            if (!role) return res.fail('Role not found', 400);
-            await UserRole.create({ userId: admin.id, userType: 'Admin', roleId });
-        }
+        await Admin.sequelize.transaction(async (transaction) => {
+            // Email remains unique across soft-deleted rows. Reuse a deleted row so
+            // its identity and audit references are preserved instead of creating
+            // a duplicate account.
+            const existing = await Admin.findOne({
+                where: sequelizeWhere(fn('lower', col('email')), normalizedEmail),
+                transaction,
+                lock: true
+            });
 
-        if (unitId) {
-            const unit = await Unit.findByPk(unitId);
-            if (!unit) return res.fail('Unit not found', 400);
-            await UserUnit.create({ userId: admin.id, userType: 'Admin', unitId });
-        }
+            if (existing && !existing.isDeleted) {
+                validationError = { message: 'Email already in use', status: 400 };
+                return;
+            }
+
+            if (roleId) {
+                const role = await Role.findByPk(roleId, { transaction });
+                if (!role) {
+                    validationError = { message: 'Role not found', status: 400 };
+                    return;
+                }
+            }
+
+            if (unitId) {
+                const unit = await Unit.findByPk(unitId, { transaction });
+                if (!unit) {
+                    validationError = { message: 'Unit not found', status: 400 };
+                    return;
+                }
+            }
+
+            const adminValues = {
+                firstName,
+                lastName,
+                email: normalizedEmail,
+                passwordHash: hashed,
+                phoneNumber: phoneNumber || null,
+                status: status || 'active',
+                isDeleted: false
+            };
+
+            if (existing) {
+                admin = existing;
+                wasRestored = true;
+                await admin.update(adminValues, { transaction });
+
+                // Deletion normally removes these mappings. Clear them again so a
+                // restored account can never retain stale permissions.
+                await UserRole.destroy({ where: { userId: admin.id, userType: 'Admin' }, transaction });
+                await UserUnit.destroy({ where: { userId: admin.id, userType: 'Admin' }, transaction });
+            } else {
+                admin = await Admin.create(adminValues, { transaction });
+            }
+
+            if (roleId) {
+                await UserRole.create({ userId: admin.id, userType: 'Admin', roleId }, { transaction });
+            }
+
+            if (unitId) {
+                await UserUnit.create({ userId: admin.id, userType: 'Admin', unitId }, { transaction });
+            }
+        });
+
+        if (validationError) return res.fail(validationError.message, validationError.status);
 
         // create audit log for admin creation (don't block main flow on failure)
         try {
             await addAuditLog(req.models, {
-                action: 'admin.create',
-                message: `Admin created: ${admin.email}`,
+                action: wasRestored ? 'admin.restore' : 'admin.create',
+                message: `Admin ${wasRestored ? 'restored' : 'created'}: ${admin.email}`,
                 meta: { adminId: admin.id, email: admin.email }
             });
         } catch (e) {
@@ -180,7 +234,7 @@ async function createAdmin(req, res, next) {
         // create admin notification (don't block main flow on failure)
         try {
             await addAdminNotification(req.models, {
-                title: `New admin: ${admin.firstName} ${admin.lastName}`,
+                title: `${wasRestored ? 'Restored' : 'New'} admin: ${admin.firstName} ${admin.lastName}`,
                 clickUrl: `admins`
             });
         } catch (e) {
@@ -194,8 +248,11 @@ async function createAdmin(req, res, next) {
             console.error('Failed to notify new admin via email', e);
         }
 
-        return res.success({ id: admin.id }, 'Admin created', 201);
+        return res.success({ id: admin.id, restored: wasRestored }, wasRestored ? 'Admin restored' : 'Admin created', 201);
     } catch (err) {
+        if (err && err.name === 'SequelizeUniqueConstraintError') {
+            return res.fail('Email already in use', 400);
+        }
         return next(err);
     }
 }
