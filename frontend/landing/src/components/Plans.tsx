@@ -331,18 +331,29 @@ function formatCurrency(amount: number, currency: string) {
   }
 }
 
-function inferPlanCategory(plan: PublicPlan): InferredPlanCategory {
+function isInternationalVitalPlan(plan: PublicPlan) {
   const definition = getPlanNameDefinition(plan);
 
-  const isInternationalVitalPlan =
+  return (
     definition?.family === "vital" &&
     [plan.code, plan.name, plan.description]
       .map((value) => normalizePlanName(value || ""))
       .some((value) =>
         /\b(int|international|diaspora|abroad|overseas)\b/.test(value),
-      );
+      )
+  );
+}
 
-  if (isInternationalVitalPlan) {
+function isAltuPlan(plan: PublicPlan) {
+  return [plan.code, plan.name, plan.description]
+    .map((value) => normalizePlanName(value || ""))
+    .some((value) => /\baltu\b/.test(value));
+}
+
+function inferPlanCategory(plan: PublicPlan): InferredPlanCategory {
+  const definition = getPlanNameDefinition(plan);
+
+  if (isInternationalVitalPlan(plan)) {
     return "diaspora";
   }
 
@@ -696,9 +707,9 @@ export default function Plans() {
       (plan) =>
         plan.category === selectedCategory &&
         (selectedCategory !== "diaspora" ||
-          plan.sources.every(
-            (source) => getPlanNameDefinition(source)?.family === "vital",
-          )),
+          (plan.sources.length > 0 &&
+            plan.sources.every(isInternationalVitalPlan) &&
+            !plan.sources.some(isAltuPlan))),
     );
   }, [allPlans, selectedCategory]);
 
