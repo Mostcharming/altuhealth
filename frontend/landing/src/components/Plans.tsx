@@ -692,7 +692,14 @@ export default function Plans() {
   );
 
   const visiblePlans = useMemo(() => {
-    return allPlans.filter((plan) => plan.category === selectedCategory);
+    return allPlans.filter(
+      (plan) =>
+        plan.category === selectedCategory &&
+        (selectedCategory !== "diaspora" ||
+          plan.sources.every(
+            (source) => getPlanNameDefinition(source)?.family === "vital",
+          )),
+    );
   }, [allPlans, selectedCategory]);
 
   const selectedVariant = selectedPlan?.rows.find(

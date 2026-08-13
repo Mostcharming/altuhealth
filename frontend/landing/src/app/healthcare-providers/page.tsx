@@ -121,6 +121,14 @@ export default function HealthcareProvidersPage() {
 
   const visibleProviders = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
+    const hasQuery =
+      query.length > 0 ||
+      selectedState !== ALL_STATES ||
+      selectedLga !== ALL_LGAS;
+
+    if (!hasQuery) {
+      return [];
+    }
 
     return providers.filter((provider) => {
       const stateMatches =
@@ -295,13 +303,36 @@ export default function HealthcareProvidersPage() {
                       }`}
                 </span>
               )}
-              <h2>{getResultsTitle(selectedState, selectedLga)}</h2>
+              <h2>
+                {hasActiveFilters
+                  ? getResultsTitle(selectedState, selectedLga)
+                  : "Search the provider network"}
+              </h2>
             </div>
 
-            {isLoadingProviders ? (
+            {providersError ? (
+              <div className="provider-empty-state">
+                <h3>Unable to load providers</h3>
+                <p>{providersError}</p>
+                <button type="button" onClick={fetchProviders}>
+                  Retry
+                </button>
+              </div>
+            ) : !hasActiveFilters ? (
+              <div className="provider-empty-state">
+                <h3>Search for a provider</h3>
+                <p>
+                  Enter a provider name, type, or location, or select a state
+                  or LGA to see matching providers.
+                </p>
+              </div>
+            ) : isLoadingProviders ? (
               <div className="provider-grid" aria-label="Loading providers">
                 {Array.from({ length: 3 }).map((_, index) => (
-                  <article className="provider-card provider-loading-card" key={index}>
+                  <article
+                    className="provider-card provider-loading-card"
+                    key={index}
+                  >
                     <span />
                     <h3 />
                     <p />
@@ -311,14 +342,6 @@ export default function HealthcareProvidersPage() {
                     </div>
                   </article>
                 ))}
-              </div>
-            ) : providersError ? (
-              <div className="provider-empty-state">
-                <h3>Unable to load providers</h3>
-                <p>{providersError}</p>
-                <button type="button" onClick={fetchProviders}>
-                  Retry
-                </button>
               </div>
             ) : visibleProviders.length === 0 ? (
               <div className="provider-empty-state">
