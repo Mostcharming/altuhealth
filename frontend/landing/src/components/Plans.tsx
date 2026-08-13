@@ -333,6 +333,19 @@ function formatCurrency(amount: number, currency: string) {
 
 function inferPlanCategory(plan: PublicPlan): InferredPlanCategory {
   const definition = getPlanNameDefinition(plan);
+
+  const isInternationalVitalPlan =
+    definition?.family === "vital" &&
+    [plan.code, plan.name, plan.description]
+      .map((value) => normalizePlanName(value || ""))
+      .some((value) =>
+        /\b(int|international|diaspora|abroad|overseas)\b/.test(value),
+      );
+
+  if (isInternationalVitalPlan) {
+    return "diaspora";
+  }
+
   if (definition) {
     return definition.category;
   }
