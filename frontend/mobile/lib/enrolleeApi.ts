@@ -80,6 +80,7 @@ export type MedicalHistoryRecord = {
 export type Dependent = {
   id: string;
   firstName?: string;
+  middleName?: string;
   lastName?: string;
   relationshipToEnrollee?: string;
   policyNumber?: string;
@@ -87,7 +88,12 @@ export type Dependent = {
   gender?: "male" | "female" | "other";
   phoneNumber?: string;
   email?: string;
+  occupation?: string;
+  maritalStatus?: string;
+  preexistingMedicalRecords?: string;
   notes?: string;
+  picture?: string;
+  pictureUrl?: string;
   isActive?: boolean;
   status?: string;
 };
@@ -153,9 +159,42 @@ export type Profile = {
   state?: string;
   lga?: string;
   country?: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
+  currentLocation?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   picture?: string;
   pictureUrl?: string;
   type?: string;
+  dependentVisitNotificationsEnabled?: boolean | null;
+  requiresDependentVisitSetup?: boolean;
+};
+
+export type UploadImage = {
+  uri: string;
+  name?: string;
+  mimeType?: string;
+  file?: File;
+};
+
+export type EnrolleeNotification = {
+  id: string;
+  title?: string;
+  message?: string;
+  body?: string;
+  source?: string;
+  notificationType?: string;
+  clickUrl?: string;
+  picture?: string;
+  isRead?: boolean;
+  createdAt?: string;
+};
+
+export type DependentVisitPreference = {
+  dependentVisitNotificationsEnabled: boolean | null;
+  requiresDependentVisitSetup: boolean;
 };
 
 export type SubscriptionPlan = {
@@ -201,6 +240,34 @@ function getData<T>(payload: unknown): T {
   }
 
   return payload as T;
+}
+
+function buildFormData(
+  fields: Record<string, unknown>,
+  picture: UploadImage
+) {
+  const formData = new FormData();
+
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, String(value));
+    }
+  });
+
+  if (picture.file) {
+    formData.append("picture", picture.file, picture.name || picture.file.name);
+  } else {
+    formData.append(
+      "picture",
+      {
+        uri: picture.uri,
+        name: picture.name || `profile-${Date.now()}.jpg`,
+        type: picture.mimeType || "image/jpeg",
+      } as unknown as Blob
+    );
+  }
+
+  return formData;
 }
 
 export async function fetchDashboard() {
@@ -272,22 +339,42 @@ export async function getDependent(id: string) {
 
 export async function createDependent(data: {
   firstName: string;
+  middleName?: string;
   lastName: string;
   dateOfBirth: string;
   gender: "male" | "female" | "other";
   relationshipToEnrollee: string;
   phoneNumber?: string;
   email?: string;
+  occupation?: string;
+  maritalStatus?: string;
+  preexistingMedicalRecords?: string;
   notes?: string;
+  picture?: UploadImage | null;
 }) {
+  const { picture, ...fields } = data;
+  const formData = picture ? buildFormData(fields, picture) : undefined;
   return getData<{ dependent: Dependent }>(
-    await apiClient("/enrollee/dependents", { method: "POST", body: data })
+    await apiClient("/enrollee/dependents", {
+      method: "POST",
+      body: formData ? undefined : fields,
+      formData,
+    })
   ).dependent;
 }
 
-export async function updateDependent(id: string, data: Partial<Dependent>) {
+export async function updateDependent(
+  id: string,
+  data: Partial<Dependent>,
+  picture?: UploadImage | null
+) {
+  const formData = picture ? buildFormData(data, picture) : undefined;
   return getData<{ dependent: Dependent }>(
-    await apiClient(`/enrollee/dependents/${id}`, { method: "PUT", body: data })
+    await apiClient(`/enrollee/dependents/${id}`, {
+      method: "PUT",
+      body: formData ? undefined : data,
+      formData,
+    })
   ).dependent;
 }
 
@@ -363,7 +450,7 @@ export async function savePeriodTracker(data: {
 }
 
 export async function fetchPeriodEvents() {
-  return getData<Array<{ id: string; title: string; start: string; end?: string }>>(
+  return getData<{ id: string; title: string; start: string; end?: string }[]>(
     await apiClient("/enrollee/womens-health/events")
   );
 }
@@ -381,9 +468,17 @@ export async function fetchProfile() {
   ).user;
 }
 
-export async function updateProfile(data: Partial<Profile>) {
+export async function updateProfile(
+  data: Partial<Profile>,
+  picture?: UploadImage | null
+) {
+  const formData = picture ? buildFormData(data, picture) : undefined;
   return getData<{ user: Profile }>(
-    await apiClient("/enrollee/account/profile", { method: "PUT", body: data })
+    await apiClient("/enrollee/account/profile", {
+      method: "PUT",
+      body: formData ? undefined : data,
+      formData,
+    })
   ).user;
 }
 
@@ -397,6 +492,43 @@ export async function changePassword(data: {
   });
 }
 
+export async function fetchDependentVisitPreference() {
+  return getData<DependentVisitPreference>(
+    await apiClient("/enrollee/account/dependent-visit-preference")
+  );
+}
+
+export async function updateDependentVisitPreference(enabled: boolean) {
+  return getData<DependentVisitPreference>(
+    await apiClient("/enrollee/account/dependent-visit-preference", {
+      method: "PUT",
+      body: { enabled },
+    })
+  );
+}
+
+export async function fetchNotifications() {
+  const payload = getData<{ data?: EnrolleeNotification[] }>(
+    await apiClient("/enrollee/notifications/list?limit=50")
+  );
+  return payload?.data || [];
+}
+
+export async function fetchUnreadNotificationCount() {
+  const payload = getData<{ unreadCount?: number }>(
+    await apiClient("/enrollee/notifications/unread-count")
+  );
+  return Number(payload?.unreadCount || 0);
+}
+
+export async function markNotificationsRead(ids: string[], isRead = true) {
+  if (ids.length === 0) return;
+  return apiClient("/enrollee/notifications/read", {
+    method: "PUT",
+    body: ids.length === 1 ? { id: ids[0], isRead } : { ids, isRead },
+  });
+}
+
 export async function fetchSubscriptionOverview() {
   return getData<SubscriptionOverview>(
     await apiClient("/enrollee/subscriptions")
@@ -404,7 +536,7 @@ export async function fetchSubscriptionOverview() {
 }
 
 export async function fetchSubscriptionGateways(currency: string) {
-  const data = getData<{ gateways?: Array<{ provider: string; label: string }> }>(
+  const data = getData<{ gateways?: { provider: string; label: string }[] }>(
     await apiClient(`/enrollee/subscriptions/gateways?currency=${encodeURIComponent(currency)}`)
   );
   return data?.gateways || [];

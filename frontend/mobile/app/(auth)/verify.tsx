@@ -58,7 +58,7 @@ export default function VerifyResetPasswordScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const inputRefs = useRef<Array<React.ElementRef<typeof RNTextInput> | null>>(
+  const inputRefs = useRef<(React.ElementRef<typeof RNTextInput> | null)[]>(
     []
   );
   const passwordInputRef = useRef<React.ElementRef<typeof RNTextInput> | null>(
@@ -344,7 +344,7 @@ export default function VerifyResetPasswordScreen() {
 
               <HStack className="justify-center">
                 <Text className="text-sm text-gray-700">
-                  Didn't get the code?{" "}
+                  {"Didn't get the code? "}
                 </Text>
                 <TouchableOpacity
                   onPress={() => router.replace("/forgot-password")}

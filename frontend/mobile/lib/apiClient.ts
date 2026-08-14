@@ -17,35 +17,6 @@ const DEFAULT_HEADERS = {
   Accept: "application/json",
 };
 
-const SENSITIVE_FIELD_PATTERN = /(authorization|password|secret|token)/i;
-
-function sanitizeForLog(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(sanitizeForLog);
-  }
-
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-
-  return Object.entries(value as Record<string, unknown>).reduce<
-    Record<string, unknown>
-  >((acc, [key, item]) => {
-    acc[key] = SENSITIVE_FIELD_PATTERN.test(key)
-      ? "[redacted]"
-      : sanitizeForLog(item);
-    return acc;
-  }, {});
-}
-
-function getRequestBodyForLog(body: unknown, formData?: FormData) {
-  if (formData) {
-    return "[FormData]";
-  }
-
-  return sanitizeForLog(body);
-}
-
 export async function apiClient(
   endpoint: string,
   {
@@ -85,15 +56,6 @@ export async function apiClient(
       payload = body as BodyInit;
     }
 
-    const startedAt = Date.now();
-
-    console.log("[apiClient] request", {
-      method,
-      url,
-      headers: sanitizeForLog(finalHeaders),
-      body: getRequestBodyForLog(body, formData),
-    });
-
     const response = await fetch(url, {
       method,
       headers: finalHeaders,
@@ -106,16 +68,6 @@ export async function apiClient(
       ? await response.json()
       : await response.text();
 
-    console.log("[apiClient] response", {
-      method,
-      url,
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      durationMs: Date.now() - startedAt,
-      data: sanitizeForLog(data),
-    });
-
     if (!response.ok) {
       throw new Error(
         data?.message || `API error: ${response.status} ${response.statusText}`
@@ -125,11 +77,6 @@ export async function apiClient(
     return data;
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-
-    console.log("[apiClient] error", {
-      endpoint,
-      message: err.message,
-    });
 
     if (/token/i.test(err.message)) {
       try {

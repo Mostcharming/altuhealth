@@ -57,7 +57,8 @@ export default function Appointments() {
   const [error, setError] = useState("");
 
   const load = useCallback(async (refresh = false) => {
-    refresh ? setIsRefreshing(true) : setIsLoading(true);
+    if (refresh) setIsRefreshing(true);
+    else setIsLoading(true);
     setError("");
     try {
       const [appointmentData, providerData] = await Promise.all([

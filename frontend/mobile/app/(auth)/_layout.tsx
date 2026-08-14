@@ -1,8 +1,6 @@
 import { useAuthStore } from "@/lib/authStore";
-import { Redirect } from "expo-router";
-import { Stack } from "expo-router";
-import React from "react";
-import { useEffect } from "react";
+import { Redirect, Stack } from "expo-router";
+import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 
 export default function AuthLayout() {

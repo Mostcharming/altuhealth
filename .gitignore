@@ -81,3 +81,12 @@ frontend/mobile/app/(auth)/*
 !frontend/mobile/app/(auth)/_layout.tsx
 !frontend/mobile/app/(auth)/forgot-password.tsx
 !frontend/mobile/app/(auth)/verify.tsx
+!frontend/mobile/app/(tabs)/
+!frontend/mobile/app/(tabs)/**
+!frontend/mobile/lib/
+frontend/mobile/lib/*
+!frontend/mobile/lib/config.ts
+!frontend/mobile/lib/enrolleeAccess.ts
+!frontend/mobile/lib/__tests__/
+!frontend/mobile/lib/__tests__/enrolleeAccess.test.ts
+!frontend/mobile/eslint.config.js

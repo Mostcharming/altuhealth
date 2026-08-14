@@ -348,6 +348,7 @@ async function updateDependent(req, res, next) {
         if (preexistingMedicalRecords !== undefined) dependent.preexistingMedicalRecords = preexistingMedicalRecords;
         if (notes !== undefined) dependent.notes = notes;
         if (isActive !== undefined) dependent.isActive = isActive;
+        if (req.profileImage?.url) dependent.pictureUrl = req.profileImage.url;
 
         await dependent.save();
 

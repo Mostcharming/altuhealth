@@ -17,7 +17,7 @@ router.get('/medical-histories', listAllDependentMedicalHistory);
 // CRUD for dependents (enrollee-specific)
 router.post('/', uploadProfileImage('picture'), Dependents.createDependent);
 router.get('/:id', Dependents.getDependent);
-router.put('/:id', Dependents.updateDependent);
+router.put('/:id', uploadProfileImage('picture'), Dependents.updateDependent);
 router.delete('/:id', Dependents.deleteDependent);
 
 // Medical History routes for dependents (must come after /:id route)

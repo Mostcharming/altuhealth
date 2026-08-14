@@ -17,7 +17,7 @@ import { ActivityIndicator, TextInput, TouchableOpacity } from "react-native";
 
 export default function WomensHealth() {
   const [tracker, setTracker] = useState<PeriodTracker | null>(null);
-  const [events, setEvents] = useState<Array<{ id: string; title: string; start: string; end?: string }>>([]);
+  const [events, setEvents] = useState<{ id: string; title: string; start: string; end?: string }[]>([]);
   const [lastPeriodDate, setLastPeriodDate] = useState("");
   const [cycleLength, setCycleLength] = useState("28");
   const [periodDuration, setPeriodDuration] = useState("5");

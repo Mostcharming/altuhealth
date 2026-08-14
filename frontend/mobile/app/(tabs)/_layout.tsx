@@ -42,6 +42,7 @@ export default function TabLayout() {
       <Tabs.Screen name="support-messages" options={{ href: null }} />
       <Tabs.Screen name="womens-health" options={{ href: null }} />
       <Tabs.Screen name="doctor-consultation" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }
