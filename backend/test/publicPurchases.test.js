@@ -94,6 +94,80 @@ test('date of birth eligibility uses the plan maximum age on the birthday bounda
     );
 });
 
+test('landing purchases apply the selected dependent count within the plan limit', () => {
+    const plan = {
+        allowDependentEnrolee: true,
+        maxNumberOfDependents: 4
+    };
+
+    assert.deepEqual(
+        checkoutHelpers.resolveMaxDependentsForPurchase(plan, 2),
+        { maxDependents: 2 }
+    );
+    assert.deepEqual(
+        checkoutHelpers.resolveMaxDependentsForPurchase(plan),
+        { maxDependents: 4 }
+    );
+    assert.match(
+        checkoutHelpers.resolveMaxDependentsForPurchase(plan, 5).error,
+        /maximum of 4/
+    );
+    assert.match(
+        checkoutHelpers.resolveMaxDependentsForPurchase(plan, 1.5).error,
+        /whole number/
+    );
+    assert.match(
+        checkoutHelpers.resolveMaxDependentsForPurchase(
+            { allowDependentEnrolee: false, maxNumberOfDependents: 4 },
+            1
+        ).error,
+        /does not allow dependents/
+    );
+    assert.deepEqual(
+        checkoutHelpers.resolveMaxDependentsForPurchase(
+            {
+                name: 'Vital Basic',
+                code: 'VITAL_BASIC_INDIVIDUAL',
+                allowDependentEnrolee: false,
+                maxNumberOfDependents: null
+            },
+            3
+        ),
+        { maxDependents: 3 }
+    );
+});
+
+test('individual purchase totals increase once for each covered person', () => {
+    const plan = {
+        id: 'plan-individual-1',
+        name: 'Vital Basic',
+        code: 'VITAL_BASIC_INDIVIDUAL',
+        annualPremiumPrice: '100000.00',
+        sourceAmount: 100000,
+        currency: 'NGN'
+    };
+
+    assert.equal(checkoutHelpers.getPurchasePeopleCount(plan, 2), 3);
+    assert.equal(checkoutHelpers.getPurchaseAmount(plan, 2), 300000);
+    assert.deepEqual(
+        checkoutHelpers.applyPurchaseQuantity(plan, 2),
+        {
+            ...plan,
+            annualPremiumPrice: 300000,
+            sourceAmount: 300000,
+            dependentCount: 2,
+            peopleCount: 3
+        }
+    );
+    assert.equal(
+        checkoutHelpers.getPurchaseAmount(
+            { ...plan, code: 'VITAL_BASIC_FAMILY' },
+            2
+        ),
+        100000
+    );
+});
+
 test('Flutterwave checkout is created server-side without using the encryption key as a secret', async (t) => {
     const originalPost = axios.post;
     t.after(() => {
@@ -127,7 +201,9 @@ test('Flutterwave checkout is created server-side without using the encryption k
             id: 'plan-1',
             name: 'Vital Basic',
             annualPremiumPrice: '100000.00',
-            currency: 'NGN'
+            currency: 'NGN',
+            dependentCount: 0,
+            peopleCount: 1
         },
         {
             firstName: 'Ada',
@@ -146,6 +222,8 @@ test('Flutterwave checkout is created server-side without using the encryption k
     assert.equal(request.body.meta.paymentCurrency, 'NGN');
     assert.equal(request.body.meta.sourceAmount, '100000.00');
     assert.equal(request.body.meta.sourceCurrency, 'NGN');
+    assert.equal(request.body.meta.dependentCount, 0);
+    assert.equal(request.body.meta.peopleCount, 1);
     assert.equal(request.body.payload_hash.length, 64);
     assert.match(request.body.redirect_url, /gateway=flutterwave/);
     assert.equal(checkout.checkoutUrl, 'https://checkout.flutterwave.test/hosted');
@@ -169,6 +247,7 @@ test('Flutterwave verification checks status, reference, amount, and currency', 
                 currency: 'NGN',
                 meta: {
                     planId: 'plan-1',
+                    dependentCount: 2,
                     paymentAmount: '100000.00',
                     paymentCurrency: 'NGN'
                 },
@@ -186,6 +265,7 @@ test('Flutterwave verification checks status, reference, amount, and currency', 
             expectedCurrency: 'NGN',
             expectedPlanId: 'plan-1',
             expectedEmail: 'ada@example.com',
+            expectedDependentCount: 2,
             requireCheckoutAmount: true
         }
     );
@@ -207,5 +287,19 @@ test('Flutterwave verification checks status, reference, amount, and currency', 
             }
         ),
         /reference does not match/
+    );
+
+    await assert.rejects(
+        checkoutHelpers.verifyFlutterwavePayment(
+            { secret_key: 'server-secret' },
+            '12345',
+            {
+                checkoutReference: 'PAY-EXPECTED',
+                expectedAmount: 100000,
+                expectedCurrency: 'NGN',
+                expectedDependentCount: 1
+            }
+        ),
+        /quantity does not match/
     );
 });

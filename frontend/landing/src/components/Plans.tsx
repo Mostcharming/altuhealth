@@ -155,6 +155,8 @@ const countryCurrencyMap: Record<string, string> = {
   ZA: "ZAR",
 };
 
+const MAX_DEPENDENT_COUNT = 100;
+
 type PlanNameDefinition = {
   category: PlanCategory;
   group: string;
@@ -329,6 +331,10 @@ function formatCurrency(amount: number, currency: string) {
       maximumFractionDigits,
     })}`;
   }
+}
+
+function roundCurrencyAmount(amount: number) {
+  return Math.round((amount + Number.EPSILON) * 100) / 100;
 }
 
 function isInternationalVitalPlan(plan: PublicPlan) {
@@ -687,6 +693,7 @@ export default function Plans() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [modalError, setModalError] = useState("");
   const [modalSuccess, setModalSuccess] = useState("");
+  const [peopleCount, setPeopleCount] = useState(1);
   const [referralCodeFromUrl, setReferralCodeFromUrl] = useState("");
   const [planForm, setPlanForm] = useState({
     firstName: "",
@@ -719,6 +726,60 @@ export default function Plans() {
   const selectedVariantPlan = selectedPlan?.sources.find(
     (plan) => plan.id === selectedVariantPlanId,
   );
+  const isIndividualSelection = Boolean(
+    selectedVariant && /^(?:1 )?individual$/i.test(selectedVariant.label),
+  );
+  const maximumDependentCount = isIndividualSelection
+    ? MAX_DEPENDENT_COUNT
+    : selectedVariantPlan?.allowDependentEnrolee
+      ? Math.max(0, Number(selectedVariantPlan.maxNumberOfDependents) || 0)
+      : 0;
+  const maximumPeopleCount = maximumDependentCount + 1;
+  const selectedDependentCount = Math.min(
+    Math.max(peopleCount - 1, 0),
+    maximumDependentCount,
+  );
+  const selectedPurchasePrice = useMemo(() => {
+    if (!selectedVariant || !selectedVariantPlan) return null;
+
+    const quantity = isIndividualSelection ? peopleCount : 1;
+    const sourceCurrency = normalizeCurrency(selectedVariantPlan.currency);
+    const unitPrice = convertCurrency(
+      Number(selectedVariantPlan.annualPremiumPrice || 0) * quantity,
+      sourceCurrency,
+      selectedVariant.paymentCurrency,
+      currencyRates,
+    );
+    const convertedUnitPrice = convertCurrency(
+      Number(selectedVariantPlan.annualPremiumPrice || 0),
+      sourceCurrency,
+      selectedVariant.paymentCurrency,
+      currencyRates,
+    );
+
+    return {
+      ...unitPrice,
+      amount: roundCurrencyAmount(
+        roundCurrencyAmount(convertedUnitPrice.amount) * quantity,
+      ),
+    };
+  }, [
+    currencyRates,
+    isIndividualSelection,
+    peopleCount,
+    selectedVariant,
+    selectedVariantPlan,
+  ]);
+  const selectedPurchasePriceLabel = selectedPurchasePrice
+    ? formatCurrency(selectedPurchasePrice.amount, selectedPurchasePrice.currency)
+    : selectedVariant?.price || "";
+  const selectedSourcePurchasePriceLabel = selectedVariantPlan
+    ? formatCurrency(
+        Number(selectedVariantPlan.annualPremiumPrice || 0) *
+          (isIndividualSelection ? peopleCount : 1),
+        normalizeCurrency(selectedVariantPlan.currency),
+      )
+    : "";
   const selectedBenefitsVariant = benefitsPlan?.rows.find(
     (row) => row.planId === selectedBenefitsVariantId,
   );
@@ -831,6 +892,7 @@ export default function Plans() {
           planId: string;
           gateway: PaymentProvider;
           checkoutReference: string;
+          dependentCount?: number;
           form: typeof planForm;
         };
 
@@ -871,6 +933,7 @@ export default function Plans() {
             phoneNumber: pending.form.phone,
             dateOfBirth: pending.form.dateOfBirth,
             referralCode: pending.form.referralCode,
+            dependentCount: pending.dependentCount,
           },
         })) as CompletePurchaseResponse;
 
@@ -944,6 +1007,10 @@ export default function Plans() {
   }, []);
 
   useEffect(() => {
+    setPeopleCount(1);
+  }, [selectedVariantPlanId]);
+
+  useEffect(() => {
     setGateways([]);
     setSelectedGateway("");
 
@@ -1011,6 +1078,7 @@ export default function Plans() {
     setGateways([]);
     setIsLoadingGateways(false);
     setModalError("");
+    setPeopleCount(1);
     setPlanForm({
       firstName: "",
       lastName: "",
@@ -1026,6 +1094,7 @@ export default function Plans() {
     setSelectedVariantPlanId(plan.rows[0]?.planId || "");
     setModalError("");
     setModalSuccess("");
+    setPeopleCount(1);
   };
 
   const openBenefits = (plan: DisplayPlan) => {
@@ -1109,6 +1178,9 @@ export default function Plans() {
           email: planForm.email,
           phoneNumber: planForm.phone,
           dateOfBirth: planForm.dateOfBirth,
+          dependentCount: isIndividualSelection
+            ? selectedDependentCount
+            : undefined,
         },
       })) as CheckoutResponse;
 
@@ -1122,6 +1194,9 @@ export default function Plans() {
           planId: selectedVariantPlanId,
           gateway: response.data.gateway,
           checkoutReference: response.data.checkoutReference,
+          dependentCount: isIndividualSelection
+            ? selectedDependentCount
+            : undefined,
           form: planForm,
         }),
       );
@@ -1638,13 +1713,64 @@ export default function Plans() {
                 </div>
               </div>
 
+              {isIndividualSelection && (
+                <div className="plan-people-counter">
+                  <div>
+                    <strong>People to cover</strong>
+                    <p>
+                      Includes you and {selectedDependentCount}{" "}
+                      {selectedDependentCount === 1
+                        ? "dependent"
+                        : "dependents"}
+                      .
+                    </p>
+                    <p className="plan-counter-total">
+                      Total: <strong>{selectedPurchasePriceLabel}</strong>
+                    </p>
+                  </div>
+                  <div
+                    className="plan-counter-controls"
+                    role="group"
+                    aria-label="Number of people to cover"
+                  >
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPeopleCount((current) => Math.max(1, current - 1))
+                      }
+                      disabled={peopleCount <= 1}
+                      aria-label="Remove one person"
+                    >
+                      -
+                    </button>
+                    <output aria-live="polite" aria-label="People selected">
+                      {peopleCount}
+                    </output>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPeopleCount((current) =>
+                          Math.min(maximumPeopleCount, current + 1),
+                        )
+                      }
+                      disabled={peopleCount >= maximumPeopleCount}
+                      aria-label="Add one person"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {selectedVariant && (
                 <div className="plan-modal-instructions">
                   <strong>Selected option</strong>
                   <p>
-                    {selectedVariant.label} - {selectedVariant.price}
+                    {selectedVariant.label}
+                    {isIndividualSelection ? ` x ${peopleCount}` : ""} -{" "}
+                    {selectedPurchasePriceLabel}
                     {selectedVariant.converted
-                      ? ` (converted from ${selectedVariant.sourcePrice})`
+                      ? ` (converted from ${selectedSourcePurchasePriceLabel})`
                       : ""}
                   </p>
                 </div>

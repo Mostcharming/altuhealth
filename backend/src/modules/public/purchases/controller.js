@@ -12,6 +12,7 @@ const { calculateEndDateFromCycle, generatePaymentReference } = require('../../.
 const INTERNATIONAL_GATEWAYS = ['paypal', 'stripe'];
 const LOCAL_GATEWAYS = ['flutterwave'];
 const ALL_GATEWAYS = [...LOCAL_GATEWAYS, ...INTERNATIONAL_GATEWAYS];
+const MAX_PURCHASE_DEPENDENTS = 100;
 
 function getGatewayName(integration) {
     const name = String(integration.name || '').toLowerCase();
@@ -55,6 +56,82 @@ function chooseIntegration(items, provider) {
 
 function getPlanAmount(plan) {
     return Number(plan.annualPremiumPrice || 0);
+}
+
+function isIndividualPlan(plan) {
+    return /\bindividual\b/i.test(
+        [plan?.code, plan?.name, plan?.description]
+            .filter(Boolean)
+            .join(' ')
+            .replace(/[_-]+/g, ' ')
+    );
+}
+
+function getPurchasePeopleCount(plan, dependentCount = 0) {
+    return isIndividualPlan(plan) ? Number(dependentCount) + 1 : 1;
+}
+
+function getPurchaseAmount(plan, dependentCount = 0) {
+    return roundPaymentAmount(
+        getPlanAmount(plan) * getPurchasePeopleCount(plan, dependentCount)
+    );
+}
+
+function applyPurchaseQuantity(plan, dependentCount = 0) {
+    const peopleCount = getPurchasePeopleCount(plan, dependentCount);
+    const sourceUnitAmount = Number(plan.sourceAmount ?? getPlanAmount(plan));
+
+    return {
+        ...getPlainPlan(plan),
+        annualPremiumPrice: getPurchaseAmount(plan, dependentCount),
+        sourceAmount: roundPaymentAmount(sourceUnitAmount * peopleCount),
+        dependentCount,
+        peopleCount
+    };
+}
+
+function resolveMaxDependentsForPurchase(plan, requestedDependentCount) {
+    const rawConfiguredLimit = plan?.allowDependentEnrolee
+        ? plan.maxNumberOfDependents
+        : 0;
+    const configuredLimit = rawConfiguredLimit === null || rawConfiguredLimit === undefined
+        ? 0
+        : Number(rawConfiguredLimit);
+
+    if (!Number.isInteger(configuredLimit) || configuredLimit < 0) {
+        return { error: 'The selected plan has an invalid dependent limit' };
+    }
+
+    if (
+        requestedDependentCount === undefined
+        || requestedDependentCount === null
+        || requestedDependentCount === ''
+    ) {
+        return { maxDependents: configuredLimit };
+    }
+
+    const dependentCount = Number(requestedDependentCount);
+    if (!Number.isInteger(dependentCount) || dependentCount < 0) {
+        return { error: '`dependentCount` must be a non-negative whole number' };
+    }
+    if (dependentCount > MAX_PURCHASE_DEPENDENTS) {
+        return {
+            error: `A maximum of ${MAX_PURCHASE_DEPENDENTS} dependents can be added per purchase`
+        };
+    }
+    if (isIndividualPlan(plan)) {
+        return { maxDependents: dependentCount };
+    }
+    if (!plan?.allowDependentEnrolee && dependentCount > 0) {
+        return { error: 'The selected plan does not allow dependents' };
+    }
+    if (dependentCount > configuredLimit) {
+        return {
+            error: `This plan allows a maximum of ${configuredLimit} dependents`
+        };
+    }
+
+    return { maxDependents: dependentCount };
 }
 
 function normalizeCurrency(value, fallback = '') {
@@ -358,6 +435,8 @@ async function createFlutterwaveCheckout(req, integration, plan, customer) {
             meta: {
                 planId: plan.id,
                 planName: plan.name,
+                dependentCount: plan.dependentCount,
+                peopleCount: plan.peopleCount,
                 paymentAmount: amount.toFixed(2),
                 paymentCurrency: currency,
                 sourceAmount: Number(plan.sourceAmount ?? amount).toFixed(2),
@@ -439,6 +518,7 @@ async function verifyFlutterwavePayment(integration, transactionId, {
     expectedCurrency,
     expectedPlanId,
     expectedEmail,
+    expectedDependentCount,
     requireCheckoutAmount = false
 } = {}) {
     const secret = getFlutterwaveSecret(integration);
@@ -471,7 +551,14 @@ async function verifyFlutterwavePayment(integration, transactionId, {
     if (requireCheckoutAmount && !hasCheckoutAmount) {
         throw new Error('Flutterwave checkout amount could not be verified');
     }
-    const amountToVerify = hasCheckoutAmount ? checkoutAmount : expectedAmount;
+    if (
+        expectedAmount !== undefined
+        && hasCheckoutAmount
+        && Math.abs(checkoutAmount - Number(expectedAmount)) > 0.01
+    ) {
+        throw new Error('Flutterwave checkout amount does not match the selected quantity');
+    }
+    const amountToVerify = expectedAmount ?? (hasCheckoutAmount ? checkoutAmount : undefined);
     if (amountToVerify !== undefined && (!Number.isFinite(amount) || amount + 0.01 < Number(amountToVerify))) {
         throw new Error('Flutterwave payment amount does not match the selected plan');
     }
@@ -483,6 +570,12 @@ async function verifyFlutterwavePayment(integration, transactionId, {
     }
     if (expectedPlanId && String(data.meta?.planId || '') !== String(expectedPlanId)) {
         throw new Error('Flutterwave payment plan does not match the selected plan');
+    }
+    if (
+        expectedDependentCount !== undefined
+        && Number(data.meta?.dependentCount) !== Number(expectedDependentCount)
+    ) {
+        throw new Error('Flutterwave payment quantity does not match the selected quantity');
     }
     if (
         expectedEmail
@@ -540,7 +633,8 @@ async function createCheckout(req, res, next) {
             lastName,
             email,
             phoneNumber,
-            dateOfBirth
+            dateOfBirth,
+            dependentCount
         } = req.body || {};
 
         if (!planId) return res.fail('`planId` is required', 400);
@@ -553,10 +647,16 @@ async function createCheckout(req, res, next) {
 
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
+        const dependentSelection = resolveMaxDependentsForPurchase(plan, dependentCount);
+        if (dependentSelection.error) return res.fail(dependentSelection.error, 400);
         const gatewayProvider = String(gateway).toLowerCase();
         let checkoutPlan;
         try {
-            checkoutPlan = await resolveCheckoutPlan(plan, paymentCurrency, CurrencyRate);
+            const resolvedPlan = await resolveCheckoutPlan(plan, paymentCurrency, CurrencyRate);
+            checkoutPlan = applyPurchaseQuantity(
+                resolvedPlan,
+                dependentSelection.maxDependents
+            );
         } catch (conversionError) {
             return res.fail(conversionError.message, 400);
         }
@@ -594,7 +694,9 @@ async function createCheckout(req, res, next) {
                 amount: getPlanAmount(checkoutPlan),
                 currency: checkoutPlan.currency,
                 sourceAmount: checkoutPlan.sourceAmount,
-                sourceCurrency: checkoutPlan.sourceCurrency
+                sourceCurrency: checkoutPlan.sourceCurrency,
+                dependentCount: dependentSelection.maxDependents,
+                peopleCount: checkoutPlan.peopleCount
             },
             ...checkout
         }, 'Checkout created');
@@ -615,7 +717,8 @@ async function completePurchase(req, res, next) {
             phoneNumber,
             email,
             dateOfBirth,
-            referralCode
+            referralCode,
+            dependentCount
         } = req.body || {};
 
         if (!planId) return res.fail('`planId` is required', 400);
@@ -629,6 +732,12 @@ async function completePurchase(req, res, next) {
 
         const plan = await Plan.findByPk(planId);
         if (!plan) return res.fail('Plan not found', 404);
+        const dependentSelection = resolveMaxDependentsForPurchase(plan, dependentCount);
+        if (dependentSelection.error) return res.fail(dependentSelection.error, 400);
+        const expectedPurchaseAmount = getPurchaseAmount(
+            plan,
+            dependentSelection.maxDependents
+        );
         const gatewayProvider = String(gateway).toLowerCase();
         if (gatewayProvider !== 'flutterwave') {
             const gatewayError = validateGatewayForPlan(plan, gatewayProvider);
@@ -646,11 +755,12 @@ async function completePurchase(req, res, next) {
             ? await verifyFlutterwavePayment(selected.integration, req.body?.transactionId, {
                 checkoutReference,
                 expectedAmount: normalizeCurrency(plan.currency, 'NGN') === 'NGN'
-                    ? getPlanAmount(plan)
+                    ? expectedPurchaseAmount
                     : undefined,
                 expectedCurrency: 'NGN',
                 expectedPlanId: plan.id,
                 expectedEmail: email,
+                expectedDependentCount: dependentSelection.maxDependents,
                 requireCheckoutAmount: normalizeCurrency(plan.currency, 'NGN') !== 'NGN'
             })
             : selected.provider === 'paypal'
@@ -661,7 +771,7 @@ async function completePurchase(req, res, next) {
             if (String(payment.currency || '').toUpperCase() !== String(plan.currency || 'NGN').toUpperCase()) {
                 return res.fail('Payment currency does not match the selected plan', 400);
             }
-            if (Number(payment.amount || 0) + 0.01 < getPlanAmount(plan)) {
+            if (Number(payment.amount || 0) + 0.01 < expectedPurchaseAmount) {
                 return res.fail('Payment amount does not match the selected plan', 400);
             }
         }
@@ -717,9 +827,7 @@ async function completePurchase(req, res, next) {
                 state: null,
                 lga: null,
                 country: plan.currency === 'GBP' ? 'United Kingdom' : null,
-                maxDependents: plan.allowDependentEnrolee
-                    ? plan.maxNumberOfDependents
-                    : 0,
+                maxDependents: dependentSelection.maxDependents,
                 planId,
                 subscriptionStartDate,
                 subscriptionEndDate,
@@ -813,6 +921,11 @@ module.exports = {
         resolveCheckoutPlan,
         parseDateOfBirth,
         calculateAge,
-        validateDateOfBirthForPlan
+        validateDateOfBirthForPlan,
+        isIndividualPlan,
+        resolveMaxDependentsForPurchase,
+        getPurchasePeopleCount,
+        getPurchaseAmount,
+        applyPurchaseQuantity
     }
 };

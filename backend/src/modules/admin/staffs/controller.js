@@ -766,7 +766,15 @@ async function downloadCompanyEnrollees(req, res, next) {
 
 async function downloadCompanyStaffs(req, res, next) {
     try {
-        const { Staff, Enrollee, EnrolleeDependent, Company, CompanySubsidiary, Subscription } = req.models;
+        const {
+            Staff,
+            Enrollee,
+            EnrolleeDependent,
+            Company,
+            CompanyPlan,
+            CompanySubsidiary,
+            Subscription
+        } = req.models;
         const { companyId } = req.params;
 
         if (!companyId) return res.fail('`companyId` is required', 400);
@@ -826,6 +834,12 @@ async function downloadCompanyStaffs(req, res, next) {
                                 'isActive',
                                 'createdAt'
                             ],
+                            required: false
+                        },
+                        {
+                            model: CompanyPlan,
+                            as: 'companyPlan',
+                            attributes: ['id', 'name'],
                             required: false
                         }
                     ]

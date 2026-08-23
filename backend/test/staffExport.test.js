@@ -50,6 +50,7 @@ test('company staff export includes each enrollee dependant in a linked workshee
                     policyNumber: 'ALT-PRI-001',
                     gender: 'female',
                     isActive: true,
+                    companyPlan: { id: 'plan-1', name: 'Premium Corporate Plan' },
                     dependents: [dependent]
                 },
                 Company: { id: 'company-1', name: 'Example Limited' },
@@ -71,6 +72,7 @@ test('company staff export includes each enrollee dependant in a linked workshee
 
     const staffRows = XLSX.utils.sheet_to_json(workbook.Sheets['Staff List']);
     assert.equal(staffRows[0]['Policy Number'], 'ALT-PRI-001');
+    assert.equal(staffRows[0]['Company Plan'], 'Premium Corporate Plan');
     assert.equal(staffRows[0]['Dependant Count'], 1);
 
     const dependantRows = XLSX.utils.sheet_to_json(workbook.Sheets.Dependants);
@@ -79,6 +81,7 @@ test('company staff export includes each enrollee dependant in a linked workshee
     assert.equal(dependantRows[0]['Parent Name'], 'Ada Nneka Okafor');
     assert.equal(dependantRows[0]['Staff ID'], 'STAFF-001');
     assert.equal(dependantRows[0]['Policy Number'], 'ALT-DEP-001');
+    assert.equal(dependantRows[0]['Company Plan'], 'Premium Corporate Plan');
     assert.equal(dependantRows[0].Relationship, 'child');
 
 });
