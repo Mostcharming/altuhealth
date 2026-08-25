@@ -360,13 +360,6 @@ export default function HealthcareProvidersPage() {
                     <div className="provider-meta">
                       <strong>{getProviderLocation(provider)}</strong>
                       <div className="provider-card-actions">
-                        {provider.phoneNumber ? (
-                          <a
-                            href={`tel:${provider.phoneNumber.replaceAll(" ", "")}`}
-                          >
-                            {provider.phoneNumber}
-                          </a>
-                        ) : null}
                         {provider.website ? (
                           <a
                             href={getWebsiteUrl(provider.website)}

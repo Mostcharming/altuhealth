@@ -35,6 +35,9 @@ export default function Footer() {
                 <Link href="/faqs">FAQs</Link>
               </li>
               <li>
+                <Link href="/privacy-policy">Privacy Policy</Link>
+              </li>
+              <li>
                 Careers
               </li>
             </ul>
