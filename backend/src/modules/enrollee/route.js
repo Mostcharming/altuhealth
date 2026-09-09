@@ -1,5 +1,6 @@
 const { errorHandler, responseFormatter } = require('../../middlewares/common/responseFormatter');
 const { securityMiddleware } = require('../../middlewares/common/security');
+const accountDeletionGuard = require('../../middlewares/enrollee/accountDeletionGuard');
 
 const router = require('express').Router();
 
@@ -8,6 +9,7 @@ router.use(responseFormatter);
 router.use('/auth', require('./auth/route'));
 
 router.use(securityMiddleware);
+router.use(accountDeletionGuard);
 // Add other enrollee routes here as needed
 router.use('/account', require('./account/route'));
 router.use('/appointments', require('./appointments/route'));

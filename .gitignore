@@ -69,6 +69,14 @@ mobile/
 mobile
 !frontend/mobile/
 frontend/mobile/*
+!frontend/mobile/tsconfig.json
+!frontend/mobile/assets/
+!frontend/mobile/assets/**
+!frontend/mobile/babel.config.js
+!frontend/mobile/metro.config.js
+!frontend/mobile/tailwind.config.js
+!frontend/mobile/global.css
+!frontend/mobile/nativewind-env.d.ts
 !frontend/mobile/STORE_BUILD_NOTES.md
 !frontend/mobile/scripts/
 !frontend/mobile/scripts/generate_store_assets.py
@@ -76,6 +84,7 @@ frontend/mobile/*
 !frontend/mobile/store-assets/**
 !frontend/mobile/app/
 frontend/mobile/app/*
+!frontend/mobile/app/_layout.tsx
 !frontend/mobile/app/(auth)/
 frontend/mobile/app/(auth)/*
 !frontend/mobile/app/(auth)/_layout.tsx
@@ -90,3 +99,5 @@ frontend/mobile/lib/*
 !frontend/mobile/lib/__tests__/
 !frontend/mobile/lib/__tests__/enrolleeAccess.test.ts
 !frontend/mobile/eslint.config.js
+!frontend/mobile/components/
+!frontend/mobile/components/**

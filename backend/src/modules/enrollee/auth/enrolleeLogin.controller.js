@@ -4,6 +4,7 @@ const {
     normalizeEmailIdentifier,
     normalizePolicyIdentifier
 } = require('../../../utils/loginIdentifier');
+const { archiveRequest, hasDeletionAccessBlock } = require('../../../services/accountDeletionService');
 
 const enrolleeLogin = async (req, res, next) => {
     try {
@@ -57,6 +58,27 @@ const enrolleeLogin = async (req, res, next) => {
             }
         }
         if (!passwordMatches) return res.fail('Invalid credentials', 401);
+        const deletionBlocked = await hasDeletionAccessBlock(req.models, enrollee.id, userType);
+        if (deletionBlocked) {
+            const deletionRequest = await req.models.AccountDeletionRequest.findOne({
+                where: { userId: enrollee.id, userType },
+                order: [['createdAt', 'DESC']]
+            });
+            if (deletionRequest?.status === 'approved') {
+                await req.models.AccountDeletionRequest.sequelize.transaction(async (transaction) => {
+                    const lockedRequest = await req.models.AccountDeletionRequest.findByPk(deletionRequest.id, {
+                        transaction,
+                        lock: transaction.LOCK.UPDATE
+                    });
+                    if (lockedRequest?.status === 'approved' && new Date(lockedRequest.retentionExpiresAt) <= new Date()) {
+                        await archiveRequest(req.models, lockedRequest, { transaction });
+                    }
+                });
+            }
+            return res.fail('This account has been archived and can no longer be accessed', 403, {
+                code: 'ACCOUNT_ARCHIVED'
+            });
+        }
         if (enrollee.isActive !== true) return res.fail('Account is not active', 403);
 
         if (location && (location.lat !== undefined || location.lon !== undefined || location.currentLocation !== undefined)) {

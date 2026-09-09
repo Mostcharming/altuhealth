@@ -58,6 +58,7 @@ router.use('/audit-logs', require('./auditLogs/route'));
 router.use('/notification-logs', require('./notificationLogs/route'));
 router.use('/jobs', require('./jobs/route'));
 router.use('/integrations', require('./integrations/route'));
+router.use('/account-deletion-requests', require('./accountDeletionRequests/route'));
 
 
 router.use(errorHandler);

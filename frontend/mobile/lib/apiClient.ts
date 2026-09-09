@@ -69,6 +69,13 @@ export async function apiClient(
       : await response.text();
 
     if (!response.ok) {
+      if (
+        response.status === 403 &&
+        data?.data?.code === "ACCOUNT_ARCHIVED"
+      ) {
+        useAuthStore.getState().clearAuth();
+        router.replace("/signin");
+      }
       throw new Error(
         data?.message || `API error: ${response.status} ${response.statusText}`
       );

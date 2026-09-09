@@ -197,6 +197,17 @@ export type DependentVisitPreference = {
   requiresDependentVisitSetup: boolean;
 };
 
+export type AccountDeletionRequest = {
+  id: string;
+  reason: string;
+  status: "pending" | "approved" | "declined" | "cancelled" | "archived";
+  adminNote?: string | null;
+  retentionExpiresAt?: string | null;
+  retentionDaysRemaining?: number | null;
+  canCancel: boolean;
+  createdAt: string;
+};
+
 export type SubscriptionPlan = {
   id: string;
   name?: string;
@@ -505,6 +516,29 @@ export async function updateDependentVisitPreference(enabled: boolean) {
       body: { enabled },
     })
   );
+}
+
+export async function fetchAccountDeletionRequest() {
+  return getData<{ request?: AccountDeletionRequest | null }>(
+    await apiClient("/enrollee/account/deletion-request")
+  ).request || null;
+}
+
+export async function submitAccountDeletionRequest(reason: string) {
+  return getData<{ request: AccountDeletionRequest }>(
+    await apiClient("/enrollee/account/deletion-request", {
+      method: "POST",
+      body: { reason },
+    })
+  ).request;
+}
+
+export async function cancelAccountDeletionRequest() {
+  return getData<{ request: AccountDeletionRequest }>(
+    await apiClient("/enrollee/account/deletion-request/cancel", {
+      method: "POST",
+    })
+  ).request;
 }
 
 export async function fetchNotifications() {

@@ -5,6 +5,7 @@ const subscriptionReminderJob = require('./subscriptionReminderJob');
 const retailSubscriptionReminderJob = require('./retailSubscriptionReminderJob');
 const birthdayReminderJob = require('./birthdayReminderJob');
 const periodPredictionJob = require('./periodPredictionJob');
+const accountDeletionRetentionJob = require('./accountDeletionRetentionJob');
 
 // Map of job names to their handler functions
 const JOB_HANDLERS = {
@@ -14,7 +15,8 @@ const JOB_HANDLERS = {
     'ENROLLEE_DEPENDENT_BIRTHDAY_REMINDER': birthdayReminderJob,
     'RETAIL_ENROLLEE_BIRTHDAY_REMINDER': birthdayReminderJob,
     'RETAIL_ENROLLEE_DEPENDENT_BIRTHDAY_REMINDER': birthdayReminderJob,
-    'WOMEN_HEALTH_PERIOD_PREDICTION': periodPredictionJob
+    'WOMEN_HEALTH_PERIOD_PREDICTION': periodPredictionJob,
+    'ACCOUNT_DELETION_RETENTION': accountDeletionRetentionJob
 };
 
 let scheduledJobs = {};

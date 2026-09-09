@@ -88,6 +88,7 @@ function defineModels(sequelize) {
   const PharmacyRequest = require("./pharmacyRequest.model")(sequelize, DataTypes);
   const PharmacyRequestItem = require("./pharmacyRequestItem.model")(sequelize, DataTypes);
   const PharmacyPayment = require("./pharmacyPayment.model")(sequelize, DataTypes);
+  const AccountDeletionRequest = require("./accountDeletionRequest.model")(sequelize, DataTypes);
 
   Admin.hasMany(UserRole, { foreignKey: "userId", constraints: false, scope: { userType: "Admin" } });
   UserRole.belongsTo(Admin, { foreignKey: "userId", constraints: false });
@@ -625,7 +626,10 @@ function defineModels(sequelize) {
   Admin.hasMany(PharmacyPayment, { foreignKey: "recordedBy", as: 'recordedPharmacyPayments', constraints: false });
   PharmacyPayment.belongsTo(Admin, { foreignKey: "recordedBy", as: 'recordedByAdmin', constraints: false });
 
-  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, ProviderNotification, EnrolleeNotification, EnrolleeDependentNotification, RetailEnrolleeNotification, RetailEnrolleeDependentNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, CurrencyRate, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, AuthorizationCodeRendered, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeDependentMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning, EnrolleeDependentMedicalHistory, Ticket, TicketMessage, Integration, PeriodTracker, PharmacyRequest, PharmacyRequestItem, PharmacyPayment };
+  Admin.hasMany(AccountDeletionRequest, { foreignKey: "reviewedBy", as: 'reviewedAccountDeletionRequests' });
+  AccountDeletionRequest.belongsTo(Admin, { foreignKey: "reviewedBy", as: 'reviewer' });
+
+  return { License, Admin, Role, Privilege, RolePrivilege, Unit, UserRole, UserUnit, PolicyNumber, Plan, PlanBenefitCategory, PlanBenefit, PlanExclusion, GeneralSetting, CompanySubsidiary, UtilizationReview, AdminNotification, ProviderNotification, EnrolleeNotification, EnrolleeDependentNotification, RetailEnrolleeNotification, RetailEnrolleeDependentNotification, AdminApproval, NotificationLog, NotificationTemplate, PasswordReset, AuditLog, Exclusion, BenefitCategory, Benefit, Diagnosis, ProviderSpecialization, Provider, ProviderPlan, Service, CurrencyRate, Drug, Company, CompanyPlan, CompanyPlanBenefitCategory, CompanyPlanBenefit, CompanyPlanExclusion, CompanyPlanProvider, Subscription, SubscriptionPlan, Staff, Enrollee, EnrolleeMedicalHistory, EnrolleeDependent, AuthorizationCode, AuthorizationCodeRendered, RetailEnrollee, RetailEnrolleeNextOfKin, RetailEnrolleeDependent, RetailEnrolleeMedicalHistory, RetailEnrolleeDependentMedicalHistory, RetailEnrolleeSubscription, PaymentBatch, PaymentBatchDetail, PaymentAdvice, ClaimInfo, Claim, ClaimDetail, ClaimDetailItem, Conflict, Appointment, AdmissionTracker, Invoice, InvoiceLineItem, Payment, Conversation, Message, Doctor, Session, SearchHistory, Job, Referrer, ReferralProgram, ReferrerEarning, EnrolleeDependentMedicalHistory, Ticket, TicketMessage, Integration, PeriodTracker, PharmacyRequest, PharmacyRequestItem, PharmacyPayment, AccountDeletionRequest };
 }
 
 module.exports = defineModels;

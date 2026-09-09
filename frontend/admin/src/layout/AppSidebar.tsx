@@ -158,7 +158,10 @@ const supportItems: NavItem[] = [
   {
     name: "Operations",
     icon: <InfoIcon />,
-    subItems: [{ name: "Approvals", path: "/approvals" }],
+    subItems: [
+      { name: "Approvals", path: "/approvals" },
+      { name: "Deletion Requests", path: "/account-deletion-requests", new: true },
+    ],
   },
   {
     icon: <CallIcon />,

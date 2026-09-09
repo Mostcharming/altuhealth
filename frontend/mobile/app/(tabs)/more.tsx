@@ -12,19 +12,23 @@ import { APP_CONFIG } from "@/lib/config";
 import { isRetailEnrollee, validatePasswordChange } from "@/lib/enrolleeAccess";
 import {
   changePassword,
+  cancelAccountDeletionRequest,
   completeSubscriptionCheckout,
   createSubscriptionCheckout,
   fetchDependentVisitPreference,
+  fetchAccountDeletionRequest,
   fetchProfile,
   fetchSubscriptionGateways,
   fetchSubscriptionOverview,
   fetchUnreadNotificationCount,
   Profile,
+  AccountDeletionRequest,
   RetailSubscription,
   SubscriptionOverview,
   SubscriptionPlan,
   updateDependentVisitPreference,
   updateProfile,
+  submitAccountDeletionRequest,
   UploadImage,
 } from "@/lib/enrolleeApi";
 import * as ImagePicker from "expo-image-picker";
@@ -41,6 +45,7 @@ import {
   Pencil,
   RefreshCw,
   ShieldCheck,
+  Trash2,
   UserRound,
   X,
 } from "lucide-react-native";
@@ -108,6 +113,10 @@ export default function More() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPasswordOpen, setIsPasswordOpen] = useState(false);
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
+  const [isDeletionOpen, setIsDeletionOpen] = useState(false);
+  const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequest | null>(null);
+  const [deletionReason, setDeletionReason] = useState("");
+  const [deletionConfirmed, setDeletionConfirmed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -120,7 +129,7 @@ export default function More() {
     setError("");
     try {
       const profileData = await fetchProfile();
-      const [subscriptionData, preferenceData, unreadCount] = await Promise.all([
+      const [subscriptionData, preferenceData, unreadCount, deletionData] = await Promise.all([
         isRetail ? fetchSubscriptionOverview().catch(() => null) : Promise.resolve(null),
         fetchDependentVisitPreference().catch(() => ({
           dependentVisitNotificationsEnabled:
@@ -129,6 +138,7 @@ export default function More() {
             profileData.requiresDependentVisitSetup ?? true,
         })),
         fetchUnreadNotificationCount().catch(() => 0),
+        fetchAccountDeletionRequest().catch(() => null),
       ]);
       setProfile(profileData);
       setProfileForm({
@@ -144,6 +154,7 @@ export default function More() {
       });
       setDependentVisitEnabled(preferenceData.dependentVisitNotificationsEnabled);
       setUnreadNotifications(unreadCount);
+      setDeletionRequest(deletionData);
       if (subscriptionData) setSubscription(subscriptionData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load account details");
@@ -353,6 +364,40 @@ export default function More() {
     }
   };
 
+  const handleDeletionRequest = async () => {
+    if (deletionReason.trim().length < 10 || !deletionConfirmed) return;
+    setIsSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const request = await submitAccountDeletionRequest(deletionReason.trim());
+      setDeletionRequest(request);
+      setDeletionReason("");
+      setDeletionConfirmed(false);
+      setSuccess("Your account deletion request was sent for admin review.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to submit deletion request");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeletionCancellation = async () => {
+    setIsSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const request = await cancelAccountDeletionRequest();
+      setDeletionRequest(request);
+      setSuccess("Your account deletion request has been cancelled.");
+      setIsDeletionOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to cancel deletion request");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const currentSubscription: RetailSubscription | null | undefined = subscription?.current;
   const profilePictureUri =
     profilePicture?.uri ||
@@ -368,7 +413,7 @@ export default function More() {
       />
       <ScrollView contentContainerClassName="gap-4 px-5 py-5">
         {isLoading ? <ActivityIndicator color="#1e63e9" /> : null}
-        {error && !isProfileOpen && !isPasswordOpen && !isSubscriptionOpen ? (
+        {error && !isProfileOpen && !isPasswordOpen && !isSubscriptionOpen && !isDeletionOpen ? (
           <Box className="rounded-2xl border border-error-200 bg-error-50 p-4">
             <Text className="text-sm text-error-700">{error}</Text>
           </Box>
@@ -527,6 +572,32 @@ export default function More() {
         ))}
         <TouchableOpacity
           onPress={() => {
+            setError("");
+            setSuccess("");
+            setIsDeletionOpen(true);
+          }}
+          activeOpacity={0.8}
+        >
+          <Box className="rounded-[24px] border border-red-200 bg-red-50 p-4">
+            <HStack className="items-center" space="md">
+              <Box className="h-12 w-12 items-center justify-center rounded-2xl bg-red-100">
+                <Trash2 color="#b91c1c" size={21} />
+              </Box>
+              <VStack className="flex-1" space="xs">
+                <Text className="font-semibold text-red-900">Delete account</Text>
+                <Text className="text-sm leading-5 text-red-700">
+                  {deletionRequest?.status === "pending"
+                    ? "Your request is awaiting admin review."
+                    : deletionRequest?.status === "approved"
+                      ? `${deletionRequest.retentionDaysRemaining ?? 0} day(s) remain to cancel.`
+                      : "Request deletion or review your current status."}
+                </Text>
+              </VStack>
+            </HStack>
+          </Box>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
             clearAuth();
             void clearBiometricSession();
             router.replace("/signin");
@@ -646,6 +717,103 @@ export default function More() {
                 {isSaving ? <ActivityIndicator color="#ffffff" /> : <Text className="font-semibold text-white">Update password</Text>}
               </TouchableOpacity>
             </VStack>
+          </VStack>
+        </Box>
+      </Modal>
+
+      <Modal visible={isDeletionOpen} transparent animationType="slide" onRequestClose={() => setIsDeletionOpen(false)}>
+        <Box className="flex-1 justify-end bg-black/40">
+          <VStack className="max-h-[90%] rounded-t-[32px] bg-white px-5 pt-5" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
+            <HStack className="items-center justify-between">
+              <HStack className="items-center" space="sm">
+                <Trash2 color="#b91c1c" size={22} />
+                <Text className="text-xl font-bold text-typography-900">Delete account</Text>
+              </HStack>
+              <TouchableOpacity onPress={() => setIsDeletionOpen(false)} className="h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+                <X color="#334155" size={20} />
+              </TouchableOpacity>
+            </HStack>
+
+            <ScrollView className="mt-5" contentContainerClassName="gap-4 pb-6" keyboardShouldPersistTaps="handled">
+              <Box className="rounded-[24px] border border-red-200 bg-red-50 p-4">
+                <Text className="text-sm leading-6 text-red-800">
+                  An admin must approve your request. Once approved, your data is kept for 60 days and you can cancel at any time during that window. After 60 days, your account is archived and you cannot sign in again.
+                </Text>
+              </Box>
+
+              {error ? (
+                <Box className="rounded-2xl border border-error-200 bg-error-50 p-3">
+                  <Text className="text-sm text-error-700">{error}</Text>
+                </Box>
+              ) : null}
+
+              {deletionRequest ? (
+                <Box className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                  <Text className="text-xs font-semibold uppercase tracking-wider text-typography-500">Current status</Text>
+                  <Text className="mt-2 text-lg font-bold capitalize text-typography-900">
+                    {deletionRequest.status === "pending" ? "Awaiting admin review" : deletionRequest.status}
+                  </Text>
+                  {deletionRequest.status === "approved" ? (
+                    <Text className="mt-2 text-sm leading-5 text-red-700">
+                      {deletionRequest.retentionDaysRemaining ?? 0} day(s) remain. Access ends {formatDate(deletionRequest.retentionExpiresAt || undefined)}.
+                    </Text>
+                  ) : null}
+                  {deletionRequest.status === "pending" ? (
+                    <Text className="mt-2 text-sm leading-5 text-amber-700">Your account remains active while this is reviewed.</Text>
+                  ) : null}
+                  {deletionRequest.adminNote ? (
+                    <Text className="mt-3 text-sm leading-5 text-typography-600">Admin note: {deletionRequest.adminNote}</Text>
+                  ) : null}
+                  {deletionRequest.canCancel ? (
+                    <TouchableOpacity
+                      onPress={() => void handleDeletionCancellation()}
+                      disabled={isSaving}
+                      className="mt-4 items-center rounded-2xl border border-slate-300 bg-white py-4"
+                    >
+                      {isSaving ? <ActivityIndicator color="#334155" /> : <Text className="font-semibold text-slate-700">Cancel deletion request</Text>}
+                    </TouchableOpacity>
+                  ) : null}
+                </Box>
+              ) : null}
+
+              {!deletionRequest || ["declined", "cancelled"].includes(deletionRequest.status) ? (
+                <VStack space="md">
+                  <VStack space="xs">
+                    <Text className="text-sm font-semibold text-typography-700">Reason for deletion</Text>
+                    <TextInput
+                      value={deletionReason}
+                      onChangeText={setDeletionReason}
+                      multiline
+                      numberOfLines={5}
+                      maxLength={2000}
+                      textAlignVertical="top"
+                      placeholder="Please provide at least 10 characters."
+                      placeholderTextColor="#94a3b8"
+                      className="min-h-32 rounded-2xl border border-slate-200 px-4 py-4 text-typography-900"
+                    />
+                  </VStack>
+                  <TouchableOpacity
+                    onPress={() => setDeletionConfirmed((current) => !current)}
+                    className="flex-row items-start"
+                    activeOpacity={0.8}
+                  >
+                    <Box className={`mt-0.5 h-5 w-5 items-center justify-center rounded border ${deletionConfirmed ? "border-red-600 bg-red-600" : "border-slate-300 bg-white"}`}>
+                      {deletionConfirmed ? <Text className="text-xs font-bold text-white">✓</Text> : null}
+                    </Box>
+                    <Text className="ml-3 flex-1 text-sm leading-5 text-typography-600">
+                      I understand an approved request becomes permanent after the 60-day cancellation window.
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => void handleDeletionRequest()}
+                    disabled={isSaving || !deletionConfirmed || deletionReason.trim().length < 10}
+                    className="items-center rounded-2xl bg-red-700 py-4 disabled:opacity-50"
+                  >
+                    {isSaving ? <ActivityIndicator color="#ffffff" /> : <Text className="font-semibold text-white">Submit deletion request</Text>}
+                  </TouchableOpacity>
+                </VStack>
+              ) : null}
+            </ScrollView>
           </VStack>
         </Box>
       </Modal>
