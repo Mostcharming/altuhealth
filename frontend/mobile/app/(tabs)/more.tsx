@@ -31,6 +31,17 @@ import {
   submitAccountDeletionRequest,
   UploadImage,
 } from "@/lib/enrolleeApi";
+import {
+  buildSubscriptionPlanGroups,
+  getSubscriptionPurchaseTotal,
+  getSubscriptionVariantLabel,
+  inferSubscriptionPlanCategory,
+  isIndividualSubscriptionPlan,
+  isInternationalSubscriptionMarket,
+  isVisibleSubscriptionGroup,
+  MAX_INDIVIDUAL_PLAN_DEPENDENTS,
+  type SubscriptionPlanCategory,
+} from "@/lib/subscriptionPlanMarket";
 import * as ImagePicker from "expo-image-picker";
 import * as Linking from "expo-linking";
 import { router, useFocusEffect } from "expo-router";
@@ -42,7 +53,9 @@ import {
   CreditCard,
   KeyRound,
   LogOut,
+  Minus,
   Pencil,
+  Plus,
   RefreshCw,
   ShieldCheck,
   Trash2,
@@ -108,6 +121,8 @@ export default function More() {
   const [passwordForm, setPasswordForm] = useState({ oldPassword: "", newPassword: "", confirmPassword: "" });
   const [subscription, setSubscription] = useState<SubscriptionOverview | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [selectedPlanCategory, setSelectedPlanCategory] = useState<SubscriptionPlanCategory>("retail");
+  const [peopleCount, setPeopleCount] = useState(1);
   const [gateways, setGateways] = useState<{ provider: string; label: string }[]>([]);
   const [selectedGateway, setSelectedGateway] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -180,16 +195,72 @@ export default function More() {
     [profile, user]
   );
 
+  const currentSubscription: RetailSubscription | null | undefined = subscription?.current;
+  const subscriptionPlanGroups = useMemo(
+    () => buildSubscriptionPlanGroups(subscription?.plans || []),
+    [subscription?.plans]
+  );
+  const isInternationalMarket = isInternationalSubscriptionMarket(
+    profile?.country,
+    currentSubscription?.plan
+  );
+  const availablePlanCategories = useMemo<SubscriptionPlanCategory[]>(
+    () => [isInternationalMarket ? "diaspora" : "retail", "geriatric"],
+    [isInternationalMarket]
+  );
+  const visiblePlanGroups = useMemo(
+    () =>
+      subscriptionPlanGroups.filter((group) =>
+        isVisibleSubscriptionGroup(group, selectedPlanCategory)
+      ),
+    [selectedPlanCategory, subscriptionPlanGroups]
+  );
+  const selectedPlanIsIndividual = isIndividualSubscriptionPlan(selectedPlan);
+  const maximumPeopleCount = selectedPlanIsIndividual
+    ? MAX_INDIVIDUAL_PLAN_DEPENDENTS + 1
+    : 1;
+  const selectedDependentCount = selectedPlanIsIndividual
+    ? Math.min(Math.max(peopleCount - 1, 0), MAX_INDIVIDUAL_PLAN_DEPENDENTS)
+    : 0;
+  const selectedPlanTotal = getSubscriptionPurchaseTotal(selectedPlan, peopleCount);
+  const currentSubscriptionExpired = Boolean(
+    currentSubscription &&
+      (String(currentSubscription.status || "").toLowerCase() === "expired" ||
+        (currentSubscription.subscriptionEndDate &&
+          new Date(currentSubscription.subscriptionEndDate).getTime() < Date.now()))
+  );
+
   const openSubscription = () => {
     setError("");
     setSuccess("");
     const currentPlan = subscription?.plans?.find((plan) => plan.id === subscription.current?.planId) || subscription?.plans?.[0] || null;
-    setSelectedPlan(currentPlan);
+    const currentCategory = currentPlan ? inferSubscriptionPlanCategory(currentPlan) : null;
+    const initialCategory = currentCategory === "geriatric"
+      ? "geriatric"
+      : isInternationalMarket
+        ? "diaspora"
+        : "retail";
+    const initialGroups = subscriptionPlanGroups.filter((group) =>
+      isVisibleSubscriptionGroup(group, initialCategory)
+    );
+    const currentPlanIsVisible = initialGroups.some((group) =>
+      group.sources.some((plan) => plan.id === currentPlan?.id)
+    );
+    const initialPlan = currentPlanIsVisible
+      ? currentPlan
+      : initialGroups[0]?.sources[0] || null;
+    setSelectedPlanCategory(initialCategory);
+    setSelectedPlan(initialPlan);
+    setPeopleCount(
+      initialPlan?.id === currentSubscription?.planId && isIndividualSubscriptionPlan(initialPlan)
+        ? Math.min(MAX_INDIVIDUAL_PLAN_DEPENDENTS + 1, Math.max(1, Number(profile?.maxDependents || 0) + 1))
+        : 1
+    );
     setSelectedGateway("");
     setGateways([]);
     setIsSubscriptionOpen(true);
-    if (currentPlan?.currency) {
-      void fetchSubscriptionGateways(currentPlan.currency).then((items) => {
+    if (initialPlan?.currency) {
+      void fetchSubscriptionGateways(initialPlan.currency).then((items) => {
         setGateways(items);
         setSelectedGateway(items[0]?.provider || "");
       });
@@ -198,6 +269,11 @@ export default function More() {
 
   const choosePlan = async (plan: SubscriptionPlan) => {
     setSelectedPlan(plan);
+    setPeopleCount(
+      plan.id === currentSubscription?.planId && isIndividualSubscriptionPlan(plan)
+        ? Math.min(MAX_INDIVIDUAL_PLAN_DEPENDENTS + 1, Math.max(1, Number(profile?.maxDependents || 0) + 1))
+        : 1
+    );
     setSelectedGateway("");
     setGateways([]);
     setError("");
@@ -311,6 +387,7 @@ export default function More() {
         planId: selectedPlan.id,
         gateway: selectedGateway,
         returnUrl,
+        dependentCount: selectedPlanIsIndividual ? selectedDependentCount : undefined,
       });
       const result = await WebBrowser.openAuthSessionAsync(checkout.checkoutUrl, returnUrl);
       if (result.type !== "success" || !("url" in result)) {
@@ -352,9 +429,11 @@ export default function More() {
         checkoutReference: reference,
         transactionId,
         mode,
+        dependentCount: selectedPlanIsIndividual ? selectedDependentCount : undefined,
       });
       const refreshed = await fetchSubscriptionOverview();
       setSubscription(refreshed);
+      setProfile((current) => current ? { ...current, maxDependents: selectedDependentCount } : current);
       setSuccess(mode === "renew" ? "Subscription renewed successfully." : "Subscription plan updated successfully.");
       setIsSubscriptionOpen(false);
     } catch (err) {
@@ -398,7 +477,6 @@ export default function More() {
     }
   };
 
-  const currentSubscription: RetailSubscription | null | undefined = subscription?.current;
   const profilePictureUri =
     profilePicture?.uri ||
     resolvePictureUrl(profile?.picture || profile?.pictureUrl || user?.picture) ||
@@ -838,39 +916,140 @@ export default function More() {
             ) : null}
             <ScrollView className="mt-5 flex-1" contentContainerClassName="gap-4 pb-5">
               {currentSubscription ? (
-                <Box className="rounded-[24px] bg-emerald-50 p-5">
+                <Box className={`rounded-[24px] p-5 ${currentSubscriptionExpired ? "bg-amber-50" : "bg-emerald-50"}`}>
                   <HStack className="items-center" space="sm">
-                    <BadgeCheck color="#047857" size={21} />
-                    <Text className="font-bold text-emerald-900">Current cover</Text>
+                    <BadgeCheck color={currentSubscriptionExpired ? "#b45309" : "#047857"} size={21} />
+                    <Text className={currentSubscriptionExpired ? "font-bold text-amber-900" : "font-bold text-emerald-900"}>
+                      {currentSubscriptionExpired ? "Expired cover" : "Current cover"}
+                    </Text>
                   </HStack>
                   <Text className="mt-3 text-lg font-bold text-typography-900">{currentSubscription.plan?.name || "Retail plan"}</Text>
-                  <Text className="mt-1 text-sm text-typography-600">Active until {formatDate(currentSubscription.subscriptionEndDate)}</Text>
+                  <Text className="mt-1 text-sm text-typography-600">
+                    {currentSubscriptionExpired ? "Expired" : "Active until"} {formatDate(currentSubscription.subscriptionEndDate)}
+                  </Text>
                 </Box>
               ) : null}
               <Text className="text-lg font-bold text-typography-900">Choose a plan</Text>
-              {(subscription?.plans || []).map((plan) => {
-                const active = selectedPlan?.id === plan.id;
-                const current = currentSubscription?.planId === plan.id;
-                return (
-                  <TouchableOpacity key={plan.id} onPress={() => void choosePlan(plan)} activeOpacity={0.8}>
-                    <Box className={`rounded-[24px] border p-5 ${active ? "border-emerald-600 bg-emerald-50" : "border-slate-200 bg-white"}`}>
-                      <HStack className="items-start justify-between">
-                        <VStack className="mr-4 flex-1" space="xs">
-                          <HStack className="items-center" space="xs">
-                            <Text className="text-lg font-bold text-typography-900">{plan.name || "Health plan"}</Text>
-                            {current ? <Text className="text-xs font-semibold text-emerald-700">CURRENT</Text> : null}
+              <HStack className="gap-2">
+                {availablePlanCategories.map((category) => {
+                  const active = category === selectedPlanCategory;
+                  return (
+                    <TouchableOpacity
+                      key={category}
+                      onPress={() => {
+                        setSelectedPlanCategory(category);
+                        setSelectedPlan(null);
+                        setPeopleCount(1);
+                        setGateways([]);
+                        setSelectedGateway("");
+                        setError("");
+                      }}
+                      className={`flex-1 items-center rounded-full border px-4 py-3 ${
+                        active ? "border-emerald-700 bg-emerald-700" : "border-slate-200 bg-white"
+                      }`}
+                    >
+                      <Text className={active ? "font-semibold text-white" : "font-semibold text-typography-600"}>
+                        {category === "geriatric" ? "Geriatric" : "Retail"}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </HStack>
+
+              {visiblePlanGroups.length === 0 ? (
+                <Box className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 p-6">
+                  <Text className="text-center font-semibold text-typography-700">No plans in this category yet.</Text>
+                  <Text className="mt-1 text-center text-sm text-typography-500">
+                    Check the other category or try again later.
+                  </Text>
+                </Box>
+              ) : null}
+
+              {visiblePlanGroups.map((group) => (
+                <Box key={group.id} className="rounded-[24px] border border-slate-200 bg-white p-5">
+                  <Text className="text-xl font-bold text-typography-900">{group.name}</Text>
+                  <Text className="mt-1 text-sm leading-5 text-typography-500">{group.description}</Text>
+                  <Text className="mt-2 text-xs font-semibold uppercase tracking-wider text-emerald-700">
+                    {group.cycleLabel}
+                  </Text>
+                  <VStack className="mt-4" space="sm">
+                    {group.rows.map(({ label, plan }) => {
+                      const active = selectedPlan?.id === plan.id;
+                      const current = currentSubscription?.planId === plan.id;
+                      return (
+                        <TouchableOpacity
+                          key={plan.id}
+                          onPress={() => void choosePlan(plan)}
+                          activeOpacity={0.8}
+                          className={`rounded-2xl border px-4 py-4 ${
+                            active ? "border-emerald-600 bg-emerald-50" : "border-slate-200 bg-slate-50"
+                          }`}
+                        >
+                          <HStack className="items-center justify-between" space="sm">
+                            <VStack className="flex-1" space="xs">
+                              <HStack className="items-center" space="xs">
+                                <Text className="font-semibold text-typography-900">{label}</Text>
+                                {current ? <Text className="text-xs font-semibold text-emerald-700">CURRENT</Text> : null}
+                              </HStack>
+                              <Text className="text-lg font-bold text-emerald-800">
+                                {formatMoney(plan.amount, plan.currency)}
+                              </Text>
+                            </VStack>
+                            <Box className={`h-5 w-5 rounded-full border-2 ${active ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"}`} />
                           </HStack>
-                          <Text className="text-sm leading-5 text-typography-500">{plan.description || `${plan.planCycle || "Annual"} health cover`}</Text>
-                          <Text className="mt-2 text-xl font-bold text-emerald-800">{formatMoney(plan.amount, plan.currency)}</Text>
-                        </VStack>
-                        <Box className={`h-5 w-5 rounded-full border-2 ${active ? "border-emerald-600 bg-emerald-600" : "border-slate-300"}`} />
-                      </HStack>
-                    </Box>
-                  </TouchableOpacity>
-                );
-              })}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </VStack>
+                </Box>
+              ))}
+
               {selectedPlan ? (
                 <>
+                  {selectedPlanIsIndividual ? (
+                    <Box className="rounded-[24px] border border-primary-100 bg-primary-50 p-5">
+                      <HStack className="items-center justify-between" space="md">
+                        <VStack className="flex-1" space="xs">
+                          <Text className="font-bold text-typography-900">People to cover</Text>
+                          <Text className="text-sm leading-5 text-typography-600">
+                            Includes you and {selectedDependentCount} {selectedDependentCount === 1 ? "dependent" : "dependents"}.
+                          </Text>
+                          <Text className="mt-1 text-sm text-typography-600">
+                            Total: <Text className="font-bold text-primary-800">{formatMoney(selectedPlanTotal, selectedPlan.currency)}</Text>
+                          </Text>
+                        </VStack>
+                        <HStack className="items-center">
+                          <TouchableOpacity
+                            accessibilityLabel="Remove one person"
+                            disabled={peopleCount <= 1}
+                            onPress={() => setPeopleCount((current) => Math.max(1, current - 1))}
+                            className={`h-10 w-10 items-center justify-center rounded-l-xl border border-primary-200 bg-white ${peopleCount <= 1 ? "opacity-40" : ""}`}
+                          >
+                            <Minus color="#1e40af" size={18} />
+                          </TouchableOpacity>
+                          <Box className="h-10 min-w-11 items-center justify-center border-y border-primary-200 bg-white px-3">
+                            <Text className="font-bold text-typography-900">{peopleCount}</Text>
+                          </Box>
+                          <TouchableOpacity
+                            accessibilityLabel="Add one person"
+                            disabled={peopleCount >= maximumPeopleCount}
+                            onPress={() => setPeopleCount((current) => Math.min(maximumPeopleCount, current + 1))}
+                            className={`h-10 w-10 items-center justify-center rounded-r-xl border border-primary-200 bg-white ${peopleCount >= maximumPeopleCount ? "opacity-40" : ""}`}
+                          >
+                            <Plus color="#1e40af" size={18} />
+                          </TouchableOpacity>
+                        </HStack>
+                      </HStack>
+                    </Box>
+                  ) : null}
+
+                  <Box className="rounded-2xl bg-slate-50 p-4">
+                    <Text className="text-xs font-semibold uppercase tracking-wider text-typography-500">Selected option</Text>
+                    <Text className="mt-1 font-semibold text-typography-900">
+                      {getSubscriptionVariantLabel(selectedPlan)}{selectedPlanIsIndividual ? ` × ${peopleCount}` : ""} · {formatMoney(selectedPlanTotal, selectedPlan.currency)}
+                    </Text>
+                  </Box>
+
                   <Text className="text-lg font-bold text-typography-900">Payment method</Text>
                   {gateways.length === 0 ? (
                     <Text className="text-sm text-typography-500">No payment gateway is currently available for {selectedPlan.currency || "this currency"}.</Text>
@@ -890,7 +1069,7 @@ export default function More() {
                   <TouchableOpacity onPress={() => void handleSubscriptionPayment()} disabled={isSaving || !selectedGateway} className="mt-2 items-center rounded-2xl bg-emerald-700 py-4">
                     {isSaving ? <ActivityIndicator color="#ffffff" /> : (
                       <Text className="font-semibold text-white">
-                        {currentSubscription?.planId === selectedPlan.id ? "Renew subscription" : "Change plan and pay"}
+                        {currentSubscription?.planId === selectedPlan.id ? "Renew subscription" : "Change plan and pay"} · {formatMoney(selectedPlanTotal, selectedPlan.currency)}
                       </Text>
                     )}
                   </TouchableOpacity>

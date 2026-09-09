@@ -32,6 +32,8 @@ function planSummary(plan) {
         amount: Number(value.annualPremiumPrice || 0),
         currency: value.currency || 'NGN',
         allowDependentEnrolee: Boolean(value.allowDependentEnrolee),
+        ageLimit: value.ageLimit ?? null,
+        dependentAgeLimit: value.dependentAgeLimit ?? null,
         maxNumberOfDependents: value.maxNumberOfDependents || 0
     };
 }
@@ -114,7 +116,7 @@ async function listGateways(req, res, next) {
 async function createCheckout(req, res, next) {
     try {
         if (!ensureRetailEnrollee(req, res)) return;
-        const { planId, gateway } = req.body || {};
+        const { planId, gateway, dependentCount } = req.body || {};
         if (!planId) return res.fail('`planId` is required', 400);
         if (!gateway) return res.fail('`gateway` is required', 400);
 
@@ -138,24 +140,35 @@ async function createCheckout(req, res, next) {
         const eligibility = checkoutHelpers.validateDateOfBirthForPlan(enrollee.dateOfBirth, plan);
         if (eligibility.error) return res.fail(eligibility.error, 400);
 
+        const dependentSelection = checkoutHelpers.resolveMaxDependentsForPurchase(plan, dependentCount);
+        if (dependentSelection.error) return res.fail(dependentSelection.error, 400);
+        const checkoutPlan = checkoutHelpers.applyPurchaseQuantity(
+            plan,
+            dependentSelection.maxDependents
+        );
+
         const items = await checkoutHelpers.getActiveGatewayIntegrations(req.models.Integration);
         const selected = checkoutHelpers.chooseIntegration(items, String(gateway).toLowerCase());
         if (!selected) return res.fail('Selected payment gateway is not available', 400);
 
         const checkout = selected.provider === 'flutterwave'
-            ? await checkoutHelpers.createFlutterwaveCheckout(req, selected.integration, plan, {
+            ? await checkoutHelpers.createFlutterwaveCheckout(req, selected.integration, checkoutPlan, {
                 firstName: enrollee.firstName,
                 lastName: enrollee.lastName,
                 email: enrollee.email,
                 phoneNumber: enrollee.phoneNumber
             })
             : selected.provider === 'paypal'
-                ? await checkoutHelpers.createPaypalCheckout(req, selected.integration, plan)
-                : await checkoutHelpers.createStripeCheckout(req, selected.integration, plan);
+                ? await checkoutHelpers.createPaypalCheckout(req, selected.integration, checkoutPlan)
+                : await checkoutHelpers.createStripeCheckout(req, selected.integration, checkoutPlan);
 
         return res.success({
             gateway: selected.provider,
-            plan: planSummary(plan),
+            plan: {
+                ...planSummary(checkoutPlan),
+                dependentCount: dependentSelection.maxDependents,
+                peopleCount: checkoutPlan.peopleCount
+            },
             ...checkout
         }, 'Subscription checkout created');
     } catch (err) {
@@ -166,7 +179,14 @@ async function createCheckout(req, res, next) {
 async function completeCheckout(req, res, next) {
     try {
         if (!ensureRetailEnrollee(req, res)) return;
-        const { planId, gateway, checkoutReference, transactionId, mode = 'renew' } = req.body || {};
+        const {
+            planId,
+            gateway,
+            checkoutReference,
+            transactionId,
+            mode = 'renew',
+            dependentCount
+        } = req.body || {};
         if (!planId) return res.fail('`planId` is required', 400);
         if (!gateway) return res.fail('`gateway` is required', 400);
         if (!checkoutReference) return res.fail('`checkoutReference` is required', 400);
@@ -204,6 +224,13 @@ async function completeCheckout(req, res, next) {
         const eligibility = checkoutHelpers.validateDateOfBirthForPlan(enrollee.dateOfBirth, plan);
         if (eligibility.error) return res.fail(eligibility.error, 400);
 
+        const dependentSelection = checkoutHelpers.resolveMaxDependentsForPurchase(plan, dependentCount);
+        if (dependentSelection.error) return res.fail(dependentSelection.error, 400);
+        const expectedAmount = checkoutHelpers.getPurchaseAmount(
+            plan,
+            dependentSelection.maxDependents
+        );
+
         const items = await checkoutHelpers.getActiveGatewayIntegrations(Integration);
         const selected = checkoutHelpers.chooseIntegration(items, String(gateway).toLowerCase());
         if (!selected) return res.fail('Selected payment gateway is not available', 400);
@@ -211,16 +238,16 @@ async function completeCheckout(req, res, next) {
         const payment = selected.provider === 'flutterwave'
             ? await checkoutHelpers.verifyFlutterwavePayment(selected.integration, transactionId, {
                 checkoutReference,
-                expectedAmount: checkoutHelpers.getPlanAmount(plan),
+                expectedAmount,
                 expectedCurrency: plan.currency || 'NGN',
                 expectedPlanId: plan.id,
-                expectedEmail: enrollee.email
+                expectedEmail: enrollee.email,
+                expectedDependentCount: dependentSelection.maxDependents
             })
             : selected.provider === 'paypal'
                 ? await checkoutHelpers.capturePaypalPayment(selected.integration, checkoutReference)
                 : await checkoutHelpers.verifyStripePayment(selected.integration, checkoutReference);
 
-        const expectedAmount = checkoutHelpers.getPlanAmount(plan);
         if (payment.currency && String(payment.currency).toUpperCase() !== String(plan.currency || 'NGN').toUpperCase()) {
             return res.fail('Payment currency does not match the selected plan', 400);
         }
@@ -276,9 +303,7 @@ async function completeCheckout(req, res, next) {
                     ? subscriptionStartDate
                     : enrollee.subscriptionStartDate,
                 subscriptionEndDate,
-                maxDependents: plan.allowDependentEnrolee
-                    ? plan.maxNumberOfDependents
-                    : 0,
+                maxDependents: dependentSelection.maxDependents,
                 isActive: true
             }, { transaction });
 

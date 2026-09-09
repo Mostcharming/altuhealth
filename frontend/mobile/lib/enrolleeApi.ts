@@ -168,6 +168,7 @@ export type Profile = {
   picture?: string;
   pictureUrl?: string;
   type?: string;
+  maxDependents?: number | null;
   dependentVisitNotificationsEnabled?: boolean | null;
   requiresDependentVisitSetup?: boolean;
 };
@@ -217,6 +218,8 @@ export type SubscriptionPlan = {
   amount?: number;
   currency?: string;
   allowDependentEnrolee?: boolean;
+  ageLimit?: number | null;
+  dependentAgeLimit?: number | null;
   maxNumberOfDependents?: number;
 };
 
@@ -580,6 +583,7 @@ export async function createSubscriptionCheckout(data: {
   planId: string;
   gateway: string;
   returnUrl: string;
+  dependentCount?: number;
 }) {
   return getData<{
     gateway: string;
@@ -595,6 +599,7 @@ export async function completeSubscriptionCheckout(data: {
   checkoutReference: string;
   transactionId?: string | null;
   mode: "renew" | "change";
+  dependentCount?: number;
 }) {
   return getData<{ subscription: RetailSubscription }>(
     await apiClient("/enrollee/subscriptions/complete", { method: "POST", body: data })

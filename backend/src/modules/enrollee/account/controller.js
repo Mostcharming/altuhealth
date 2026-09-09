@@ -75,6 +75,7 @@ const updateProfile = () => async (req, res, next) => {
             lga: user.lga || null,
             postalCode: user.postalCode || null,
             type: req.user.type,
+            maxDependents: user.maxDependents ?? null,
             dependentVisitNotificationsEnabled: user.dependentVisitNotificationsEnabled
         };
 
@@ -149,6 +150,7 @@ const getProfile = () => async (req, res, next) => {
             lga: user.lga || null,
             postalCode: user.postalCode || null,
             type: req.user.type,
+            maxDependents: user.maxDependents ?? null,
             dependentVisitNotificationsEnabled: user.dependentVisitNotificationsEnabled,
             requiresDependentVisitSetup: user.dependentVisitNotificationsEnabled === null
         };
